@@ -1,6 +1,4 @@
-# random notes
-
-## ubus commands
+# ubus commands
 
 ### receive release information
 
