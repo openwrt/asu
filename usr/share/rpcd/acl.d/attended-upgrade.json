@@ -1,0 +1,15 @@
+{
+	"upgrade": {
+		"description": "Firmware upgrade",
+		"read": {
+			"ubus": {
+				"installed": [
+					"getInstalledPkgs"
+				], 
+				"system": [
+					"board"
+				]
+			}
+		}
+	}
+}
