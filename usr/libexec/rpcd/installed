@@ -4,7 +4,12 @@
 
 case "$1" in
 	list)
-		echo "listo"
+		json_init
+
+		json_add_object "getInstalledPkgs"
+		json_close_object
+
+		json_dump
 	;;
 	call)
 		case "$2" in
