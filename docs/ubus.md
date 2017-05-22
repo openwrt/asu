@@ -21,6 +21,25 @@
 }
 ```
 
+Same call on a different machine
+```
+{
+	"kernel": "4.4.61",
+	"hostname": "wurze2-5",
+	"system": "Atheros AR9344 rev 2",
+	"model": "TP-Link CPE510 v1.1",
+	"release": {
+		"distribution": "LEDE",
+		"version": "17.01.1",
+		"revision": "r3316-7eb58cf109",
+		"codename": "reboot",
+		"target": "ar71xx\/generic",
+		"description": "LEDE Reboot 17.01.1 r3316-7eb58cf109"
+	}
+}
+```
+
+
 ### reveive user installed packages
 	
 	ubus call installed getInstalledPkgs
