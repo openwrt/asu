@@ -1,0 +1,15 @@
+{
+	"auto-upgrade": {
+		"description": "Attended firmware upgrade",
+		"read": {
+			"ubus": {
+				"installed": [
+					"getInstalledPkgs"
+				], 
+				"system": [
+					"board"
+				]
+			}
+		}
+	}
+}
