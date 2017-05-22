@@ -18,6 +18,7 @@ class Image():
         self.packages = packages
         self.pkgHash = self.getPkgHash()
         self.name = self.profile + "-" + self.pkgHash +  ".img"
+        # using lede naming convention
         self.name = "-".join([distro, version, self.pkgHash, target, subtarget, profile, "squashfs", "sysupgrade.bin"])
         self.path = os.path.join("download", self.distro, self.version, self.target, self.subtarget, self.name)
    
@@ -53,7 +54,7 @@ class Image():
 
         cmdline = ["make", "image"]
         cmdline.append("PROFILE=%s" % self.profile)
-        cmdline.append("PACKAGES='%s'" % " ".join(self.packages))
+        cmdline.append("PACKAGES=%s" % " ".join(self.packages))
         cmdline.append("BIN_DIR=%s" % os.path.abspath(buildPath))
         cmdline.append("EXTRA_IMAGE_NAME=%s" % self.pkgHash)
 
@@ -68,21 +69,24 @@ class Image():
             stderr=subprocess.STDOUT
         )
 
-        out, _ = proc.communicate()
-        ret = proc.returncode
-        print(ret)
+        output, erros = proc.communicate()
+        returnCode = proc.returncode
+        if returnCode == 0:
+            logging.info("build successfull")
+        else:
+            #print(output.decode('utf-8'))
+            logging.info("build failed")
 
     # check if image exists
     def created(self):
         # created images will be stored in downloads.lede-project.org like paths
-        # ./lede/17.01.1/ar71xx/wr841-v1.5-6c7e907d06da.img
         # the package should always be a sysupgrade
         logging.info("check path %s", self.path)
         return os.path.exists(self.path)
 
 
 if __name__ == "__main__":
-    packages =  ["vim"]
+    packages =  ["vim", "syslog-ng"]
     logging.info("started logger")
-    image = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wr841-v11", packages)
+    image = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
     print(image.get())
