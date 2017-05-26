@@ -1,4 +1,4 @@
-GSoC 2017 - Attended Sysupgrades
+# GSoC 2017 - Attended Sysupgrades
 
 Hello, my name is Paul Spooren and I'll be working on attended sysupgrades this Google Summer of Code. I'm 24 years old and studying computer science at the university of Leipzig. With this blog post I try to explain my project, the advantages and it's challenges.
 
