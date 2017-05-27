@@ -98,6 +98,12 @@ The replacement table could be implemented as followed:
 
 For better readability the `yaml` format could be preferred. 
 
+LibreMesh introduced a simple way to manage community specific configurations[^limeconfigs]. This configuration method is flexible for other communities as well and should be integrated into the update server. A optional parameter could contain the profile name which will be auto integrated into new images.
+
+	"community": "quintanalibre.org.ar/comun/",
+
+The parameter could also contain a full domain with leads to the needed files, this feature need more evaluation.
+
 ## Possible features
 
 * The current design is an attended upgrade triggered by and dependent on the web interface. A feature could be to add logic to the command line as well.
@@ -105,6 +111,11 @@ For better readability the `yaml` format could be preferred.
 * Once the sysupgrade is possible via shell, an unattended sysupgrade would be possible. A testing and a release channel could enable unattended upgrades for tested images (device specific) only. If an image works after an attended upgrade it could be tagged and offered via the release channel.
 
 * Mesh protocols may change and outdated routers loose connectivity. A possible solution to upgrade the devices losing contact could be to automatically login the outdated routers to updated routers open access points, perform an update and reconnect to the mesh.
+
+## Final Thoughts?
+
+All thoughts above are not final and are more likely an RFC. I'm very happy to receive comments and critic. My goal is to have an generic update service where all communities and LEDE/OpenWRT itself can benefit from.
+Feel free to contact me at paul [a-t) spooren (do-t] de or on freenode/matrix as aparcar.
 
 [^libremesh]: https://libremeshorg
 [^captiveportals]: https://wiki.freifunk.net/ideas#LibreMesh_Captive_Portal_and_Access_Control
@@ -114,3 +125,5 @@ For better readability the `yaml` format could be preferred.
 [^imagebuilder]: https://github.com/lede-project/source/tree/master/target/imagebuilder
 [^limefeed]: https://github.com/libremesh/lime-packages.git
 [^opkg]: https://lede-project.org/docs/user-guide/opkg
+[^cooker]: 
+[^limeconfigs]: https://github.com/libremesh/network-profiles
