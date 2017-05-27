@@ -11,7 +11,7 @@ The main shortcomings where the following:
 
 Discussing what has generic use to OpenWRT/LEDE and LibreMesh we came up with the topic of a simple sysupgrade solution and fixed on that.
 
-# What are attended sysupgrades?
+## What are attended sysupgrades?
 
 Performing updates on routers is quite different from full Linux distribution. It's not always sustainable to do release upgrade via a packet manager. Instead it's usually required to re-flash the system image. Depending on the installed packages an image rebuild may be to complex for regular users. A more convenient way is needed.
 
