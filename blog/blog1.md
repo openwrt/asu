@@ -125,5 +125,5 @@ Feel free to contact me at paul [a-t) spooren (do-t] de or on freenode/matrix as
 [^imagebuilder]: https://github.com/lede-project/source/tree/master/target/imagebuilder
 [^limefeed]: https://github.com/libremesh/lime-packages.git
 [^opkg]: https://lede-project.org/docs/user-guide/opkg
-[^cooker]: 
+[^cooker]: https://github.com/libremesh/lime-sdk/
 [^limeconfigs]: https://github.com/libremesh/network-profiles
