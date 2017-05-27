@@ -18,12 +18,16 @@ Performing updates on routers is quite different from full Linux distribution. I
 The main idea is to provide a simple function within the web interface to automatically download a custom sysupgrade-image with all currently installed packages preinstalled. 
 An opt-in option would check for new releases and notify via luci(-ng)[^luci][^lucing] or command line.
 
-# How does it work?
+This approach would also help to upgrade a router without full computer hardware. The web interface can be accessed from mobile phones and as no complicated image downloading is required all users can perform sysupgrades on their own.
+
+Distributions like LibreMesh may have a more frequent package release cycle and devices may don't offer `opkg`[^opkg] due to limited flash storage. The simple sysupgrade approach could be used as a `opkg` replacement for these special cases and keep devices up to date.
+
+## How does it work?
 
 The web interface will have a new menu entry called "Attended Upgrade". The page send the currently installed release to the server and checks it response. If an upgrade is available a notification will be shown. A click on the download button sends a request to the server and downloads the image. Another click uses the sysupgrade mechanism and installs the image. After reboot the system should run as excepted with all before installed packages included.
 
 This project will implement an "image as a service" server side which provides custom build images depending on installed packages. A JSON API will enable routers to send requests for custom images. Build images will be stored and reused for other requests with the same package selection and device model.
-A scheduling system will manage all builds and save the server from overload. Created images will be stored by a priority queue system so most requested combination are always in cache. 
+A simple FIFO queue will manage all builds requests. Created images will be stored by priority queue system so most requested combination are always in cache. 
 
 ## Challenges
 
@@ -35,7 +39,7 @@ A scheduling system will manage all builds and save the server from overload. Cr
 
 The main logic will happen within the browser and so can use secure HTTPS to communicate with the update server. The users browser communicates between router and upgrade server.
 
-Once opened the upgrade view will ask the router via an `rpcd`[^rpcd] call to receive the installed release and send the version to the update server. If a new release exists the web interface will perform another `rpcd` request to get details of the device, installed packages and flash storage. The information are then combined and send as an JSON request to the update server as an image request.
+Once opened the upgrade view will ask the router via an `rpcd`[^rpcd] call to receive the installed release and send the version to the update server as an *update availability request*. The server will answer with an *update availability response* containing information about the update if exists or a simple status 204 (No Content) code. If a new release exists the web interface will perform another `rpcd` request to get details of the device, installed packages versions and flash storage. The information are then combined and send as an JSON request to the update server as an *image request*.
 
 The image requests would look something like this:
 
@@ -53,12 +57,11 @@ The image requests would look something like this:
 		]
 	}
 
-Once the update server received the request it will check if the image was created before. If so it will deliver the update image straight away. If the request was done for the first time a couple of checks will be done if the image can be created. If all checks pass the wrapper around the LEDE ImageBuilder[^imagebuilder] will be scheduled and the build process is polled by the web interface. One created a download link is provided. 
+Once the update server received the request it will check if the image was created before. If so it will deliver the update image straight away. If the request (meaning device and package combination) was done for the first time a couple of checks will be done if the image can be created. If all checks pass the wrapper around the LEDE ImageBuilder[^imagebuilder] will be queued and a build status API is polled by the web interface. Once created a download link is provided. 
 
-In the unlikely event of an unsolvable package problem the replacement table can't fix itself the user will be asked to choose from a list. The new combination of packages will be send to the server as a new request resulting in an sysupgrade image.
+In the unlikely event of an unsolvable package problem the replacement table can't fix itself the user will be asked to choose from a list. The new combination of packages will be send to the server as a new request resulting in an sysupgrade image. This approach still needs some evaluation if utilizable and really needed.
 
 Using the ImageBuilder offers an generic way to offer sysupgrades for different distribution. The image builder feeds can be extended to include distribution specific packages like LibreMesh package feed[^limefeed]
-
 
 The replacement table could be implemented as followed:
 
@@ -110,3 +113,4 @@ For better readability the `yaml` format could be preferred.
 [^rpcd]: https://lede-project.org/docs/guide-developer/rpcd
 [^imagebuilder]: https://github.com/lede-project/source/tree/master/target/imagebuilder
 [^limefeed]: https://github.com/libremesh/lime-packages.git
+[^opkg]: https://lede-project.org/docs/user-guide/opkg
