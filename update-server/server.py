@@ -22,12 +22,18 @@ def downloadImage(imageHash):
 
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
-@app.route("/request-image", methods=['GET', 'POST'])
+@app.route("/request-image", methods=['GET', 'POST', 'PUT'])
 def requstImage():
     if request.method == 'POST':
-        return(request.form['release'])
+        jsonOutput = request.get_json()
+
+        return jsonOutput["subtarget"]
+        
+        return("foo")
+        
         #return send_from_directory(directory=uploads, filename=filename)
     else:
+        return("get")
         return(request.args.get('release'))
     pass
 
@@ -36,6 +42,9 @@ def requstImage():
 @app.route("/")
 def rootPath():
     return "update server running"
+
+def updatePackages(version, packages):
+    pass
 
 if __name__ == "__main__":
     app.run()

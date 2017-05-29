@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 import logging
 import hashlib
 import os
@@ -17,9 +19,17 @@ class Image():
         self.profile = profile
         self.packages = packages
         self.pkgHash = self.getPkgHash()
-        self.name = self.profile + "-" + self.pkgHash +  ".img"
         # using lede naming convention
-        self.name = "-".join([distro, version, self.pkgHash, target, subtarget, profile, "squashfs", "sysupgrade.bin"])
+        path_array = [distro, version, self.pkgHash, target, subtarget]
+        if profile:
+            path_array.append(profile)
+
+        if target != "x86":
+            path_array.append("sysupgrade.bin")
+        else:
+            path_array.append("sysupgrade.img")
+
+        self.name = "-".join(path_array)
         self.path = os.path.join("download", self.distro, self.version, self.target, self.subtarget, self.name)
    
     # returns the path of the created image
@@ -48,34 +58,41 @@ class Image():
         logging.info("use imagebuilder at %s", ibPath)
 
         buildPath = os.path.dirname(self.path)
-        if not os.path.exists(buildPath):
-            logging.info("create self path %s", self.path)
-            os.makedirs(os.path.dirname(buildPath))
+        with tempfile.TemporaryDirectory() as buildPath:
+    #        print(buildPath)
+    #        if not os.path.exists(buildPath):
+    #            logging.info("create self path %s", buildPath)
+    #            os.makedirs(os.path.dirname(buildPath))
 
-        cmdline = ["make", "image"]
-        cmdline.append("PROFILE=%s" % self.profile)
-        cmdline.append("PACKAGES=%s" % " ".join(self.packages))
-        cmdline.append("BIN_DIR=%s" % os.path.abspath(buildPath))
-        cmdline.append("EXTRA_IMAGE_NAME=%s" % self.pkgHash)
+            cmdline = ["make", "image"]
+            cmdline.append("PROFILE=%s" % self.profile)
+            cmdline.append("PACKAGES=%s" % " ".join(self.packages))
+            #cmdline.append("BIN_DIR=%s" % os.path.abspath(buildPath))
+            cmdline.append("BIN_DIR=%s" % buildPath)
+            cmdline.append("EXTRA_IMAGE_NAME=%s" % self.pkgHash)
 
-        logging.info("start build: %s", cmdline)
-        print(" ".join(cmdline))
+            logging.info("start build: %s", cmdline)
+            print(" ".join(cmdline))
 
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=ibPath,
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT
-        )
+            proc = subprocess.Popen(
+                cmdline,
+                cwd=ibPath,
+                stdout=subprocess.PIPE,
+                shell=False,
+                stderr=subprocess.STDOUT
+            )
 
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
-        if returnCode == 0:
-            logging.info("build successfull")
-        else:
-            #print(output.decode('utf-8'))
-            logging.info("build failed")
+            output, erros = proc.communicate()
+            returnCode = proc.returncode
+            if returnCode == 0:
+                for sysupgrade in os.listdir(buildPath):
+                    if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
+                        logging.info("move %s to %s", sysupgrade, self.path)
+                        shutil.move(os.path.join(buildPath, sysupgrade), self.path)
+                logging.info("build successfull")
+            else:
+                print(output.decode('utf-8'))
+                logging.info("build failed")
 
     # check if image exists
     def created(self):
@@ -85,8 +102,14 @@ class Image():
         return os.path.exists(self.path)
 
 
+# todo move stuff to tmp and only move sysupgrade file
+# usign für python ansehen
 if __name__ == "__main__":
     packages =  ["vim", "syslog-ng"]
     logging.info("started logger")
     image = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
-    print(image.get())
+    image.get()
+    image2 = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wr841-v11", packages)
+    image3 = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wr841-v11", ["vim"])
+    image4 = Image("lede", "17.01.1", "x86", "64", "", [])
+    image4.get()
