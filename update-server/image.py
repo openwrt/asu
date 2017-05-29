@@ -81,9 +81,10 @@ class Image():
         buildPath = os.path.dirname(self.path)
         with tempfile.TemporaryDirectory() as buildPath:
     #        print(buildPath)
-    #        if not os.path.exists(buildPath):
-    #            logging.info("create self path %s", buildPath)
-    #            os.makedirs(os.path.dirname(buildPath))
+
+            if not os.path.exists(os.path.dirname(self.path)):
+                logging.info("create self path %s", self.path)
+                os.makedirs(os.path.dirname(self.path))
 
             cmdline = ["make", "image"]
             cmdline.append("PROFILE=%s" % self.profile)
@@ -92,8 +93,7 @@ class Image():
             cmdline.append("BIN_DIR=%s" % buildPath)
             cmdline.append("EXTRA_IMAGE_NAME=%s" % self.pkgHash)
 
-            logging.info("start build: %s", cmdline)
-            print(" ".join(cmdline))
+            logging.info("start build: %s", " ".join(cmdline))
 
             proc = subprocess.Popen(
                 cmdline,
@@ -109,6 +109,7 @@ class Image():
                 for sysupgrade in os.listdir(buildPath):
                     if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
                         logging.info("move %s to %s", sysupgrade, self.path)
+
                         shutil.move(os.path.join(buildPath, sysupgrade), self.path)
                 logging.info("build successfull")
             else:
