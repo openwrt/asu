@@ -15,7 +15,7 @@ case "$1" in
 		case "$2" in
 			getInstalledPkgs)
 				json_init;
-				json_add_array "installed_pkgs"
+				json_add_object "installed_pkgs"
 
 				while read var p1 p2 p3
 				do 
@@ -24,14 +24,19 @@ case "$1" in
 						pkg="$p1"
 				fi
 
+				if [ "$var" = "Version:" ]
+				then
+					version="$p1"
+				fi
+
 				if [ "$var" = "Status:" \
 					-a "$p1" = "install" \
 					-a "$p2" = "user" -a "$p3" = "installed" ] 
 					then
-						json_add_string "" "$pkg";
+						json_add_string "$pkg" "$version";
 				fi
 				done < /usr/lib/opkg/status
-				json_close_array
+				json_close_object
 				json_dump
 			;;
 		esac
