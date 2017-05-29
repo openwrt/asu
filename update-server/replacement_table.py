@@ -4,7 +4,7 @@ import json
 # distro: installed distribution
 # installedRelease: the currently installed release thats to update
 # packages: an array of all user installed packages
-def checkPackages(distro, installedRelease, packages):
+def check_packages(distro, installedRelease, packages):
     response = {}
 
     # only a dummy so far
@@ -18,5 +18,5 @@ def checkPackages(distro, installedRelease, packages):
     return response
 
 # this function will load all replacement tables
-def loadTables():
+def load_tables():
     pass

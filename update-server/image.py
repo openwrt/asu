@@ -11,27 +11,49 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class Image():
-    def __init__(self, distro, version, target, subtarget, profile, packages):
-        self.distro = distro
-        self.version = version
-        self.target = target
-        self.subtarget = subtarget
-        self.profile = profile
-        self.packages = packages
-        self.pkgHash = self.getPkgHash()
-        # using lede naming convention
-        path_array = [distro, version, self.pkgHash, target, subtarget]
-        if profile:
-            path_array.append(profile)
+    # distro
+    # version
+    # target
+    # subtarget
+    # profile
+    # packages
+    def __init__(self):
+        pass
 
-        if target != "x86":
+    def _set_path(self):
+        self.pkgHash = self.getPkgHash()
+
+        # using lede naming convention
+        path_array = [self.distro, self.version, self.pkgHash, self.target, self.subtarget]
+        if self.profile:
+            path_array.append(self.profile)
+
+        if self.target != "x86":
             path_array.append("sysupgrade.bin")
         else:
             path_array.append("sysupgrade.img")
 
         self.name = "-".join(path_array)
         self.path = os.path.join("download", self.distro, self.version, self.target, self.subtarget, self.name)
+
+    def request_variables(self, distro, version, target, subtarget, profile, packages):
+        self.distro = distro.lower()
+        self.version = version
+        self.target = target
+        self.subtarget = subtarget
+        self.profile = profile
+        self.packages = packages
+        self._set_path()
    
+    def request_params(self, params):
+        self.distro = params["distro"].lower()
+        self.version = params["version"]
+        self.target = params["target"]
+        self.subtarget = params["subtarget"]
+        self.profile = params["profile"]
+        self.packages = params["packages"]
+        self._set_path()
+
     # returns the path of the created image
     def get(self):
         if not self.created():
@@ -40,7 +62,6 @@ class Image():
         else:
             print("Heureka!")
         return self.path
-
 
     # generate a hash of the installed packages
     def getPkgHash(self):
@@ -105,11 +126,11 @@ class Image():
 # todo move stuff to tmp and only move sysupgrade file
 # usign für python ansehen
 if __name__ == "__main__":
-    packages =  ["vim", "syslog-ng"]
+    packages =  ["rpcd"]
     logging.info("started logger")
-    image = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
-    image.get()
-    image2 = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wr841-v11", packages)
-    image3 = Image("lede", "17.01.1", "ar71xx", "generic", "tl-wr841-v11", ["vim"])
-    image4 = Image("lede", "17.01.1", "x86", "64", "", [])
-    image4.get()
+    image_ar71 = Image()
+    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
+    image_x86 = Image()
+    image_x86.request_variables("lede", "17.01.1", "x86", "64", "", packages)
+    image_ar71.get()
+    image_x86.get()
