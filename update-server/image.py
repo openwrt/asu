@@ -224,6 +224,8 @@ def create_folder(folder):
         return False
 
 if __name__ == "__main__":
+    database = Database()
+
     packages =  ["rpcd"]
     logging.info("started logger")
     image_ar71 = Image()
@@ -233,12 +235,19 @@ if __name__ == "__main__":
     image_ar71.get()
     image_x86.get()
     imagebuilder_old = ImageBuilder("lede", "17.01.0", "ar71xx", "generic")
+    imagebuilder_x86 = ImageBuilder("lede", "17.01.1", "x86", "64")
+    profiles_data = imagebuilder_x86.parse_profiles()
+    packages = imagebuilder_x86.parse_packages()
+    print("found %i profiles " % len(profiles_data[1]))
+    print("found %i packages " % len(packages))
+    database.insert_profiles(imagebuilder_x86.target, imagebuilder_x86.subtarget, profiles_data)
+    database.insert_packages(imagebuilder_x86.target, imagebuilder_x86.subtarget, packages)
 
     profiles_data = imagebuilder_old.parse_profiles()
-    print("found %i profiles " % len(profiles_data[1]))
     packages = imagebuilder_old.parse_packages()
+    print("found %i profiles " % len(profiles_data[1]))
     print("found %i packages " % len(packages))
 
-    database = Database()
     database.insert_profiles(imagebuilder_old.target, imagebuilder_old.subtarget, profiles_data)
     database.insert_packages(imagebuilder_old.target, imagebuilder_old.subtarget, packages)
+

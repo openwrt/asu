@@ -48,6 +48,14 @@ class Database():
             self.c.execute(sql, *package, target, subtarget)
 
         self.commit()
+    
+    def insert_target(self, target, subtargets):
+        logging.info("insert %s/%s ", target, " ".join(subtargets))
+        sql = "REPLACE INTO targets (target, subtarget) VALUES (?, ?)"
+        for subtarget in subtargets:
+            self.c.execute(sql, target, subtarget)
+
+        self.commit()
 
 
 if __name__ == "__main__":
