@@ -57,10 +57,30 @@ class Database():
 
         self.commit()
 
+    def check_target(self, target, subtarget):
+        logging.debug("check for %s/%s", target, subtarget)
+        self.c.execute("""SELECT EXISTS(
+            SELECT 1 FROM targets 
+            WHERE target=? AND subtarget = ? 
+            LIMIT 1);""",
+            target, subtarget)
+        if self.c.fetchone()[0]:
+            return True
+        else:
+            logging.info("check fail for %s/%s", target, subtarget)
+            return False
+
+    # just a dummy for now
+    def check_packages(self, target, subtarget, packages):
+        logging.debug("check packages %s", packages)
+        return packages
+        
+
+
+
 
 if __name__ == "__main__":
     db = Database()
     db.create_tables()
-    db.update_package("zsh", "0.1", 100)
-    db.update_package("bash", "0.1", 100)
-    db.commit()
+    db.check_target("ar71xx", "generic")
+    db.check_target("ar71xx", "special")
