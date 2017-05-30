@@ -1,4 +1,6 @@
 import tarfile
+from database import Database
+import re
 import shutil
 import urllib.request
 import tempfile
@@ -87,12 +89,12 @@ class Image():
 
             create_folder(os.path.dirname(self.path))
 
-            cmdline = ["make", "image"]
-            cmdline.append("PROFILE=%s" % self.profile)
-            cmdline.append("PACKAGES=%s" % " ".join(self.packages))
-            #cmdline.append("BIN_DIR=%s" % os.path.abspath(buildPath))
-            cmdline.append("BIN_DIR=%s" % buildPath)
-            cmdline.append("EXTRA_IMAGE_NAME=%s" % self.pkgHash)
+            cmdline = ['make', 'image']
+            cmdline.append('PROFILE=%s' % self.profile)
+            cmdline.append('PACKAGES="%s"' % ' '.join(self.packages))
+            #cmdline.append('BIN_DIR=%s' % os.path.abspath(buildPath))
+            cmdline.append('BIN_DIR=%s' % buildPath)
+            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkgHash)
 
             logging.info("start build: %s", " ".join(cmdline))
 
@@ -139,11 +141,10 @@ class ImageBuilder():
         logging.info("initialized imagebuilder %s", self.name)
 
     def download(self): 
-        ## tmp
+        ## will be read from config file later
         imagebuilder_url = "http://downloads.lede-project.org/releases/"
-
         ## /tmp
-        create_folder(self.path)
+        create_folder(os.path.dirname(self.path))
         imagebuilder_url_path = os.path.join(self.version, "targets", self.target, self.subtarget, self.name)
         with tempfile.TemporaryDirectory() as tar_folder:
             logging.info("downloading %s", imagebuilder_url_path)
@@ -156,8 +157,35 @@ class ImageBuilder():
             tar.close()
             shutil.move(os.path.join(tar_folder, self.name), self.path)
 
-        
-        #http://downloads.lede-project.org/releases/17.01.0/targets/ar71xx/generic/lede-imagebuilder-17.01.0-ar71xx-generic.Linux-x86_64.tar.xz
+
+    def parse_profiles(self):
+        cmdline = ['make', 'info']
+        logging.info("receive profiles for %s/%s", self.target, self.subtarget)
+
+        proc = subprocess.Popen(
+            cmdline,
+            cwd=self.path,
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT
+        )
+
+        output, erros = proc.communicate()
+        returnCode = proc.returncode
+        output = output.decode('utf-8')
+        if returnCode == 0:
+            default_packages_pattern = r"\n?.*\nDefault Packages: (.+)\n"
+            default_packages = re.match(default_packages_pattern, output, re.M).group(1)
+            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
+            profiles = re.findall(profiles_pattern, output)
+            if not profiles:
+                profiles = []
+#            print(output)
+            return(default_packages, profiles)
+
+        else:
+            logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
+
 
 
 # todo move stuff to tmp and only move sysupgrade file
@@ -165,9 +193,6 @@ class ImageBuilder():
 def create_folder(folder):
     try:
         if not os.path.exists(folder):
-            if os.path.isfile(folder):
-                folder = os.path.dirname(folder)
-
             os.makedirs(folder)
             logging.info("created folder %s", folder)
         return True
@@ -186,3 +211,9 @@ if __name__ == "__main__":
     image_x86.get()
     imagebuilder_old = ImageBuilder("lede", "17.01.0", "ar71xx", "generic")
 
+    profiles_data = imagebuilder_old.parse_profiles()
+    print("found %i profiles " % len(profiles_data[1]))
+
+
+    database = Database()
+    database.insert_profiles(imagebuilder_old.target, imagebuilder_old.subtarget, profiles_data)
