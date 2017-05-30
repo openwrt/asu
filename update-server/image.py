@@ -182,9 +182,32 @@ class ImageBuilder():
                 profiles = []
 #            print(output)
             return(default_packages, profiles)
-
         else:
             logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
+
+    def parse_packages(self):
+        cmdline = ['make', 'package_list']
+        logging.info("receive packages for %s/%s", self.target, self.subtarget)
+
+        proc = subprocess.Popen(
+            cmdline,
+            cwd=self.path,
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT
+        )
+
+        output, erros = proc.communicate()
+        returnCode = proc.returncode
+        output = output.decode('utf-8')
+        if returnCode == 0:
+            packages_pattern = r"(.+) (.+) (\d+)"
+            packages = re.findall(packages_pattern, output, re.M)
+#            print(output)
+            return(packages)
+        else:
+            logging.error("could not receive packages of %s/%s", self.target, self.subtarget)
+
 
 
 
@@ -213,7 +236,9 @@ if __name__ == "__main__":
 
     profiles_data = imagebuilder_old.parse_profiles()
     print("found %i profiles " % len(profiles_data[1]))
-
+    packages = imagebuilder_old.parse_packages()
+    print("found %i packages " % len(packages))
 
     database = Database()
     database.insert_profiles(imagebuilder_old.target, imagebuilder_old.subtarget, profiles_data)
+    database.insert_packages(imagebuilder_old.target, imagebuilder_old.subtarget, packages)

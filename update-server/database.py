@@ -41,6 +41,15 @@ class Database():
         self.c.execute("REPLACE INTO default_packages (target, subtarget, packages) VALUES (?, ?, ?)", target, subtarget, default_packages)
         self.commit()
 
+    def insert_packages(self, target, subtarget, packages):
+        logging.info("insert packages of %s/%s ", target, subtarget)
+        sql = "REPLACE INTO packages (name, version, size, target, subtarget) VALUES (?, ?, ?, ?, ?)"
+        for package in packages:
+            self.c.execute(sql, *package, target, subtarget)
+
+        self.commit()
+
+
 if __name__ == "__main__":
     db = Database()
     db.create_tables()
