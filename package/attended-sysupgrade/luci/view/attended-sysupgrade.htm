@@ -1,0 +1,30 @@
+<%+header%>
+
+<div id="test-div">Foo</div>
+
+<script type="text/javascript">
+var xmlhttp = new XMLHttpRequest();
+var url = "http://192.168.1.1/ubus/";
+var data = '{ "jsonrpc": "2.0", "id": 1, "method": "call", "params": [ "00000000000000000000000000000000", "session", "login", { "username": "root", "password": ""  } ] }'
+
+xmlhttp.open("POST", url, true);
+xmlhttp.setRequestHeader("Content-type", "application/json");
+xmlhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+        var myObj = JSON.parse(this.responseText);
+        work(myObj);
+    }
+};
+xmlhttp.send(data);
+
+function work(out) {
+    document.getElementById("test-div").innerHTML = out.result[1].ubus_rpc_session;
+}
+</script>
+
+<h2 name="content"><%:Attended Sysupgrade%></h2>
+        Initial Test<br />
+                <code><%=board%></code><br />
+
+<%+footer%>
+

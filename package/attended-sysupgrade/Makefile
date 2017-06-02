@@ -33,6 +33,15 @@ define Build/Configure
 endef
 
 define Package/attended-sysupgrade/install
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/
+	$(INSTALL_BIN) ./luci/view/attended-sysupgrade.htm $(1)/usr/lib/lua/luci/view/attended-sysupgrade.htm
+
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller/
+	$(INSTALL_BIN) ./luci/controller/attended-sysupgrade.lua $(1)/usr/lib/lua/luci/controller/attended-sysupgrade.lua
+
+	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d/
+	$(INSTALL_BIN) ./rpcd/attended-sysupgrade.json $(1)/usr/share/rpcd/acl.d/attended-sysupgrade.json
+
 	$(INSTALL_DIR) $(1)/usr/libexec/rpcd/
 	$(INSTALL_BIN) ./files/attended-sysupgrade $(1)/usr/libexec/rpcd/attended-sysupgrade
 endef

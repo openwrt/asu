@@ -1,0 +1,16 @@
+{
+	"attended-sysupgrade": {
+		"description": "Attended Sysupgrade via Luci",
+		"read": {
+			"ubus": {
+				"attended-sysupgrade": [
+					"get_installed_pkgs",
+					"get_board"
+				], 
+				"system": [
+					"board"
+				]
+			}
+		}
+	}
+}
