@@ -225,7 +225,7 @@ def create_folder(folder):
 if __name__ == "__main__":
     database = Database()
 
-    packages =  ["vim", "tmux", "screen", "attended-sysupgrade"]
+    packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci"]
     logging.info("started logger")
 #    image_ar71 = Image()
 #    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
