@@ -1,30 +1,58 @@
 <%+header%>
 
-<div id="test-div">Foo</div>
-
-<script type="text/javascript">
-var xmlhttp = new XMLHttpRequest();
-var url = "http://192.168.1.1/ubus/";
-var data = '{ "jsonrpc": "2.0", "id": 1, "method": "call", "params": [ "00000000000000000000000000000000", "session", "login", { "username": "root", "password": ""  } ] }'
-
-xmlhttp.open("POST", url, true);
-xmlhttp.setRequestHeader("Content-type", "application/json");
-xmlhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-        var myObj = JSON.parse(this.responseText);
-        work(myObj);
-    }
-};
-xmlhttp.send(data);
-
-function work(out) {
-    document.getElementById("test-div").innerHTML = out.result[1].ubus_rpc_session;
-}
-</script>
-
 <h2 name="content"><%:Attended Sysupgrade%></h2>
-        Initial Test<br />
-                <code><%=board%></code><br />
+
+<fieldset class="cbi-section">
+	<legend>System</legend>
+
+	<table width="100%" cellspacing="10">
+		<tr><td width="33%">distro</td><td><span id="distro"></span></td></tr>
+		<tr><td width="33%">version</td><td><span id="version"></span></td></tr>
+		<tr><td width="33%">board</td><td><span id="board"></span></td></tr>
+		<tr><td width="33%">target</td><td><span id="target"></td></tr>
+		<tr><td width="33%">subtarget</td><td><span id="subtarget"></td></tr>
+		<tr><td width="33%">packages</td><td><span id="packages"></td></tr>
+	</table>
+</fieldset>
 
 <%+footer%>
 
+<script type="text/javascript">
+
+ubus_rpc_session = "00000000000000000000000000000000";
+function request(command, argument, params) {
+	var data = '{ "jsonrpc": "2.0", "id": 1, "method": "call", "params": [ "'+ ubus_rpc_session +'", "' + command + '", "' + argument + '", ' + params + ' ] }'
+	var xmlhttp = new XMLHttpRequest();
+	var url = "http://192.168.1.1/ubus/";
+	xmlhttp.open("POST", url, false);
+	xmlhttp.setRequestHeader("Content-type", "application/json");
+	xmlhttp.send(data);
+	if (xmlhttp.status === 200) {
+		response = JSON.parse(xmlhttp.responseText).result[1]
+		if (argument == "login") {
+			ubus_rpc_session = response.ubus_rpc_session
+		} else {
+			return response
+		}
+	} else {
+		return '{ "error" }';
+	}
+}
+
+request("session", "login", '{ "username": "root", "password": "" }');
+packages = request("attended-sysupgrade", "get_installed_pkgs", '{  }').installed_pkgs;
+board = request("attended-sysupgrade", "get_board", '{  }').board;
+system = request("system", "board", '{  }').release;
+
+function fill(div, input) {
+    document.getElementById(div).innerHTML = JSON.stringify(input);
+}
+
+fill("distro", system.distribution)
+fill("version", system.version)
+fill("target", system.target.split("\/")[0])
+fill("subtarget", system.target.split("\/")[1])
+fill("board", board)
+fill("packages", Object.keys(packages))
+
+</script>
