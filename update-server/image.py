@@ -1,5 +1,7 @@
 import tarfile
 from database import Database
+from imagebuilder import ImageBuilder
+from util import create_folder
 import re
 import shutil
 import urllib.request
@@ -126,108 +128,21 @@ class Image():
         logging.info("check path %s", self.path)
         return os.path.exists(self.path)
 
-class ImageBuilder():
-    def __init__(self, distro, version, target, subtarget):
-        self.distro = distro
-        self.version = version
-        self.target = target
-        self.subtarget = subtarget
-        self.name = "-".join([self.distro, "imagebuilder", self.version, self.target, self.subtarget])
-        self.name += ".Linux-x86_64"
-        self.path = os.path.join("imagebuilder", self.distro, self.version, self.target, self.subtarget, self.name)
-        if not os.path.exists(os.path.join(self.path, "Makefile")):
-            logging.info("downloading imagebuilder %s", self.name)
-            self.download()
-        logging.info("initialized imagebuilder %s", self.name)
-
-    def download(self): 
-        ## will be read from config file later
-        imagebuilder_url = "http://downloads.lede-project.org/releases/"
-        ## /tmp
-        create_folder(os.path.dirname(self.path))
-        imagebuilder_url_path = os.path.join(self.version, "targets", self.target, self.subtarget, self.name)
-        with tempfile.TemporaryDirectory() as tar_folder:
-            logging.info("downloading %s", imagebuilder_url_path)
-            tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
-            full_url = os.path.join(imagebuilder_url, imagebuilder_url_path)
-            full_url += ".tar.xz"
-            urllib.request.urlretrieve(full_url, tar_path)
-            tar = tarfile.open(tar_path)
-            tar.extractall(path=tar_folder)
-            tar.close()
-            shutil.move(os.path.join(tar_folder, self.name), self.path)
-
-
-    def parse_profiles(self):
-        cmdline = ['make', 'info']
-        logging.info("receive profiles for %s/%s", self.target, self.subtarget)
-
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=self.path,
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT
-        )
-
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
-        output = output.decode('utf-8')
-        if returnCode == 0:
-            default_packages_pattern = r"\n?.*\nDefault Packages: (.+)\n"
-            default_packages = re.match(default_packages_pattern, output, re.M).group(1)
-            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
-            profiles = re.findall(profiles_pattern, output)
-            if not profiles:
-                profiles = []
-#            print(output)
-            return(default_packages, profiles)
-        else:
-            logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
-
-    def parse_packages(self):
-        cmdline = ['make', 'package_list']
-        logging.info("receive packages for %s/%s", self.target, self.subtarget)
-
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=self.path,
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT
-        )
-
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
-        output = output.decode('utf-8')
-        if returnCode == 0:
-            packages_pattern = r"(.+) (.+) (\d+)"
-            packages = re.findall(packages_pattern, output, re.M)
-#            print(output)
-            return(packages)
-        else:
-            logging.error("could not receive packages of %s/%s", self.target, self.subtarget)
-
-
-
-
 # todo move stuff to tmp and only move sysupgrade file
 # usign für python ansehen
-def create_folder(folder):
-    try:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-            logging.info("created folder %s", folder)
-        return True
-    except: 
-        logging.error("could not create %s", folder)
-        return False
 
 if __name__ == "__main__":
     database = Database()
 
+    # with some usefull tools"
     packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci"]
+
+    # builds libremesh
+    #packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci", "lime-full", "-ppp", "-dnsmasq", "-ppp-mod-pppoe", "-6relayd", "-odhcp6c", "-odhcpd", "-firewall"]
+
     logging.info("started logger")
+
+
 #    image_ar71 = Image()
 #    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
     image_x86 = Image()
