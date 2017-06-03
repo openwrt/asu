@@ -14,8 +14,8 @@
 		<tr><td width="33%">packages</td><td><span id="packages"></td></tr>
 	</table>
 </fieldset>
-<div id="tst"></div>
-<div id="tst2"></div>
+<div id="update_info"></div>
+<button onclick="update_request()" type="button" id="update_button">search for updates</button>
 
 <%+footer%>
 
@@ -56,30 +56,50 @@ function gather_facts() {
 	packages = ubus_request("attended-sysupgrade", "get_installed_pkgs", '{  }').installed_pkgs;
 	board = ubus_request("attended-sysupgrade", "get_board", '{  }').board;
 	system = ubus_request("system", "board", '{  }').release;
+	fill_table()
 }
 
 function update_request() {
-	update_request = {}
-	update_request.distro = system.distribution;
-	update_request.version = system.version;
-	update_request.target = system.target.split("\/")[0];
-	update_request.subtarget = system.target.split("\/")[1];
-	update_request.packages = packages;
-	response = server_request(update_request, "update-request")
-	document.getElementById("tst").innerHTML = JSON.stringify(response)
+	console.log("update_request")
+	update_request_dict = {}
+	update_request_dict.distro = system.distribution;
+	update_request_dict.version = system.version;
+	update_request_dict.target = system.target.split("\/")[0];
+	update_request_dict.subtarget = system.target.split("\/")[1];
+	update_request_dict.packages = packages;
+	response = server_request(update_request_dict, "update-request")
+	update_info(response)
 	/* document.getElementById("tst2").innerHTML = JSON.stringify(update_request) */
 }
 
+function update_info(data) {
+	console.log("update_info")
+	info_output = ""
+	if (data["version"] != undefined) {
+		info_output += "New Update available\n From " + system.version + " to " + data.version
+		update_button()
+	} else {
+		info_output += "Current Version is up to date"
+	}
+	document.getElementById("update_info").innerHTML = info_output
+}
+
+function update_button() {
+	document.getElementById("update_button").innerHTML = "download image"
+	document.getElementById("update_button").onclick = image_request;
+}
+
 function image_request() {
-	update_request = {}
-	update_request.distro = system.distribution;
-	update_request.version = system.version;
-	update_request.target = system.target.split("\/")[0];
-	update_request.subtarget = system.target.split("\/")[1];
-	update_request.board = board;
-	update_request.packages = packages;
-	response = server_request(update_request, "image-request")
-	document.getElementById("tst2").innerHTML = JSON.stringify(response)
+	console.log("image_request")
+	update_request_dict = {}
+	update_request_dict.distro = system.distribution;
+	update_request_dict.version = system.version;
+	update_request_dict.target = system.target.split("\/")[0];
+	update_request_dict.subtarget = system.target.split("\/")[1];
+	update_request_dict.board = board;
+	update_request_dict.packages = packages;
+	response = server_request(update_request_dict, "image-request")
+	document.getElementById("update_info").innerHTML = JSON.stringify(response)
 	/* document.getElementById("tst2").innerHTML = JSON.stringify(update_request) */
 }
 
@@ -96,8 +116,6 @@ function fill_table() {
 	fill("board", board)
 	fill("packages", Object.keys(packages))
 }
-gather_facts()
-fill_table()
-update_request()
-image_request()
+document.onload = gather_facts()
+
 </script>
