@@ -90,7 +90,8 @@ class Image():
             create_folder(os.path.dirname(self.path))
 
             cmdline = ['make', 'image']
-            cmdline.append('PROFILE=%s' % self.profile)
+            if self.target != "x86":
+                cmdline.append('PROFILE=%s' % self.profile)
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
             cmdline.append('BIN_DIR=%s' % buildPath)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkgHash)

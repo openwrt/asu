@@ -14,45 +14,90 @@
 		<tr><td width="33%">packages</td><td><span id="packages"></td></tr>
 	</table>
 </fieldset>
+<div id="tst"></div>
+<div id="tst2"></div>
 
 <%+footer%>
 
 <script type="text/javascript">
-
+update_server = "http://192.168.1.3:5000/";
 ubus_rpc_session = "00000000000000000000000000000000";
-function request(command, argument, params) {
-	var data = '{ "jsonrpc": "2.0", "id": 1, "method": "call", "params": [ "'+ ubus_rpc_session +'", "' + command + '", "' + argument + '", ' + params + ' ] }'
+
+function request(data, url) {
 	var xmlhttp = new XMLHttpRequest();
-	var url = "http://192.168.1.1/ubus/";
 	xmlhttp.open("POST", url, false);
 	xmlhttp.setRequestHeader("Content-type", "application/json");
 	xmlhttp.send(data);
 	if (xmlhttp.status === 200) {
-		response = JSON.parse(xmlhttp.responseText).result[1]
-		if (argument == "login") {
-			ubus_rpc_session = response.ubus_rpc_session
-		} else {
-			return response
-		}
+		return JSON.parse(xmlhttp.responseText);
 	} else {
-		return '{ "error" }';
+		return '{  }';
 	}
 }
 
-request("session", "login", '{ "username": "root", "password": "" }');
-packages = request("attended-sysupgrade", "get_installed_pkgs", '{  }').installed_pkgs;
-board = request("attended-sysupgrade", "get_board", '{  }').board;
-system = request("system", "board", '{  }').release;
+function server_request(data, path) {
+	url = update_server + path
+	return request(JSON.stringify(data), url);
+}
+
+function ubus_request(command, argument, params) {
+	var data = '{ "jsonrpc": "2.0", "id": 1, "method": "call", "params": [ "'+ ubus_rpc_session +'", "' + command + '", "' + argument + '", ' + params + ' ] }'
+	var url = "http://192.168.1.1/ubus/";
+	response = request(data, url).result[1]
+	if (argument == "login") {
+		ubus_rpc_session = response.ubus_rpc_session
+	} else {
+		return response
+	}
+}
+
+function gather_facts() {
+	ubus_request("session", "login", '{ "username": "root", "password": "" }');
+	packages = ubus_request("attended-sysupgrade", "get_installed_pkgs", '{  }').installed_pkgs;
+	board = ubus_request("attended-sysupgrade", "get_board", '{  }').board;
+	system = ubus_request("system", "board", '{  }').release;
+}
+
+function update_request() {
+	update_request = {}
+	update_request.distro = system.distribution;
+	update_request.version = system.version;
+	update_request.target = system.target.split("\/")[0];
+	update_request.subtarget = system.target.split("\/")[1];
+	update_request.packages = packages;
+	response = server_request(update_request, "update-request")
+	document.getElementById("tst").innerHTML = JSON.stringify(response)
+	/* document.getElementById("tst2").innerHTML = JSON.stringify(update_request) */
+}
+
+function image_request() {
+	update_request = {}
+	update_request.distro = system.distribution;
+	update_request.version = system.version;
+	update_request.target = system.target.split("\/")[0];
+	update_request.subtarget = system.target.split("\/")[1];
+	update_request.board = board;
+	update_request.packages = packages;
+	response = server_request(update_request, "image-request")
+	document.getElementById("tst2").innerHTML = JSON.stringify(response)
+	/* document.getElementById("tst2").innerHTML = JSON.stringify(update_request) */
+}
+
 
 function fill(div, input) {
     document.getElementById(div).innerHTML = JSON.stringify(input);
 }
 
-fill("distro", system.distribution)
-fill("version", system.version)
-fill("target", system.target.split("\/")[0])
-fill("subtarget", system.target.split("\/")[1])
-fill("board", board)
-fill("packages", Object.keys(packages))
-
+function fill_table() {
+	fill("distro", system.distribution)
+	fill("version", system.version)
+	fill("target", system.target.split("\/")[0])
+	fill("subtarget", system.target.split("\/")[1])
+	fill("board", board)
+	fill("packages", Object.keys(packages))
+}
+gather_facts()
+fill_table()
+update_request()
+image_request()
 </script>

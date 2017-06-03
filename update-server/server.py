@@ -17,6 +17,8 @@ app = Flask(__name__)
 distro_releases = {}
 distro_releases["lede"] = ["17.01.1", "17.01.0"]
 
+update_server_url = "192.168.1.3:5000"
+
 # returns the current release
 # TODO: this won't be static later
 @app.route("/current-release/<distro>")
@@ -42,12 +44,14 @@ class UpdateRequest():
     def run(self):
 
         if not self.vaild_request():
+            logging.info("received invaild update request")
             self.response_dict["message"] = "missing parameters\nneed %s" % " ".join(self.needed_values)
             return self.respond()
 
         self.distro = self.request_json["distro"].lower()
 
         if not self.distro in distro_releases:
+            logging.info("update request unknown distro")
             self.response_dict["message"] = "unknown distribution %s" % self.distro
             return self.respond()
 
@@ -72,6 +76,8 @@ class UpdateRequest():
             self.packages = self.request_json["packages"]
             self.check_packages()
 
+        self.response_dict["message"] = "all checks passed"
+
         return self.respond()
 
     def vaild_request(self):
@@ -95,6 +101,7 @@ class UpdateRequest():
         self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
 
     def respond(self):
+        logging.debug(self.response_dict)
         return(json.dumps(self.response_dict))
    
     # if local version is newer than received returns true
@@ -118,14 +125,15 @@ def requst_image():
     if request.method == 'POST':
         jsonOutput = request.get_json()
         if not check_request(request.get_json()):
-            return "", 400
+            return "", 401
 
         image = Image()
-        jsonOutput["profile"] = translate_machine(jsonOutput["machine"])
+        jsonOutput["profile"] = jsonOutput["board"]
         image.request_params(jsonOutput)
-        return image.get()
-
-        
+        response = {}
+        response["url"] =  update_server_url + "/" + image.get()
+        response["message"] = "image created"
+        return json.dumps(response)
     else:
         return("get")
         return(request.args.get('release'))
@@ -158,4 +166,4 @@ def check_request(request):
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')
