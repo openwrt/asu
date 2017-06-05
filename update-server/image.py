@@ -31,11 +31,10 @@ class Image():
 
         # using lede naming convention
         path_array = [self.distro, self.version, self.pkgHash, self.target, self.subtarget]
-        if self.profile:
-            path_array.append(self.profile)
 
         if self.target != "x86":
             path_array.append("sysupgrade.bin")
+            path_array.append(self.profile)
         else:
             path_array.append("sysupgrade.img")
 
@@ -135,7 +134,7 @@ if __name__ == "__main__":
     database = Database()
 
     # with some usefull tools"
-    packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci"]
+    packages =  ["vim", "attended-sysupgrade", "luci", "luci2-io-helper"]
 
     # builds libremesh
     #packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci", "lime-full", "-ppp", "-dnsmasq", "-ppp-mod-pppoe", "-6relayd", "-odhcp6c", "-odhcpd", "-firewall"]
@@ -146,7 +145,7 @@ if __name__ == "__main__":
 #    image_ar71 = Image()
 #    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
     image_x86 = Image()
-    image_x86.request_variables("lede", "17.01.1", "x86", "64", "", packages)
+    image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages)
 #    image_ar71.get()
     image_x86.get()
 #    imagebuilder_old = ImageBuilder("lede", "17.01.0", "ar71xx", "generic")
