@@ -44,11 +44,23 @@ case "$1" in
                         get_board)
                                 json_init
 
-                                board=$(cat /tmp/sysinfo/board_name)
-                                json_add_string "board" "$board"
+								# best approach but only works on few devices
+								board="$(cat sys/firmware/devicetree/base/model)"
 
+								if [ -z "$board" ]; then
+									# can result in useless board names on x86
+									board=$(cat /tmp/sysinfo/board_name)
+								fi
+
+								if [ -z "$board" ]; then
+									json_add_string "board" "$board"
+								if
+
+								# fall back method
                                 machine=$(grep machine /proc/cpuinfo | awk '{print $2}')
-                                json_add_string "machine" "$machine"
+								if [ -z "$board" ]; then
+									json_add_string "machine" "$machine"
+								if
 
                                 json_dump
                 esac
