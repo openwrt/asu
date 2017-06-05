@@ -17,7 +17,8 @@ app = Flask(__name__)
 distro_releases = {}
 distro_releases["lede"] = ["17.01.1", "17.01.0"]
 
-update_server_url = "192.168.1.3:5000"
+# need tests with https
+update_server_url = "http://192.168.1.3:5000"
 
 # returns the current release
 # TODO: this won't be static later
@@ -60,6 +61,7 @@ class UpdateRequest():
         self.version = self.request_json["version"]
         if not self.version in distro_releases[self.distro]:
             self.response_dict["message"] = "unknown release %s" % self.version
+            self.response_dict["status"] = 0
             return self.respond()
 
         self.target = self.request_json["target"]
@@ -67,16 +69,19 @@ class UpdateRequest():
 
         if not self.check_target():
             self.response_dict["message"] = "unknown target %s/%s" % (self.target, self.subtarget)
+            self.response_dict["status"] = 0
             return self.respond()
 
         if not self.version_latest():
             self.response_dict["version"] = self.latest_version
+            self.response_dict["status"] = 1
 
         if "packages" in self.request_json and check_packages:
             self.packages = self.request_json["packages"]
             self.check_packages()
 
         self.response_dict["message"] = "all checks passed"
+        self.response_dict["status"] = 0
 
         return self.respond()
 
@@ -111,6 +116,7 @@ class UpdateRequest():
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
+    logging.warning("download image")
     # offer file to download
     # security issue using ../../whatever.py?
     return send_from_directory(directory=os.path.join("download", image_path), filename=image_name)
@@ -133,6 +139,7 @@ def requst_image():
         response = {}
         response["url"] =  update_server_url + "/" + image.get()
         response["message"] = "image created"
+        response["status"] = 1
         return json.dumps(response)
     else:
         return("get")

@@ -11,6 +11,11 @@
 					"board"
 				]
 			}
+		},
+		"write": {
+			"luci-io": [
+				"upload"
+			]
 		}
 	}
 }

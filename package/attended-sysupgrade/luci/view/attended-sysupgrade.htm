@@ -14,15 +14,18 @@
 		<tr><td width="33%">packages</td><td><span id="packages"></td></tr>
 	</table>
 </fieldset>
-<div id="update_info"></div>
+<div id="update_info" class="cbi-button"></div>
 <button onclick="update_request()" type="button" id="update_button">search for updates</button>
 
-<%+footer%>
-
 <script type="text/javascript">
-update_server = "http://192.168.1.3:5000/";
-ubus_rpc_session = "00000000000000000000000000000000";
 
+// the ip where the update-server (server.py) runs
+update_server = "http://192.168.1.3:5000/";
+
+// usub_rpc_session, no manual changes needed
+ubus_rpc_session = "";
+
+// do an xmlhttprequests
 function request(data, url) {
 	var xmlhttp = new XMLHttpRequest();
 	xmlhttp.open("POST", url, false);
@@ -35,15 +38,29 @@ function request(data, url) {
 	}
 }
 
+// requests to the update server
 function server_request(data, path) {
 	url = update_server + path
 	return request(JSON.stringify(data), url);
 }
 
+// is ubus_counter needed?
+ubus_counter = 1
+
+// requests ubus via rpcd
 function ubus_request(command, argument, params) {
-	var data = '{ "jsonrpc": "2.0", "id": 1, "method": "call", "params": [ "'+ ubus_rpc_session +'", "' + command + '", "' + argument + '", ' + params + ' ] }'
+	// perform login if ubus_rpc_session is empty
+	if (ubus_rpc_session == "" && command != "login") {
+		ubus_rpc_session = "00000000000000000000000000000000";
+		ubus_request("session", "login", '{ "username": "root", "password": "" }');
+	}
+	var data = '{ "jsonrpc": "2.0", "id": ' + ubus_counter + ', "method": "call", "params": [ "'+ ubus_rpc_session +'", "' + command + '", "' + argument + '", ' + params + ' ] }'
+	ubus_counter++
 	var url = "http://192.168.1.1/ubus/";
-	response = request(data, url).result[1]
+	response = request(data, url)
+	if (response["result"]) {
+		response = response.result[1]
+	}
 	if (argument == "login") {
 		ubus_rpc_session = response.ubus_rpc_session
 	} else {
@@ -51,14 +68,15 @@ function ubus_request(command, argument, params) {
 	}
 }
 
+// gathers device information needed for update and device requests
 function gather_facts() {
-	ubus_request("session", "login", '{ "username": "root", "password": "" }');
 	packages = ubus_request("attended-sysupgrade", "get_installed_pkgs", '{  }').installed_pkgs;
 	board = ubus_request("attended-sysupgrade", "get_board", '{  }').board;
 	system = ubus_request("system", "board", '{  }').release;
 	fill_table()
 }
 
+// asks server for news updates, actually only based on relesae not packages
 function update_request() {
 	console.log("update_request")
 	update_request_dict = {}
@@ -72,23 +90,21 @@ function update_request() {
 	/* document.getElementById("tst2").innerHTML = JSON.stringify(update_request) */
 }
 
+// shows notification if update is available
 function update_info(data) {
 	console.log("update_info")
 	info_output = ""
 	if (data["version"] != undefined) {
 		info_output += "New Update available\n From " + system.version + " to " + data.version
-		update_button()
+		document.getElementById("update_button").innerHTML = "request image"
+		document.getElementById("update_button").onclick = image_request;
 	} else {
 		info_output += "Current Version is up to date"
 	}
-	document.getElementById("update_info").innerHTML = info_output
+	document.getElementById("update_info").innerHTML = info_output;
 }
 
-function update_button() {
-	document.getElementById("update_button").innerHTML = "download image"
-	document.getElementById("update_button").onclick = image_request;
-}
-
+// request the image, need merge with update_request
 function image_request() {
 	console.log("image_request")
 	update_request_dict = {}
@@ -99,15 +115,15 @@ function image_request() {
 	update_request_dict.board = board;
 	update_request_dict.packages = packages;
 	response = server_request(update_request_dict, "image-request")
-	document.getElementById("update_info").innerHTML = JSON.stringify(response)
-	/* document.getElementById("tst2").innerHTML = JSON.stringify(update_request) */
+	if (response["status"] == 1) {
+		document.getElementById("update_button").innerHTML = "download and flash"
+		document.getElementById("update_button").onclick = function() {download_image(response["url"]); }
+	} 
+	document.getElementById("update_info").innerHTML = response["message"]
 }
 
 
-function fill(div, input) {
-    document.getElementById(div).innerHTML = JSON.stringify(input);
-}
-
+// fills table with device information, mainly for debbuging
 function fill_table() {
 	fill("distro", system.distribution)
 	fill("version", system.version)
@@ -116,6 +132,56 @@ function fill_table() {
 	fill("board", board)
 	fill("packages", Object.keys(packages))
 }
+
+function fill(div, input) {
+    document.getElementById(div).innerHTML = JSON.stringify(input);
+}
+
+// uploads received blob data to the server using luci2-io-helper
+// see https://github.com/jow-/luci-ng/tree/master/luci2-io-helper
+function upload_image(blob) {
+	var upload_request = new XMLHttpRequest();
+	var form_data  = new FormData();
+
+	form_data.append("sessionid", ubus_rpc_session)
+	form_data.append("filename", "/tmp/sysupgrade.img")
+	form_data.append("filemode", 755)
+	form_data.append("filedata", blob)
+	
+	upload_request.addEventListener('load', function(event) {
+		document.getElementById("update_info").innerHTML = "successfully uploaded image to router. flashing"
+		// control checksum 
+		// flash
+  	});
+
+  	upload_request.addEventListener('error', function(event) {
+		document.getElementById("update_info").innerHTML = "uploading failed, please retry"
+  	});
+
+  	upload_request.open('POST', 'http://192.168.1.1/cgi-bin/luci-upload');
+  	upload_request.send(form_data);
+}
+
+// download image from server once the url was received by image_request
+function download_image(url) {
+	//url = 'http://192.168.1.3:5000/download/lede/17.01.0/x86/64/lede-17.01.0-f777b76c273d-x86-64-sysupgrade.img'
+	console.log("download_image")
+	var download_request = new XMLHttpRequest();
+	download_request.open("GET", url);
+	download_request.responseType = "arraybuffer";
+
+	download_request.onload = function () {
+		if (this.status === 200) {
+			var blob = new Blob([download_request.response], {type: "text/plain; charset=x-user-defined"});
+			upload_image(blob)
+		}
+	};
+	document.getElementById("update_info").innerHTML = "downloading image"
+	download_request.send();
+}
+
 document.onload = gather_facts()
 
 </script>
+
+<%+footer%>
