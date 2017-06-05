@@ -11,8 +11,6 @@ case "$1" in
       	json_add_object "get_board"
        	json_close_object
        	json_add_object "sysupgrade"
-   			json_add_string "path" "/tmp/sysupgrade.img"
-   			json_add_string "keep-setting" "Boolean"
        	json_close_object
 
        	json_dump
@@ -69,6 +67,17 @@ case "$1" in
 				fi	
 
                 json_dump
+			;;
+			sysupgrade)
+				if [ -f "/tmp/sysupgrade.bin" ]; then
+					/etc/init.d/uhttpd stop
+					/etc/init.d/dropbear stop
+					sleep 1;
+					/sbin/sysupgrade -c /tmp/sysupgrade.bin
+				fi
+				json_init
+				json_add_string "message" "could not find /tmp/sysupgrade.bin"
+				json_dump
         esac
     ;;
 esac

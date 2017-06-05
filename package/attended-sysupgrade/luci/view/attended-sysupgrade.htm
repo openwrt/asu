@@ -1,7 +1,10 @@
 <%+header%>
 
 <h2 name="content"><%:Attended Sysupgrade%></h2>
-
+<div class="container">
+	<div id="update_info" class="alert-message warning">
+	</div>
+</div>
 <fieldset class="cbi-section">
 	<legend>System</legend>
 
@@ -14,8 +17,7 @@
 		<tr><td width="33%">packages</td><td><span id="packages"></td></tr>
 	</table>
 </fieldset>
-<div id="update_info" class="cbi-button"></div>
-<button onclick="update_request()" type="button" id="update_button">search for updates</button>
+<input class="cbi-button" value="search for updates" onclick="update_request()" type="button" id="update_button">
 
 <script type="text/javascript">
 
@@ -24,6 +26,7 @@ update_server = "http://192.168.1.3:5000/";
 
 // usub_rpc_session, no manual changes needed
 ubus_rpc_session = "";
+latest_release = "";
 
 // do an xmlhttprequests
 function request(data, url) {
@@ -87,7 +90,6 @@ function update_request() {
 	update_request_dict.packages = packages;
 	response = server_request(update_request_dict, "update-request")
 	update_info(response)
-	/* document.getElementById("tst2").innerHTML = JSON.stringify(update_request) */
 }
 
 // shows notification if update is available
@@ -96,7 +98,8 @@ function update_info(data) {
 	info_output = ""
 	if (data["version"] != undefined) {
 		info_output += "New Update available\n From " + system.version + " to " + data.version
-		document.getElementById("update_button").innerHTML = "request image"
+		latest_version = data.version;
+		document.getElementById("update_button").value = "request image";
 		document.getElementById("update_button").onclick = image_request;
 	} else {
 		info_output += "Current Version is up to date"
@@ -109,14 +112,14 @@ function image_request() {
 	console.log("image_request")
 	update_request_dict = {}
 	update_request_dict.distro = system.distribution;
-	update_request_dict.version = system.version;
+	update_request_dict.version = latest_version;
 	update_request_dict.target = system.target.split("\/")[0];
 	update_request_dict.subtarget = system.target.split("\/")[1];
 	update_request_dict.board = board;
 	update_request_dict.packages = packages;
 	response = server_request(update_request_dict, "image-request")
 	if (response["status"] == 1) {
-		document.getElementById("update_button").innerHTML = "download and flash"
+		document.getElementById("update_button").value = "download and flash"
 		document.getElementById("update_button").onclick = function() {download_image(response["url"]); }
 	} 
 	document.getElementById("update_info").innerHTML = response["message"]
