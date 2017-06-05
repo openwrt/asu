@@ -1,6 +1,7 @@
 #!/bin/sh
 
 . /usr/share/libubox/jshn.sh
+#. ./jshn.sh
 
 case "$1" in
         list)
@@ -9,6 +10,10 @@ case "$1" in
                 json_add_object "get_installed_pkgs"
                 json_close_object
                 json_add_object "get_board"
+                json_close_object
+                json_add_object "sysupgrade"
+				json_add_string "path" "/tmp/sysupgrade.img"
+				json_add_string "keep-setting" "Boolean"
                 json_close_object
 
                 json_dump
@@ -49,20 +54,21 @@ case "$1" in
 
 								if [ -z "$board" ]; then
 									# can result in useless board names on x86
-									board=$(cat /tmp/sysinfo/board_name)
+									board="$(cat /tmp/sysinfo/board_name)"
 								fi
 
 								if [ -z "$board" ]; then
 									json_add_string "board" "$board"
-								if
+								fi
 
 								# fall back method
                                 machine=$(grep machine /proc/cpuinfo | awk '{print $2}')
 								if [ -z "$board" ]; then
 									json_add_string "machine" "$machine"
-								if
+								fi	
 
                                 json_dump
+						;;
                 esac
         ;;
 esac
