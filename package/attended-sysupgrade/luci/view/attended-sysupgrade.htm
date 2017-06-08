@@ -147,12 +147,14 @@ function upload_image(blob) {
 	var form_data  = new FormData();
 
 	form_data.append("sessionid", ubus_rpc_session)
-	form_data.append("filename", "/tmp/sysupgrade.img")
+	form_data.append("filename", "/tmp/sysupgrade.bin")
 	form_data.append("filemode", 755)
 	form_data.append("filedata", blob)
 	
 	upload_request.addEventListener('load', function(event) {
 		document.getElementById("update_info").innerHTML = "successfully uploaded image to router. flashing"
+		ubus_request("attended-sysupgrade", "sysupgrade", '{  }');
+
 		// control checksum 
 		// flash
   	});
