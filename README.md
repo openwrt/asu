@@ -56,12 +56,13 @@ The server validates the request. If all checks pass an response is send, curren
 	}
 
 The client should check the status code:
+
 | status 	| meaning 			| information 	|
 | --- 		| --- 				| --- 			|
 | 0 		| error				| see `error` in response | 
 | 1 		| no updates		| see `error` in response | 
-| 1			| new release		| see `version` in response |
-| 2			| package updates	| see `packages` in response | 
+| 2			| new release		| see `version` in response |
+| 3			| package updates	| see `packages` in response | 
 
 An release update does not ignore package updates for the following reason. Between releases packages names may change. The *update reponse* contains all packages included renamed ones.
 
@@ -95,6 +96,7 @@ The *image request* is nearly the same as the *update request* before, except on
 	}
 
 The `status` code has again different meanings.
+
 | status 	| meaning 			| information 	|
 | --- 		| --- 				| --- 			|
 | 0			| build faild		| see `error`	|
