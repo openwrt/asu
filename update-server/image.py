@@ -33,10 +33,10 @@ class Image():
         path_array = [self.distro, self.version, self.pkgHash, self.target, self.subtarget]
 
         if self.target != "x86":
-            path_array.append("sysupgrade.bin")
             path_array.append(self.profile)
-        else:
-            path_array.append("sysupgrade.img")
+       #     path_array.append("sysupgrade.bin")
+       # else:
+       #     path_array.append("sysupgrade.img")
 
         self.name = "-".join(path_array)
         self.path = os.path.join("download", self.distro, self.version, self.target, self.subtarget, self.name)
@@ -66,7 +66,7 @@ class Image():
             self.build() 
         else:
             print("Heureka!")
-        return self.path
+        return (self.path + "-sysupgrade.img")
 
     # generate a hash of the installed packages
     def getPkgHash(self):
@@ -112,9 +112,13 @@ class Image():
             if returnCode == 0:
                 for sysupgrade in os.listdir(buildPath):
                     if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
-                        logging.info("move %s to %s", sysupgrade, self.path)
+                        logging.info("move %s to %s", sysupgrade, (self.path + "-sysupgrade.bin"))
+                        shutil.move(os.path.join(buildPath, sysupgrade), (self.path + "-sysupgrade.bin"))
 
-                        shutil.move(os.path.join(buildPath, sysupgrade), self.path)
+                    if sysupgrade.endswith("factory.bin"):
+                        logging.info("move %s to %s", sysupgrade, (self.path + "-factory.bin"))
+                        shutil.move(os.path.join(buildPath, sysupgrade), (self.path + "-factory.bin"))
+
                 logging.info("build successfull")
             else:
                 print(output.decode('utf-8'))
@@ -124,8 +128,8 @@ class Image():
     def created(self):
         # created images will be stored in downloads.lede-project.org like paths
         # the package should always be a sysupgrade
-        logging.info("check path %s", self.path)
-        return os.path.exists(self.path)
+        logging.info("check path %s", self.path + "-sysupgrade.bin")
+        return os.path.exists(self.path + "-sysupgrade.bin")
 
 # todo move stuff to tmp and only move sysupgrade file
 # usign für python ansehen
@@ -135,6 +139,7 @@ if __name__ == "__main__":
 
     # with some usefull tools"
     packages =  ["vim", "attended-sysupgrade", "luci", "luci2-io-helper"]
+    packages =  ["vim", "luci", "iperf", "wavemon", "syslog-ng"]
 
     # builds libremesh
     #packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci", "lime-full", "-ppp", "-dnsmasq", "-ppp-mod-pppoe", "-6relayd", "-odhcp6c", "-odhcpd", "-firewall"]
@@ -142,12 +147,14 @@ if __name__ == "__main__":
     logging.info("started logger")
 
 
-#    image_ar71 = Image()
-#    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "tl-wdr3600-v1", packages)
+    image_ar71 = Image()
+    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "ubnt-loco-m-xw", packages)
+    image_ar71.get()
     image_x86 = Image()
-    image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages)
+    image_x86.request_variables("lede", "17.01.1", "x86", "64", "", packages)
+#    image_x86.request_variables("lede", "17.01.0", "ar71xx", "generic", "", packages)
 #    image_ar71.get()
-    image_x86.get()
+#    image_x86.get()
 #    imagebuilder_old = ImageBuilder("lede", "17.01.0", "ar71xx", "generic")
 #    imagebuilder_x86 = ImageBuilder("lede", "17.01.1", "x86", "64")
 #    profiles_data = imagebuilder_x86.parse_profiles()
