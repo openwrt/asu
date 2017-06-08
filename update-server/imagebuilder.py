@@ -17,6 +17,7 @@ root_dir = "/home/a/src/gsoc/update-server/"
 
 class ImageBuilder():
     def __init__(self, distro, version, target, subtarget):
+        self.database = Database()
         self.distro = distro
         self.version = version
         self.target = target
@@ -28,6 +29,10 @@ class ImageBuilder():
             logging.info("downloading imagebuilder %s", self.name)
             self.download()
 
+        self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
+        logging.debug("default packages: %s", self.default_packages)
+        if not self.default_packages:
+            self.default_packages = self.parse_profiles()[0].split(" ")
 
         self.pkg_arch = self.parse_packages_arch()
         logging.debug("found package arch %s", self.pkg_arch)
@@ -35,6 +40,7 @@ class ImageBuilder():
         logging.info("initialized imagebuilder %s", self.name)
 
     def parse_packages_arch(self):
+        logging.debug("parse_packages_arch")
         with open(os.path.join(self.path, ".config"), "r") as config:
             for line in config:
                 if line.startswith("CONFIG_TARGET_ARCH_PACKAGES"):
@@ -91,15 +97,16 @@ class ImageBuilder():
             if not profiles:
                 profiles = []
 #            print(output)
+            self.database.insert_profiles(self.target, self.subtarget, (default_packages, profiles))
             return(default_packages, profiles)
         else:
             logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
 
 
     def parse_packages(self):
-        cmdline = ['make', 'package_list']
         logging.info("receive packages for %s/%s", self.target, self.subtarget)
 
+        cmdline = ['make', 'package_list']
         proc = subprocess.Popen(
             cmdline,
             cwd=self.path,
@@ -112,24 +119,17 @@ class ImageBuilder():
         returnCode = proc.returncode
         output = output.decode('utf-8')
         if returnCode == 0:
-            packages_pattern = r"(.+) (.+) (\d+)"
+            packages_pattern = r"(.+) (.+) (\d+)\n"
             packages = re.findall(packages_pattern, output, re.M)
-#            print(output)
+            self.database.insert_packages(self.target, self.subtarget, packages)
             return(packages)
         else:
             logging.error("could not receive packages of %s/%s", self.target, self.subtarget)
 
 if __name__ == "__main__":
-    database = Database()
     logging.info("started logger")
 #    imagebuilder_old = ImageBuilder("lede", "17.01.1", "ar71xx", "generic")
     imagebuilder_x86 = ImageBuilder("lede", "17.01.1", "x86", "64")
-    profiles_data = imagebuilder_x86.parse_profiles()
-    packages = imagebuilder_x86.parse_packages()
-    print("found %i profiles " % len(profiles_data[1]))
-    print("found %i packages " % len(packages))
-    database.insert_profiles(imagebuilder_x86.target, imagebuilder_x86.subtarget, profiles_data)
-    database.insert_packages(imagebuilder_x86.target, imagebuilder_x86.subtarget, packages)
 
 #    profiles_data = imagebuilder_old.parse_profiles()
 #    packages = imagebuilder_old.parse_packages()

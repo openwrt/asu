@@ -24,13 +24,14 @@ class Image():
     # profile
     # packages
     def __init__(self):
-        pass
+        self.database = Database()
+
 
     def _set_path(self):
-        self.pkgHash = self.getPkgHash()
+        self.pkg_hash = self.get_pkg_hash()
 
         # using lede naming convention
-        path_array = [self.distro, self.version, self.pkgHash, self.target, self.subtarget]
+        path_array = [self.distro, self.version, self.pkg_hash, self.target, self.subtarget]
 
         if self.target != "x86":
             path_array.append(self.profile)
@@ -49,6 +50,14 @@ class Image():
         self.profile = profile
         self.packages = packages
         self._set_path()
+
+    def diff_packages(self):
+        default_packages = self.imagebuilder.default_packages
+        for package in self.packages:
+            if package in default_packages:
+                default_packages.remove(package)
+        for remove_package in default_packages:
+            self.packages.append("-" + remove_package)
    
     def request_params(self, params):
         self.distro = params["distro"].lower()
@@ -65,43 +74,48 @@ class Image():
             logging.info("start build")	
             self.build() 
         else:
-            print("Heureka!")
-        return (self.path + "-sysupgrade.img")
+            logging.debug("Heureka!")
+        return (self.path + "-sysupgrade.bin")
 
     # generate a hash of the installed packages
-    def getPkgHash(self):
-        packagesSorted = sorted(self.packages)
-        h = hashlib.sha256()
-        h.update(bytes(" ".join(packagesSorted), 'utf-8'))
+    def get_pkg_hash(self):
+        # sort list and remove duplicates
+        self.packages = sorted(list(set(self.packages)))
 
-        return h.hexdigest()[:12]
+        h = hashlib.sha256()
+        h.update(bytes(" ".join(self.packages), 'utf-8'))
+        package_hash = h.hexdigest()[:12]
+        self.database.insert_hash(package_hash, self.packages)
+        return package_hash
 
     # builds the image with the specific packages at output path
     def build(self):
         # create image path
-        ibPath = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
-        imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
+        imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
+        self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
 
-        logging.info("use imagebuilder at %s", imagebuilder.path)
+        logging.info("use imagebuilder at %s", self.imagebuilder.path)
 
-        buildPath = os.path.dirname(self.path)
-        with tempfile.TemporaryDirectory() as buildPath:
-    #        print(buildPath)
+        self.diff_packages()
+
+        build_path = os.path.dirname(self.path)
+        with tempfile.TemporaryDirectory() as build_path:
+    #        print(build_path)
 
             create_folder(os.path.dirname(self.path))
 
             cmdline = ['make', 'image']
             if self.target != "x86":
-                cmdline.append('PROFILE=%s' % self.profile)
+                cmdline.append('PROFILE=%s' % profile)
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
-            cmdline.append('BIN_DIR=%s' % buildPath)
-            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkgHash)
+            cmdline.append('BIN_DIR=%s' % build_path)
+            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkg_hash)
 
             logging.info("start build: %s", " ".join(cmdline))
 
             proc = subprocess.Popen(
                 cmdline,
-                cwd=imagebuilder.path,
+                cwd=self.imagebuilder.path,
                 stdout=subprocess.PIPE,
                 shell=False,
                 stderr=subprocess.STDOUT
@@ -110,14 +124,14 @@ class Image():
             output, erros = proc.communicate()
             returnCode = proc.returncode
             if returnCode == 0:
-                for sysupgrade in os.listdir(buildPath):
+                for sysupgrade in os.listdir(build_path):
                     if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
                         logging.info("move %s to %s", sysupgrade, (self.path + "-sysupgrade.bin"))
-                        shutil.move(os.path.join(buildPath, sysupgrade), (self.path + "-sysupgrade.bin"))
+                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-sysupgrade.bin"))
 
                     if sysupgrade.endswith("factory.bin"):
                         logging.info("move %s to %s", sysupgrade, (self.path + "-factory.bin"))
-                        shutil.move(os.path.join(buildPath, sysupgrade), (self.path + "-factory.bin"))
+                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-factory.bin"))
 
                 logging.info("build successfull")
             else:
@@ -135,26 +149,29 @@ class Image():
 # usign für python ansehen
 
 if __name__ == "__main__":
-    database = Database()
-
+    
     # with some usefull tools"
-    packages =  ["vim", "attended-sysupgrade", "luci", "luci2-io-helper"]
-    packages =  ["vim", "luci", "iperf", "wavemon", "syslog-ng"]
+    packages = ['base-files', 'libc', 'libgcc', 'busybox', 'dropbear', 'mtd', 'uci', 'opkg', 'netifd', 'fstools', 'uclient-fetch', 'logd', 'partx-utils', 'mkf2fs', 'e2fsprogs', 'kmod-button-hotplug', 'kmod-e1000e', 'kmod-e1000', 'kmod-r8169', 'kmod-igb', 'dnsmasq', 'iptables', 'ip6tables', 'firewall', 'odhcpd', 'odhcp6c']
 
+    packages.extend(["vim", "vim", "luci", "iperf", "wavemon", "syslog-ng"])
+
+    packages.extend(["vim", "attended-sysupgrade", "luci", "luci2-io-helper"])
     # builds libremesh
     #packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci", "lime-full", "-ppp", "-dnsmasq", "-ppp-mod-pppoe", "-6relayd", "-odhcp6c", "-odhcpd", "-firewall"]
 
     logging.info("started logger")
 
 
-    image_ar71 = Image()
-    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "ubnt-loco-m-xw", packages)
-    image_ar71.get()
-    image_x86 = Image()
-    image_x86.request_variables("lede", "17.01.1", "x86", "64", "", packages)
-#    image_x86.request_variables("lede", "17.01.0", "ar71xx", "generic", "", packages)
+#    image_ar71 = Image()
+#    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "ubnt-loco-m-xw", packages)
 #    image_ar71.get()
-#    image_x86.get()
+    image_x86 = Image()
+    image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages)
+    image_x86.get()
+    image_x86_2 = Image()
+    image_x86_2.request_variables("lede", "17.01.1", "x86", "64", "", packages)
+    image_x86_2.get()
+#    image_x86.request_variables("lede", "17.01.0", "ar71xx", "generic", "", packages)
 #    imagebuilder_old = ImageBuilder("lede", "17.01.0", "ar71xx", "generic")
 #    imagebuilder_x86 = ImageBuilder("lede", "17.01.1", "x86", "64")
 #    profiles_data = imagebuilder_x86.parse_profiles()

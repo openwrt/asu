@@ -6,7 +6,9 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Database():
     def __init__(self):
-        self.cnxn = pyodbc.connect("DRIVER={SQLite3};SERVER=localhost;DATABASE=test.db;Trusted_connection=yes")
+        # python3 immport pyodbc; pyodbc.drivers()
+        #self.cnxn = pyodbc.connect("DRIVER={SQLite3};SERVER=localhost;DATABASE=test.db;Trusted_connection=yes")
+        self.cnxn = pyodbc.connect("DRIVER={PostgreSQL Unicode};SERVER=localhost;DATABASE=attended-sysupgrade;UID=postgres;PWD=password;PORT=5432")
         self.c = self.cnxn.cursor()
         logging.debug("connected to databse")
 
@@ -21,29 +23,43 @@ class Database():
         self.commit()
         logging.info("created tables")
 
-    def add_hash(self, hash, packages):
-        sql = "INSERT INTO packageHashes (hash, packages) VALUES (?, ?)"
+    def insert_hash(self, hash, packages):
+        sql = """INSERT INTO packages_hashes (hash, packages) 
+            VALUES (?, ?)
+            ON CONFLICT DO NOTHING;"""
         self.c.execute(sql, (hash, " ".join(packages)))
+        self.commit()
 
     def update_package(self, name, version, size):
         logging.debug("insert %s %s %s", name, version, size)
-        sql = "REPLACE INTO packages(name, version, size) VALUES (?, ?, ?)"
+        sql = "INSERT INTO packages(name, version, size) VALUES (?, ?, ?)"
         self.c.execute(sql, name, version, size)
 
     def insert_profiles(self, target, subtarget, profiles_data):
+        logging.debug("insert_profiels %s/%s", target, subtarget)
         default_packages, profiles = profiles_data
 
         logging.info("insert profiles of %s/%s ", target, subtarget)
-        sql = "REPLACE INTO profiles (target, subtarget, name, board, packages) VALUES (?, ?, ?, ?, ?)"
+        sql = "INSERT INTO profiles (target, subtarget, name, board, packages) VALUES (?, ?, ?, ?, ?)"
         for profile in profiles:
             self.c.execute(sql, target, subtarget, *profile)
 
-        self.c.execute("REPLACE INTO default_packages (target, subtarget, packages) VALUES (?, ?, ?)", target, subtarget, default_packages)
+        self.c.execute("INSERT INTO default_packages (target, subtarget, packages) VALUES (?, ?, ?)", target, subtarget, default_packages)
         self.commit()
+
+    def get_default_packages(self, target, subtarget):
+        logging.debug("get_default_pkgs for %s/%s", target, subtarget)
+        self.c.execute(""" SELECT packages FROM default_packages
+            WHERE target=? AND subtarget=?;""", target, subtarget)
+        response = self.c.fetchone()
+        logging.debug("get_default_packages response: %s", response)
+        if response:
+            return response[0].split(" ")
+        return response
 
     def insert_packages(self, target, subtarget, packages):
         logging.info("insert packages of %s/%s ", target, subtarget)
-        sql = "REPLACE INTO packages (name, version, size, target, subtarget) VALUES (?, ?, ?, ?, ?)"
+        sql = "INSERT INTO packages (name, version, size, target, subtarget) VALUES (?, ?, ?, ?, ?)"
         for package in packages:
             self.c.execute(sql, *package, target, subtarget)
 
@@ -51,7 +67,7 @@ class Database():
     
     def insert_target(self, target, subtargets):
         logging.info("insert %s/%s ", target, " ".join(subtargets))
-        sql = "REPLACE INTO targets (target, subtarget) VALUES (?, ?)"
+        sql = "INSERT INTO targets (target, subtarget) VALUES (?, ?)"
         for subtarget in subtargets:
             self.c.execute(sql, target, subtarget)
 

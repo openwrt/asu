@@ -1,6 +1,5 @@
 create table if not exists packages_hashes (
-	id integer not null primary key,
-	hash text,
+	hash text primary key,
 	packages text
 );
 

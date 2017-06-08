@@ -119,6 +119,8 @@ def download_image(image_path, image_name):
     logging.warning("download image")
     # offer file to download
     # security issue using ../../whatever.py?
+    # redirect to image so nginx handels download
+    # raise image download counter
     return send_from_directory(directory=os.path.join("download", image_path), filename=image_name)
 
 # request methos for individual image
