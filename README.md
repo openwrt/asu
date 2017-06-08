@@ -92,9 +92,10 @@ The *image request* is nearly the same as the *update request* before, except on
 		"queue": 3
 		"url": "https://update.lede/download/lede/17.01.1/ar71xx/generic/lede-17.01.1-2fe136c15026-ar71xx-generic-<device profile>-sysupgrade.bin"
 		"size": 4000000
-		"usign": <signature>
 		"md5": <checksum>
 	}
+
+`usign` signatures can bei retrieved via `response['url'] + ".sig"`
 
 The `status` code has again different meanings.
 
