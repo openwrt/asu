@@ -59,10 +59,11 @@ The client should check the status code:
 
 | status 	| meaning 			| information 	|
 | --- 		| --- 				| --- 			|
-| 0 		| error				| see `error` in response | 
-| 1 		| no updates		| see `error` in response | 
-| 2			| new release		| see `version` in response |
-| 3			| package updates	| see `packages` in response | 
+| 500 		| error				| see `error` in response | 
+| 503 		| server overload   | see `error` in response | 
+| 204 		| no updates		| | 
+| 200		| new release		| see `version` in response |
+| 200		| package updates	| see `packages` in response | 
 
 An release update does not ignore package updates for the following reason. Between releases packages names may change. The *update reponse* contains all packages included renamed ones.
 
@@ -97,10 +98,10 @@ The *image request* is nearly the same as the *update request* before, except on
 
 The `status` code has again different meanings.
 
-| status 	| meaning 			| information 	|
-| --- 		| --- 				| --- 			|
-| 0			| build faild		| see `error`	|
-| 1 		| imagebuilder setup |	the LEDE imagebuilder only seen if first build requests for target/subtarget combo |
-| 2			| queued			| requests wait to build, see `queue` decreasing |
-| 3			| building			| building right now |
-| 4			| ready				| build finished successful, see `url` to retrieve image |
+| status 	| meaning 				| information 	|
+| --- 		| --- 					| --- 			|
+| 500		| build faild			| see `error`	|
+| 201 		| imagebuilder setup 	|	the LEDE imagebuilder only seen if first build requests for target/subtarget combo |
+| 201		| queued				| requests wait to build, see `queue` decreasing |
+| 206		| building				| building right now |
+| 200		| ready					| build finished successful, see `url` to retrieve image |
