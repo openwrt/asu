@@ -1,4 +1,5 @@
 import tarfile
+from config import Config
 from database import Database
 from imagebuilder import ImageBuilder
 from util import create_folder
@@ -15,9 +16,6 @@ import subprocess
 #logging.basicConfig(filename="output.log")
 logging.basicConfig(level=logging.DEBUG)
 
-network_profile_folder = "/home/a/src/network-profiles/"
-
-
 class Image():
     # distro
     # version
@@ -27,6 +25,7 @@ class Image():
     # packages
     def __init__(self):
         self.database = Database()
+        self.config = Config()
 
 
     def _set_path(self):
@@ -161,16 +160,9 @@ class Image():
     # add network profile in image
     def check_network_profile(self, network_profile):
         if network_profile:
-            print(os.path.join(network_profile_folder, network_profile))
-            network_profile_path = os.path.join(network_profile_folder, network_profile) + "/"
-            if os.path.isdir(network_profile_path):
-                self.network_profile = network_profile
-                self.network_profile_path = network_profile_path
-                logging.debug("found network_profile %s", network_profile)
-                return
-
-        logging.debug("could not find network_profile %s", network_profile)
-        self.network_profile = None
+            network_profile_path = os.path.join(self.config.get("network_profile_folder"), network_profile) + "/"
+            self.network_profile = network_profile
+            self.network_profile_path = network_profile_path
 
     # check if image exists
     def created(self):
