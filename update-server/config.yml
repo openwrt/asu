@@ -1,0 +1,2 @@
+network_profile_folder: "/home/a/src/network_profile/"
+update_server: "http://192.168.1.3:5000"
