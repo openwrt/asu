@@ -102,7 +102,8 @@ The `status` code has again different meanings.
 | status 	| meaning 				| information 	|
 | --- 		| --- 					| --- 			|
 | 500		| build faild			| see `error`	|
-| 201 		| imagebuilder setup 	|	the LEDE imagebuilder only seen if first build requests for target/subtarget combo |
+| 503 		| server overload   | see `error` in response | 
+| 201 		| imagebuilder setup 		|	the LEDE imagebuilder only seen if first build requests for target/subtarget combo |
 | 201		| queued				| requests wait to build, see `queue` decreasing |
 | 206		| building				| building right now |
 | 200		| ready					| build finished successful, see `url` to retrieve image |
