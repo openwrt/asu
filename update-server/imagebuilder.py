@@ -25,10 +25,8 @@ class ImageBuilder():
         self.name = "-".join([self.distro, "imagebuilder", self.version, self.target, self.subtarget])
         self.name += ".Linux-x86_64"
         self.path = os.path.join("imagebuilder", self.distro, self.version, self.target, self.subtarget, self.name)
-        if not os.path.exists(os.path.join(self.path, "Makefile")):
-            logging.info("downloading imagebuilder %s", self.name)
-            self.download()
 
+    def run(self):
         self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
         logging.debug("default packages: %s", self.default_packages)
         if not self.default_packages:
@@ -38,6 +36,10 @@ class ImageBuilder():
         logging.debug("found package arch %s", self.pkg_arch)
         self.add_custom_repositories()
         logging.info("initialized imagebuilder %s", self.name)
+
+
+    def created(self):
+        return os.path.exists(os.path.join(self.path, "Makefile"))
 
     def parse_packages_arch(self):
         logging.debug("parse_packages_arch")
@@ -59,6 +61,7 @@ class ImageBuilder():
 
     def download(self): 
         ## will be read from config file later
+        logging.info("downloading imagebuilder %s", self.name)
         imagebuilder_url = "http://downloads.lede-project.org/releases/"
         ## /tmp
         create_folder(os.path.dirname(self.path))
@@ -68,6 +71,7 @@ class ImageBuilder():
             tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
             full_url = os.path.join(imagebuilder_url, imagebuilder_url_path)
             full_url += ".tar.xz"
+            logging.debug("full_url %s", full_url)
             urllib.request.urlretrieve(full_url, tar_path)
             tar = tarfile.open(tar_path)
             tar.extractall(path=tar_folder)

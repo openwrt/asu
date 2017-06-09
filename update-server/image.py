@@ -12,11 +12,12 @@ import hashlib
 import os
 import os.path
 import subprocess
+import threading
 
 #logging.basicConfig(filename="output.log")
 logging.basicConfig(level=logging.DEBUG)
 
-class Image():
+class Image(threading.Thread):
     # distro
     # version
     # target
@@ -24,8 +25,62 @@ class Image():
     # profile
     # packages
     def __init__(self):
+        threading.Thread.__init__(self)
         self.database = Database()
         self.config = Config()
+
+    def run(self):
+        imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
+        self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
+        if not self.imagebuilder.created:
+            self.imagebuilder.download()
+
+        self.imagebuilder.run()
+
+        logging.info("use imagebuilder at %s", self.imagebuilder.path)
+
+        self.diff_packages()
+
+        build_path = os.path.dirname(self.path)
+        with tempfile.TemporaryDirectory() as build_path:
+            create_folder(os.path.dirname(self.path))
+
+            cmdline = ['make', 'image']
+            if self.target != "x86":
+                cmdline.append('PROFILE=%s' % self.profile)
+            cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
+            if self.network_profile:
+                logging.debug("add network_profile %s", self.network_profile)
+                cmdline.append('FILES=%s' % self.network_profile_path)
+            cmdline.append('BIN_DIR=%s' % build_path)
+            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkg_hash)
+
+            logging.info("start build: %s", " ".join(cmdline))
+
+            proc = subprocess.Popen(
+                cmdline,
+                cwd=self.imagebuilder.path,
+                stdout=subprocess.PIPE,
+                shell=False,
+                stderr=subprocess.STDOUT
+            )
+
+            output, erros = proc.communicate()
+            returnCode = proc.returncode
+            if returnCode == 0:
+                for sysupgrade in os.listdir(build_path):
+                    if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
+                        logging.info("move %s to %s", sysupgrade, (self.path + "-sysupgrade.bin"))
+                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-sysupgrade.bin"))
+
+                    if sysupgrade.endswith("factory.bin"):
+                        logging.info("move %s to %s", sysupgrade, (self.path + "-factory.bin"))
+                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-factory.bin"))
+
+                logging.info("build successfull")
+            else:
+                print(output.decode('utf-8'))
+                logging.info("build failed")
 
 
     def _set_path(self):
@@ -79,19 +134,17 @@ class Image():
     # returns the path of the created image
     def get_sysupgrade(self):
         if not self.created():
-            logging.info("start build")	
-            self.build() 
+            return None
         else:
             logging.debug("Heureka!")
-        return (self.path + "-sysupgrade.bin")
+            return (self.path + "-sysupgrade.bin")
     
     def get_factory(self):
         if not self.created():
-            logging.info("start build")	
-            self.build() 
+            return None
         else:
             logging.debug("Heureka!")
-        return (self.path + "-factory.bin")
+            return (self.path + "-factory.bin")
 
     # generate a hash of the installed packages
     def get_pkg_hash(self):
@@ -105,57 +158,6 @@ class Image():
         return package_hash
 
     # builds the image with the specific packages at output path
-    def build(self):
-        # create image path
-        imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
-        self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
-
-        logging.info("use imagebuilder at %s", self.imagebuilder.path)
-
-        self.diff_packages()
-
-        build_path = os.path.dirname(self.path)
-        with tempfile.TemporaryDirectory() as build_path:
-    #        print(build_path)
-
-            create_folder(os.path.dirname(self.path))
-
-            cmdline = ['make', 'image']
-            if self.target != "x86":
-                cmdline.append('PROFILE=%s' % profile)
-            cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
-            if self.network_profile:
-                logging.debug("add network_profile %s", self.network_profile)
-                cmdline.append('FILES=%s' % self.network_profile_path)
-            cmdline.append('BIN_DIR=%s' % build_path)
-            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkg_hash)
-
-            logging.info("start build: %s", " ".join(cmdline))
-
-            proc = subprocess.Popen(
-                cmdline,
-                cwd=self.imagebuilder.path,
-                stdout=subprocess.PIPE,
-                shell=False,
-                stderr=subprocess.STDOUT
-            )
-
-            output, erros = proc.communicate()
-            returnCode = proc.returncode
-            if returnCode == 0:
-                for sysupgrade in os.listdir(build_path):
-                    if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
-                        logging.info("move %s to %s", sysupgrade, (self.path + "-sysupgrade.bin"))
-                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-sysupgrade.bin"))
-
-                    if sysupgrade.endswith("factory.bin"):
-                        logging.info("move %s to %s", sysupgrade, (self.path + "-factory.bin"))
-                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-factory.bin"))
-
-                logging.info("build successfull")
-            else:
-                print(output.decode('utf-8'))
-                logging.info("build failed")
 
     # add network profile in image
     def check_network_profile(self, network_profile):
@@ -163,12 +165,11 @@ class Image():
             network_profile_path = os.path.join(self.config.get("network_profile_folder"), network_profile) + "/"
             self.network_profile = network_profile
             self.network_profile_path = network_profile_path
+        else:
+            self.network_profile = None
 
     # check if image exists
     def created(self):
-        # created images will be stored in downloads.lede-project.org like paths
-        # the package should always be a sysupgrade
-        logging.info("check path %s", self.path + "-sysupgrade.bin")
         return os.path.exists(self.path + "-sysupgrade.bin")
 
 # todo move stuff to tmp and only move sysupgrade file
@@ -194,7 +195,8 @@ if __name__ == "__main__":
 #    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "ubnt-loco-m-xw", packages)
 #    image_ar71.get()
     image_x86 = Image()
-    image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages, network_profile)
+    image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages)
+    image_x86.run()
     image_x86.get_sysupgrade()
 #    image_x86_2 = Image()
 #    image_x86_2.request_variables("lede", "17.01.1", "x86", "64", "", packages)

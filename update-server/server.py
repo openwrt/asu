@@ -1,4 +1,6 @@
 from flask import Flask
+import threading
+from queue import Queue
 import json
 import sys
 from image import ImageBuilder
@@ -45,8 +47,8 @@ def download_image(image_path, image_name):
 def requst_image():
     if request.method == 'POST':
         request_json = request.get_json()
-        ir = ImageRequest(request_json)
-        return ir.run()
+        ir = ImageRequest(request_json, build_queue, build_manager.get_building())
+        return ir.get_sysupgrade()
 
 # may show some stats
 @app.route("/")
@@ -65,6 +67,26 @@ def check_request(request):
             return False
     return True
 
+class BuildManager(threading.Thread):
+
+    def __init__(self, build_queue):
+        threading.Thread.__init__(self)
+        self.building = ""
+
+    def run(self):
+        while True:
+            image = build_queue.get()
+            if not image.created():
+                self.building = image.name
+                image.run()
+                self.building = ""
+
+    def get_building(self):
+        return self.building
 
 if __name__ == "__main__":
+    build_queue = Queue()
+    build_manager = BuildManager(build_queue)
+    build_manager.start()
+
     app.run(host='0.0.0.0')
