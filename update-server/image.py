@@ -15,6 +15,8 @@ import subprocess
 #logging.basicConfig(filename="output.log")
 logging.basicConfig(level=logging.DEBUG)
 
+network_profile_folder = "/home/a/src/network-profiles/"
+
 
 class Image():
     # distro
@@ -31,10 +33,16 @@ class Image():
         self.pkg_hash = self.get_pkg_hash()
 
         # using lede naming convention
-        path_array = [self.distro, self.version, self.pkg_hash, self.target, self.subtarget]
+        path_array = [self.distro, self.version, self.pkg_hash]
+
+        if self.network_profile:
+            path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+        
+        path_array.extend([self.target, self.subtarget])
 
         if self.target != "x86":
             path_array.append(self.profile)
+        ## .bin should always be fine
        #     path_array.append("sysupgrade.bin")
        # else:
        #     path_array.append("sysupgrade.img")
@@ -42,13 +50,14 @@ class Image():
         self.name = "-".join(path_array)
         self.path = os.path.join("download", self.distro, self.version, self.target, self.subtarget, self.name)
 
-    def request_variables(self, distro, version, target, subtarget, profile, packages):
+    def request_variables(self, distro, version, target, subtarget, profile, packages, network_profile=None):
         self.distro = distro.lower()
         self.version = version
         self.target = target
         self.subtarget = subtarget
         self.profile = profile
         self.packages = packages
+        self.check_network_profile(network_profile)
         self._set_path()
 
     def diff_packages(self):
@@ -69,13 +78,21 @@ class Image():
         self._set_path()
 
     # returns the path of the created image
-    def get(self):
+    def get_sysupgrade(self):
         if not self.created():
             logging.info("start build")	
             self.build() 
         else:
             logging.debug("Heureka!")
         return (self.path + "-sysupgrade.bin")
+    
+    def get_factory(self):
+        if not self.created():
+            logging.info("start build")	
+            self.build() 
+        else:
+            logging.debug("Heureka!")
+        return (self.path + "-factory.bin")
 
     # generate a hash of the installed packages
     def get_pkg_hash(self):
@@ -108,6 +125,9 @@ class Image():
             if self.target != "x86":
                 cmdline.append('PROFILE=%s' % profile)
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
+            if self.network_profile:
+                logging.debug("add network_profile %s", self.network_profile)
+                cmdline.append('FILES=%s' % self.network_profile_path)
             cmdline.append('BIN_DIR=%s' % build_path)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkg_hash)
 
@@ -138,6 +158,20 @@ class Image():
                 print(output.decode('utf-8'))
                 logging.info("build failed")
 
+    # add network profile in image
+    def check_network_profile(self, network_profile):
+        if network_profile:
+            print(os.path.join(network_profile_folder, network_profile))
+            network_profile_path = os.path.join(network_profile_folder, network_profile) + "/"
+            if os.path.isdir(network_profile_path):
+                self.network_profile = network_profile
+                self.network_profile_path = network_profile_path
+                logging.debug("found network_profile %s", network_profile)
+                return
+
+        logging.debug("could not find network_profile %s", network_profile)
+        self.network_profile = None
+
     # check if image exists
     def created(self):
         # created images will be stored in downloads.lede-project.org like paths
@@ -156,6 +190,8 @@ if __name__ == "__main__":
     packages.extend(["vim", "vim", "luci", "iperf", "wavemon", "syslog-ng"])
 
     packages.extend(["vim", "attended-sysupgrade", "luci", "luci2-io-helper"])
+
+    network_profile = "zweieck.lan/generic"
     # builds libremesh
     #packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci", "lime-full", "-ppp", "-dnsmasq", "-ppp-mod-pppoe", "-6relayd", "-odhcp6c", "-odhcpd", "-firewall"]
 
@@ -166,8 +202,8 @@ if __name__ == "__main__":
 #    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "ubnt-loco-m-xw", packages)
 #    image_ar71.get()
     image_x86 = Image()
-    image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages)
-    image_x86.get()
+    image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages, network_profile)
+    image_x86.get_sysupgrade()
 #    image_x86_2 = Image()
 #    image_x86_2.request_variables("lede", "17.01.1", "x86", "64", "", packages)
 #    image_x86_2.get()

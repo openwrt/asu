@@ -19,7 +19,7 @@ class ImageRequest(Request):
         image = Image()
         image.request_variables(self.distro, self.version, self.target, self.subtarget, self.profile, self.packages)
 
-        self.response_dict["url"] =  self.update_server_url + "/" + image.get()
+        self.response_dict["url"] =  self.update_server_url + "/" + image.get_sysupgrade()
         return self.respond(), 200
 
     def check_profile(self):
