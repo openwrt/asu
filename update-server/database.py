@@ -47,6 +47,17 @@ class Database():
         self.c.execute("INSERT INTO default_packages (target, subtarget, packages) VALUES (?, ?, ?)", target, subtarget, default_packages)
         self.commit()
 
+    def check_profile(self, target, subtarget, profile):
+        logging.debug("check_profile  %s/%s/s", target, subtarget, profile)
+        self.c.execute("""SELECT EXISTS(
+            SELECT 1 FROM profiles
+            WHERE target=? AND subtarget = ? AND (name = ? OR board = ?)
+            LIMIT 1);""",
+            target, subtarget, profile, profile)
+        if self.c.fetchone()[0]:
+            return True
+        return False
+
     def get_default_packages(self, target, subtarget):
         logging.debug("get_default_pkgs for %s/%s", target, subtarget)
         self.c.execute(""" SELECT packages FROM default_packages
