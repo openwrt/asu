@@ -5,7 +5,8 @@
 			"ubus": {
 				"attended-sysupgrade": [
 					"get_installed_pkgs",
-					"get_board"
+					"get_board",
+					"sysupgrade"
 				], 
 				"system": [
 					"board"

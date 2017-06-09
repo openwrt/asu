@@ -1,6 +1,5 @@
 from flask import Flask
 import json
-from distutils.version import LooseVersion
 import sys
 from image import ImageBuilder
 from database import Database
@@ -9,6 +8,8 @@ from flask import request, send_from_directory
 import os
 from image import Image
 from replacement_table import *
+from update_request import UpdateRequest
+from image_request import ImageRequest
 
 logging.basicConfig(level=logging.DEBUG)
 database = Database()
@@ -17,101 +18,13 @@ app = Flask(__name__)
 distro_releases = {}
 distro_releases["lede"] = ["17.01.1", "17.01.0"]
 
-# need tests with https
-update_server_url = "http://192.168.1.3:5000"
-
-# returns the current release
-# TODO: this won't be static later
-@app.route("/current-release/<distro>")
-def currentRelease(distro):
-    distro = distro.lower()
-    if distro in distro_releases:
-        return distro_releases[distro]
-    return "unknown release", 404
-
 @app.route("/update-request", methods=['POST'])
 def update_request():
     if request.method == 'POST':
         request_json = request.get_json()
         ur = UpdateRequest(request_json)
         return ur.run()
-    return 444
-
-class UpdateRequest():
-    def __init__(self, request_json, check_packages=True):
-        self.request_json = request_json
-        self.response_dict = {}
-
-    def run(self):
-
-        if not self.vaild_request():
-            logging.info("received invaild update request")
-            self.response_dict["message"] = "missing parameters\nneed %s" % " ".join(self.needed_values)
-            return self.respond()
-
-        self.distro = self.request_json["distro"].lower()
-
-        if not self.distro in distro_releases:
-            logging.info("update request unknown distro")
-            self.response_dict["message"] = "unknown distribution %s" % self.distro
-            return self.respond()
-
-        self.latest_version = distro_releases[self.distro][0]
-
-        self.version = self.request_json["version"]
-        if not self.version in distro_releases[self.distro]:
-            self.response_dict["message"] = "unknown release %s" % self.version
-            self.response_dict["status"] = 0
-            return self.respond()
-
-        self.target = self.request_json["target"]
-        self.subtarget = self.request_json["subtarget"]
-
-        if not self.check_target():
-            self.response_dict["message"] = "unknown target %s/%s" % (self.target, self.subtarget)
-            self.response_dict["status"] = 0
-            return self.respond()
-
-        if not self.version_latest():
-            self.response_dict["version"] = self.latest_version
-            self.response_dict["status"] = 1
-
-        if "packages" in self.request_json and check_packages:
-            self.packages = self.request_json["packages"]
-            self.check_packages()
-
-        self.response_dict["message"] = "all checks passed"
-        self.response_dict["status"] = 0
-
-        return self.respond()
-
-    def vaild_request(self):
-        # needed params to check sysupgrade
-        self.needed_values = ["distro", "version", "target", "subtarget"]
-        for value in self.needed_values:
-            if not value in self.request_json:
-                return False
-        return True
-
-    # not sending distro/version. does this change within releases?
-    def check_target(self):
-        if database.check_target(self.target, self.subtarget):
-            return True
-        return False
-
-    def check_packages(self):
-        latest_packages = database.check_packages(self.target, self.subtarget, self.packages.keys())
-
-    def init_imagebuilder(self):
-        self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
-
-    def respond(self):
-        logging.debug(self.response_dict)
-        return(json.dumps(self.response_dict))
-   
-    # if local version is newer than received returns true
-    def version_latest(self):
-        return LooseVersion(self.version) >= LooseVersion(self.latest_version)
+    return 400
 
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
@@ -131,32 +44,11 @@ def download_image(image_path, image_name):
 @app.route("/image-request", methods=['GET', 'POST', 'PUT'])
 def requst_image():
     if request.method == 'POST':
-        jsonOutput = request.get_json()
-        if not check_request(request.get_json()):
-            return "", 401
+        request_json = request.get_json()
+        ir = ImageRequest(request_json)
+        return ir.run()
 
-        image = Image()
-        jsonOutput["profile"] = jsonOutput["board"]
-        image.request_params(jsonOutput)
-        response = {}
-        response["url"] =  update_server_url + "/" + image.get()
-        response["message"] = "image created"
-        response["status"] = 1
-        return json.dumps(response)
-    else:
-        return("get")
-        return(request.args.get('release'))
-    pass
-
-def translate_machine(machine):
-    machines = {}
-    machines["TP-LINK CPE510/520"] = "cpe510-520"
-
-   # if not machine in machines:
-   #     return None
-    return machines[machine]
-
-# foobar
+# may show some stats
 @app.route("/")
 def rootPath():
     return "update server running"
