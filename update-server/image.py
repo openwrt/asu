@@ -14,8 +14,7 @@ import os.path
 import subprocess
 import threading
 
-#logging.basicConfig(filename="output.log")
-logging.basicConfig(level=logging.DEBUG)
+#self.log.basicConfig(filename="output.log")
 
 class Image(threading.Thread):
     # distro
@@ -26,6 +25,7 @@ class Image(threading.Thread):
     # packages
     def __init__(self):
         threading.Thread.__init__(self)
+        self.log = logging.getLogger(__name__)
         self.database = Database()
         self.config = Config()
 
@@ -37,7 +37,7 @@ class Image(threading.Thread):
 
         self.imagebuilder.run()
 
-        logging.info("use imagebuilder at %s", self.imagebuilder.path)
+        self.log.info("use imagebuilder at %s", self.imagebuilder.path)
 
         self.diff_packages()
 
@@ -50,12 +50,12 @@ class Image(threading.Thread):
                 cmdline.append('PROFILE=%s' % self.profile)
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
             if self.network_profile:
-                logging.debug("add network_profile %s", self.network_profile)
+                self.log.debug("add network_profile %s", self.network_profile)
                 cmdline.append('FILES=%s' % self.network_profile_path)
             cmdline.append('BIN_DIR=%s' % build_path)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkg_hash)
 
-            logging.info("start build: %s", " ".join(cmdline))
+            self.log.info("start build: %s", " ".join(cmdline))
 
             proc = subprocess.Popen(
                 cmdline,
@@ -70,18 +70,17 @@ class Image(threading.Thread):
             if returnCode == 0:
                 for sysupgrade in os.listdir(build_path):
                     if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
-                        logging.info("move %s to %s", sysupgrade, (self.path + "-sysupgrade.bin"))
+                        self.log.info("move %s to %s", sysupgrade, (self.path + "-sysupgrade.bin"))
                         shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-sysupgrade.bin"))
 
                     if sysupgrade.endswith("factory.bin"):
-                        logging.info("move %s to %s", sysupgrade, (self.path + "-factory.bin"))
+                        self.log.info("move %s to %s", sysupgrade, (self.path + "-factory.bin"))
                         shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-factory.bin"))
 
-                logging.info("build successfull")
+                self.log.info("build successfull")
             else:
                 print(output.decode('utf-8'))
-                logging.info("build failed")
-
+                self.log.info("build failed")
 
     def _set_path(self):
         self.pkg_hash = self.get_pkg_hash()
@@ -114,14 +113,6 @@ class Image(threading.Thread):
         self.check_network_profile(network_profile)
         self._set_path()
 
-    def diff_packages(self):
-        default_packages = self.imagebuilder.default_packages
-        for package in self.packages:
-            if package in default_packages:
-                default_packages.remove(package)
-        for remove_package in default_packages:
-            self.packages.append("-" + remove_package)
-   
     def request_params(self, params):
         self.distro = params["distro"].lower()
         self.version = params["version"]
@@ -131,19 +122,27 @@ class Image(threading.Thread):
         self.packages = params["packages"]
         self._set_path()
 
+    def diff_packages(self):
+        default_packages = self.imagebuilder.default_packages
+        for package in self.packages:
+            if package in default_packages:
+                default_packages.remove(package)
+        for remove_package in default_packages:
+            self.packages.append("-" + remove_package)
+   
     # returns the path of the created image
     def get_sysupgrade(self):
         if not self.created():
             return None
         else:
-            logging.debug("Heureka!")
+            self.log.debug("Heureka!")
             return (self.path + "-sysupgrade.bin")
     
     def get_factory(self):
         if not self.created():
             return None
         else:
-            logging.debug("Heureka!")
+            self.log.debug("Heureka!")
             return (self.path + "-factory.bin")
 
     # generate a hash of the installed packages
@@ -176,6 +175,7 @@ class Image(threading.Thread):
 # usign für python ansehen
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     
     # with some usefull tools"
     packages = ['base-files', 'libc', 'libgcc', 'busybox', 'dropbear', 'mtd', 'uci', 'opkg', 'netifd', 'fstools', 'uclient-fetch', 'logd', 'partx-utils', 'mkf2fs', 'e2fsprogs', 'kmod-button-hotplug', 'kmod-e1000e', 'kmod-e1000', 'kmod-r8169', 'kmod-igb', 'dnsmasq', 'iptables', 'ip6tables', 'firewall', 'odhcpd', 'odhcp6c']
@@ -187,9 +187,6 @@ if __name__ == "__main__":
     network_profile = "zweieck.lan/generic"
     # builds libremesh
     #packages =  ["vim", "tmux", "screen", "attended-sysupgrade", "luci", "lime-full", "-ppp", "-dnsmasq", "-ppp-mod-pppoe", "-6relayd", "-odhcp6c", "-odhcpd", "-firewall"]
-
-    logging.info("started logger")
-
 
 #    image_ar71 = Image()
 #    image_ar71.request_variables("lede", "17.01.1", "ar71xx", "generic", "ubnt-loco-m-xw", packages)

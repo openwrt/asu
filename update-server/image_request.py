@@ -8,7 +8,7 @@ class ImageRequest(Request):
         self.building = building
         self.build_queue = queue
         self.config = Config()
-        self.needed_values = ["distro", "target", "subtarget", "board", "packages"]
+        self.needed_values = ["distro", "version", "target", "subtarget", "board", "packages"]
 
     def get_sysupgrade(self):
         bad_request = self.check_bad_request()
@@ -54,8 +54,8 @@ class ImageRequest(Request):
         network_profile_path = os.path.join(selt.config.get("network_profile_folder"), network_profile)
 
         if os.path.isdir(network_profile_path):
-            logging.debug("found network_profile %s", network_profile)
+            self.log.debug("found network_profile %s", network_profile)
             self.network_profile = network_profile
             return True
-        logging.debug("could not find network_profile %s", network_profile)
+        self.log.debug("could not find network_profile %s", network_profile)
         return False

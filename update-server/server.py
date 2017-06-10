@@ -13,7 +13,6 @@ from replacement_table import *
 from update_request import UpdateRequest
 from image_request import ImageRequest
 
-logging.basicConfig(level=logging.DEBUG)
 database = Database()
 
 app = Flask(__name__)
@@ -31,7 +30,7 @@ def update_request():
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
-    logging.warning("download image")
+    self.log.warning("download image")
     # offer file to download
     # security issue using ../../whatever.py?
     # redirect to image so nginx handels download
@@ -85,6 +84,7 @@ class BuildManager(threading.Thread):
         return self.building
 
 if __name__ == "__main__":
+    self.logging.basicConfig(level=self.log.DEBUG)
     build_queue = Queue()
     build_manager = BuildManager(build_queue)
     build_manager.start()
