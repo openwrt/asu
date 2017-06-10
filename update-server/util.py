@@ -35,3 +35,6 @@ def create_folder(folder):
     except: 
         logging.error("could not create %s", folder)
         return False
+
+if __name__ == "__main__":
+    download_targets()
