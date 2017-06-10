@@ -45,7 +45,7 @@ class Image(threading.Thread):
         with tempfile.TemporaryDirectory() as build_path:
             create_folder(os.path.dirname(self.path))
 
-            cmdline = ['make', 'image']
+            cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             if self.target != "x86":
                 cmdline.append('PROFILE=%s' % self.profile)
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
@@ -196,7 +196,8 @@ if __name__ == "__main__":
 #    image_ar71.get()
     image_x86 = Image()
     image_x86.request_variables("lede", "17.01.0", "x86", "64", "", packages)
-    image_x86.run()
+    if not image_x86.created():
+        image_x86.run()
     image_x86.get_sysupgrade()
 #    image_x86_2 = Image()
 #    image_x86_2.request_variables("lede", "17.01.1", "x86", "64", "", packages)
