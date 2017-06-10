@@ -18,7 +18,7 @@ create table if not exists profiles (
 	subtarget text,
 	board text,
 	packages text,
-	PRIMARY KEY(name, board)
+	PRIMARY KEY(name, board, target, subtarget)
 );
 
 create table if not exists default_packages (
