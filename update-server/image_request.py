@@ -3,10 +3,8 @@ from config import Config
 from request import Request
 
 class ImageRequest(Request):
-    def __init__(self, request_json, queue, building=None):
+    def __init__(self, request_json):
         super().__init__(request_json)
-        self.building = building
-        self.build_queue = queue
         self.config = Config()
         self.needed_values = ["distro", "version", "target", "subtarget", "board", "packages"]
 
@@ -28,21 +26,18 @@ class ImageRequest(Request):
         else:
             self.network_profile = None
         
-        self.image = Image()
-        self.image.request_variables(self.distro, self.version, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
+        self.image = Image(self.distro, self.version, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
 
         if self.image.created():
             self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
             return self.respond(), 200
         else:
-            if not self.building == self.image.name:
-                self.build_queue.put(self.image)
-                # this does not really makes sense right now as the queue just grows
-                # need OrderedSetQueue with index foo
-                self.response_dict["queue"] = self.build_queue.qsize()
-                return self.respond(), 201
-            else:
-                return "", 206
+            print(self.database.add_build_job(self.image))
+            return "", 206
+                #self.response_dict["queue"] = self.build_queue.qsize()
+       #         return "", 201
+       #     else:
+       #         return "", 206
 
     def check_profile(self):
         if database.check_target(self.target, self.subtarget, self.profile):

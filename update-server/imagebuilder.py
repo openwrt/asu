@@ -28,7 +28,6 @@ class ImageBuilder():
 
     def run(self):
         self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
-        logging.debug("default packages: %s", self.default_packages)
         if not self.default_packages:
             self.default_packages = self.parse_profiles()[0].split(" ")
 
@@ -96,6 +95,7 @@ class ImageBuilder():
         if returnCode == 0:
             default_packages_pattern = r"\n?.*\nDefault Packages: (.+)\n"
             default_packages = re.match(default_packages_pattern, output, re.M).group(1)
+            logging.debug("default packages: %s", default_packages)
             profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
             profiles = re.findall(profiles_pattern, output)
             if not profiles:
@@ -129,17 +129,3 @@ class ImageBuilder():
             return(packages)
         else:
             logging.error("could not receive packages of %s/%s", self.target, self.subtarget)
-
-if __name__ == "__main__":
-    logging.info("started logger")
-#    imagebuilder_old = ImageBuilder("lede", "17.01.1", "ar71xx", "generic")
-    imagebuilder_x86 = ImageBuilder("lede", "17.01.1", "x86", "64")
-
-#    profiles_data = imagebuilder_old.parse_profiles()
-#    packages = imagebuilder_old.parse_packages()
-#    print("found %i profiles " % len(profiles_data[1]))
-#    print("found %i packages " % len(packages))
-
-#    database.insert_profiles(imagebuilder_old.target, imagebuilder_old.subtarget, profiles_data)
-#    database.insert_packages(imagebuilder_old.target, imagebuilder_old.subtarget, packages)
-

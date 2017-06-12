@@ -1,4 +1,5 @@
 from flask import Flask
+import time
 import threading
 from queue import Queue
 import json
@@ -16,8 +17,6 @@ from image_request import ImageRequest
 database = Database()
 
 app = Flask(__name__)
-distro_releases = {}
-distro_releases["lede"] = ["17.01.1", "17.01.0"]
 
 @app.route("/update-request", methods=['POST'])
 def update_request():
@@ -46,7 +45,7 @@ def download_image(image_path, image_name):
 def requst_image():
     if request.method == 'POST':
         request_json = request.get_json()
-        ir = ImageRequest(request_json, build_queue, build_manager.get_building())
+        ir = ImageRequest(request_json)
         return ir.get_sysupgrade()
 
 # may show some stats
@@ -68,25 +67,24 @@ def check_request(request):
 
 class BuildManager(threading.Thread):
 
-    def __init__(self, build_queue):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.building = ""
+        self.database = Database()
 
     def run(self):
         while True:
-            image = build_queue.get()
-            if not image.created():
-                self.building = image.name
-                image.run()
-                self.building = ""
-
-    def get_building(self):
-        return self.building
+            build_job_request = self.database.get_build_job()
+            if not build_job_request:
+                print("sad")
+                time.sleep(1)
+            else:
+                image = Image(*build_job_request[2:8])
+                if not image.created():
+                    image.run()
 
 if __name__ == "__main__":
-    self.logging.basicConfig(level=self.log.DEBUG)
-    build_queue = Queue()
-    build_manager = BuildManager(build_queue)
+    logging.basicConfig(level=logging.DEBUG)
+    build_manager = BuildManager()
     build_manager.start()
 
     app.run(host='0.0.0.0')

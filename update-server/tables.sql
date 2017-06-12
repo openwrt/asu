@@ -33,3 +33,17 @@ create table if not exists targets (
 	subtarget text,
 	PRIMARY KEY (target, subtarget)
 );
+
+create table if not exists build_queue (
+	id SERIAL PRIMARY KEY,
+	image_hash text UNIQUE,
+	distro text,
+	version text,
+	target text,
+	subtarget text,
+	profile text,
+	packages text,
+	network_profile text,
+	status integer DEFAULT 0
+)
+

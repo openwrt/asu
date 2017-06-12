@@ -1,4 +1,5 @@
 import sqlite3
+from util import get_hash
 import pyodbc
 import logging
 
@@ -99,6 +100,40 @@ class Database():
     def check_packages(self, target, subtarget, packages):
         self.log.debug("check packages %s", packages)
         return packages
+
+    def add_build_job(self, image):
+        sql = """INSERT INTO build_queue
+            (image_hash, distro, version, target, subtarget, profile, packages, network_profile)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
+            ON CONFLICT DO NOTHING;"""
+        image_array = image.as_array()
+        print(image_array)
+        response = self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array))
+        self.commit()
+        return None
+
+    def get_build_job(self):
+        sql = """UPDATE build_queue
+            SET status = 1
+            WHERE status = 0 AND id = (
+                SELECT MIN(id)
+                FROM build_queue
+                WHERE status = 0
+                )
+            RETURNING * ;"""
+       # sql = """SELECT * 
+       #     FROM build_queue
+       #     WHERE id = (
+       #         SELECT MIN(id) 
+       #         FROM build_queue
+       #     );"""
+        rows_count = self.c.execute(sql)
+        if self.c.description:
+            self.commit()
+            return self.c.fetchone()
+        else:
+            return None
+        
         
 if __name__ == "__main__":
     db = Database()

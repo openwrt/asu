@@ -3,10 +3,9 @@ from distutils.version import LooseVersion
 import logging
 import json
 
-logging.basicConfig(level=logging.DEBUG)
-
 class Request():
     def __init__(self, request_json):
+        self.log = logging.getLogger(__name__)
         self.request_json = request_json
         self.response_dict = {}
 
@@ -20,17 +19,16 @@ class Request():
 
     def check_bad_request(self):
         self.distro_versions = {}
-        self.distro_versions["lede"] = ["17.01.1", "17.01.0"]
-        self.update_server_url = "http://192.168.1.3:5000"
+        self.distro_versions["lede"] = ["17.01.2", "17.01.1", "17.01.0"]
         if not self.vaild_request():
-            logging.info("received invaild update request")
+            self.log.info("received invaild request")
             self.response_dict["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
             return self.respond(), 400
 
         self.distro = self.request_json["distro"].lower()
 
         if not self.distro in self.distro_versions:
-            logging.info("update request unknown distro")
+            self.log.info("update request unknown distro")
             self.response_dict["error"] = "unknown distribution %s" % self.distro
             return self.respond(), 400
 
@@ -74,7 +72,7 @@ class Request():
         self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
 
     def respond(self):
-        logging.debug(self.response_dict)
+        self.log.debug(self.response_dict)
         return json.dumps(self.response_dict)
    
     # if local version is newer than received returns true
