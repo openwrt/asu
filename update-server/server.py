@@ -45,7 +45,7 @@ def download_image(image_path, image_name):
 def requst_image():
     if request.method == 'POST':
         request_json = request.get_json()
-        ir = ImageRequest(request_json)
+        ir = ImageRequest(request_json, build_manager.get_last_build_id())
         return ir.get_sysupgrade()
 
 # may show some stats
@@ -66,21 +66,32 @@ def check_request(request):
     return True
 
 class BuildManager(threading.Thread):
-
     def __init__(self):
         threading.Thread.__init__(self)
+        self.log = logging.getLogger(__name__)
         self.database = Database()
 
     def run(self):
+        self.last_build_id = 0
         while True:
             build_job_request = self.database.get_build_job()
+            if build_job_request:
+                self.last_build_id = build_job_request[0]
             if not build_job_request:
-                print("sad")
-                time.sleep(1)
+                self.log.debug("build queue is empty")
+                time.sleep(5)
             else:
                 image = Image(*build_job_request[2:8])
                 if not image.created():
-                    image.run()
+                    if image.run():
+                        self.database.del_build_job(build_job_request[1])
+                    else:
+                        self.database.set_build_job_fail(build_job_request[1])
+                        self.log.warn("build failed for %s", image.name)
+
+    def get_last_build_id(self):
+        print(self.last_build_id)
+        return self.last_build_id
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

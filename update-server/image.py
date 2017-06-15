@@ -87,9 +87,11 @@ class Image(threading.Thread):
                         shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-factory.bin"))
 
                 self.log.info("build successfull")
+                return True
             else:
                 print(output.decode('utf-8'))
                 self.log.info("build failed")
+                return False
 
     def _set_path(self):
         self.pkg_hash = self.get_pkg_hash()

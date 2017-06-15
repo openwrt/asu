@@ -4,9 +4,10 @@ from request import Request
 from http import HTTPStatus
 
 class ImageRequest(Request):
-    def __init__(self, request_json):
+    def __init__(self, request_json, last_build_id):
         super().__init__(request_json)
         self.config = Config()
+        self.last_build_id = last_build_id
         self.needed_values = ["distro", "version", "target", "subtarget", "board", "packages"]
 
     def get_sysupgrade(self):
@@ -33,12 +34,16 @@ class ImageRequest(Request):
             self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
             return self.respond(), HTTPStatus.OK
         else:
-            print(self.database.add_build_job(self.image))
-            return "", HTTPStatus.PARTIAL_CONTENT
-                #self.response_dict["queue"] = self.build_queue.qsize()
-       #         return "", HTTPStatus.CREATED 
-       #     else:
-       #         return "", HTTPStatus.PARTIAL_CONTENT
+            response = self.database.add_build_job(self.image)
+            if response[1] == 1:
+                queue_position = response[0] - self.last_build_id
+                if queue_position < 0:
+                    queue_position = 0
+                self.response_dict["queue"] = queue_position
+                return self.respond(), HTTPStatus.CREATED 
+
+            elif response[1] == 0:
+                return "", HTTPStatus.PARTIAL_CONTENT
 
     def check_profile(self):
         if database.check_target(self.target, self.subtarget, self.profile):

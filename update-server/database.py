@@ -105,12 +105,16 @@ class Database():
         sql = """INSERT INTO build_queue
             (image_hash, distro, version, target, subtarget, profile, packages, network_profile)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
-            ON CONFLICT DO NOTHING;"""
+            ON CONFLICT (image_hash) DO UPDATE
+            SET id = build_queue.id
+            RETURNING id, status;"""
         image_array = image.as_array()
-        print(image_array)
-        response = self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array))
+        self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array))
         self.commit()
-        return None
+        if self.c.description:
+            return self.c.fetchone()
+        else:
+            return None
 
     def get_build_job(self):
         sql = """UPDATE build_queue
@@ -127,13 +131,26 @@ class Database():
        #         SELECT MIN(id) 
        #         FROM build_queue
        #     );"""
-        rows_count = self.c.execute(sql)
+        self.c.execute(sql)
         if self.c.description:
             self.commit()
             return self.c.fetchone()
         else:
             return None
-        
+
+    def set_build_job_fail(self, image_request_hash):
+        sql = """UPDATE build_queue
+            WHERE image_hash = ?
+            SET status = 2;"""
+        self.c.execute(sql, (image_request_hash, ))
+        self.commit()
+
+    def del_build_job(self, image_request_hash):
+        print(image_request_hash)
+        sql = """DELETE FROM build_queue
+            WHERE image_hash = ?;"""
+        self.c.execute(sql, (image_request_hash, ))
+        self.commit()
         
 if __name__ == "__main__":
     db = Database()
