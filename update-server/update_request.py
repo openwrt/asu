@@ -1,4 +1,5 @@
 from request import Request
+from http import HTTPStatus
 
 class UpdateRequest(Request):
     def __init__(self, request_json):
@@ -15,7 +16,7 @@ class UpdateRequest(Request):
         if not self.version_latest(self.latest_version, self.version):
             self.response_dict["version"] = self.latest_version
             print("ack")
-            return self.respond(), 200
+            return self.respond(), HTTPStatus.OK
 
 
-        return ("", 204)
+        return("", HTTPStatus.NO_CONTENT)

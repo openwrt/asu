@@ -1,6 +1,7 @@
 from image import Image
 from config import Config
 from request import Request
+from http import HTTPStatus
 
 class ImageRequest(Request):
     def __init__(self, request_json):
@@ -16,13 +17,13 @@ class ImageRequest(Request):
         self.profile = self.request_json["board"]
         if not self.check_profile:
             self.response_dict["error"] = "board not found"
-            return self.respond(), 400
+            return self.respond(), HTTPStatus.BAD_REQUEST
 
         
         if "network_profile" in self.request_json:
             if self.check_network_profile():
                 self.request_json["error"] = "network profile not found"
-                return self.respond(), 400
+                return self.respond(), HTTPStatus.BAD_REQUEST
         else:
             self.network_profile = None
         
@@ -30,14 +31,14 @@ class ImageRequest(Request):
 
         if self.image.created():
             self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
-            return self.respond(), 200
+            return self.respond(), HTTPStatus.OK
         else:
             print(self.database.add_build_job(self.image))
-            return "", 206
+            return "", HTTPStatus.PARTIAL_CONTENT
                 #self.response_dict["queue"] = self.build_queue.qsize()
-       #         return "", 201
+       #         return "", HTTPStatus.CREATED 
        #     else:
-       #         return "", 206
+       #         return "", HTTPStatus.PARTIAL_CONTENT
 
     def check_profile(self):
         if database.check_target(self.target, self.subtarget, self.profile):

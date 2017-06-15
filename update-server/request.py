@@ -1,5 +1,6 @@
 from database import Database
 from distutils.version import LooseVersion
+from http import HTTPStatus
 import logging
 import json
 
@@ -23,32 +24,32 @@ class Request():
         if not self.vaild_request():
             self.log.info("received invaild request")
             self.response_dict["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
-            return self.respond(), 400
+            return self.respond(), HTTPStatus.BAD_REQUEST  
 
         self.distro = self.request_json["distro"].lower()
 
         if not self.distro in self.distro_versions:
             self.log.info("update request unknown distro")
             self.response_dict["error"] = "unknown distribution %s" % self.distro
-            return self.respond(), 400
+            return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.version = self.request_json["version"]
 
         if not self.version in self.distro_versions[self.distro]:
             self.response_dict["error"] = "unknown version %s" % self.version
-            return self.respond(), 400
+            return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.target = self.request_json["target"]
         self.subtarget = self.request_json["subtarget"]
 
         if not self.check_target():
             self.response_dict["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
-            return self.respond(), 400
+            return self.respond(), HTTPStatus.BAD_REQUEST
 
         if "packages" in self.request_json:
             self.packages = self.request_json["packages"]
         #    self.check_packages()
-        #    return self.respond(), 200
+        #    return self.respond(), HTTPStatus.OK
 
         return False
 

@@ -51,7 +51,6 @@ The server validates the request. If all checks pass an response is send, curren
 
 	{
 		"version": "17.01.1"
-		"status": 1
 		"error": ""
 	}
 
@@ -88,7 +87,6 @@ The *image request* is nearly the same as the *update request* before, except on
 ### image response
 
 	{
-		"status": 2
 		"queue": 3
 		"url": "https://update.lede/download/lede/17.01.1/ar71xx/generic/lede-17.01.1-2fe136c15026-ar71xx-generic-<device profile>-sysupgrade.bin"
 		"size": 4000000
@@ -103,7 +101,6 @@ The `status` code has again different meanings.
 | --- 		| --- 					| --- 			|
 | 500		| build faild			| see `error`	|
 | 503 		| server overload   | see `error` in response | 
-| 201 		| imagebuilder setup 		|	the LEDE imagebuilder only seen if first build requests for target/subtarget combo |
 | 201		| queued				| requests wait to build, see `queue` decreasing |
 | 206		| building				| building right now |
 | 200		| ready					| build finished successful, see `url` to retrieve image |
