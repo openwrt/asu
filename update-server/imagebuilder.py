@@ -30,12 +30,12 @@ class ImageBuilder():
         self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
         if not self.default_packages:
             self.parse_profiles()
-        self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
+            self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
 
         self.available_packages= self.database.get_available_packages(self.target, self.subtarget)
         if not self.available_packages:
             self.parse_packages()
-        self.available_packages= self.database.get_available_packages(self.target, self.subtarget)
+            self.available_packages= self.database.get_available_packages(self.target, self.subtarget)
 
         self.pkg_arch = self.parse_packages_arch()
         logging.debug("found package arch %s", self.pkg_arch)
