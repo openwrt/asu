@@ -58,7 +58,7 @@ class Database():
         return False
 
     def get_default_packages(self, target, subtarget):
-        self.log.debug("get_default_pkgs for %s/%s", target, subtarget)
+        self.log.debug("get_default_packages for %s/%s", target, subtarget)
         self.c.execute(""" SELECT packages FROM default_packages
             WHERE target=? AND subtarget=?;""", target, subtarget)
         response = self.c.fetchone()
@@ -67,9 +67,18 @@ class Database():
             return response[0].split(" ")
         return response
 
+    def get_available_packages(self, target, subtarget):
+        self.log.debug("get_available_packages for %s/%s", target, subtarget)
+        self.c.execute(""" SELECT name, version FROM packages 
+            WHERE target=? AND subtarget=?;""", target, subtarget)
+        response = {}
+        for name, version in self.c.fetchall():
+            response[name] = version 
+        return response
+
     def insert_packages(self, target, subtarget, packages):
         self.log.info("insert packages of %s/%s ", target, subtarget)
-        sql = "INSERT INTO packages (name, version, size, target, subtarget) VALUES (?, ?, ?, ?, ?)"
+        sql = "INSERT INTO packages (name, version, target, subtarget) VALUES (?, ?, ?, ?)"
         for package in packages:
             self.c.execute(sql, *package, target, subtarget)
 
@@ -95,11 +104,6 @@ class Database():
         else:
             self.log.info("check fail for %s/%s", target, subtarget)
             return False
-
-    # just a dummy for now
-    def check_packages(self, target, subtarget, packages):
-        self.log.debug("check packages %s", packages)
-        return packages
 
     def add_build_job(self, image):
         sql = """INSERT INTO build_queue
@@ -146,7 +150,6 @@ class Database():
         self.commit()
 
     def del_build_job(self, image_request_hash):
-        print(image_request_hash)
         sql = """DELETE FROM build_queue
             WHERE image_hash = ?;"""
         self.c.execute(sql, (image_request_hash, ))

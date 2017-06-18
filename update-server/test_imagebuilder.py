@@ -14,7 +14,7 @@ class ImageBuilderTest(unittest.TestCase):
         self.request["distro"] = "LEDE"
         self.request["version"] = "17.01.1"
         self.request["target"] = "x86"
-        self.request["subtarget"] = "64"
+        self.request["subtarget"] = "generic"
         self.request["board"] = "foobar"
         self.request["packages"] = [
 	    "mkf2fs",
@@ -53,15 +53,21 @@ class ImageBuilderTest(unittest.TestCase):
         self.assertTrue(imagebuilder.created())
 
     def test_init_imagebuilder(self):
-        imagebuilder = ImageBuilder("lede", "17.01.1", "x86", "64")
-        self.assertEquals(imagebuilder.path, "imagebuilder/lede/17.01.1/x86/64/lede-imagebuilder-17.01.1-x86-64.Linux-x86_64")
+        imagebuilder = ImageBuilder("lede", "17.01.1", "x86", "generic")
+        self.assertEqual(imagebuilder.path, "imagebuilder/lede/17.01.1/x86/generic/lede-imagebuilder-17.01.1-x86-generic.Linux-x86_64")
 
-    def test_package_list(self):
+    def test_package_default(self):
         imagebuilder = ImageBuilder("lede", "17.01.1", "x86", "generic")
         imagebuilder.run()
         default_packages_should = ['base-files', 'libc', 'libgcc', 'busybox', 'dropbear', 'mtd', 'uci', 'opkg', 'netifd', 'fstools', 'uclient-fetch', 'logd', 'partx-utils', 'mkf2fs', 'e2fsprogs', 'kmod-button-hotplug', 'dnsmasq', 'iptables', 'ip6tables', 'ppp', 'ppp-mod-pppoe', 'firewall', 'odhcpd', 'odhcp6c']
 
         self.assertEqual(imagebuilder.default_packages, default_packages_should)
 
+    def test_available_packages(self):
+        imagebuilder = ImageBuilder("lede", "17.01.1", "x86", "generic")
+        imagebuilder.run()
+        self.assertIn("base-files", imagebuilder.available_packages.keys())
+        self.assertNotIn("foobar-not-there", imagebuilder.available_packages.keys())
+        
 if __name__ == '__main__':
     unittest.main()

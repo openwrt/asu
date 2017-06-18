@@ -29,7 +29,13 @@ class ImageBuilder():
     def run(self):
         self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
         if not self.default_packages:
-            self.default_packages = self.parse_profiles()[0].split(" ")
+            self.parse_profiles()
+        self.default_packages = self.database.get_default_packages(self.target, self.subtarget)
+
+        self.available_packages= self.database.get_available_packages(self.target, self.subtarget)
+        if not self.available_packages:
+            self.parse_packages()
+        self.available_packages= self.database.get_available_packages(self.target, self.subtarget)
 
         self.pkg_arch = self.parse_packages_arch()
         logging.debug("found package arch %s", self.pkg_arch)
@@ -102,7 +108,6 @@ class ImageBuilder():
                 profiles = []
 #            print(output)
             self.database.insert_profiles(self.target, self.subtarget, (default_packages, profiles))
-            return(default_packages, profiles)
         else:
             logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
 
@@ -122,10 +127,10 @@ class ImageBuilder():
         output, erros = proc.communicate()
         returnCode = proc.returncode
         output = output.decode('utf-8')
+       # print(output)
         if returnCode == 0:
-            packages_pattern = r"(.+) (.+) (\d+)\n"
-            packages = re.findall(packages_pattern, output, re.M)
+            packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.database.insert_packages(self.target, self.subtarget, packages)
-            return(packages)
+            return packages
         else:
             logging.error("could not receive packages of %s/%s", self.target, self.subtarget)

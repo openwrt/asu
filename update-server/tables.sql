@@ -6,7 +6,6 @@ create table if not exists packages_hashes (
 create table if not exists packages (
 	name text,
 	version text,
-	size integer,
 	target text, 
 	subtarget text,
 	PRIMARY KEY (name, target, subtarget)

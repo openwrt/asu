@@ -48,8 +48,11 @@ class Request():
 
         if "packages" in self.request_json:
             self.packages = self.request_json["packages"]
-        #    self.check_packages()
-        #    return self.respond(), HTTPStatus.OK
+            all_found, missing_package = self.check_packages()
+            if not all_found:
+
+                self.response_dict["error"] = "could not find package {} for requested target".format(missing_package)
+                return self.respond(), HTTPStatus.BAD_REQUEST
 
         return False
 
@@ -67,7 +70,13 @@ class Request():
         return False
 
     def check_packages(self):
-        latest_packages = self.database.check_packages(self.target, self.subtarget, self.packages.keys())
+        available_packages = self.database.get_available_packages(self.target, self.subtarget).keys()
+        for package in self.packages:
+            if package not in available_packages:
+                logging.warn("could not find package {}".format(package))
+                return False, package
+
+        return True, None
 
     def init_imagebuilder(self):
         self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
