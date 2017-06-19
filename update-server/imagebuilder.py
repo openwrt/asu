@@ -40,6 +40,7 @@ class ImageBuilder():
         self.pkg_arch = self.parse_packages_arch()
         logging.debug("found package arch %s", self.pkg_arch)
         self.add_custom_repositories()
+        self.add_custom_makefile()
         logging.info("initialized imagebuilder %s", self.name)
 
 
@@ -63,6 +64,10 @@ class ImageBuilder():
                 custom_repositories = re.sub(r"{{ subtarget }}", self.subtarget, custom_repositories)
                 custom_repositories = re.sub(r"{{ pkg_arch }}", self.pkg_arch, custom_repositories)
                 repositories.write(custom_repositories)
+
+    def add_custom_makefile(self):
+        logging.info("adding custom Makefile")
+        shutil.copyfile(os.path.join(root_dir, "Makefile"), os.path.join(self.path, "Makefile"))
 
     def download(self): 
         ## will be read from config file later
