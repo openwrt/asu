@@ -90,7 +90,6 @@ class BuildManager(threading.Thread):
                         self.log.warn("build failed for %s", image.name)
 
     def get_last_build_id(self):
-        print(self.last_build_id)
         return self.last_build_id
 
 if __name__ == "__main__":
@@ -98,4 +97,4 @@ if __name__ == "__main__":
     build_manager = BuildManager()
     build_manager.start()
 
-    app.run(host='0.0.0.0')
+    app.run()
