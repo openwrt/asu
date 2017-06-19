@@ -71,11 +71,13 @@ class Request():
 
     def check_packages(self):
         available_packages = self.database.get_available_packages(self.target, self.subtarget).keys()
-        for package in self.packages:
-            if package not in available_packages:
-                logging.warn("could not find package {}".format(package))
-                return False, package
-
+        if not available_packages:
+            logging.warning("imagebuilder not ready jet")
+        else:
+            for package in self.packages:
+                if package not in available_packages:
+                    logging.warning("could not find package {}".format(package))
+                    return False, package
         return True, None
 
     def init_imagebuilder(self):
