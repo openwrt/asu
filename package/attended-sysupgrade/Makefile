@@ -19,7 +19,7 @@ define Package/attended-sysupgrade
   CATEGORY:=Sysupgrade
   MAINTAINER:=Paul Spooren <paul@spooren.de>
   TITLE:=Enables easy Sysupgrades via Luci
-  DEPENDS:= +rpcd +luci
+  DEPENDS:= +rpcd +luci +cgi-io
 endef
 
 define Package/attended-sysupgrade/description
