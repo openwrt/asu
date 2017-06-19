@@ -1,4 +1,3 @@
-import sqlite3
 from util import get_hash
 import pyodbc
 import logging
@@ -91,6 +90,9 @@ class Database():
             self.c.execute(sql, target, subtarget)
 
         self.commit()
+
+    def get_targets(self):
+        return self.c.execute("select target, subtarget from targets").fetchall()
 
     def check_target(self, target, subtarget):
         self.log.debug("check for %s/%s", target, subtarget)
