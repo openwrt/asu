@@ -66,6 +66,12 @@ class ImageRequestTest(unittest.TestCase):
         response = image_request.get_sysupgrade()
         self.assertEqual(response, ('{"error": "could not find package this_is_bad for requested target"}', 400))
 
+    def test_attended_sysupgrade_package(self):
+        self.request["subtarget"] = "64"
+        self.request["packages"].append("attended-sysupgrade")
+        image_request = ImageRequest(self.request, self.last_build_id)
+        response = image_request.get_sysupgrade()
+        self.assertEqual(response, ('', 206))
 
 if __name__ == '__main__':
     unittest.main()
