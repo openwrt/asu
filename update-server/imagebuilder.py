@@ -21,6 +21,7 @@ class ImageBuilder():
         self.version = version
         self.target = target
         self.subtarget = subtarget
+        self.root = os.path.dirname(os.path.realpath(__file__))
         self.name = "-".join([self.distro, "imagebuilder", self.version, self.target, self.subtarget])
         self.name += ".Linux-x86_64"
         self.path = os.path.join("imagebuilder", self.distro, self.version, self.target, self.subtarget, self.name)
@@ -55,7 +56,7 @@ class ImageBuilder():
     def add_custom_repositories(self):
         logging.info("adding custom repositories")
         with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
-            with open(os.path.join(os.path.realpath(), "repositories.conf"), "r") as custom_repositories:
+            with open(os.path.join(self.root, "repositories.conf"), "r") as custom_repositories:
                 custom_repositories = custom_repositories.read()
                 custom_repositories = re.sub(r"{{ release }}", self.version, custom_repositories)
                 custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
@@ -65,7 +66,7 @@ class ImageBuilder():
 
     def add_custom_makefile(self):
         logging.info("adding custom Makefile")
-        shutil.copyfile(os.path.join(os.path.realpath(), "Makefile"), os.path.join(self.path, "Makefile"))
+        shutil.copyfile(os.path.join(self.root, "Makefile"), os.path.join(self.path, "Makefile"))
 
     def download(self): 
         ## will be read from config file later
