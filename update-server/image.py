@@ -41,7 +41,7 @@ class Image(threading.Thread):
         self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
         if not self.imagebuilder.created():
             self.log.debug("download imagebuilder")
-            self.imagebuilder.download()
+            self.imagebuilder.setup()
 
         self.imagebuilder.run()
 

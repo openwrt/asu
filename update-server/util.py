@@ -33,4 +33,4 @@ def get_statuscode(url):
     path = "/" +"/".join(url_split[3:])
     conn = http.client.HTTPConnection(host)
     conn.request("HEAD", path) 
-    return conn.getresponse().status != 404
+    return conn.getresponse().status

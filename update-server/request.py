@@ -2,11 +2,13 @@ from database import Database
 from distutils.version import LooseVersion
 from http import HTTPStatus
 import logging
+from config import Config
 import json
 
 class Request():
     def __init__(self, request_json):
         self.log = logging.getLogger(__name__)
+        self.config = Config()
         self.request_json = request_json
         self.response_dict = {}
 
@@ -19,8 +21,6 @@ class Request():
             return bad_request
 
     def check_bad_request(self):
-        self.distro_versions = {}
-        self.distro_versions["lede"] = ["17.01.2", "17.01.1", "17.01.0"]
         if not self.vaild_request():
             self.log.info("received invaild request")
             self.response_dict["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
@@ -28,14 +28,17 @@ class Request():
 
         self.distro = self.request_json["distro"].lower()
 
-        if not self.distro in self.distro_versions:
+        if not self.distro in self.config.get("distributions").keys():
             self.log.info("update request unknown distro")
             self.response_dict["error"] = "unknown distribution %s" % self.distro
             return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.version = self.request_json["version"]
+        # temporary
+        self.release = self.version
+        print(self.database.get_releases(self.distro))
 
-        if not self.version in self.distro_versions[self.distro]:
+        if not self.version in self.database.get_releases(self.distro):
             self.response_dict["error"] = "unknown version %s" % self.version
             return self.respond(), HTTPStatus.BAD_REQUEST
 
@@ -65,23 +68,20 @@ class Request():
 
     # not sending distro/version. does this change within versions?
     def check_target(self):
-        if self.database.check_target(self.target, self.subtarget):
+        if self.database.check_target(self.distro, self.release, self.target, self.subtarget):
             return True
         return False
 
     def check_packages(self):
-        available_packages = self.database.get_available_packages(self.target, self.subtarget).keys()
-        if not available_packages:
-            logging.warning("imagebuilder not ready jet")
-        else:
-            for package in self.packages:
-                if package not in available_packages:
-                    logging.warning("could not find package {}".format(package))
-                    return False, package
+        available_packages = self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget).keys()
+        for package in self.packages:
+            if package not in available_packages:
+                logging.warning("could not find package {}".format(package))
+                return False, package
         return True, None
 
     def init_imagebuilder(self):
-        self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
+        self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
 
     def respond(self):
         self.log.debug(self.response_dict)

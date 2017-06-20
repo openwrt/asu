@@ -18,37 +18,36 @@ create table if not exists targets (
     FOREIGN KEY (distro, release) REFERENCES releases
 );
 
-
 create table if not exists packages (
-    name text,
-    version text,
     distro text,
     release text,
     target text,
     subtarget text,
-    FOREIGN KEY (distro, release) REFERENCES releases,
-    FOREIGN KEY (target, subtarget) REFERENCES targets
+    name text,
+    version text,
+    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 );
 
 create table if not exists profiles (
-    name text,
     distro text,
     release text,
-    board text,
     target text,
     subtarget text,
+    name text,
+    board text,
     packages text,
-    PRIMARY KEY(name, board, target, subtarget),
-    FOREIGN KEY (distro, release) REFERENCES releases,
-    FOREIGN KEY (target, subtarget) REFERENCES targets
+    PRIMARY KEY(distro, release, target, subtarget, name, board),
+    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 );
 
 create table if not exists default_packages (
+    distro text,
+    release text,
     target text,
     subtarget text,
     packages text,
-    PRIMARY KEY (target, subtarget),
-    FOREIGN KEY (target, subtarget) REFERENCES targets
+    PRIMARY KEY (distro, release, target, subtarget),
+    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 );
 
 create table if not exists build_queue (
@@ -62,7 +61,5 @@ create table if not exists build_queue (
     packages text,
     network_profile text,
     status integer DEFAULT 0,
-    FOREIGN KEY (distro, release) REFERENCES releases,
-    FOREIGN KEY (target, subtarget) REFERENCES targets
+    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 )
-

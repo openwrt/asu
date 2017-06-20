@@ -46,7 +46,7 @@ class ImageRequest(Request):
                 return "", HTTPStatus.PARTIAL_CONTENT
 
     def check_profile(self):
-        if database.check_target(self.target, self.subtarget, self.profile):
+        if database.check_target(self.distro, self.release, self.target, self.subtarget, self.profile):
             return True
         return False
 
