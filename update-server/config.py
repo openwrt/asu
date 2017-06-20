@@ -1,9 +1,14 @@
 import yaml
+import os.path
+from shutil import copyfile
 
 class Config():
     def __init__(self):
         self.config = {}
 
+        if not os.path.exists("config.yml"):
+            copyfile("config.yml.default", "config.yml")
+            
         with open("config.yml", 'r') as ymlfile:
             self.config = yaml.load(ymlfile)
 
