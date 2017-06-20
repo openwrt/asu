@@ -13,9 +13,6 @@ import os.path
 from config import Config
 import subprocess
 
-logging.basicConfig(level=logging.DEBUG)
-root_dir = "/home/a/src/gsoc/update-server/"
-
 class ImageBuilder():
     def __init__(self, distro, version, target, subtarget):
         self.database = Database()
@@ -58,7 +55,7 @@ class ImageBuilder():
     def add_custom_repositories(self):
         logging.info("adding custom repositories")
         with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
-            with open(os.path.join(root_dir, "repositories.conf"), "r") as custom_repositories:
+            with open(os.path.join(os.path.realpath(), "repositories.conf"), "r") as custom_repositories:
                 custom_repositories = custom_repositories.read()
                 custom_repositories = re.sub(r"{{ release }}", self.version, custom_repositories)
                 custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
@@ -68,7 +65,7 @@ class ImageBuilder():
 
     def add_custom_makefile(self):
         logging.info("adding custom Makefile")
-        shutil.copyfile(os.path.join(root_dir, "Makefile"), os.path.join(self.path, "Makefile"))
+        shutil.copyfile(os.path.join(os.path.realpath(), "Makefile"), os.path.join(self.path, "Makefile"))
 
     def download(self): 
         ## will be read from config file later
