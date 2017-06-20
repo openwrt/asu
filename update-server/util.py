@@ -1,4 +1,5 @@
 import urllib.request
+import http.client
 import tarfile
 import re
 import shutil
@@ -26,5 +27,10 @@ def get_hash(string, length):
     response_hash = h.hexdigest()[:length]
     return response_hash
 
-if __name__ == "__main__":
-    download_targets()
+def get_statuscode(url):
+    url_split = url.split("/")
+    host = url_split[2]
+    path = "/" +"/".join(url_split[3:])
+    conn = http.client.HTTPConnection(host)
+    conn.request("HEAD", path) 
+    return conn.getresponse().status != 404

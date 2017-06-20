@@ -1,4 +1,4 @@
-from util import create_folder
+from util import create_folder, get_statuscode
 import logging
 import tarfile
 from database import Database
@@ -10,6 +10,7 @@ import logging
 import hashlib
 import os
 import os.path
+from config import Config
 import subprocess
 
 logging.basicConfig(level=logging.DEBUG)
@@ -18,6 +19,7 @@ root_dir = "/home/a/src/gsoc/update-server/"
 class ImageBuilder():
     def __init__(self, distro, version, target, subtarget):
         self.database = Database()
+        self.config = Config()
         self.distro = distro
         self.version = version
         self.target = target
@@ -42,7 +44,6 @@ class ImageBuilder():
         self.add_custom_repositories()
         self.add_custom_makefile()
         logging.info("initialized imagebuilder %s", self.name)
-
 
     def created(self):
         return os.path.exists(os.path.join(self.path, "Makefile"))
@@ -72,21 +73,23 @@ class ImageBuilder():
     def download(self): 
         ## will be read from config file later
         logging.info("downloading imagebuilder %s", self.name)
-        imagebuilder_url = "http://downloads.lede-project.org/releases/"
-        ## /tmp
+        imagebuilder_url = self.config.get("imagebuilder_url")
         create_folder(os.path.dirname(self.path))
         imagebuilder_url_path = os.path.join(self.version, "targets", self.target, self.subtarget, self.name)
-        with tempfile.TemporaryDirectory() as tar_folder:
-            logging.info("downloading %s", imagebuilder_url_path)
-            tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
-            full_url = os.path.join(imagebuilder_url, imagebuilder_url_path)
-            full_url += ".tar.xz"
-            logging.debug("full_url %s", full_url)
-            urllib.request.urlretrieve(full_url, tar_path)
-            tar = tarfile.open(tar_path)
-            tar.extractall(path=tar_folder)
-            tar.close()
-            shutil.move(os.path.join(tar_folder, self.name), self.path)
+        tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
+        full_url = os.path.join(imagebuilder_url, imagebuilder_url_path)
+        full_url += ".tar.xz"
+        
+        if not get_statuscode(full_url) == 400:
+            with tempfile.TemporaryDirectory() as tar_folder:
+                logging.info("downloading %s", full_url)
+                urllib.request.urlretrieve(full_url, tar_path)
+                tar = tarfile.open(tar_path)
+                tar.extractall(path=tar_folder)
+                tar.close()
+                shutil.move(os.path.join(tar_folder, self.name), self.path)
+                return True
+        return False
 
     def parse_profiles(self):
         cmdline = ['make', 'info']
@@ -104,8 +107,8 @@ class ImageBuilder():
         returnCode = proc.returncode
         output = output.decode('utf-8')
         if returnCode == 0:
-            default_packages_pattern = r"\n?.*\nDefault Packages: (.+)\n"
-            default_packages = re.match(default_packages_pattern, output, re.M).group(1)
+            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
+            default_packages = re.match(default_packages_pattern, output, re.M).group(2)
             logging.debug("default packages: %s", default_packages)
             profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
             profiles = re.findall(profiles_pattern, output)
