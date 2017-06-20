@@ -16,7 +16,7 @@
     repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'
     dest: /srv/
     clone: yes
-    update: no
+    update: yes
 
 - name: ensure database is created
   become_user: postgres
