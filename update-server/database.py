@@ -88,11 +88,20 @@ class Database():
 
         self.commit()
     
-    def insert_target(self, target, subtargets):
+    def insert_release(self, distro, release):
+        self.log.info("insert %s/%s ", distro, release)
+        sql = "INSERT INTO releases VALUES (?, ?) ON CONFLICT DO NOTHING;"
+        self.c.execute(sql, distro, release)
+        self.commit()
+
+    def get_releases(self):
+        return self.c.execute("select * from releases").fetchall()
+    
+    def insert_target(self, distro, release, target, subtargets):
         self.log.info("insert %s/%s ", target, " ".join(subtargets))
-        sql = "INSERT INTO targets (target, subtarget) VALUES (?, ?)"
+        sql = "INSERT INTO targets VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING;"
         for subtarget in subtargets:
-            self.c.execute(sql, target, subtarget)
+            self.c.execute(sql, distro, release, target, subtarget)
 
         self.commit()
 
@@ -165,5 +174,3 @@ class Database():
 if __name__ == "__main__":
     db = Database()
     db.create_tables()
-    db.check_target("ar71xx", "generic")
-    db.check_target("ar71xx", "special")
