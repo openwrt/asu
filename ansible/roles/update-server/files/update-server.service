@@ -1,0 +1,17 @@
+[Unit]
+Description=update server for lede/openwrt/libremesh
+After=nginx.target
+
+[Service]
+Type=forking
+PIDFile=/run/update-server.pid
+WorkingDirectory=/srv
+ExecStart=/usr/bin/python3 server.py
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateDevices=true
+
+[Install]
+WantedBy=multi-user.target
