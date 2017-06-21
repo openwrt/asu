@@ -41,13 +41,13 @@ class ServerCli():
             print("could not found imagebuilder for {} {} {} - downloading...".format(version, target,         subtarget))
             if not ib.setup():
                 print("download failed")
-            print("downloaded imagebuilder {} - initiating".format(ib.path))
-            print("downloaded {}".format(ib.path))
+                return
+            else:
+                print("downloaded imagebuilder {} - initiating".format(ib.path))
+                ib.run()
+                print("initiaded")
         else:
             print("found imagebuilder {}".format(ib.path))
-        print("initianiting")
-        ib.run()
-        print("initiaded")
 
 
     def download_releases(self):
