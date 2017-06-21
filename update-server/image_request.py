@@ -1,4 +1,5 @@
 from image import Image
+import logging
 from config import Config
 from request import Request
 from http import HTTPStatus
@@ -6,6 +7,7 @@ from http import HTTPStatus
 class ImageRequest(Request):
     def __init__(self, request_json, last_build_id):
         super().__init__(request_json)
+        self.log = logging.getLogger(__name__)
         self.config = Config()
         self.last_build_id = last_build_id
         self.needed_values = ["distro", "version", "target", "subtarget", "board", "packages"]
@@ -20,6 +22,13 @@ class ImageRequest(Request):
             self.response_dict["error"] = "board not found"
             return self.respond(), HTTPStatus.BAD_REQUEST
 
+        if "packages" in self.request_json:
+            self.packages = self.request_json["packages"]
+            all_found, missing_package = self.check_packages()
+            if not all_found:
+
+                self.response_dict["error"] = "could not find package {} for requested target".format(missing_package)
+                return self.respond(), HTTPStatus.BAD_REQUEST
         
         if "network_profile" in self.request_json:
             if self.check_network_profile():
@@ -45,6 +54,7 @@ class ImageRequest(Request):
             elif response[1] == 0:
                 return "", HTTPStatus.PARTIAL_CONTENT
 
+
     def check_profile(self):
         if database.check_target(self.distro, self.release, self.target, self.subtarget, self.profile):
             return True
@@ -60,3 +70,11 @@ class ImageRequest(Request):
             return True
         self.log.debug("could not find network_profile %s", network_profile)
         return False
+
+    def check_packages(self):
+        available_packages = self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget).keys()
+        for package in self.packages:
+            if package not in available_packages:
+                logging.warning("could not find package {}".format(package))
+                return False, package
+        return True, None
