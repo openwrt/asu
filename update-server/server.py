@@ -75,7 +75,7 @@ def get_last_build_id():
         print("build manager not running")
         quit(1)
     try:
-        last_build_id = client.recv(16).decode()
+        return int(client.recv(16).decode())
     finally:
         client.close()
 

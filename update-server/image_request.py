@@ -53,7 +53,9 @@ class ImageRequest(Request):
 
             elif response[1] == 0:
                 return "", HTTPStatus.PARTIAL_CONTENT
-
+            elif response[1] == 2:
+                self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
+                return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR
 
     def check_profile(self):
         if database.check_target(self.distro, self.release, self.target, self.subtarget, self.profile):

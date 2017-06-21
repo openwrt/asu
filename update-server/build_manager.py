@@ -23,7 +23,7 @@ class BuildManager(threading.Thread):
         server.listen()
 
         while True:
-            print('waiting for a connection')
+            print("wait for connection - last_build_id: {}".format(self.last_build_id))
             connection, client_address = server.accept()
             try:
                 connection.send(str(self.last_build_id).encode())
@@ -49,6 +49,7 @@ class BuildManager(threading.Thread):
                         self.log.warn("build failed for %s", image.name)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     bm = BuildManager()
     bm.start()
     bm.open_socket()

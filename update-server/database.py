@@ -176,8 +176,8 @@ class Database():
 
     def set_build_job_fail(self, image_request_hash):
         sql = """UPDATE build_queue
-            WHERE image_hash = ?
-            SET status = 2;"""
+            SET status = 2
+            WHERE image_hash = ?;"""
         self.c.execute(sql, (image_request_hash, ))
         self.commit()
 
