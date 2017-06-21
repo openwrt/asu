@@ -22,9 +22,9 @@ class ImageBuilder():
         self.distro = distro
         self.version = version
         self.release = version
-        self.imagebuilder_version = version
+        self.imagebuilder_release = version
         if distro != "lede":
-            self.imagebuilder_version = self.config.get("imagebuilder_latest")
+            self.imagebuilder_release = self.config.get("imagebuilder_latest")
         self.target = target
         self.subtarget = subtarget
         self.root = os.path.dirname(os.path.realpath(__file__))
@@ -76,7 +76,8 @@ class ImageBuilder():
 
     def fill_repositories_template(self, custom_repositories):
         custom_repositories = re.sub(r"{{ distro }}", self.distro, custom_repositories)
-        custom_repositories = re.sub(r"{{ release }}", self.version, custom_repositories)
+        custom_repositories = re.sub(r"{{ imagebuilder_release }}", self.imagebuilder_release, custom_repositories)
+        custom_repositories = re.sub(r"{{ release }}", self.release, custom_repositories)
         custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
         custom_repositories = re.sub(r"{{ subtarget }}", self.subtarget, custom_repositories)
         custom_repositories = re.sub(r"{{ pkg_arch }}", self.pkg_arch, custom_repositories)
@@ -87,14 +88,14 @@ class ImageBuilder():
         shutil.copyfile(os.path.join(self.root, "Makefile"), os.path.join(self.path, "Makefile"))
 
     def download_url(self, remove_subtarget=False):
-        name_array = ["lede-imagebuilder", self.imagebuilder_version, self.target]
+        name_array = ["lede-imagebuilder", self.imagebuilder_release, self.target]
         # some imagebuilders have -generic removed
         if not remove_subtarget:
             name_array.append(self.subtarget)
 
         name = "-".join(name_array)
         name += ".Linux-x86_64.tar.xz"
-        return os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_version, "targets", self.target, self.subtarget, name)
+        return os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget, name)
 
     def setup(self): 
         self.log.info("downloading imagebuilder %s", self.path)

@@ -17,7 +17,7 @@ class ServerCli():
         parser.add_argument("-r", "--download-releases", action="store_true")
         parser.add_argument("-t", "--download-targets", action="store_true")
         parser.add_argument("-i", "--setup-imagebuilder", nargs="+")
-        parser.add_argument("-a", "--setup-all-imagebuilders", nargs="?")
+        parser.add_argument("-a", "--setup-all-imagebuilders", nargs="*")
         args = vars(parser.parse_args())
         if args["download_releases"]:
             self.download_releases()
