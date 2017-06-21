@@ -64,13 +64,23 @@ class ImageBuilder():
     def add_custom_repositories(self):
         self.log.info("adding custom repositories")
         with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
-            with open(os.path.join(self.root, "repositories.conf"), "r") as custom_repositories:
-                custom_repositories = custom_repositories.read()
-                custom_repositories = re.sub(r"{{ release }}", self.version, custom_repositories)
-                custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
-                custom_repositories = re.sub(r"{{ subtarget }}", self.subtarget, custom_repositories)
-                custom_repositories = re.sub(r"{{ pkg_arch }}", self.pkg_arch, custom_repositories)
+            custom_repositores_path = os.path.join("distributions", self.distro, "repositories.conf")
+            if os.path.exists(custom_repositores_path):
+                with open(custom_repositores_path, "r") as custom_repositories:
+                    custom_repositories = self.fill_repositories_template(custom_repositories.read())
                 repositories.write(custom_repositories)
+            elif os.path.exists("repositories.conf.default"):
+                with open("repositories.conf.default", "r") as custom_repositories:
+                    custom_repositories = self.fill_repositories_template(custom_repositories.read())
+                repositories.write(custom_repositories)
+
+    def fill_repositories_template(self, custom_repositories):
+        custom_repositories = re.sub(r"{{ distro }}", self.distro, custom_repositories)
+        custom_repositories = re.sub(r"{{ release }}", self.version, custom_repositories)
+        custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
+        custom_repositories = re.sub(r"{{ subtarget }}", self.subtarget, custom_repositories)
+        custom_repositories = re.sub(r"{{ pkg_arch }}", self.pkg_arch, custom_repositories)
+        return custom_repositories
 
     def add_custom_makefile(self):
         self.log.info("adding custom Makefile")
@@ -165,7 +175,8 @@ class ImageBuilder():
        # print(output)
         if returnCode == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
+            self.log.info("found {} packages for {} {} {} {}".format(self.distro, self.release, self.target, self.subtarget, len(packages)))
             self.database.insert_packages(self.distro, self.release, self.target, self.subtarget, packages)
         else:
             print(output)
-            self.log.info("could not receive packages of %s/%s", self.target, self.subtarget)
+            self.log.warning("could not receive packages of %s/%s", self.target, self.subtarget)
