@@ -164,9 +164,9 @@ class ImageBuilder():
         output = output.decode('utf-8')
        # print(output)
         if returnCode == 0:
-            packages = re.findall(r"^(.+?) - (.+?) - .*\n", output)
+            packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
+            print(packages)
             self.database.insert_packages(self.distro, self.release, self.target, self.subtarget, packages)
-            return packages
         else:
             print(output)
             self.log.info("could not receive packages of %s/%s", self.target, self.subtarget)
