@@ -66,7 +66,7 @@ class ImageBuilder():
         custom_repositories = None
         custom_repositories_path = os.path.join("distributions", self.distro, "repositories.conf")
         if os.path.exists(custom_repositories_path):
-            with open(custom_repositores_path, "r") as custom_repositories_distro:
+            with open(custom_repositories_path, "r") as custom_repositories_distro:
                 custom_repositories = self.fill_repositories_template(custom_repositories_distro.read())
         elif os.path.exists("repositories.conf.default"):
             with open("repositories.conf.default", "r") as custom_repositories_default:
