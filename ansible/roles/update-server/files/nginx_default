@@ -1,8 +1,13 @@
 server {
-	listen 80;
-	listen [::]:80;
-
+	listen 80 default_server;
+	listen [::]:80 default_server;
 	server_name _;
+
+	location /static {
+		alias /srv/update-server/download/;
+		index nothing_will_match;
+		autoindex on;
+	}
 
     location / { 
         proxy_set_header X-Real-IP $remote_addr;
@@ -13,5 +18,7 @@ server {
         proxy_pass http://localhost:5000; 
         proxy_redirect off;
     }   
+
+	location /static {
 }
 
