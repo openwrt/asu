@@ -63,6 +63,7 @@ class ServerCli():
                 print("initiaded")
         else:
             print("found imagebuilder {}".format(ib.path))
+            ib.parse_packages()
 
 
     def download_releases(self):

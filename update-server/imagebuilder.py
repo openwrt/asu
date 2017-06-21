@@ -165,7 +165,6 @@ class ImageBuilder():
        # print(output)
         if returnCode == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
-            print(packages)
             self.database.insert_packages(self.distro, self.release, self.target, self.subtarget, packages)
         else:
             print(output)

@@ -6,3 +6,7 @@ database_name: attended-sysupgrade
 database_user: postgres
 database_pass: password
 database_port: 5432
+
+distributions:
+    lede: https://downloads.lede-project.org/releases/
+    libremesh: http://repo.libremesh.org
