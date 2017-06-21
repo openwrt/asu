@@ -17,22 +17,37 @@ class ServerCli():
         parser.add_argument("-r", "--download-releases", action="store_true")
         parser.add_argument("-t", "--download-targets", action="store_true")
         parser.add_argument("-i", "--setup-imagebuilder", nargs="+")
-        parser.add_argument("-a", "--setup-all-imagebuilders", action="store_true")
+        parser.add_argument("-a", "--setup-all-imagebuilders", nargs="+")
         args = vars(parser.parse_args())
         if args["download_releases"]:
             self.download_releases()
         if args["download_targets"]:
             self.download_targets()
         if args["setup_all_imagebuilders"]:
-            self.setup_all_imagebuilders()
+            self.setup_all_imagebuilders(*args["setup_all_imagebuilders"])
         if args["setup_imagebuilder"]:
             self.setup_imagebuilder(*args["setup_imagebuilder"])
 
-    def setup_all_imagebuilders(self):
-        print("init all imagebuilders")
+    def setup_all_imagebuilders(self, *args):
+        if not args:
+            print("init all imagebuilders")
+        else:
+            print("init imagebuilder {}".format(args))
         for distro, release in self.database.get_releases():
+            if len(args) > 0:
+                if distro != args[0]:
+                    continue
+            if len(args) > 1:
+                if release != args[1]:
+                    continue
             targets = self.database.get_targets(distro, release)
             for target, subtarget in targets:
+                if len(args) > 2:
+                    if target != args[2]:
+                        continue
+                if len(args) > 3:
+                    if subtarget != args[3]:
+                        continue
                 self.setup_imagebuilder(distro, release, target, subtarget)
 
     def setup_imagebuilder(self, distro, version, target, subtarget):
