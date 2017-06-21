@@ -1,5 +1,5 @@
 from os import walk
-from util import create_folder, get_statuscode
+from util import create_folder, get_statuscode, get_latest_release
 import logging
 import tarfile
 from database import Database
@@ -24,7 +24,7 @@ class ImageBuilder():
         self.release = version
         self.imagebuilder_release = version
         if distro != "lede":
-            self.imagebuilder_release = self.config.get("imagebuilder_latest")
+            self.imagebuilder_release = get_latest_release("lede")
         self.target = target
         self.subtarget = subtarget
         self.root = os.path.dirname(os.path.realpath(__file__))
