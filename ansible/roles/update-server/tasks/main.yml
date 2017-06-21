@@ -11,6 +11,23 @@
     - python3-flask
     - git
 
+- name: install imagebuilder dependencies
+  package: name={{ item }} state=present
+  with_items:
+    - subversion 
+    - build-essential 
+    - libncurses5-dev 
+    - zlib1g-dev 
+    - gawk 
+    - git 
+    - ccache 
+    - gettext 
+    - libssl-dev 
+    - xsltproc 
+    - wget 
+    - unzip 
+    - python
+
 - name: clone git repository
   git:
     repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'
