@@ -49,7 +49,7 @@ class BuildManager(threading.Thread):
                         self.log.warn("build failed for %s", image.name)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     bm = BuildManager()
     bm.start()
     bm.open_socket()

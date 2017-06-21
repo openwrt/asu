@@ -19,6 +19,7 @@ class ServerCli():
         parser.add_argument("-i", "--setup-imagebuilder", nargs="+")
         parser.add_argument("-a", "--setup-all-imagebuilders", nargs="*")
         parser.add_argument("-u", "--update-packages", action="store_true")
+        parser.add_argument("-c", "--update-repositories", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
             self.download_releases()
@@ -66,6 +67,8 @@ class ServerCli():
             print("found imagebuilder {}".format(ib.path))
         if self.args["update_packages"]:
             ib.parse_packages()
+        if self.args["update_repositories"]:
+            ib.add_custom_repositories()
 
     def download_releases(self):
         for distro, distro_url in self.config.get("distributions").items():
