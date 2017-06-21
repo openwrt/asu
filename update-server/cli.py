@@ -65,10 +65,10 @@ class ServerCli():
                 print("initiaded")
         else:
             print("found imagebuilder {}".format(ib.path))
-        if self.args["update_packages"]:
-            ib.parse_packages()
         if self.args["update_repositories"]:
             ib.add_custom_repositories()
+        if self.args["update_packages"]:
+            ib.parse_packages()
 
     def download_releases(self):
         for distro, distro_url in self.config.get("distributions").items():
