@@ -1,4 +1,5 @@
 from request import Request
+from util import get_latest_release
 from http import HTTPStatus
 
 class UpdateRequest(Request):
@@ -11,12 +12,11 @@ class UpdateRequest(Request):
         if bad_request:
             return bad_request
 
-        self.latest_version = self.distro_versions[self.distro][0]
-
-        if not self.version_latest(self.latest_version, self.version):
-            self.response_dict["version"] = self.latest_version
-            print("ack")
+        self.latest_release = get_latest_release(self.distro)
+        if not self.version_latest(self.latest_release, self.release):
+            self.response_dict["version"] = self.latest_release
             return self.respond(), HTTPStatus.OK
 
+        # replacement_table missing before returning
 
         return("", HTTPStatus.NO_CONTENT)

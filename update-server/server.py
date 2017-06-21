@@ -1,4 +1,5 @@
 from flask import Flask
+import socket
 import time
 import threading
 from queue import Queue
@@ -45,7 +46,7 @@ def download_image(image_path, image_name):
 def requst_image():
     if request.method == 'POST':
         request_json = request.get_json()
-        ir = ImageRequest(request_json, build_manager.get_last_build_id())
+        ir = ImageRequest(request_json, get_last_build_id())
         return ir.get_sysupgrade()
 
 # may show some stats
@@ -65,36 +66,21 @@ def check_request(request):
             return False
     return True
 
-class BuildManager(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.log = logging.getLogger(__name__)
-        self.database = Database()
-
-    def run(self):
-        self.last_build_id = 0
-        while True:
-            build_job_request = self.database.get_build_job()
-            if build_job_request:
-                self.last_build_id = build_job_request[0]
-            if not build_job_request:
-                self.log.debug("build queue is empty")
-                time.sleep(5)
-            else:
-                image = Image(*build_job_request[2:8])
-                if not image.created():
-                    if image.run():
-                        self.database.del_build_job(build_job_request[1])
-                    else:
-                        self.database.set_build_job_fail(build_job_request[1])
-                        self.log.warn("build failed for %s", image.name)
-
-    def get_last_build_id(self):
-        return self.last_build_id
+def get_last_build_id():
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    socket_name = "/tmp/build_manager_last_build_id"
+    try:
+        client.connect(socket_name)
+    except socket.error as msg:
+        print("build manager not running")
+        quit(1)
+    try:
+        last_build_id = client.recv(16).decode()
+    finally:
+        client.close()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    build_manager = BuildManager()
-    build_manager.start()
+    get_last_build_id()
 
     app.run()

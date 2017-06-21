@@ -34,3 +34,8 @@ def get_statuscode(url):
     conn = http.client.HTTPConnection(host)
     conn.request("HEAD", path) 
     return conn.getresponse().status
+
+def get_latest_release(distro):
+    with open(os.path.join("distributions", distro, "releases"), "r") as releases:
+        return releases.readlines()[-1].strip()
+    return None

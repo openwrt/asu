@@ -49,14 +49,6 @@ class Request():
             self.response_dict["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
             return self.respond(), HTTPStatus.BAD_REQUEST
 
-        if "packages" in self.request_json:
-            self.packages = self.request_json["packages"]
-            all_found, missing_package = self.check_packages()
-            if not all_found:
-
-                self.response_dict["error"] = "could not find package {} for requested target".format(missing_package)
-                return self.respond(), HTTPStatus.BAD_REQUEST
-
         return False
 
     def vaild_request(self):
@@ -66,22 +58,10 @@ class Request():
                 return False
         return True
 
-    # not sending distro/version. does this change within versions?
     def check_target(self):
         if self.database.check_target(self.distro, self.release, self.target, self.subtarget):
             return True
         return False
-
-    def check_packages(self):
-        available_packages = self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget).keys()
-        for package in self.packages:
-            if package not in available_packages:
-                logging.warning("could not find package {}".format(package))
-                return False, package
-        return True, None
-
-    def init_imagebuilder(self):
-        self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
 
     def respond(self):
         self.log.debug(self.response_dict)
