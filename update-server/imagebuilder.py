@@ -63,15 +63,16 @@ class ImageBuilder():
 
     def add_custom_repositories(self):
         self.log.info("adding custom repositories")
-        with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
-            custom_repositores_path = os.path.join("distributions", self.distro, "repositories.conf")
-            if os.path.exists(custom_repositores_path):
-                with open(custom_repositores_path, "r") as custom_repositories:
-                    custom_repositories = self.fill_repositories_template(custom_repositories.read())
-                repositories.write(custom_repositories)
-            elif os.path.exists("repositories.conf.default"):
-                with open("repositories.conf.default", "r") as custom_repositories:
-                    custom_repositories = self.fill_repositories_template(custom_repositories.read())
+        custom_repositories = None
+        custom_repositories_path = os.path.join("distributions", self.distro, "repositories.conf")
+        if os.path.exists(custom_repositories_path):
+            with open(custom_repositores_path, "r") as custom_repositories_distro:
+                custom_repositories = self.fill_repositories_template(custom_repositories_distro.read())
+        elif os.path.exists("repositories.conf.default"):
+            with open("repositories.conf.default", "r") as custom_repositories_default:
+                custom_repositories = self.fill_repositories_template(custom_repositories_default.read())
+        if custom_repositories:
+            with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
                 repositories.write(custom_repositories)
 
     def fill_repositories_template(self, custom_repositories):
@@ -157,7 +158,6 @@ class ImageBuilder():
         else:
             logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
 
-
     def parse_packages(self):
         self.log.info("receive packages for %s/%s", self.target, self.subtarget)
 
@@ -176,7 +176,7 @@ class ImageBuilder():
        # print(output)
         if returnCode == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
-            self.log.info("found {} packages for {} {} {} {}".format(self.distro, self.release, self.target, self.subtarget, len(packages)))
+            self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
             self.database.insert_packages(self.distro, self.release, self.target, self.subtarget, packages)
         else:
             print(output)

@@ -95,6 +95,6 @@ class ServerCli():
 
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 sc = ServerCli()
 
