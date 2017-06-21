@@ -8,14 +8,17 @@ import sys
 from image import ImageBuilder
 from database import Database
 import logging
-from flask import request, send_from_directory
+from flask import request, send_from_directory,redirect
 import os
 from image import Image
 from replacement_table import *
 from update_request import UpdateRequest
 from image_request import ImageRequest
+from config import Config
+from http import HTTPStatus
 
 database = Database()
+config = Config()
 
 app = Flask(__name__)
 
@@ -30,12 +33,13 @@ def update_request():
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
-    self.log.warning("download image")
     # offer file to download
-    # security issue using ../../whatever.py?
     # redirect to image so nginx handels download
     # raise image download counter
-    return send_from_directory(directory=os.path.join("download", image_path), filename=image_name)
+
+    # use different approach?
+    return redirect(os.path.join(config.get("update_server"), "static", image_path, image_name), HTTPStatus.FOUND)
+    #return send_from_directory(directory=os.path.join("download", image_path), filename=image_name)
 
 # request methos for individual image
 # uses post methos to receive build information

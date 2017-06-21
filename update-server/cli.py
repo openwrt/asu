@@ -18,15 +18,16 @@ class ServerCli():
         parser.add_argument("-t", "--download-targets", action="store_true")
         parser.add_argument("-i", "--setup-imagebuilder", nargs="+")
         parser.add_argument("-a", "--setup-all-imagebuilders", nargs="*")
-        args = vars(parser.parse_args())
-        if args["download_releases"]:
+        parser.add_argument("-u", "--update-packages", action="store_true")
+        self.args = vars(parser.parse_args())
+        if self.args["download_releases"]:
             self.download_releases()
-        if args["download_targets"]:
+        if self.args["download_targets"]:
             self.download_targets()
-        if args["setup_all_imagebuilders"]:
-            self.setup_all_imagebuilders(*args["setup_all_imagebuilders"])
-        if args["setup_imagebuilder"]:
-            self.setup_imagebuilder(*args["setup_imagebuilder"])
+        if self.args["setup_all_imagebuilders"]:
+            self.setup_all_imagebuilders(*self.args["setup_all_imagebuilders"])
+        if self.args["setup_imagebuilder"]:
+            self.setup_imagebuilder(*self.args["setup_imagebuilder"])
 
     def setup_all_imagebuilders(self, *args):
         if not args:
@@ -63,6 +64,8 @@ class ServerCli():
                 print("initiaded")
         else:
             print("found imagebuilder {}".format(ib.path))
+        if self.args["update_packages"]:
+            ib.parse_packages()
 
     def download_releases(self):
         for distro, distro_url in self.config.get("distributions").items():
