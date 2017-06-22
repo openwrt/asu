@@ -37,7 +37,7 @@ class ImageRequest(Request):
         else:
             self.network_profile = None
         
-        self.image = Image(self.distro, self.version, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
+        self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
 
         if self.image.created():
             self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()

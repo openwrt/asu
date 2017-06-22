@@ -11,8 +11,6 @@ class Request():
         self.config = Config()
         self.request_json = request_json
         self.response_dict = {}
-
-        # temporary
         self.database = Database()
 
     def run(self):
@@ -33,12 +31,12 @@ class Request():
             self.response_dict["error"] = "unknown distribution %s" % self.distro
             return self.respond(), HTTPStatus.BAD_REQUEST
 
-        self.version = self.request_json["version"]
+        self.release = self.request_json["version"]
         # temporary
-        self.release = self.version
+        self.release = self.release
 
-        if not self.version in self.database.get_releases(self.distro):
-            self.response_dict["error"] = "unknown version %s" % self.version
+        if not self.release in self.database.get_releases(self.distro):
+            self.response_dict["error"] = "unknown release %s" % self.release
             return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.target = self.request_json["target"]
@@ -67,5 +65,5 @@ class Request():
         return json.dumps(self.response_dict)
    
     # if local version is newer than received returns true
-    def version_latest(self, latest, external):
+    def release_latest(self, latest, external):
         return LooseVersion(external) >= LooseVersion(latest)

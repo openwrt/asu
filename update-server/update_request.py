@@ -13,7 +13,7 @@ class UpdateRequest(Request):
             return bad_request
 
         self.latest_release = get_latest_release(self.distro)
-        if not self.version_latest(self.latest_release, self.release):
+        if not self.release_latest(self.latest_release, self.release):
             self.response_dict["version"] = self.latest_release
             return self.respond(), HTTPStatus.OK
 
