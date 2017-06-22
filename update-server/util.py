@@ -1,4 +1,5 @@
 import urllib.request
+import yaml
 import http.client
 import tarfile
 import re
@@ -38,4 +39,27 @@ def get_statuscode(url):
 def get_latest_release(distro):
     with open(os.path.join("distributions", distro, "releases"), "r") as releases:
         return releases.readlines()[-1].strip()
+    return None
+
+def get_release_config(distro, release):
+    config_path = os.path.join("distributions", distro, (release + ".yml"))
+    if os.path.exists(config_path):
+        with open(config_path, "r") as release_config:
+            return yaml.load(release_config.read())
+
+    return None
+
+def get_supported_targets(distro, release):
+    response = {}
+    targets = get_release_config(distro, release)
+    if targets:
+        for target in targets["supported"]:
+            subtarget = None
+            if "/" in target:
+                target, subtarget = target.split("/")
+            if not target in response:
+                response[target] = []
+            if subtarget:
+                response[target].append(subtarget)
+        return response
     return None

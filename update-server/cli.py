@@ -5,6 +5,7 @@ import logging
 from config import Config
 from imagebuilder import ImageBuilder
 import argparse
+from util import get_supported_targets
 
 class ServerCli():
     def __init__(self):
@@ -20,6 +21,7 @@ class ServerCli():
         parser.add_argument("-a", "--setup-all-imagebuilders", nargs="*")
         parser.add_argument("-u", "--update-packages", action="store_true")
         parser.add_argument("-c", "--update-repositories", action="store_true")
+        parser.add_argument("-s", "--set-supported", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
             self.download_releases()
@@ -29,6 +31,19 @@ class ServerCli():
             self.setup_all_imagebuilders(*self.args["setup_all_imagebuilders"])
         if self.args["setup_imagebuilder"]:
             self.setup_imagebuilder(*self.args["setup_imagebuilder"])
+        if self.args["set_supported"]:
+            self.set_supported()
+
+    def set_supported(self):
+        for distro, release in self.database.get_releases():
+            supported = get_supported_targets(distro, release)
+            if supported:
+                for target, subtargets in supported.items():
+                    if not subtargets:
+                        self.database.insert_supported(distro, release, target)
+                    else:
+                        for subtarget in subtargets:
+                            self.database.insert_supported(distro, release, target, subtarget)
 
     def setup_all_imagebuilders(self, *args):
         if not args:

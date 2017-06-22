@@ -33,6 +33,17 @@ class Database():
         self.c.execute(sql, distro, release)
         self.commit()
 
+    def insert_supported(self, distro, release, target, subtarget="%"):
+        self.log.info("insert supported {} {} {} {}".format(distro, release, target, subtarget))
+        sql = """UPDATE targets SET supported = true
+            WHERE 
+                distro=? AND 
+                release=? AND 
+                target=? AND 
+                subtarget LIKE ?"""
+        self.c.execute(sql, distro, release, target, subtarget)
+        self.commit()
+
     def get_releases(self, distro=None):
         if not distro:
             return self.c.execute("select * from releases").fetchall()
