@@ -36,7 +36,6 @@ class Request():
         self.version = self.request_json["version"]
         # temporary
         self.release = self.version
-        print(self.database.get_releases(self.distro))
 
         if not self.version in self.database.get_releases(self.distro):
             self.response_dict["error"] = "unknown version %s" % self.version

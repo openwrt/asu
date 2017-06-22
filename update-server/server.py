@@ -58,9 +58,6 @@ def requst_image():
 def rootPath():
     return "update server running"
 
-def updatePackages(version, packages):
-    pass
-
 # check if the received image request is vaild
 def check_request(request):
     # right now this approach is dead simple
