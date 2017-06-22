@@ -132,27 +132,15 @@ class Database():
 
         self.commit()
 
-    def get_targets(self, distro, release):
-        return self.c.execute("""SELECT target, subtarget FROM targets
-            WHERE distro=? AND release=?""", 
-            (distro, release, )).fetchall()
-
-    def check_target(self, distro, release, target, subtarget):
-        self.log.debug("check for %s/%s/%s/%s", distro, release, target, subtarget)
-        self.c.execute("""SELECT EXISTS(
-            SELECT 1 FROM targets 
+    def get_targets(self, distro, release, target="%", subtarget="%"):
+        self.log.debug("get_targets {} {} {} {}".format(distro, release, target, subtarget))
+        return self.c.execute("""SELECT target, subtarget, supported FROM targets
             WHERE 
-                distro=? AND 
-                release=? AND 
-                target=? AND 
-                subtarget=?
-            LIMIT 1);""",
-            distro, release, target, subtarget)
-        if self.c.fetchone()[0] != "0":
-            return True
-        else:
-            self.log.warning("check fail for %s/%s/%s/%s", distro, release,  target, subtarget)
-            return False
+                distro = ? AND 
+                release = ? AND 
+                target LIKE ? AND 
+                subtarget LIKE ?;""", 
+            distro, release, target, subtarget).fetchall()
 
     def add_build_job(self, image):
         sql = """INSERT INTO build_queue

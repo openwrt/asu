@@ -32,8 +32,6 @@ class Request():
             return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.release = self.request_json["version"]
-        # temporary
-        self.release = self.release
 
         if not self.release in self.database.get_releases(self.distro):
             self.response_dict["error"] = "unknown release %s" % self.release
@@ -42,8 +40,12 @@ class Request():
         self.target = self.request_json["target"]
         self.subtarget = self.request_json["subtarget"]
 
-        if not self.check_target():
+        target_check =  self.database.get_targets(self.distro, self.release, self.target, self.subtarget)
+        if not len(target_check) == 1: 
             self.response_dict["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
+            return self.respond(), HTTPStatus.BAD_REQUEST
+        elif not target_check[0][2] == "1": # [2] is supported flag
+            self.response_dict["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
             return self.respond(), HTTPStatus.BAD_REQUEST
 
         return False
@@ -54,11 +56,6 @@ class Request():
             if not value in self.request_json:
                 return False
         return True
-
-    def check_target(self):
-        if self.database.check_target(self.distro, self.release, self.target, self.subtarget):
-            return True
-        return False
 
     def respond(self):
         self.log.debug(self.response_dict)

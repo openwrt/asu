@@ -22,6 +22,7 @@ class ServerCli():
         parser.add_argument("-u", "--update-packages", action="store_true")
         parser.add_argument("-c", "--update-repositories", action="store_true")
         parser.add_argument("-s", "--set-supported", action="store_true")
+        parser.add_argument("--ignore-not-supported", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
             self.download_releases()
@@ -58,14 +59,17 @@ class ServerCli():
                 if release != args[1]:
                     continue
             targets = self.database.get_targets(distro, release)
-            for target, subtarget in targets:
+            for target, subtarget, supported in targets:
                 if len(args) > 2:
                     if target != args[2]:
                         continue
                 if len(args) > 3:
                     if subtarget != args[3]:
                         continue
-                self.setup_imagebuilder(distro, release, target, subtarget)
+                if supported == "1" or self.args["ignore_not_supported"]: 
+                    self.setup_imagebuilder(distro, release, target, subtarget)
+                else:
+                    print("target {} not supported for sysupgrade, skipping".format(target))
 
     def setup_imagebuilder(self, distro, version, target, subtarget):
         ib = ImageBuilder(distro, version, target, subtarget)
@@ -116,6 +120,6 @@ class ServerCli():
 
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
 

@@ -1,4 +1,5 @@
 import unittest
+from http import HTTPStatus
 from image_request import ImageRequest
 from queue import Queue	
 import logging
@@ -7,22 +8,17 @@ class ImageRequestTest(unittest.TestCase):
     def setUp(self):
         self.last_build_id = 0
         self.request = {}
-        self.request["distro"] = "LEDE"
+        self.request["distro"] = "lede"
         self.request["version"] = "17.01.1"
         self.request["target"] = "x86"
         self.request["subtarget"] = "generic"
         self.request["board"] = "foobar"
         self.request["packages"] = [
-	    "mkf2fs",
-	    "opkg",
-	    "iperf",
-	    "wavemon",
 	    "busybox",
 	    "odhcpd",
 	    "base-files",
 	    "partx-utils",
 	    "netifd",
-	    "kmod-r8169",
 	    "dnsmasq",
 	    "firewall",
 	    "odhcp6c",
@@ -35,16 +31,14 @@ class ImageRequestTest(unittest.TestCase):
 	    "iptables",
 	    "e2fsprogs",
 	    "vim",
-	    "ip6tables",
-	    "luci",
-	    "kmod-button-hotplug",
-	    "kmod-igb"
+	    "ip6tables"
 	]
 
     def test_good_request(self):
         image_request = ImageRequest(self.request, self.last_build_id)
         response = image_request.get_sysupgrade()
-        self.assertEqual(response, ('', 206))
+        self.assertRegex(response[0], r'"url": "http://.+?/download/lede/.+-sysupgrade\.bin"|')
+        self.assertIn(response[1], [HTTPStatus.PARTIAL_CONTENT, HTTPStatus.OK])
 
     def test_bad_missing_version(self):
         request = self.request
@@ -66,8 +60,14 @@ class ImageRequestTest(unittest.TestCase):
         response = image_request.get_sysupgrade()
         self.assertEqual(response, ('{"error": "could not find package this_is_bad for requested target"}', 400))
 
+    def test_not_supported(self):
+        self.request["target"] = "arc770"
+        self.request["subtarget"] = "generic"
+        image_request = ImageRequest(self.request, self.last_build_id)
+        response = image_request.get_sysupgrade()
+        self.assertEqual(response, ('{"error": "target currently not supported arc770/generic"}', 400))
+
     def test_attended_sysupgrade_package(self):
-        self.request["subtarget"] = "64"
         self.request["packages"].append("attended-sysupgrade")
         image_request = ImageRequest(self.request, self.last_build_id)
         response = image_request.get_sysupgrade()
