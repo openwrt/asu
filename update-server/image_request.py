@@ -41,21 +41,23 @@ class ImageRequest(Request):
 
         if self.image.created():
             self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
-            return self.respond(), HTTPStatus.OK
+            return self.respond(), HTTPStatus.OK # 200
         else:
             response = self.database.add_build_job(self.image)
-            if response[1] == 1:
-                queue_position = response[0] - self.last_build_id
-                if queue_position < 0:
-                    queue_position = 0
-                self.response_dict["queue"] = queue_position
-                return self.respond(), HTTPStatus.CREATED 
+            if response:
+                if response[1] == 0:
+                    queue_position = response[0] - self.last_build_id
+                    if queue_position < 0:
+                        queue_position = 0
+                    self.response_dict["queue"] = queue_position
+                    return self.respond(), HTTPStatus.CREATED # 201
 
-            elif response[1] == 0:
-                return "", HTTPStatus.PARTIAL_CONTENT
-            elif response[1] == 2:
-                self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
-                return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR
+                elif response[1] == 1:
+                    return "", HTTPStatus.PARTIAL_CONTENT # 206
+                elif response[1] == 2:
+                    self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
+                    return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
+            return 503
 
     def check_profile(self):
         if database.check_target(self.distro, self.release, self.target, self.subtarget, self.profile):
@@ -76,7 +78,9 @@ class ImageRequest(Request):
     def check_packages(self):
         available_packages = self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget).keys()
         for package in self.packages:
-            if package not in available_packages:
+            if package == "kernel":
+                pass # kernel is not an installable package, but installed...
+            elif package not in available_packages:
                 logging.warning("could not find package {}".format(package))
                 return False, package
         return True, None
