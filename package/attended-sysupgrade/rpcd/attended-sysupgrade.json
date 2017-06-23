@@ -14,7 +14,7 @@
 			}
 		},
 		"write": {
-			"luci-io": [
+			"cgi-io": [
 				"upload"
 			]
 		}
