@@ -1,11 +1,14 @@
 from request import Request
 from util import get_latest_release
 from http import HTTPStatus
+import logging
 
 class UpdateRequest(Request):
     def __init__(self, request_json):
         super().__init__(request_json)
+        self.log = logging.getLogger(__name__)
         self.needed_values = ["distro", "version", "target", "subtarget"]
+
 
     def run(self):
         bad_request = self.check_bad_request()
