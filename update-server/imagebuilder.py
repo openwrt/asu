@@ -32,8 +32,6 @@ class ImageBuilder():
     
     def run(self):
         self.pkg_arch = self.parse_packages_arch()
-        self.add_custom_repositories()
-        self.add_custom_makefile()
         self.default_packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
 
         if not self.default_packages:
@@ -62,6 +60,7 @@ class ImageBuilder():
                     return re.match(r'.*"(.+)"', line).group(1)
 
     def add_custom_repositories(self):
+        self.pkg_arch = self.parse_packages_arch()
         self.log.info("adding custom repositories")
         custom_repositories = None
         custom_repositories_path = os.path.join("distributions", self.distro, "repositories.conf")
@@ -109,6 +108,8 @@ class ImageBuilder():
                 self.download(self.download_url(True))
             else:
                 return False
+        self.add_custom_repositories()
+        self.add_custom_makefile()
         return True
 
     def download(self, url):
