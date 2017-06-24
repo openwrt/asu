@@ -1,4 +1,5 @@
 from util import get_hash
+import datetime
 from config import Config
 import pyodbc
 import logging
@@ -143,11 +144,11 @@ class Database():
             distro, release, target, subtarget).fetchall()
 
     def add_build_job(self, image):
-        sql = """INSERT INTO build_queue
-            (image_hash, distro, release, target, subtarget, profile, packages, network_profile)
+        sql = """INSERT INTO images
+            (image_hash, distro, release, target, subtarget, profile, package_hash, network_profile)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
             ON CONFLICT (image_hash) DO UPDATE
-            SET id = build_queue.id
+            SET id = images.id
             RETURNING id, status;"""
         image_array = image.as_array()
         self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array))
@@ -157,33 +158,53 @@ class Database():
         else:
             return None
 
+    def get_last_build_id(self):
+        sql = """SELECT MIN(id) FROM images;"""
+        self.c.execute(sql)
+        if self.c.description:
+            self.commit()
+            return self.c.fetchone()[0]
+        else:
+            return None
+
     def get_build_job(self):
-        sql = """UPDATE build_queue
-            SET status = 1
-            WHERE status = 0 AND id = (
+        sql = """UPDATE images
+            SET status = 'building'
+            FROM packages_hashes
+            WHERE images.package_hash = packages_hashes.hash AND status = 'requested' AND id = (
                 SELECT MIN(id)
-                FROM build_queue
-                WHERE status = 0
+                FROM images
+                WHERE status = 'requested'
                 )
-            RETURNING * ;"""
+            RETURNING id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages, network_profile;"""
         self.c.execute(sql)
         if self.c.description:
             self.commit()
             return self.c.fetchone()
         else:
             return None
-
-    def set_build_job_fail(self, image_request_hash):
-        sql = """UPDATE build_queue
-            SET status = 2
+    
+    def reset_build_job(self, image):
+        image_request_hash = get_hash(" ".join(image), 12)
+        sql = """UPDATE images
+            SET status = 'requested'
             WHERE image_hash = ?;"""
         self.c.execute(sql, (image_request_hash, ))
         self.commit()
 
-    def del_build_job(self, image_request_hash):
-        sql = """DELETE FROM build_queue
+    def set_build_job_fail(self, image_request_hash):
+        sql = """UPDATE images
+            SET status = 'failed'
             WHERE image_hash = ?;"""
         self.c.execute(sql, (image_request_hash, ))
+        self.commit()
+
+    def done_build_job(self, image_request_hash):
+        sql = """UPDATE images
+            SET status = 'created',
+            build_date = ?
+            WHERE image_hash = ?;"""
+        self.c.execute(sql, (datetime.datetime.now(), image_request_hash, ))
         self.commit()
         
 if __name__ == "__main__":

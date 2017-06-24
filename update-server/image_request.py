@@ -38,23 +38,27 @@ class ImageRequest(Request):
             self.network_profile = None
         
         self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-
-        if self.image.created():
-            self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
-            return self.respond(), HTTPStatus.OK # 200
+        response = self.database.add_build_job(self.image)
+        if response[1] == "created":
+            if self.image.created():
+                self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
+                return self.respond(), HTTPStatus.OK # 200
+            else:
+                self.database.reset_build_job(self.image.as_array())
+                return "", HTTPStatus.PARTIAL_CONTENT # 206
         else:
             response = self.database.add_build_job(self.image)
             if response:
-                if response[1] == 0:
+                if response[1] == "requested":
                     queue_position = response[0] - self.last_build_id
                     if queue_position < 0:
                         queue_position = 0
                     self.response_dict["queue"] = queue_position
                     return self.respond(), HTTPStatus.CREATED # 201
 
-                elif response[1] == 1:
+                elif response[1] == "building":
                     return "", HTTPStatus.PARTIAL_CONTENT # 206
-                elif response[1] == 2:
+                elif response[1] == "failed":
                     self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
                     return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
             return 503

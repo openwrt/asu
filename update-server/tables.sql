@@ -63,4 +63,23 @@ create table if not exists build_queue (
     network_profile text,
     status integer DEFAULT 0,
     FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
+);
+
+create table if not exists images (
+    id SERIAL PRIMARY KEY,
+    image_hash text UNIQUE,
+    distro text,
+    release text,
+    target text,
+    subtarget text,
+    profile text,
+    package_hash text,
+    network_profile text,
+	build_date timestamp,
+	last_download timestamp,
+	downloads integer DEFAULT 0,
+	keep boolean DEFAULT false,
+    status text DEFAULT 'requested',
+    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets,
+    FOREIGN KEY (package_hash) REFERENCES packages_hashes(hash)
 )

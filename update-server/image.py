@@ -115,7 +115,7 @@ class Image(threading.Thread):
         self.path = os.path.join("download", self.distro, self.version, self.target, self.subtarget, self.name)
 
     def as_array(self):
-        array = [self.distro, self.version, self.target, self.subtarget, self.profile, " ".join(self.packages), self.network_profile]
+        array = [self.distro, self.version, self.target, self.subtarget, self.profile, self.pkg_hash,  self.network_profile]
         return array
 
     def diff_packages(self):
