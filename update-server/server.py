@@ -1,4 +1,5 @@
 from flask import Flask
+from build_manager import BuildManager
 import socket
 import time
 import threading
@@ -38,8 +39,9 @@ def download_image(image_path, image_name):
     # raise image download counter
 
     # use different approach?
-    return redirect(os.path.join(config.get("update_server"), "static", image_path, image_name), HTTPStatus.FOUND)
-    #return send_from_directory(directory=os.path.join("download", image_path), filename=image_name)
+    if not config.get("dev"):
+        return redirect(os.path.join(config.get("update_server"), "static", image_path, image_name), HTTPStatus.FOUND)
+    return send_from_directory(directory=os.path.join("download", image_path), filename=image_name)
 
 # request methos for individual image
 # uses post methos to receive build information
@@ -68,6 +70,9 @@ def check_request(request):
     return True
 
 def get_last_build_id():
+    if config.get("dev"):
+        return bm.get_last_build_id()
+
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     socket_name = "/tmp/build_manager_last_build_id"
     try:
@@ -82,6 +87,10 @@ def get_last_build_id():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    if config.get("dev"):
+        bm = BuildManager()
+        bm.start()
     get_last_build_id()
+
 
     app.run()

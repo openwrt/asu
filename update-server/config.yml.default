@@ -1,3 +1,4 @@
+dev: True
 network_profile_folder: 
 imabebuilder_url: "http://downloads.lede-project.org/releases/"
 update_server: "http://localhost:5000"
