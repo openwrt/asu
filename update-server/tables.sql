@@ -77,7 +77,7 @@ create table if not exists images (
     network_profile text,
 	build_date timestamp,
 	last_download timestamp,
-	downloads integer,
+	downloads integer DEFAULT 0,
 	keep boolean DEFAULT false,
     status text DEFAULT 'requested',
     FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets,
