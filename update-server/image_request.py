@@ -1,4 +1,5 @@
 from image import Image
+import os
 import logging
 from config import Config
 from request import Request
@@ -31,8 +32,8 @@ class ImageRequest(Request):
                 return self.respond(), HTTPStatus.BAD_REQUEST
         
         if "network_profile" in self.request_json:
-            if self.check_network_profile():
-                self.request_json["error"] = "network profile not found"
+            if not self.check_network_profile():
+                self.response_dict["error"] = "network profile not found"
                 return self.respond(), HTTPStatus.BAD_REQUEST
         else:
             self.network_profile = None
@@ -76,7 +77,9 @@ class ImageRequest(Request):
 
     def check_network_profile(self):
         network_profile = self.request_json["network_profile"]
-        network_profile_path = os.path.join(selt.config.get("network_profile_folder"), network_profile)
+        network_profile_path = os.path.join(self.config.get("network_profile_folder"), network_profile)
+        self.log.debug("network_profile_path: %s", network_profile_path)
+        self.log.debug("network_profile_folder: %s", self.config.get("network_profile_folder"))
 
         if os.path.isdir(network_profile_path):
             self.log.debug("found network_profile %s", network_profile)

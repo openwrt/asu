@@ -27,7 +27,7 @@ class BuildManager(threading.Thread):
                 time.sleep(5)
             else:
                 self.last_build_id = build_job_request[0]
-                image = Image(*build_job_request[2:8])
+                image = Image(*build_job_request[2:9])
                 self.log.debug(image.as_array())
                 if not image.created():
                     if image.run():
