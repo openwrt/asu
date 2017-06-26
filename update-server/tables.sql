@@ -14,7 +14,7 @@ create table if not exists targets (
     release text,
     target text,
     subtarget text,
-	supported bool,
+	supported bool DEFAULT false,
     PRIMARY KEY (distro, release, target, subtarget),
     FOREIGN KEY (distro, release) REFERENCES releases
 );
