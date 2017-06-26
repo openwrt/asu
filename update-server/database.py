@@ -144,9 +144,9 @@ class Database():
             distro, release, target, subtarget).fetchall()
 
     def get_image_status(self, image):
-        sql = """select id, status from images
+        sql = """select id, status, checksum from images
             where image_hash = ?"""
-        self.c.execute(sql, (get_hash(" ".join(image.as_array()), 12), ))
+        self.c.execute(sql, (get_hash(" ".join(image.as_array()), 12)))
         if self.c.description:
             return self.c.fetchone()
         else:
@@ -159,7 +159,7 @@ class Database():
             ON CONFLICT DO NOTHING
             RETURNING id"""
         image_array = image.as_array()
-        self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array))
+        self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array, ))
         self.commit()
         if self.c.description:
             return self.c.fetchone()[0]

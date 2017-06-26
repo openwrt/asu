@@ -44,10 +44,11 @@ class ImageRequest(Request):
             image_id = self.database.add_build_job(self.image)
             return self.respond_requested(image_id)
         else:
-            image_id, image_status = response
+            image_id, image_status, image_checksum = response
             if image_status == "created":
                 if self.image.created():
                     self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
+                    self.response_dict["checksum"] = image_checksum
                     return self.respond(), HTTPStatus.OK # 200
                 else:
                     self.database.reset_build_job(self.image.as_array())
@@ -68,7 +69,6 @@ class ImageRequest(Request):
             queue_position = 0
         self.response_dict["queue"] = queue_position
         return self.respond(), HTTPStatus.CREATED # 201
-
 
     def check_profile(self):
         if database.check_target(self.distro, self.release, self.target, self.subtarget, self.profile):
