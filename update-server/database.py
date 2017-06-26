@@ -207,6 +207,15 @@ class Database():
         self.c.execute(sql, (image_request_hash, ))
         self.commit()
 
+    def set_checksum(self, image, checksum):
+        image_request_hash = get_hash(" ".join(image), 12)
+        self.log.warning(image_request_hash)
+        sql = """UPDATE images
+            SET checksum = ?
+            WHERE image_hash = ?;"""
+        self.c.execute(sql, (checksum, image_request_hash, ))
+        self.commit()
+
     def done_build_job(self, image_request_hash):
         sql = """UPDATE images
             SET status = 'created',

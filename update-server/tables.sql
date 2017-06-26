@@ -75,6 +75,7 @@ create table if not exists images (
     profile text,
     package_hash text,
     network_profile text,
+    checksum text,
 	build_date timestamp,
 	last_download timestamp,
 	downloads integer DEFAULT 0,

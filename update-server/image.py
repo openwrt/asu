@@ -79,19 +79,20 @@ class Image(threading.Thread):
             if returnCode == 0:
                 for sysupgrade in os.listdir(build_path):
                     if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
-                        self.log.info("move %s to %s", sysupgrade, (self.path + "-sysupgrade.bin"))
-                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-sysupgrade.bin"))
-
-                    if sysupgrade.endswith("factory.bin"):
-                        self.log.info("move %s to %s", sysupgrade, (self.path + "-factory.bin"))
-                        shutil.move(os.path.join(build_path, sysupgrade), (self.path + "-factory.bin"))
+                        self.log.info("move %s to %s", sysupgrade, self.path)
+                        shutil.move(os.path.join(build_path, sysupgrade), self.path)
 
                 self.log.info("build successfull")
+                self.generate_checksum()
                 return True
             else:
                 print(output.decode('utf-8'))
                 self.log.info("build failed")
                 return False
+
+    def generate_checksum(self):
+        checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
+        self.database.set_checksum(self.as_array(), checksum)
 
     def _set_path(self):
         self.pkg_hash = self.get_pkg_hash()
@@ -107,7 +108,7 @@ class Image(threading.Thread):
         if self.target != "x86":
             path_array.append(self.profile)
         ## .bin should always be fine
-       #     path_array.append("sysupgrade.bin")
+        path_array.append("sysupgrade.bin")
        # else:
        #     path_array.append("sysupgrade.img")
 
@@ -132,15 +133,8 @@ class Image(threading.Thread):
             return None
         else:
             self.log.debug("Heureka!")
-            return (self.path + "-sysupgrade.bin")
+            return (self.path)
     
-    def get_factory(self):
-        if not self.created():
-            return None
-        else:
-            self.log.debug("Heureka!")
-            return (self.path + "-factory.bin")
-
     # generate a hash of the installed packages
     def get_pkg_hash(self):
         # sort list and remove duplicates
@@ -163,4 +157,4 @@ class Image(threading.Thread):
 
     # check if image exists
     def created(self):
-        return os.path.exists(self.path + "-sysupgrade.bin")
+        return os.path.exists(self.path)
