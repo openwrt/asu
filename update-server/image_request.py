@@ -38,30 +38,36 @@ class ImageRequest(Request):
             self.network_profile = None
         
         self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        response = self.database.add_build_job(self.image)
-        if response[1] == "created":
-            if self.image.created():
-                self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
-                return self.respond(), HTTPStatus.OK # 200
-            else:
-                self.database.reset_build_job(self.image.as_array())
-                return "", HTTPStatus.PARTIAL_CONTENT # 206
+        response = self.database.get_image_status(self.image)
+        if not response:
+            image_id = self.database.add_build_job(self.image)
+            return self.respond_requested(image_id)
         else:
-            response = self.database.add_build_job(self.image)
-            if response:
-                if response[1] == "requested":
-                    queue_position = response[0] - self.last_build_id
-                    if queue_position < 0:
-                        queue_position = 0
-                    self.response_dict["queue"] = queue_position
-                    return self.respond(), HTTPStatus.CREATED # 201
-
-                elif response[1] == "building":
+            image_id, image_status = response
+            if image_status == "created":
+                if self.image.created():
+                    self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
+                    return self.respond(), HTTPStatus.OK # 200
+                else:
+                    self.database.reset_build_job(self.image.as_array())
                     return "", HTTPStatus.PARTIAL_CONTENT # 206
-                elif response[1] == "failed":
+            else:
+                if image_status == "requested":
+                    self.respond_requested(image_id)
+                elif image_status == "building":
+                    return "", HTTPStatus.PARTIAL_CONTENT # 206
+                elif image_status == "failed":
                     self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
                     return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
             return 503
+
+    def respond_requested(self, image_id):
+        queue_position = image_id - self.last_build_id
+        if queue_position < 0:
+            queue_position = 0
+        self.response_dict["queue"] = queue_position
+        return self.respond(), HTTPStatus.CREATED # 201
+
 
     def check_profile(self):
         if database.check_target(self.distro, self.release, self.target, self.subtarget, self.profile):

@@ -143,18 +143,26 @@ class Database():
                 subtarget LIKE ?;""", 
             distro, release, target, subtarget).fetchall()
 
+    def get_image_status(self, image):
+        sql = """select id, status from images
+            where image_hash = ?"""
+        self.c.execute(sql, (get_hash(" ".join(image.as_array()), 12), ))
+        if self.c.description:
+            return self.c.fetchone()
+        else:
+            return None
+
     def add_build_job(self, image):
         sql = """INSERT INTO images
             (image_hash, distro, release, target, subtarget, profile, package_hash, network_profile)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
-            ON CONFLICT (image_hash) DO UPDATE
-            SET id = images.id
-            RETURNING id, status;"""
+            ON CONFLICT DO NOTHING
+            RETURNING id"""
         image_array = image.as_array()
         self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array))
         self.commit()
         if self.c.description:
-            return self.c.fetchone()
+            return self.c.fetchone()[0]
         else:
             return None
 
