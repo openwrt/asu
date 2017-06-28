@@ -92,5 +92,7 @@ if __name__ == "__main__":
         bm.start()
     get_last_build_id()
 
-
-    app.run()
+    if config.get("dev"):
+        app.run(host="0.0.0.0")
+    else:
+        app.run()
