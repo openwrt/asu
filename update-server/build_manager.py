@@ -30,11 +30,7 @@ class BuildManager(threading.Thread):
                 image = Image(*build_job_request[2:9])
                 self.log.debug(image.as_array())
                 if not image.created():
-                    if image.run():
-                        print(build_job_request[1])
-                        self.database.done_build_job(build_job_request[1])
-                    else:
-                        self.database.set_build_job_fail(build_job_request[1])
+                    if not image.run():
                         self.log.warn("build failed for %s", image.name)
 
 if __name__ == "__main__":

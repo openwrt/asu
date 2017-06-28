@@ -17,28 +17,31 @@ import threading
 #self.log.basicConfig(filename="output.log")
 
 class Image(threading.Thread):
-    def __init__(self, distro, version, target, subtarget, profile, packages, network_profile=""):
+    def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.database = Database()
         self.config = Config()
         self.distro = distro.lower()
-        self.version = version
+        self.release = release
         self.target = target
         self.subtarget = subtarget
         self.profile = profile
 
-        if type(packages) is str:
+        if not packages:
+            self.packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
+        elif type(packages) is str:
             self.packages = packages.split(" ")
         else:
             self.packages = packages
 
         self.check_network_profile(network_profile)
         self._set_path()
+        self.set_image_request_hash()
 
     def run(self):
         imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
-        self.imagebuilder = ImageBuilder(self.distro, self.version, self.target, self.subtarget)
+        self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
         if not self.imagebuilder.created():
             self.log.debug("download imagebuilder")
             self.imagebuilder.setup()
@@ -83,22 +86,27 @@ class Image(threading.Thread):
                         shutil.move(os.path.join(build_path, sysupgrade), self.path)
 
                 self.log.info("build successfull")
-                self.generate_checksum()
+                self.gen_checksum()
+                self.gen_filesize()
+                self.database.done_build_job(self.image_request_hash, self.checksum, self.filesize)
                 return True
             else:
                 print(output.decode('utf-8'))
                 self.log.info("build failed")
+                self.database.set_build_job_fail(self.image_request_hash)
                 return False
 
-    def generate_checksum(self):
-        checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
-        self.database.set_checksum(self.as_array(), checksum)
+    def gen_checksum(self):
+        self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
+
+    def gen_filesize(self):
+        self.filesize = os.stat(self.path).st_size
 
     def _set_path(self):
         self.pkg_hash = self.get_pkg_hash()
 
         # using lede naming convention
-        path_array = [self.distro, self.version, self.pkg_hash]
+        path_array = [self.distro, self.release, self.pkg_hash]
 
         if self.network_profile:
             path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
@@ -113,10 +121,10 @@ class Image(threading.Thread):
        #     path_array.append("sysupgrade.img")
 
         self.name = "-".join(path_array)
-        self.path = os.path.join("download", self.distro, self.version, self.target, self.subtarget, self.name)
+        self.path = os.path.join("download", self.distro, self.release, self.target, self.subtarget, self.name)
 
     def as_array(self):
-        array = [self.distro, self.version, self.target, self.subtarget, self.profile, self.pkg_hash,  self.network_profile]
+        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.pkg_hash,  self.network_profile]
         return array
 
     def diff_packages(self):
@@ -143,6 +151,9 @@ class Image(threading.Thread):
         package_hash = get_hash(" ".join(self.packages), 12)
         self.database.insert_hash(package_hash, self.packages)
         return package_hash
+
+    def set_image_request_hash(self):
+        self.image_request_hash = get_hash(" ".join(self.as_array()), 12)
 
     # builds the image with the specific packages at output path
 

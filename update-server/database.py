@@ -144,7 +144,7 @@ class Database():
             distro, release, target, subtarget).fetchall()
 
     def get_image_status(self, image):
-        sql = """select id, status, checksum from images
+        sql = """select id, status, checksum, filesize from images
             where image_hash = ?"""
         self.c.execute(sql, (get_hash(" ".join(image.as_array()), 12)))
         if self.c.description:
@@ -207,21 +207,14 @@ class Database():
         self.c.execute(sql, (image_request_hash, ))
         self.commit()
 
-    def set_checksum(self, image, checksum):
-        image_request_hash = get_hash(" ".join(image), 12)
-        self.log.warning(image_request_hash)
-        sql = """UPDATE images
-            SET checksum = ?
-            WHERE image_hash = ?;"""
-        self.c.execute(sql, (checksum, image_request_hash, ))
-        self.commit()
-
-    def done_build_job(self, image_request_hash):
-        sql = """UPDATE images
-            SET status = 'created',
+    def done_build_job(self, image_request_hash, checksum, filesize):
+        sql = """UPDATE images SET 
+            status = 'created',
+            checksum = ?,
+            filesize = ?,
             build_date = ?
             WHERE image_hash = ?;"""
-        self.c.execute(sql, (datetime.datetime.now(), image_request_hash, ))
+        self.c.execute(sql, checksum, filesize, datetime.datetime.now(), image_request_hash)
         self.commit()
         
 if __name__ == "__main__":

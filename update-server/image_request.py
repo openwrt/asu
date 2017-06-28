@@ -11,7 +11,7 @@ class ImageRequest(Request):
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.last_build_id = last_build_id
-        self.needed_values = ["distro", "version", "target", "subtarget", "board", "packages"]
+        self.needed_values = ["distro", "version", "target", "subtarget", "board"]
 
     def get_sysupgrade(self):
         bad_request = self.check_bad_request()
@@ -23,6 +23,7 @@ class ImageRequest(Request):
             self.response_dict["error"] = "board not found"
             return self.respond(), HTTPStatus.BAD_REQUEST
 
+        self.packages = None
         if "packages" in self.request_json:
             self.packages = self.request_json["packages"]
             all_found, missing_package = self.check_packages()
@@ -44,11 +45,12 @@ class ImageRequest(Request):
             image_id = self.database.add_build_job(self.image)
             return self.respond_requested(image_id)
         else:
-            image_id, image_status, image_checksum = response
+            image_id, image_status, image_checksum, image_filesize = response
             if image_status == "created":
                 if self.image.created():
                     self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
                     self.response_dict["checksum"] = image_checksum
+                    self.response_dict["filesize"] = image_filesize
                     return self.respond(), HTTPStatus.OK # 200
                 else:
                     self.database.reset_build_job(self.image.as_array())
