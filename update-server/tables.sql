@@ -1,15 +1,11 @@
-create table if not exists packages_hashes (
-	hash text primary key,
-    packages text
-);
-
-create table if not exists releases (
+create table releases (
     distro text,
     release text,
     PRIMARY KEY (distro, release)
 );
 
-create table if not exists targets (
+create table targets (
+    id SERIAL PRIMARY KEY,
     distro text,
     release text,
     target text,
@@ -19,53 +15,53 @@ create table if not exists targets (
     FOREIGN KEY (distro, release) REFERENCES releases
 );
 
-create table if not exists packages (
-    distro text,
-    release text,
-    target text,
-    subtarget text,
-    name text,
-    version text,
-    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
-);
-
-create table if not exists profiles (
+create table profiles (
+    id SERIAL PRIMARY KEY,
     distro text,
     release text,
     target text,
     subtarget text,
     name text,
     board text,
-    packages text,
     PRIMARY KEY(distro, release, target, subtarget, name, board),
     FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 );
 
-create table if not exists default_packages (
-    distro text,
-    release text,
-    target text,
-    subtarget text,
-    packages text,
-    PRIMARY KEY (distro, release, target, subtarget),
-    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
+create table target_packages (
+	profile INTEGER,
+	package INTEGER
+	version text,
+    FOREIGN KEY (profile) REFERENCES targets(id),
+    FOREIGN KEY (package) REFERENCES packages_names(id)
 );
 
-create table if not exists build_queue (
+create table profile_packages (
+	profile INTEGER,
+	package INTEGER
+    FOREIGN KEY (profile) REFERENCES profiles(id),
+    FOREIGN KEY (package) REFERENCES packages_names(id)
+);
+
+create table default_packages (
+	target INTEGER,
+	package INTEGER
+    FOREIGN KEY (target) REFERENCES targets(id),
+    FOREIGN KEY (package) REFERENCES packages_names(id)
+);
+
+create table packages_hashes (
+	hash text primary key,
+    package INTEGER
+    FOREIGN KEY (package) REFERENCES packages_names(id)
+);
+
+create table packages_names (
     id SERIAL PRIMARY KEY,
-    image_hash text UNIQUE,
-    distro text,
-    release text,
-    target text,
-    subtarget text,
-    profile text,
-    packages text,
-    network_profile text,
-    status integer DEFAULT 0,
-    FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
+	name text UNIQUE
 );
 
-create table if not exists images (
+
+create table images (
     id SERIAL PRIMARY KEY,
     image_hash text UNIQUE,
     distro text,
@@ -84,4 +80,4 @@ create table if not exists images (
     status text DEFAULT 'requested',
     FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets,
     FOREIGN KEY (package_hash) REFERENCES packages_hashes(hash)
-)
+);
