@@ -19,7 +19,6 @@ class Database():
 
     def commit(self):
         self.cnxn.commit()
-        self.log.debug("database commit")
 
     def create_tables(self):
         self.log.info("creating tables")
@@ -160,8 +159,8 @@ class Database():
             RETURNING id"""
         image_array = image.as_array()
         self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array, ))
-        self.commit()
         if self.c.description:
+            self.commit()
             return self.c.fetchone()[0]
         else:
             return None
@@ -216,6 +215,49 @@ class Database():
             WHERE image_hash = ?;"""
         self.c.execute(sql, checksum, filesize, datetime.datetime.now(), image_request_hash)
         self.commit()
+
+    def get_imagebuilder_status(self, distro, release, target, subtarget):
+        sql = """select status from imagebuilder
+            WHERE 
+                distro=? AND 
+                release=? AND 
+                target=? AND 
+                subtarget=?;"""
+        self.c.execute(sql, distro, release, target, subtarget)
+        if self.c.rowcount > 0:
+            return self.c.fetchone()[0]
+        else:
+            sql = """INSERT INTO imagebuilder (distro, release, target, subtarget) 
+                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING;"""
+            self.c.execute(sql, (distro, release, target, subtarget))
+            self.commit()
+            return 'requested'
+    
+    def set_imagebuilder_status(self, distro, release, target, subtarget, status):
+        sql = """UPDATE imagebuilder SET status = ?
+            WHERE 
+                distro=? AND 
+                release=? AND 
+                target=? AND 
+                subtarget=?"""
+        self.c.execute(sql, status, distro, release, target, subtarget)
+        self.commit()
+
+    def get_imagebuilder_request(self):
+        sql = """UPDATE imagebuilder
+            SET status = 'initialize'
+            WHERE status = 'requested' and id = (
+                SELECT MIN(id)
+                FROM imagebuilder
+                WHERE status = 'requested'
+                )
+            RETURNING distro, release, target, subtarget;"""
+        self.c.execute(sql)
+        if self.c.description:
+            self.commit()
+            return self.c.fetchone()
+        else:
+            return None
         
 if __name__ == "__main__":
     db = Database()

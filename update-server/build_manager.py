@@ -1,6 +1,7 @@
 import socket
 from image import Image
 import threading
+from imagebuilder import ImageBuilder
 import logging
 import time
 from database import Database
@@ -10,6 +11,7 @@ import os
 class BuildManager(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+        self.imagebuilder_threads = []
         self.log = logging.getLogger(__name__)
         self.database = Database()
         self.last_build_id = self.database.get_last_build_id()
@@ -21,11 +23,19 @@ class BuildManager(threading.Thread):
 
     def run(self):
         while True:
+            imagebuilder_request = self.database.get_imagebuilder_request()
+            if imagebuilder_request:
+                self.log.debug("setting up imagebuilder")
+                distro, release, target, subtarget = imagebuilder_request
+                imagebuilder = ImageBuilder(distro, release, target, subtarget)
+                imagebuilder.start()
+                self.imagebuilder_threads.append(imagebuilder)
+
             build_job_request = self.database.get_build_job()
             if not build_job_request:
-                self.log.debug("build queue is empty")
                 time.sleep(5)
             else:
+                self.log.debug("found build job")
                 self.last_build_id = build_job_request[0]
                 image = Image(*build_job_request[2:9])
                 self.log.debug(image.as_array())

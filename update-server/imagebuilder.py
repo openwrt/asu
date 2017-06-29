@@ -12,10 +12,12 @@ import hashlib
 import os
 import os.path
 from config import Config
+import threading
 import subprocess
 
-class ImageBuilder():
+class ImageBuilder(threading.Thread):
     def __init__(self, distro, version, target, subtarget):
+        threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.database = Database()
         self.config = Config()
@@ -30,21 +32,12 @@ class ImageBuilder():
         self.root = os.path.dirname(os.path.realpath(__file__))
         self.path = os.path.join("imagebuilder", self.distro, self.version, self.target, self.subtarget)
     
-    def run(self):
+    def prepare_vars(self):
         self.pkg_arch = self.parse_packages_arch()
         self.default_packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
-
-        if not self.default_packages:
-            self.parse_profiles()
-            self.default_packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
-
         self.available_packages= self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget)
-        if not self.available_packages:
-            self.parse_packages()
-            self.available_packages= self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget)
-
         logging.debug("found package arch %s", self.pkg_arch)
-        self.log.info("initialized imagebuilder %s", self.path)
+
 
     # this is ugly due to the fact that some imagebuilders have -generic
     # removed in their download names, more generic apporach needed
@@ -97,7 +90,7 @@ class ImageBuilder():
         name += ".Linux-x86_64.tar.xz"
         return os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget, name)
 
-    def setup(self): 
+    def run(self): 
         self.log.info("downloading imagebuilder %s", self.path)
         if get_statuscode(self.download_url()) != 404:
             self.download(self.download_url())
@@ -107,9 +100,14 @@ class ImageBuilder():
                 self.log.debug("remove -generic from url")
                 self.download(self.download_url(True))
             else:
+                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
                 return False
         self.add_custom_repositories()
         self.add_custom_makefile()
+        self.parse_profiles()
+        self.parse_packages()
+        self.log.info("initialized imagebuilder %s", self.path)
+        self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'ready')
         return True
 
     def download(self, url):

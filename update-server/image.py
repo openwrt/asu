@@ -42,13 +42,9 @@ class Image(threading.Thread):
     def run(self):
         imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
         self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
-        if not self.imagebuilder.created():
-            self.log.debug("download imagebuilder")
-            self.imagebuilder.setup()
+        self.imagebuilder.prepare_vars()
 
-        self.imagebuilder.run()
-
-        self.log.info("use imagebuilder at %s", self.imagebuilder.path)
+        self.log.info("use imagebuilder %s", self.imagebuilder.path)
 
         self.diff_packages()
 
@@ -85,16 +81,20 @@ class Image(threading.Thread):
                         self.log.info("move %s to %s", sysupgrade, self.path)
                         shutil.move(os.path.join(build_path, sysupgrade), self.path)
 
-                self.log.info("build successfull")
-                self.gen_checksum()
-                self.gen_filesize()
-                self.database.done_build_job(self.image_request_hash, self.checksum, self.filesize)
+                self.done()
                 return True
             else:
                 print(output.decode('utf-8'))
                 self.log.info("build failed")
                 self.database.set_build_job_fail(self.image_request_hash)
                 return False
+
+    def done(self):
+        self.log.info("build successfull")
+        self.gen_checksum()
+        self.gen_filesize()
+        self.database.done_build_job(self.image_request_hash, self.checksum, self.filesize)
+
 
     def gen_checksum(self):
         self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()

@@ -51,17 +51,13 @@ create table if not exists default_packages (
     FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 );
 
-create table if not exists build_queue (
+create table if not exists imagebuilder (
     id SERIAL PRIMARY KEY,
-    image_hash text UNIQUE,
     distro text,
     release text,
     target text,
     subtarget text,
-    profile text,
-    packages text,
-    network_profile text,
-    status integer DEFAULT 0,
+    status varchar(10) DEFAULT 'requested', -- 'ready', 'disabled', 'failded'
     FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 );
 

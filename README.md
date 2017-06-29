@@ -56,13 +56,14 @@ The server validates the request. If all checks pass an response is send, curren
 
 The client should check the status code:
 
-| status 	| meaning 			| information 	|
-| --- 		| --- 				| --- 			|
-| 500 		| error				| see `error` in response | 
-| 503 		| server overload   | see `error` in response | 
-| 204 		| no updates		| | 
-| 200		| new release		| see `version` in response |
-| 200		| package updates	| see `packages` in response | 
+| status 	| meaning 					| information 	|
+| --- 		| --- 						| --- 			|
+| 500 		| error						| see `error` in response | 
+| 503 		| server overload	   		| see `error` in response | 
+| 204 		| no updates				| | 
+| 201 		| imagebuilder not ready	| setting up imagebuilder, retry soon | 
+| 200		| new release				| see `version` in response |
+| 200		| package updates			| see `packages` in response | 
 
 An release update does not ignore package updates for the following reason. Between releases packages names may change. The *update reponse* contains all packages included renamed ones.
 
