@@ -115,3 +115,13 @@ create view default_packages as
 		default_packages.package = packages.id,
 		default_packages.target = targets.id
 	;
+
+create or replace rule insert_default_packages AS
+	ON insert TO default_packages DO INSTEAD
+		SELECT add_default_packages(
+			NEW.distro,
+			NEW.release,
+			NEW.target,
+			NEW.subtarget,
+			NEW.packages
+		);
