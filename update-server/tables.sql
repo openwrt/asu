@@ -103,8 +103,10 @@ begin
 end
 $$ language 'plpgsql';
 
-create view get_default_packages as
-	select string_agg(packages.name, ' ')
+create view default_packages as
+	select
+		targets.id AS target_id,
+		string_agg(packages.name, ' ') as packages
 	from packages, targets, default_packages
 	where 
 		default_packages.package = packages.id,
