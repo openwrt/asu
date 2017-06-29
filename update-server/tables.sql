@@ -105,7 +105,10 @@ $$ language 'plpgsql';
 
 create view default_packages as
 	select
-		targets.id AS target_id,
+		targets.distro AS distro,
+		targets.release AS release,
+		targets.target AS target,
+		targets.subtarget AS subtarget,
 		string_agg(packages.name, ' ') as packages
 	from packages, targets, default_packages
 	where 
