@@ -104,7 +104,7 @@ end
 $$ language 'plpgsql';
 
 create view get_default_packages as
-	select packages.name
+	select string_agg(packages.name, ' ')
 	from packages, targets, default_packages
 	where 
 		default_packages.package = packages.id,
