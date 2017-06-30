@@ -97,7 +97,7 @@ class ServerCli():
             releases = re.findall(releases_pattern, releases_website)
             for release in releases:
                 # need a better regex here
-                if release != ".." and not release.startswith("packages") and not "rc" in release and not "/" == release and not release == "current":
+                if release != ".." and not release.startswith("packages") and not "rc" in release and not "/" == release and not release == "current" and not release == "lime-16.07":
                     print("{} {}".format(distro, release))
                     self.database.insert_release(distro, release)
 
