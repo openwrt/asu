@@ -48,6 +48,11 @@ class Request():
             self.response_dict["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
             return self.respond(), HTTPStatus.BAD_REQUEST
 
+        self.log.warn(self.database.get_imagebuilder_status(self.distro, self.release, self.target, self.subtarget))
+        if not self.database.get_imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
+            self.log.debug("imagebuilder not ready")
+            return self.respond(), HTTPStatus.CREATED
+
         return False
 
     def vaild_request(self):
