@@ -4,7 +4,7 @@
 <div  class="container">
 	<div style="display: none" id="update_info" class="alert-message info">
 	</div>
-	<div style="display: none" id="error_info" class="alert-message danger">
+	<div style="display: none" id="update_error" class="alert-message danger">
 	</div>
 </div>
 <input class="cbi-button" value="search for updates" onclick="update_request()" type="button" id="update_button">
@@ -36,6 +36,9 @@ function server_request(request_dict, path, callback) {
 	xmlhttp.open("POST", url, true);
 	xmlhttp.setRequestHeader("Content-type", "application/json");
 	xmlhttp.send(JSON.stringify(request_dict));
+	xmlhttp.onerror = function(e) {
+		update_error("update server down")
+	}
 	xmlhttp.addEventListener('load', function(event) {
 		callback(xmlhttp)
 	});
@@ -43,15 +46,16 @@ function server_request(request_dict, path, callback) {
 
 // is ubus_counter needed?
 ubus_counter = 1
+ubus_url = document.origin + "/ubus/"
+
 
 // requests ubus via rpcd
 function ubus_request(command, argument, params, callback) {
 	// perform login if ubus_rpc_session is empty
 	var request_data = '{ "jsonrpc": "2.0", "id": ' + ubus_counter + ', "method": "call", "params": [ "'+ data["ubus_rpc_session"] +'", "' + command + '", "' + argument + '", ' + params + ' ] }'
 	ubus_counter++
-	var url = "http://192.168.1.1/ubus/"; // later this will be localhost
 	var xmlhttp = new XMLHttpRequest();
-	xmlhttp.open("POST", url, true);
+	xmlhttp.open("POST", ubus_url, true);
 	xmlhttp.setRequestHeader("Content-type", "application/json");
 	xmlhttp.send(request_data);
 	//request_object = request(request_data, url)
@@ -102,6 +106,11 @@ function update_info(info_output) {
 	document.getElementById("update_info").innerHTML = info_output;
 }
 
+function update_error(error_output) {
+	document.getElementById("update_error").style.display = "block";
+	document.getElementById("update_error").innerHTML = error_output;
+}
+
 // asks server for news updates, actually only based on relesae not packages
 function update_request() {
 	console.log("update_request")
@@ -112,36 +121,35 @@ function update_request() {
 
 function update_request_callback(response_object) {
 	if (response_object.status === 500) { 
-		update_request_500()
+		// python crashed
+		update_error("internal server error, please try again later")
+		console.log("update server issue")
+	} else if (response_object.status === 502) {
+		// python part offline
+		update_error("internal server error, please try again later")
+		console.log("update server issue")
 	} else if (response_object.status === 503) {
-		console.log("server overloaded")
 		// handle overload
+		update_error("server overloaded, retry in 5 minutes")
+		console.log("server overloaded")
+		setTimeout(update_request, 300000)
+	} else if (response_object.status === 201) {
+		update_info("imagebuilder not ready, please wait")
+		console.log("setting up imagebuilder")
+		setTimeout(update_request, 5000)
 	} else if (response_object.status === 204) {
 		// no updates
-		update_request_204()
+		update_info("no updates available")
 	} else if (response_object.status === 400) {
 		// bad request
 		console.log(response_object.responseText)
-			return
 		response_object_content = JSON.parse(response_object.responseText)
-		update_request_400(response_object_content)
+		update_error(response_object_content)
 	} else if (response_object.status === 200) {
 		// new release/updates
 		response_object_content = JSON.parse(response_object.responseText)
 		update_request_200(response_object_content)
 	}
-}
-
-function update_request_500() {
-	update_info("internal server error - please try again later")
-}
-
-function update_request_400(response_content) {
-	update_info(response_content.error)
-}
-
-function update_request_204() {
-	update_info("no updates available")
 }
 
 function update_request_200(response_content) {
@@ -158,7 +166,6 @@ function update_request_200(response_content) {
 	document.getElementById("update_button").onclick = image_request;
 }
 
-
 // request the image, need merge with update_request
 function image_request() {
 	console.log("image_request")
@@ -166,20 +173,25 @@ function image_request() {
 	request_dict.version = latest_version;
 	request_dict.board = data.board;
 	server_request(request_dict, "image-request", image_request_handler)
-
 }
 
 function image_request_handler(response) {
 	if (response.status === 500) { 
 		image_request_500()
 	} else if (response.status === 503) {
-		update_info("please wait. server overloaded")
+		update_error("please wait. server overloaded")
 		// handle overload
 		setTimeout(image_request, 30000)
 	} else if (response.status === 201) {
-		// in queue
-		console.log("queued")
-		update_info("please wait. you are in queue position " + JSON.parse(response.responseText).queue)
+		response_content = JSON.parse(response.responseText)	
+		if(response_content.queue != undefined) {
+			// in queue
+			update_info("please wait. you are in queue position " + response_content.queue)
+			console.log("queued")
+		} else {
+			update_info("imagebuilder not ready, please wait")
+			console.log("setting up imagebuilder")
+		}
 		setTimeout(image_request, 5000)
 	} else if (response.status === 206) {
 		// building
