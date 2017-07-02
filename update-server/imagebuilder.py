@@ -25,7 +25,9 @@ class ImageBuilder(threading.Thread):
         self.version = version
         self.release = version
         self.imagebuilder_release = version
-        if distro != "lede":
+        if self.config.get("snapshots") and version == "snapshots":
+            self.imagebuilder_release = "snapshots"
+        elif distro != "lede":
             self.imagebuilder_release = get_latest_release("lede")
         self.target = target
         self.subtarget = subtarget
@@ -74,6 +76,8 @@ class ImageBuilder(threading.Thread):
         custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
         custom_repositories = re.sub(r"{{ subtarget }}", self.subtarget, custom_repositories)
         custom_repositories = re.sub(r"{{ pkg_arch }}", self.pkg_arch, custom_repositories)
+        if self.imagebuilder_release is "snapshots":
+            custom_repositories = re.sub(r"/releases/snapshots", "/snapshots", custom_repositories)
         return custom_repositories
 
     def add_custom_makefile(self):
@@ -81,27 +85,35 @@ class ImageBuilder(threading.Thread):
         shutil.copyfile(os.path.join(self.root, "Makefile"), os.path.join(self.path, "Makefile"))
 
     def download_url(self, remove_subtarget=False):
-        name_array = ["lede-imagebuilder", self.imagebuilder_release, self.target]
+        name_array = ["lede-imagebuilder"]
         # some imagebuilders have -generic removed
+        self.log.warn(self.imagebuilder_release)
+        if not self.imagebuilder_release is "snapshots":
+            name_array.append(self.imagebuilder_release)
+        name_array.append(self.target)
         if not remove_subtarget:
             name_array.append(self.subtarget)
-
         name = "-".join(name_array)
         name += ".Linux-x86_64.tar.xz"
+        self.log.warning(os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget, name))
+
+        if self.imagebuilder_release == "snapshots":
+            return os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget, name)
         return os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget, name)
 
     def run(self): 
         self.log.info("downloading imagebuilder %s", self.path)
-        if get_statuscode(self.download_url()) != 404:
-            self.download(self.download_url())
-        else:
-            # this is only due to arm64 missing -generic in filename
-            if get_statuscode(self.download_url(True)) != 404:
-                self.log.debug("remove -generic from url")
-                self.download(self.download_url(True))
+        if not self.created():
+            if get_statuscode(self.download_url()) != 404:
+                self.download(self.download_url())
             else:
-                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
-                return False
+                # this is only due to arm64 missing -generic in filename
+                if get_statuscode(self.download_url(True)) != 404:
+                    self.log.debug("remove -generic from url")
+                    self.download(self.download_url(True))
+                else:
+                    self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
+                    return False
         self.add_custom_repositories()
         self.add_custom_makefile()
         self.parse_profiles()

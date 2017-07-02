@@ -23,6 +23,7 @@ class ServerCli():
         parser.add_argument("-c", "--update-repositories", action="store_true")
         parser.add_argument("-s", "--set-supported", action="store_true")
         parser.add_argument("--ignore-not-supported", action="store_true")
+        parser.add_argument("--add-snapshots", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
             self.download_releases()
@@ -34,6 +35,8 @@ class ServerCli():
             self.setup_imagebuilder(*self.args["setup_imagebuilder"])
         if self.args["set_supported"]:
             self.set_supported()
+        if self.args["add_snapshots"]:
+            self.add_snapshots()
 
     def set_supported(self):
         for distro, release in self.database.get_releases():
@@ -74,14 +77,9 @@ class ServerCli():
     def setup_imagebuilder(self, distro, version, target, subtarget):
         ib = ImageBuilder(distro, version, target, subtarget)
         if not ib.created():
-            print("could not found imagebuilder for {} {} {} - downloading...".format(version, target,         subtarget))
-            if not ib.setup():
-                print("download failed")
-                return
-            else:
-                print("downloaded imagebuilder {} - initiating".format(ib.path))
-                ib.run()
-                print("initiaded")
+            print("downloaded imagebuilder {} - initiating".format(ib.path))
+            ib.run()
+            print("initiaded")
         else:
             print("found imagebuilder {}".format(ib.path))
         if self.args["update_repositories"]:
@@ -90,6 +88,7 @@ class ServerCli():
             ib.parse_packages()
 
     def download_releases(self):
+
         for distro, distro_url in self.config.get("distributions").items():
             print("searing {} releases".format(distro))
             releases_website = urllib.request.urlopen(distro_url).read().decode('utf-8')
@@ -100,13 +99,22 @@ class ServerCli():
                 if release != ".." and not release.startswith("packages") and not "rc" in release and not "/" == release and not release == "current" and not release == "lime-16.07":
                     print("{} {}".format(distro, release))
                     self.database.insert_release(distro, release)
+                    target_website = urllib.request.urlopen("{}/{}/targets/".format(distro_url, release)).read().decode('utf-8')
+                    target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                    targets = re.findall(target_pattern, target_website)
+                    for target in targets:
+                        subtarget_website = urllib.request.urlopen("{}/{}/targets/{}".format(distro_url, release, target)).read().decode('utf-8')
+                        subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                        subtargets = re.findall(subtarget_pattern, subtarget_website)
+                        print("{} {} {}".format(release, target, subtargets))
+                        self.database.insert_target(distro, release, target, subtargets)
 
     def download_targets(self):
         for distro, release in self.database.get_releases():
+            if release == "lede" and release == "snapshots":
+                continue
             distro_url = self.config.get("distributions")[distro]
-#            http://repo.libremesh.org/lime-17.04/targets/
             target_website = urllib.request.urlopen("{}/{}/targets/".format(distro_url, release)).read().decode('utf-8')
-            # <a href="lantiq/">lantiq/</a></td>
             target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
             targets = re.findall(target_pattern, target_website)
 
@@ -115,10 +123,22 @@ class ServerCli():
                 subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
                 subtargets = re.findall(subtarget_pattern, subtarget_website)
                 print("{} {} {}".format(release, target, subtargets))
-                self.database.insert_target(distro, release, target, subtargets)
+                self.database.insert_target(distro, release, target, subtargets)    
 
+    def add_snapshots(self):
+        print("adding lede snapshots")
+        self.database.insert_release("lede", "snapshots")
+        snapshots_url = "http://downloads.lede-project.org/snapshots/targets/"
+        target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
+        target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+        targets = re.findall(target_pattern, target_website)
 
-
+        for target in targets:
+            subtarget_website = urllib.request.urlopen("{}/{}".format(snapshots_url, target)).read().decode('utf-8')
+            subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+            subtargets = re.findall(subtarget_pattern, subtarget_website)
+            print("snapshots {} {}".format("snapshots", target, subtargets))
+            self.database.insert_target("lede", "snapshots", target, subtargets)    
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
