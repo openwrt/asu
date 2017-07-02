@@ -25,7 +25,7 @@ class ImageBuilder(threading.Thread):
         self.version = version
         self.release = version
         self.imagebuilder_release = version
-        if self.config.get("snapshots") and version == "snapshots":
+        if self.config.get("snapshots") and version == "snapshot":
             self.imagebuilder_release = "snapshots"
         elif distro != "lede":
             self.imagebuilder_release = get_latest_release("lede")

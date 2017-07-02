@@ -111,7 +111,7 @@ class ServerCli():
 
     def download_targets(self):
         for distro, release in self.database.get_releases():
-            if release == "lede" and release == "snapshots":
+            if release == "lede" and release == "snapshot":
                 continue
             distro_url = self.config.get("distributions")[distro]
             target_website = urllib.request.urlopen("{}/{}/targets/".format(distro_url, release)).read().decode('utf-8')
