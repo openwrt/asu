@@ -57,7 +57,7 @@ create table if not exists imagebuilder (
     release text,
     target text,
     subtarget text,
-    status varchar(10) DEFAULT 'requested', -- 'ready', 'disabled', 'failded'
+    status varchar(20) DEFAULT 'requested', -- 'ready', 'disabled', 'failded'
     FOREIGN KEY (distro, release, target, subtarget) REFERENCES targets
 );
 
