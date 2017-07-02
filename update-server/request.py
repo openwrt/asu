@@ -68,4 +68,6 @@ class Request():
    
     # if local version is newer than received returns true
     def release_latest(self, latest, external):
+        if external is "snapshot":
+            return False
         return LooseVersion(external) >= LooseVersion(latest)
