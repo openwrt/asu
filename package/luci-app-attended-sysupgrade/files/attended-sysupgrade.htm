@@ -1,3 +1,78 @@
+<%
+-- all lua code provided by https://github.com/jow-/
+-- thank you very much!
+
+    function apply_acls(filename, session)
+        local json = require "luci.jsonc"
+        local util = require "luci.util"
+        local fs   = require "nixio.fs"
+ 
+        local grants = { }
+ 
+        local acl = json.parse(fs.readfile(filename))
+        if type(acl) ~= "table" then
+            return
+        end
+ 
+        local group, perms
+        for group, perms in pairs(acl) do
+            local perm, scopes
+            for perm, scopes in pairs(perms) do
+                if type(scopes) == "table" then
+                    local scope, objects
+                    for scope, objects in pairs(scopes) do
+                        if type(objects) == "table" then
+                            if not grants[scope] then
+                                grants[scope] = { }
+                            end
+ 
+                            if next(objects) == 1 then
+                                local _, object
+                                for _, object in ipairs(objects) do
+                                    if not grants[scope][object] then
+                                        grants[scope][object] = { }
+                                    end
+                                    table.insert(grants[scope][object], perm)
+                                end
+                            else
+                                local object, funcs
+                                for object, funcs in pairs(objects) do
+                                    if type(funcs) == "table" then
+                                        local _, func
+                                        for _, func in ipairs(funcs) do
+                                            if not grants[scope][object] then
+                                                grants[scope][object] = { }
+                                            end
+                                            table.insert(grants[scope][object], func)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+ 
+        local _, scope, object, func
+        for scope, _ in pairs(grants) do
+            local objects = { }
+            for object, _ in pairs(_) do
+                for _, func in ipairs(_) do
+                    table.insert(objects, { object, func })
+                end
+            end
+ 
+            util.ubus("session", "grant", {
+                ubus_rpc_session = session,
+                scope = scope, objects = objects
+            })
+        end
+    end
+ 
+    apply_acls("/usr/share/rpcd/acl.d/rpcd-mod-attended-sysupgrade.json", luci.dispatcher.context.authsession)
+    apply_acls("/usr/share/rpcd/acl.d/rpcd-mod-packagelist.json", luci.dispatcher.context.authsession)
+%>
 <%+header%>
 
 <h2 name="content"><%:Attended Sysupgrade%></h2>
@@ -12,22 +87,15 @@
 <script type="text/javascript">
 
 // the ip where the update-server (server.py) runs
+// TODO: uci based
 update_server = "http://35.189.253.152/"
 //update_server = "http://192.168.1.3:5000/"
 
-// usub_rpc_session, no manual changes needed
 latest_release = "";
-
 data = {};
-data["ubus_rpc_session"] = "00000000000000000000000000000000";
 ubus_counter = 1
-ubus_url = document.origin + "/ubus/"
-//ubus_url = "http://192.168.1.1/ubus/"
-
-// do an xmlhttprequests
-function request(data, url) {
-	return xmlhttp;
-}
+origin = document.location.href.replace(location.pathname, "")
+ubus_url = origin + "/ubus/"
 
 // requests to the update server
 function server_request(request_dict, path, callback) {
@@ -63,6 +131,7 @@ function ubus_request(command, argument, params, callback) {
 	});
 }
 
+// handle ubus_requests, set variables or perform functions
 function ubus_request_callback(request_object, callback) {
 	if(request_object.status === 200) {
 		console.log(callback)
@@ -78,12 +147,9 @@ function ubus_request_callback(request_object, callback) {
 	}
 }
 
-function ubus_login() {
-	ubus_request("session", "login", '{ "username": "root", "password": "" }', ubus_login_callback);
-}
-
-function ubus_login_callback(response) {
-	data["ubus_rpc_session"] = response.ubus_rpc_session
+// initial setup, get system information
+function setup() {
+	data["ubus_rpc_session"] = "<%=luci.dispatcher.context.authsession%>"
 	ubus_request("rpcd-mod-packagelist", "list", '{  }', "installed_pkgs")
 	ubus_request("system", "board", '{  }', "release")
 	ubus_request("system", "board", '{  }', "board_name")
@@ -98,6 +164,7 @@ function update_info(info_output) {
 function update_error(error_output) {
 	document.getElementById("update_error").style.display = "block";
 	document.getElementById("update_error").innerHTML = error_output;
+	document.getElementById("update_info").style.display = "None";
 }
 
 // asks server for news updates, actually only based on relesae not packages
@@ -165,7 +232,10 @@ function image_request() {
 }
 
 function image_request_handler(response) {
-	if (response.status === 500) { 
+	if (response.status === 400) {
+		response_content = JSON.parse(response.responseText)
+		update_error(response_content.error)
+	} else if (response.status === 500) { 
 		image_request_500()
 	} else if (response.status === 503) {
 		update_error("please wait. server overloaded")
@@ -223,7 +293,7 @@ function upload_image(blob) {
 		document.getElementById("update_info").innerHTML = "uploading failed, please retry"
   	});
 
-  	upload_request.open('POST', 'http://192.168.1.1/cgi-bin/cgi-upload');
+  	upload_request.open('POST', origin + '/cgi-bin/cgi-upload');
   	upload_request.send(form_data);
 }
 
@@ -246,8 +316,7 @@ function download_image(url) {
 	download_request.send();
 }
 
-document.onload = ubus_login()
-
+document.onload = setup()
 </script>
 
 <%+footer%>
