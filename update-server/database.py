@@ -64,10 +64,12 @@ class Database():
     def insert_profiles(self, distro, release, target, subtarget, profiles_data):
         self.log.debug("insert_profiels %s/%s/%s/%s", distro, release, target, subtarget)
         default_packages, profiles = profiles_data
-        sql = "INSERT INTO profiles VALUES (?, ?, ?, ?, ?, ?, ?)"
+        sql = """INSERT INTO profiles 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT DO NOTHING;"""
         for profile in profiles:
             self.c.execute(sql, distro, release, target, subtarget, *profile)
-        self.c.execute("INSERT INTO default_packages VALUES (?, ?, ?, ?, ?)", distro, release, target, subtarget, default_packages)
+        self.c.execute("INSERT INTO default_packages VALUES (?, ?, ?, ?, ?) on conflict do nothing;", distro, release, target, subtarget, default_packages)
         self.commit()
 
     def check_profile(self, distro, release, target, subtarget, profile):
@@ -103,7 +105,9 @@ class Database():
 
     def insert_packages(self, distro, release, target, subtarget, packages):
         self.log.info("insert packages of %s/%s ", target, subtarget)
-        sql = "INSERT INTO packages VALUES (?, ?, ?, ?, ?, ?)"
+        sql = """INSERT INTO packages
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT DO NOTHING;"""
         for package in packages:
             # (name, version)
             self.c.execute(sql, distro, release, target, subtarget, *package)
