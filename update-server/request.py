@@ -31,7 +31,7 @@ class Request():
             self.response_dict["error"] = "unknown distribution %s" % self.distro
             return self.respond(), HTTPStatus.BAD_REQUEST
 
-        self.release = self.request_json["version"]
+        self.release = self.request_json["version"].lower()
 
         if not self.release in self.database.get_releases(self.distro):
             self.response_dict["error"] = "unknown release %s" % self.release

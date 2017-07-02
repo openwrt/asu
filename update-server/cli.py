@@ -127,7 +127,7 @@ class ServerCli():
 
     def add_snapshots(self):
         print("adding lede snapshots")
-        self.database.insert_release("lede", "snapshots")
+        self.database.insert_release("lede", "snapshot")
         snapshots_url = "http://downloads.lede-project.org/snapshots/targets/"
         target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
         target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
@@ -138,7 +138,7 @@ class ServerCli():
             subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
             subtargets = re.findall(subtarget_pattern, subtarget_website)
             print("snapshots {} {}".format("snapshots", target, subtargets))
-            self.database.insert_target("lede", "snapshots", target, subtargets)    
+            self.database.insert_target("lede", "snapshot", target, subtargets)    
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
