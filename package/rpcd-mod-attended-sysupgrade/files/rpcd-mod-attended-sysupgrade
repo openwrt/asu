@@ -8,8 +8,6 @@ case "$1" in
 
        	json_add_object "get_installed_pkgs"
        	json_close_object
-      	json_add_object "get_board"
-       	json_close_object
        	json_add_object "sysupgrade"
        	json_close_object
 
@@ -43,31 +41,6 @@ case "$1" in
                 json_close_object
                 json_dump
             ;;
-            get_board)
-                json_init
-
-				# best approach but only works on few devices
-				if [ -e "/proc/devicetree/model" ]; then
-					board="$(cat /proc/devicetree/model)"
-				fi
-
-				if [ -z "$board" ]; then
-					# can result in useless board names on x86
-					board="$(cat /tmp/sysinfo/board_name)"
-				fi
-
-				if [ "$board" ]; then
-					json_add_string "board" "$board"
-				fi
-
-				# fall back method
-                machine="$(grep machine /proc/cpuinfo | awk '{print $2}')"
-				if [ -z "$board" ]; then
-					json_add_string "machine" "$machine"
-				fi	
-
-                json_dump
-			;;
 			sysupgrade)
 				if [ -f "/tmp/sysupgrade.bin" ]; then
 					/etc/init.d/uhttpd stop

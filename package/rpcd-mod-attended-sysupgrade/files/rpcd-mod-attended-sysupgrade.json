@@ -1,11 +1,9 @@
 {
-	"attended-sysupgrade": {
-		"description": "Attended Sysupgrade via Luci",
+	"rpcd-mod-attended-sysupgrade": {
+		"description": "attended sysupgrade via rpcd",
 		"read": {
 			"ubus": {
-				"attended-sysupgrade": [
-					"get_installed_pkgs",
-					"get_board",
+				"rpcd-mod-attended-sysupgrade": [
 					"sysupgrade"
 				], 
 				"system": [

@@ -13,12 +13,16 @@
 
 // the ip where the update-server (server.py) runs
 update_server = "http://35.189.253.152/"
+//update_server = "http://192.168.1.3:5000/"
 
 // usub_rpc_session, no manual changes needed
 latest_release = "";
 
 data = {};
 data["ubus_rpc_session"] = "00000000000000000000000000000000";
+ubus_counter = 1
+ubus_url = document.origin + "/ubus/"
+//ubus_url = "http://192.168.1.1/ubus/"
 
 // do an xmlhttprequests
 function request(data, url) {
@@ -44,11 +48,6 @@ function server_request(request_dict, path, callback) {
 	});
 }
 
-// is ubus_counter needed?
-ubus_counter = 1
-ubus_url = document.origin + "/ubus/"
-
-
 // requests ubus via rpcd
 function ubus_request(command, argument, params, callback) {
 	// perform login if ubus_rpc_session is empty
@@ -66,6 +65,8 @@ function ubus_request(command, argument, params, callback) {
 
 function ubus_request_callback(request_object, callback) {
 	if(request_object.status === 200) {
+		console.log(callback)
+		console.log(request_object)
 		response_json = JSON.parse(request_object.responseText).result[1]
 		if(typeof callback === "string") {
 			data[callback] = response_json[callback]
@@ -83,21 +84,9 @@ function ubus_login() {
 
 function ubus_login_callback(response) {
 	data["ubus_rpc_session"] = response.ubus_rpc_session
-	ubus_request("attended-sysupgrade", "get_installed_pkgs", '{  }', "installed_pkgs")
-	ubus_request("attended-sysupgrade", "get_board", '{  }', "board");
+	ubus_request("rpcd-mod-packagelist", "list", '{  }', "installed_pkgs")
 	ubus_request("system", "board", '{  }', "release")
-}
-
-function callback_set_var(variable, response) {
-	data[variable] = response.variable
-}
-
-// gathers device information needed for update and device requests
-function gather_facts() {
-	ubus_login()
-
-	return
-	fill_table()
+	ubus_request("system", "board", '{  }', "board_name")
 }
 
 // shows notification if update is available
@@ -171,7 +160,7 @@ function image_request() {
 	console.log("image_request")
 	request_dict = {}
 	request_dict.version = latest_version;
-	request_dict.board = data.board;
+	request_dict.board = data.board_name
 	server_request(request_dict, "image-request", image_request_handler)
 }
 
@@ -226,9 +215,8 @@ function upload_image(blob) {
 	
 	upload_request.addEventListener('load', function(event) {
 		// this checksum should be parsed
-		console.log(upload_request.responseText.checksum)
 		document.getElementById("update_info").innerHTML = "successfully uploaded image to router. flashing"
-		ubus_request("attended-sysupgrade", "sysupgrade", '{  }', please_wait);
+		ubus_request("rpcd-mod-attended-sysupgrade", "sysupgrade", '{  }', please_wait);
   	});
 
   	upload_request.addEventListener('error', function(event) {
@@ -258,7 +246,7 @@ function download_image(url) {
 	download_request.send();
 }
 
-document.onload = gather_facts()
+document.onload = ubus_login()
 
 </script>
 

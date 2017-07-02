@@ -1,0 +1,12 @@
+{
+	"rpcd-mod-packagelist": {
+		"description": "get package list via ubus",
+		"read": {
+			"ubus": {
+				"rpcd-mod-packagelist": [
+					"list"
+				]
+			}
+		}
+	}
+}
