@@ -1,0 +1,11 @@
+#!/bin/sh
+
+uci -q batch <<EOF
+	del postgresql.attendedupgrade
+	set postgresql.attendedupgrade=postgres-db
+	set postgresql.attendedupgrade.name=attendedsysupgrade
+	set postgresql.attendedupgrade.user=upimaged
+	set postgresql.attendedupgrade.pass=password
+	set postgresql.attendedupgrade.script='/usr/share/upimaged/tables.sql'
+	commit postgresql
+EOF

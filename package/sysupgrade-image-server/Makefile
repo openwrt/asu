@@ -17,7 +17,7 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/nls.mk
-$(call include_mk, python-package.mk)
+$(call include_mk, python3-package.mk)
 
 define Package/sysupgrade-image-server
     SECTION:=devel
@@ -25,7 +25,9 @@ define Package/sysupgrade-image-server
     TITLE:=attended sysupgrade image server
     MAINTAINER:=Paul Spooren <paul@spooren.de>
     URL:=http://github.com/aparcar/gsoc17-attended-sysupgrade/
-    DEPENDS:=+python3-pyodbc +make @x86_64 @LIBC_USE_GLIBC
+    DEPENDS:=@x86_64 @LIBC_USE_GLIBC +make +psqlodbcw +curl +nginx \
+             +python3-flask +python3-pyodbc +python3-yaml
+    USERID:=upimaged:upimaged
 endef
 
 define Package/sysupgrade-image-server/description
@@ -33,16 +35,28 @@ define Package/sysupgrade-image-server/description
 endef
 
 define Package/sysupgrade-image-server/conffiles
-/etc/config/sysupserv
+/etc/config/upimaged
 endef
 
 define Build/Compile
 endef
 
 define Package/sysupgrade-image-server/install
-	$(INSTALL_DIR) $(1)$(PYTHON_PKG_DIR)/sysupgrade-image-server
-	$(CP) $(PKG_BUILD_DIR)/update-server/*.py $(1)$(PYTHON_PKG_DIR)/sysupgrade-image-server/
-	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DIR) $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server
+	$(CP) $(PKG_BUILD_DIR)/update-server/*.py $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
+	$(CP) $(PKG_BUILD_DIR)/update-server/config.yml.default $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
+	$(CP) $(PKG_BUILD_DIR)/update-server/distributions $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
+	$(CP) $(PKG_BUILD_DIR)/update-server/tests $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
+
+	$(INSTALL_DIR) $(1)/usr/share/upimaged/
+	$(CP) $(PKG_BUILD_DIR)/update-server/*.sql $(1)/usr/share/upimaged/
+
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./files/upimaged.defaults $(1)/etc/uci-defaults/50-upimaged
+
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/upimaged.init $(1)/etc/init.d/upimaged
+
 	find $(1) -name "*\.pyc" -o -name "*\.pyo" | xargs rm -f
 endef
 
