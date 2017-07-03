@@ -1,6 +1,6 @@
 dev: True
 network_profile_folder: 
-imabebuilder_url: "http://downloads.lede-project.org/releases/"
+imagebuilder_url: "http://downloads.lede-project.org/releases/"
 snapshots: Flase
 imagebuilder_snapshots_url: "https://downloads.lede-project.org/snapshots/"
 update_server: "http://localhost:5000"
