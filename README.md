@@ -6,13 +6,13 @@ This package will offer an easy way to reflash the router with a new release
 
 ### ubus package
 
-The package `attended-sysupgrade` offers a function `get_installed_pkgs` to list all user installed packages without the need of `opkg` installed. The function `get_board` returns the board needed as `PROFILE` during image creation. This information is used with release information of `ubus call system board` to request a specific image.
+The package `rpcd-mod-attended-sysupgrade` offers a function to perform a sysupgrade via luci. `rpcd-mod-packagelist` has the function `list` to show all user installed packages without the need of `opkg` installed.
 
 Dependencies:
 * rpcd
-* luci2-io-helper (to upload sysupgrade.img via webinterface)
+* cgi-op (to upload sysupgrade.bin via webinterface)
 
-A Luci view is created in `System -> Attended Sysupgrade`. It shows some basic information about the device and has an button to search for updates.
+A Luci view is created in `System -> Attended Sysupgrade`. It shows a simple button to search for sysupgrades.
 
 Use LEDE-SDK to create the image.
 
@@ -35,14 +35,14 @@ Sends information about the device to the server to see if a new distribution re
 		"version": "17.01.0",
 		"target": "ar71xx",
 		"subtarget": "generic",
-		"machine": "TP-LINK CPE510/520",
+		"board": "TP-LINK CPE510/520",
 		"packages": {
 			"opkg": "2017-05-03-04e279eb-1"
 			...
 		}   
 	}
 
-Most information can be retrieved via `ubus call system board`. Missing information can be gathered via the `attended-sysupgrade` package.
+Most information can be retrieved via `ubus call system board`. Missing information can be gathered via the `rpcd-mod-packagelist` package.
 `packages` contains all user installed packages. Packages installed as an dependence are excluded.
 
 ### update response
@@ -76,7 +76,7 @@ The *update reponse* should be shown to the user in a readable way. Once the use
 		"version": "17.01.1",
 		"target": "ar71xx",
 		"subtarget": "generic",
-		"machine": "TP-LINK CPE510/520",
+		"board": "TP-LINK CPE510/520",
 		"packages": {
 			"opkg": "2017-05-03-04e279eb-1"
 			...
