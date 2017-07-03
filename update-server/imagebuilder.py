@@ -26,9 +26,12 @@ class ImageBuilder(threading.Thread):
         self.release = version
         self.imagebuilder_release = version
         if self.config.get("snapshots") and version == "snapshot":
+            self.log.debug("using snapshot imagebuilder")
             self.imagebuilder_release = "snapshots"
         elif distro != "lede":
+            self.log.debug("using latest lede imagebuilder")
             self.imagebuilder_release = get_latest_release("lede")
+        self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
         self.root = os.path.dirname(os.path.realpath(__file__))
@@ -76,7 +79,7 @@ class ImageBuilder(threading.Thread):
         custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
         custom_repositories = re.sub(r"{{ subtarget }}", self.subtarget, custom_repositories)
         custom_repositories = re.sub(r"{{ pkg_arch }}", self.pkg_arch, custom_repositories)
-        if self.imagebuilder_release is "snapshots":
+        if self.imagebuilder_release == "snapshots":
             custom_repositories = re.sub(r"/releases/snapshots", "/snapshots", custom_repositories)
         return custom_repositories
 
@@ -87,7 +90,6 @@ class ImageBuilder(threading.Thread):
     def download_url(self, remove_subtarget=False):
         name_array = ["lede-imagebuilder"]
         # some imagebuilders have -generic removed
-        self.log.warn(self.imagebuilder_release)
         if not self.imagebuilder_release is "snapshots":
             name_array.append(self.imagebuilder_release)
         name_array.append(self.target)
@@ -95,11 +97,13 @@ class ImageBuilder(threading.Thread):
             name_array.append(self.subtarget)
         name = "-".join(name_array)
         name += ".Linux-x86_64.tar.xz"
-        self.log.warning(os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget, name))
 
         if self.imagebuilder_release == "snapshots":
-            return os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget, name)
-        return os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget, name)
+            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget, name)
+        else:
+            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget, name)
+        self.log.debug(imagebuilder_download_url)
+        return imagebuilder_download_url
 
     def run(self): 
         self.log.info("downloading imagebuilder %s", self.path)

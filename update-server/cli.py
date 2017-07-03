@@ -16,7 +16,6 @@ class ServerCli():
     def init_args(self):
         parser = argparse.ArgumentParser(description="CLI for update-server")
         parser.add_argument("-r", "--download-releases", action="store_true")
-        parser.add_argument("-t", "--download-targets", action="store_true")
         parser.add_argument("-i", "--setup-imagebuilder", nargs="+")
         parser.add_argument("-a", "--setup-all-imagebuilders", nargs="*")
         parser.add_argument("-u", "--update-packages", action="store_true")
@@ -27,8 +26,6 @@ class ServerCli():
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
             self.download_releases()
-        if self.args["download_targets"]:
-            self.download_targets()
         if self.args["setup_all_imagebuilders"]:
             self.setup_all_imagebuilders(*self.args["setup_all_imagebuilders"])
         if self.args["setup_imagebuilder"]:
@@ -88,9 +85,23 @@ class ServerCli():
             ib.parse_packages()
 
     def download_releases(self):
+        if self.config.get("snapshots"):
+            print("adding lede snapshots")
+            self.database.insert_release("lede", "snapshot")
+            snapshots_url = "http://downloads.lede-project.org/snapshots/targets/"
+            target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
+            target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+            targets = re.findall(target_pattern, target_website)
+
+            for target in targets:
+                subtarget_website = urllib.request.urlopen("{}/{}".format(snapshots_url, target)).read().decode('utf-8')
+                subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                subtargets = re.findall(subtarget_pattern, subtarget_website)
+                print("snapshots {} {}".format("snapshots", target, subtargets))
+                self.database.insert_target("lede", "snapshot", target, subtargets)    
 
         for distro, distro_url in self.config.get("distributions").items():
-            print("searing {} releases".format(distro))
+            print("searching {} releases".format(distro))
             releases_website = urllib.request.urlopen(distro_url).read().decode('utf-8')
             releases_pattern = r'href="(.+?)/?">.+/?</a>/?</td>'
             releases = re.findall(releases_pattern, releases_website)
@@ -108,37 +119,6 @@ class ServerCli():
                         subtargets = re.findall(subtarget_pattern, subtarget_website)
                         print("{} {} {}".format(release, target, subtargets))
                         self.database.insert_target(distro, release, target, subtargets)
-
-    def download_targets(self):
-        for distro, release in self.database.get_releases():
-            if release == "lede" and release == "snapshot":
-                continue
-            distro_url = self.config.get("distributions")[distro]
-            target_website = urllib.request.urlopen("{}/{}/targets/".format(distro_url, release)).read().decode('utf-8')
-            target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-            targets = re.findall(target_pattern, target_website)
-
-            for target in targets:
-                subtarget_website = urllib.request.urlopen("{}/{}/targets/{}".format(distro_url, release, target)).read().decode('utf-8')
-                subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                subtargets = re.findall(subtarget_pattern, subtarget_website)
-                print("{} {} {}".format(release, target, subtargets))
-                self.database.insert_target(distro, release, target, subtargets)    
-
-    def add_snapshots(self):
-        print("adding lede snapshots")
-        self.database.insert_release("lede", "snapshot")
-        snapshots_url = "http://downloads.lede-project.org/snapshots/targets/"
-        target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
-        target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-        targets = re.findall(target_pattern, target_website)
-
-        for target in targets:
-            subtarget_website = urllib.request.urlopen("{}/{}".format(snapshots_url, target)).read().decode('utf-8')
-            subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-            subtargets = re.findall(subtarget_pattern, subtarget_website)
-            print("snapshots {} {}".format("snapshots", target, subtargets))
-            self.database.insert_target("lede", "snapshot", target, subtargets)    
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
