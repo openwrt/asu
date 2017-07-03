@@ -127,7 +127,7 @@ class ImageBuilder(threading.Thread):
         return True
 
     def download(self, url):
-        with tempfile.TemporaryDirectory() as tar_folder:
+        with tempfile.TemporaryDirectory(dir=self.config.get("tempdir") as tar_folder:
             create_folder(self.path)
             tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
             self.log.info("downloading url %s", url)
