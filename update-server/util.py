@@ -9,7 +9,10 @@ import logging
 import hashlib
 import os
 import os.path
+from config import Config
 import subprocess
+
+config = Config()
 
 def create_folder(folder):
     try:
@@ -48,6 +51,21 @@ def get_release_config(distro, release):
             return yaml.load(release_config.read())
 
     return None
+
+def get_root():
+    return os.path.dirname(os.path.realpath(__file__))
+
+def get_dir(requested_folder):
+    folder = config.get(requested_folder)
+    if folder:
+        if create_folder(folder):
+            return folder
+
+    default_folder = os.path.join(get_root(), requested_folder)
+    if create_folder(default_folder):
+        return default_folder
+    else:
+        quit()
 
 def get_supported_targets(distro, release):
     response = {}

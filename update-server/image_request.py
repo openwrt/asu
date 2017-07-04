@@ -48,7 +48,7 @@ class ImageRequest(Request):
             image_id, image_status, image_checksum, image_filesize = response
             if image_status == "created":
                 if self.image.created():
-                    self.response_dict["url"] =  self.config.get("update_server") + "/" + self.image.get_sysupgrade()
+                    self.response_dict["url"] =  self.config.get("update_server") + "/download/" + self.image.get_sysupgrade()
                     self.response_dict["checksum"] = image_checksum
                     self.response_dict["filesize"] = image_filesize
                     return self.respond(), HTTPStatus.OK # 200

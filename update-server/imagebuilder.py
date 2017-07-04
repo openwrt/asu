@@ -1,5 +1,5 @@
 from os import walk
-from util import create_folder, get_statuscode, get_latest_release
+from util import create_folder, get_statuscode, get_latest_release, get_dir
 import logging
 import tarfile
 from database import Database
@@ -35,7 +35,10 @@ class ImageBuilder(threading.Thread):
         self.target = target
         self.subtarget = subtarget
         self.root = os.path.dirname(os.path.realpath(__file__))
-        self.path = os.path.join("imagebuilder", self.distro, self.version, self.target, self.subtarget)
+        self.workdir = get_dir("workdir")
+
+        self.path = os.path.join(self.workdir, self.distro, self.version, self.target, self.subtarget)
+        self.log.debug("imagebuilder path %s", self.path)
     
     def prepare_vars(self):
         self.pkg_arch = self.parse_packages_arch()
@@ -61,7 +64,7 @@ class ImageBuilder(threading.Thread):
         self.pkg_arch = self.parse_packages_arch()
         self.log.info("adding custom repositories")
         custom_repositories = None
-        custom_repositories_path = os.path.join("distributions", self.distro, "repositories.conf")
+        custom_repositories_path = os.path.join(self.root, "distributions", self.distro, "repositories.conf")
         if os.path.exists(custom_repositories_path):
             with open(custom_repositories_path, "r") as custom_repositories_distro:
                 custom_repositories = self.fill_repositories_template(custom_repositories_distro.read())
@@ -83,6 +86,8 @@ class ImageBuilder(threading.Thread):
             custom_repositories = re.sub(r"/releases/snapshots", "/snapshots", custom_repositories)
         return custom_repositories
 
+
+    # function only needed until package_list is upstream
     def add_custom_makefile(self):
         self.log.info("adding custom Makefile")
         shutil.copyfile(os.path.join(self.root, "Makefile"), os.path.join(self.path, "Makefile"))
@@ -127,7 +132,7 @@ class ImageBuilder(threading.Thread):
         return True
 
     def download(self, url):
-        with tempfile.TemporaryDirectory(dir=self.config.get("tempdir")) as tar_folder:
+        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as tar_folder:
             create_folder(self.path)
             tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
             self.log.info("downloading url %s", url)

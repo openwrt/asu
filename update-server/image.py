@@ -2,7 +2,7 @@ import tarfile
 from config import Config
 from database import Database
 from imagebuilder import ImageBuilder
-from util import create_folder,get_hash
+from util import create_folder,get_hash,get_dir
 import re
 import shutil
 import urllib.request
@@ -48,8 +48,7 @@ class Image(threading.Thread):
 
         self.diff_packages()
 
-        build_path = os.path.dirname(self.path)
-        with tempfile.TemporaryDirectory() as build_path:
+        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as build_path:
             create_folder(os.path.dirname(self.path))
 
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
@@ -121,7 +120,7 @@ class Image(threading.Thread):
        #     path_array.append("sysupgrade.img")
 
         self.name = "-".join(path_array)
-        self.path = os.path.join("download", self.distro, self.release, self.target, self.subtarget, self.name)
+        self.path = os.path.join(get_dir("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.name)
 
     def as_array(self):
         array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.pkg_hash,  self.network_profile]
@@ -141,7 +140,7 @@ class Image(threading.Thread):
             return None
         else:
             self.log.debug("Heureka!")
-            return (self.path)
+            return "/".join(self.path.split("/")[-5:])
     
     # generate a hash of the installed packages
     def get_pkg_hash(self):
@@ -159,6 +158,7 @@ class Image(threading.Thread):
 
     # add network profile in image
     def check_network_profile(self, network_profile):
+        self.log.debug("check network profile")
         if network_profile:
             network_profile_path = os.path.join(self.config.get("network_profile_folder"), network_profile) + "/"
             self.network_profile = network_profile

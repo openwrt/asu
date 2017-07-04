@@ -9,6 +9,7 @@ import sys
 from image import ImageBuilder
 from database import Database
 import logging
+from util import get_dir
 from flask import request, send_from_directory,redirect
 import os
 from image import Image
@@ -41,7 +42,7 @@ def download_image(image_path, image_name):
     # use different approach?
     if not config.get("dev"):
         return redirect(os.path.join(config.get("update_server"), "static", image_path, image_name), HTTPStatus.FOUND)
-    return send_from_directory(directory=os.path.join("download", image_path), filename=image_name)
+    return send_from_directory(directory=os.path.join(get_dir("downloaddir"), image_path), filename=image_name)
 
 # request methos for individual image
 # uses post methos to receive build information
