@@ -194,6 +194,13 @@ class Database():
             return self.c.fetchone()
         else:
             return None
+
+    def set_image_status(self, image_request_hash, status):
+        sql = """UPDATE images
+            SET status = ?
+            WHERE image_hash = ?;"""
+        self.c.execute(sql, status, image_request_hash)
+        self.commit()
     
     def reset_build_job(self, image):
         image_request_hash = get_hash(" ".join(image), 12)

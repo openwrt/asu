@@ -63,6 +63,9 @@ class ImageRequest(Request):
                 elif image_status == "failed":
                     self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
                     return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
+                elif image_status == "imagesize_fail":
+                    self.response_dict["error"] = "requested image is too big for requested target. retry with less packages"
+                    return self.respond(), HTTPStatus.BAD_REQUEST # 400
             return 503
 
     def respond_requested(self, image_id):

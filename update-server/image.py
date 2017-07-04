@@ -89,11 +89,14 @@ class Image(threading.Thread):
                 return False
 
     def done(self):
-        self.log.info("build successfull")
-        self.gen_checksum()
-        self.gen_filesize()
-        self.database.done_build_job(self.image_request_hash, self.checksum, self.filesize)
-
+        if self.created():
+            self.log.info("build successfull")
+            self.gen_checksum()
+            self.gen_filesize()
+            self.database.done_build_job(self.image_request_hash, self.checksum, self.filesize)
+        else:
+            self.log.error("created image was to big")
+            self.database.set_image_status(self.image_request_hash, 'imagesize_fail')
 
     def gen_checksum(self):
         self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
