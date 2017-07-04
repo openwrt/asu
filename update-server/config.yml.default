@@ -9,7 +9,7 @@ database_name: attendedsysupgrade
 database_user: upimaged
 database_pass: password
 database_port: 5432
-tmpdir: None
+tempdir: None
 
 distributions:
     lede: https://downloads.lede-project.org/releases/
