@@ -269,6 +269,12 @@ class Database():
             return self.c.fetchone()
         else:
             return None
+
+    def reset_build_requests(self):
+        self.log.debug("reset building images")
+        sql = "UPDATE images SET status = 'requested' WHERE status = 'building'"
+        self.c.execute(sql)
+        self.commit()
         
 if __name__ == "__main__":
     db = Database()

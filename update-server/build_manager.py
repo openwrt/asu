@@ -22,6 +22,8 @@ class BuildManager(threading.Thread):
         return self.last_build_id
 
     def run(self):
+        self.database.reset_build_requests()
+        
         while True:
             imagebuilder_request = self.database.get_imagebuilder_request()
             if imagebuilder_request:
@@ -39,9 +41,10 @@ class BuildManager(threading.Thread):
                 self.last_build_id = build_job_request[0]
                 image = Image(*build_job_request[2:9])
                 self.log.debug(image.as_array())
-                if not image.created():
-                    if not image.run():
-                        self.log.warn("build failed for %s", image.name)
+                if not image.run():
+                    self.log.warn("build failed for %s", image.name)
+                else:
+                    self.log.debug("error in build %s", image.name)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
