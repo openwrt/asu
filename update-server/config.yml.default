@@ -15,4 +15,4 @@ tempdir: /tmp
 
 distributions:
     lede: https://downloads.lede-project.org/releases/
-    libremesh: http://repo.libremesh.org
+    libremesh: http://repo.libremesh.org/releases/
