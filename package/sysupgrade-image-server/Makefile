@@ -12,7 +12,7 @@ PKG_LICENSE:=GPL-3.0
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/aparcar/gsoc17-attended-sysupgrade
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=4d7b8681700b084fb7dc6829f337b5818c8cbfbf
+PKG_SOURCE_VERSION:=68cab3454c676894ac3c0f9344d190089ecac7e8
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 include $(INCLUDE_DIR)/package.mk
@@ -25,8 +25,13 @@ define Package/sysupgrade-image-server
     TITLE:=attended sysupgrade image server
     MAINTAINER:=Paul Spooren <paul@spooren.de>
     URL:=http://github.com/aparcar/gsoc17-attended-sysupgrade/
-    DEPENDS:=@x86_64 @LIBC_USE_GLIBC +make +psqlodbcw +curl +nginx \
-             +python3-flask +python3-pyodbc +python3-yaml
+    DEPENDS:=@x86_64 +bash +bzip2 +coreutils +coreutils-stat +diffutils +file \
+             +gawk +gcc +getopt +git +libncurses +make +patch +perl \
+             +perlbase-attributes +perlbase-findbin +perlbase-getopt \
+             +perlbase-thread +python-light +tar +unzip +wget +xz +xzdiff \
+             +xzgrep +xzless +xz-utils +zlib-dev \
+             +psqlodbcw +curl +nginx +python3-flask +python3-pyodbc \
+             +python3-yaml
     USERID:=upimaged:upimaged
 endef
 
@@ -45,6 +50,7 @@ define Package/sysupgrade-image-server/install
 	$(INSTALL_DIR) $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server
 	$(CP) $(PKG_BUILD_DIR)/update-server/*.py $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
 	$(CP) $(PKG_BUILD_DIR)/update-server/config.yml.default $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
+	$(CP) $(PKG_BUILD_DIR)/update-server/imagebuilder-add-package_list-function.patch $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
 	$(CP) $(PKG_BUILD_DIR)/update-server/distributions $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
 	$(CP) $(PKG_BUILD_DIR)/update-server/tests $(1)$(PYTHON3_PKG_DIR)/sysupgrade-image-server/
 
