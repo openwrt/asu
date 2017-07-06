@@ -108,10 +108,10 @@ class ImageBuilder(threading.Thread):
 
     def download_url(self, remove_subtarget=False):
         name_array = ["lede-imagebuilder"]
-        # some imagebuilders have -generic removed
         if not self.imagebuilder_release is "snapshots":
             name_array.append(self.imagebuilder_release)
         name_array.append(self.target)
+        # some imagebuilders have -generic removed
         if not remove_subtarget:
             name_array.append(self.subtarget)
         name = "-".join(name_array)
@@ -152,16 +152,16 @@ class ImageBuilder(threading.Thread):
             tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
             self.log.info("downloading url %s", url)
             urllib.request.urlretrieve(url, tar_path)
-            tar = tarfile.open(tar_path)
-            tar.extractall(path=tar_folder)
-            for (dirpath, dirnames, filenames) in walk(os.path.join(tar_folder, tar.getnames()[0])):
-                for dirname in dirnames:
-                    shutil.move(os.path.join(dirpath, dirname), self.path)
-                for filename in filenames:
-                    shutil.move(os.path.join(dirpath, filename), self.path)
-                break
-            tar.close()
-                
+            os.system("tar -C {} --strip=1 -xf {}".format(self.path, tar_path))
+            #tar = tarfile.open(tar_path)
+            #tar.extractall(path=tar_folder)
+            #for (dirpath, dirnames, filenames) in walk(os.path.join(tar_folder, tar.getnames()[0])):
+            #    for dirname in dirnames:
+            #        shutil.move(os.path.join(dirpath, dirname), self.path)
+            #    for filename in filenames:
+            #        shutil.move(os.path.join(dirpath, filename), self.path)
+            #    break
+            #tar.close()
             return True
         return False
 
