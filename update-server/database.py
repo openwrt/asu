@@ -88,6 +88,26 @@ class Database():
             return True
         return False
 
+    def get_profile_packages(self, distro, release, target, subtarget, profile):
+        self.log.debug("get_profile_packages for %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
+        self.c.execute("""SELECT default_packages.packages || ' ' || profiles.packages
+            FROM default_packages , profiles
+            WHERE
+                default_packages.distro = profiles.distro AND
+                default_packages.release = profiles.release AND
+                default_packages.target = profiles.target AND
+                default_packages.subtarget = profiles.subtarget AND
+                profiles.distro=? AND
+                profiles.release=? AND
+                profiles.target=? AND
+                profiles.subtarget=? AND
+                profiles.name = ?;""",
+            distro, release, target, subtarget, profile)
+        response = self.c.fetchone()
+        if response:
+            return response[0].split(" ")
+        return response
+
     def get_default_packages(self, distro, release, target, subtarget):
         self.log.debug("get_default_packages for %s/%s", target, subtarget)
         self.c.execute("""SELECT packages

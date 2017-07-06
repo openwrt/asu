@@ -29,7 +29,7 @@ class Image(threading.Thread):
         self.profile = profile
 
         if not packages:
-            self.packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
+            self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
         elif type(packages) is str:
             self.packages = packages.split(" ")
         else:
@@ -42,7 +42,6 @@ class Image(threading.Thread):
     def run(self):
         imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
         self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
-        self.imagebuilder.prepare_vars()
 
         self.log.info("use imagebuilder %s", self.imagebuilder.path)
 
@@ -130,11 +129,11 @@ class Image(threading.Thread):
         return array
 
     def diff_packages(self):
-        default_packages = self.imagebuilder.default_packages
+        profile_packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
         for package in self.packages:
-            if package in default_packages:
-                default_packages.remove(package)
-        for remove_package in default_packages:
+            if package in profile_packages:
+                profile_packages.remove(package)
+        for remove_package in profile_packages:
             self.packages.append("-" + remove_package)
 
     # returns the path of the created image
