@@ -43,8 +43,6 @@ class BuildManager(threading.Thread):
                 self.log.debug(image.as_array())
                 if not image.run():
                     self.log.warn("build failed for %s", image.name)
-                else:
-                    self.log.debug("error in build %s", image.name)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
