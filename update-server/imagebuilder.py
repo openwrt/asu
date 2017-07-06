@@ -1,5 +1,5 @@
 from os import walk
-from util import create_folder, get_statuscode, get_latest_release, get_dir
+from util import create_folder, get_statuscode, get_latest_release, get_dir, get_root
 import logging
 import tarfile
 from database import Database
@@ -39,16 +39,7 @@ class ImageBuilder(threading.Thread):
 
         self.path = os.path.join(self.workdir, self.distro, self.version, self.target, self.subtarget)
         self.log.debug("imagebuilder path %s", self.path)
-    
-    def prepare_vars(self):
-        self.pkg_arch = self.parse_packages_arch()
-        self.default_packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
-        self.available_packages= self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget)
-        logging.debug("found package arch %s", self.pkg_arch)
 
-
-    # this is ugly due to the fact that some imagebuilders have -generic
-    # removed in their download names, more generic apporach needed
     def created(self):
         if os.path.exists(os.path.join(self.path, "Makefile")):
             return True
@@ -59,6 +50,35 @@ class ImageBuilder(threading.Thread):
             for line in config:
                 if line.startswith("CONFIG_TARGET_ARCH_PACKAGES"):
                     return re.match(r'.*"(.+)"', line).group(1)
+
+    def patch_makefile(self):
+        self.log.debug("patch makefile")
+        cmdline = ["patch", "-p4", "--dry-run", "-i", get_root() + "/imagebuilder-add-package_list-function.patch"]
+        proc = subprocess.Popen(
+            cmdline,
+            cwd=self.path,
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT
+        )
+
+        output, erros = proc.communicate()
+        return_code = proc.returncode
+
+        if return_code == 0:
+            self.log.debug("apply makefile patch")
+            cmdline.pop(2)
+            proc = subprocess.Popen(
+                cmdline,
+                cwd=self.path,
+                stdout=subprocess.PIPE,
+                shell=False,
+                stderr=subprocess.STDOUT
+            )
+        else:
+            if not output.decode('utf-8').startswith("checking file Makefile\nReversed"):
+                self.log.error("could not path imagebuilder makefile")
+                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, "patch_fail")
 
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()
@@ -85,12 +105,6 @@ class ImageBuilder(threading.Thread):
         if self.imagebuilder_release == "snapshots":
             custom_repositories = re.sub(r"/releases/snapshots", "/snapshots", custom_repositories)
         return custom_repositories
-
-
-    # function only needed until package_list is upstream
-    def add_custom_makefile(self):
-        self.log.info("adding custom Makefile")
-        shutil.copyfile(os.path.join(self.root, "Makefile"), os.path.join(self.path, "Makefile"))
 
     def download_url(self, remove_subtarget=False):
         name_array = ["lede-imagebuilder"]
@@ -123,8 +137,9 @@ class ImageBuilder(threading.Thread):
                 else:
                     self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
                     return False
+        self.patch_makefile()
         self.add_custom_repositories()
-        self.add_custom_makefile()
+        self.pkg_arch = self.parse_packages_arch()
         self.parse_profiles()
         self.parse_packages()
         self.log.info("initialized imagebuilder %s", self.path)
