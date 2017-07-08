@@ -12,7 +12,7 @@ PKG_LICENSE:=GPL-3.0
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/aparcar/gsoc17-attended-sysupgrade
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=68cab3454c676894ac3c0f9344d190089ecac7e8
+PKG_SOURCE_VERSION:=47c72bcdbf960c4c17f3154d75846bf59c0b7dbc
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 include $(INCLUDE_DIR)/package.mk
@@ -30,8 +30,8 @@ define Package/sysupgrade-image-server
              +perlbase-attributes +perlbase-findbin +perlbase-getopt \
              +perlbase-thread +python-light +tar +unzip +wget +xz +xzdiff \
              +xzgrep +xzless +xz-utils +zlib-dev \
-             +psqlodbcw +curl +nginx +python3-flask +python3-pyodbc \
-             +python3-yaml
+             +psqlodbcw +curl +nginx +python3-distutils +python3-flask \
+             +python3-pyodbc +python3-yaml
     USERID:=upimaged:upimaged
 endef
 
