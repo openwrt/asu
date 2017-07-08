@@ -35,6 +35,9 @@ define Package/rpcd-mod-attended-sysupgrade/install
 
 	$(INSTALL_DIR) $(1)/usr/libexec/rpcd/
 	$(INSTALL_BIN) ./files/rpcd-mod-attended-sysupgrade $(1)/usr/libexec/rpcd/rpcd-mod-attended-sysupgrade
+
+	$(INSTALL_DIR) $(1)/etc/uci-defaults/
+	$(INSTALL_BIN) ./files/uci-defaults $(1)/etc/uci-defaults/attended-sysupgrade
 endef
 
 $(eval $(call BuildPackage,rpcd-mod-attended-sysupgrade))

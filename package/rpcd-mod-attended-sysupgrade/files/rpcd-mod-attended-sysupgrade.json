@@ -9,7 +9,8 @@
 				"system": [
 					"board"
 				]
-			}
+			},
+			"uci": [ "*" ]
 		},
 		"write": {
 			"cgi-io": [

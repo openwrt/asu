@@ -1,0 +1,15 @@
+#!/bin/sh
+
+[ -e /etc/config/attendedsysupgrade ] && exit 0
+
+touch /etc/config/attendedsysupgrade
+
+uci -q batch <<EOF
+add attendedsysupgrade settings
+set attendedsysupgrade.@settings[0].update_server=https://betaupdate.libremesh.org
+set attendedsysupgrade.@settings[0].notify_packages=True
+set attendedsysupgrade.@settings[0].auto_check=False
+commit attendedsysupgrade
+EOF
+
+exit 01
