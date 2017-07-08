@@ -49,7 +49,7 @@ def download_image(image_path, image_name):
 
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
-@app.route("/image-request", methods=['GET', 'POST', 'PUT'])
+@app.route("/image-request", methods=['GET', 'POST'])
 def requst_image():
     if request.method == 'POST':
         request_json = request.get_json()
@@ -60,15 +60,6 @@ def requst_image():
 @app.route("/")
 def rootPath():
     return "update server running"
-
-# check if the received image request is vaild
-def check_request(request):
-    # right now this approach is dead simple
-    values = ["distro", "version", "target", "subtarget"]
-    for value in values:
-        if not value in request:
-            return False
-    return True
 
 def get_last_build_id():
     if config.get("dev"):
