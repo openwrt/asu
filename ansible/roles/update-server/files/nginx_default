@@ -1,7 +1,18 @@
 server {
 	listen 80 default_server;
 	listen [::]:80 default_server;
-	server_name _;
+	server_name betaupdate.libremesh.org;
+	rewrite ^ https://$server_name$request_uri? permanent;
+}
+
+server {
+	listen 443 ssl default_server;
+	listen [::]:443 ssl default_server;
+
+	ssl_certificate /etc/letsencrypt/live/betaupdate.libremesh.org/fullchain.pem;
+	ssl_certificate_key /etc/letsencrypt/live/betaupdate.libremesh.org/privkey.pem;
+
+	server_name betaupdate.libremesh.org;
 
 	location /static {
 		alias /srv/update-server/download/;
@@ -9,18 +20,22 @@ server {
 		autoindex on;
 	}
 
-    location / { 
-        add_header Access-Control-Allow-Origin *;
-        add_header Access-Control-Allow-Headers: Access-Control-Allow-Headers,Content-Type;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header Host $http_host;
-        proxy_set_header X-NginX-Proxy true;
+	location / {
+		add_header Access-Control-Allow-Origin * always;
+		add_header Access-Control-Allow-Headers: Access-Control-Allow-Headers,Content-Type always;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header Host $http_host;
+		proxy_set_header X-NginX-Proxy true;
 
-        proxy_pass http://localhost:5000; 
-        proxy_redirect off;
-    }   
+		proxy_pass http://localhost:5000;
+		proxy_redirect off;
+	}
 
-	location /static {
+	location ~ /.well-known {
+			default_type "text/plain";
+			root /var/www/html/;
+			allow all;
+	}
 }
 
