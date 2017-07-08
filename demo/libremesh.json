@@ -1,0 +1,7 @@
+{
+    "distro": "libremesh",
+    "version": "lime-17.06",
+    "target": "ar71xx",
+    "subtarget": "generic",
+    "board": "tl-wdr4300-v1"
+}
