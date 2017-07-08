@@ -1,5 +1,5 @@
 from os import walk
-from util import create_folder, get_statuscode, get_latest_release, get_dir, get_root
+from util import create_folder, get_statuscode, get_latest_release, get_dir, get_root, check_signature, setup_gnupg
 import logging
 import tarfile
 from database import Database
@@ -106,7 +106,15 @@ class ImageBuilder(threading.Thread):
             custom_repositories = re.sub(r"/releases/snapshots", "/snapshots", custom_repositories)
         return custom_repositories
 
-    def download_url(self, remove_subtarget=False):
+    def download_url(self):
+        if self.imagebuilder_release == "snapshots":
+            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget)
+        else:
+            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget)
+        self.log.debug(imagebuilder_download_url)
+        return imagebuilder_download_url
+
+    def tar_name(self, remove_subtarget=False):
         name_array = ["lede-imagebuilder"]
         if not self.imagebuilder_release is "snapshots":
             name_array.append(self.imagebuilder_release)
@@ -116,24 +124,27 @@ class ImageBuilder(threading.Thread):
             name_array.append(self.subtarget)
         name = "-".join(name_array)
         name += ".Linux-x86_64.tar.xz"
-
-        if self.imagebuilder_release == "snapshots":
-            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget, name)
-        else:
-            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget, name)
-        self.log.debug(imagebuilder_download_url)
-        return imagebuilder_download_url
+        return name
 
     def run(self): 
+        setup_gnupg() # this should be run only once per worker TODO
         self.log.info("downloading imagebuilder %s", self.path)
         if not self.created():
-            if get_statuscode(self.download_url()) != 404:
-                self.download(self.download_url())
+            create_folder(self.path)
+
+            regular_tar_url = os.path.join(self.download_url(), self.tar_name())
+            if get_statuscode(regular_tar_url) != 404:
+                if not self.download(regular_tar_url):
+                    return False
             else:
                 # this is only due to arm64 missing -generic in filename
-                if get_statuscode(self.download_url(True)) != 404:
+                # this is very ugly, can this just be deleted?
+                special_tar_url = os.path.join(self.download_url(), self.tar_name(True))
+                if get_statuscode(special_tar_url) != 404:
                     self.log.debug("remove -generic from url")
-                    self.download(self.download_url(True))
+
+                    if not self.download(special_tar_url):
+                        return False
                 else:
                     self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
                     return False
@@ -147,15 +158,42 @@ class ImageBuilder(threading.Thread):
         return True
 
     def download(self, url):
-        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as tar_folder:
-            create_folder(self.path)
-            tar_path = os.path.join(tar_folder, "imagebuilder.tar.xz")
+        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as tempdir:
+            self.log.info("downloading signature")
+            urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums"), (tempdir + "/sha256sums"))
+            urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
+            if not check_signature(tempdir):
+                self.log.warn("bad signature")
+                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'signature_fail')
+                return False
+            self.log.debug("good signature")
+            tar_path = os.path.join(tempdir, self.tar_name())
+            print(tar_path)
             self.log.info("downloading url %s", url)
             urllib.request.urlretrieve(url, tar_path)
+
+            cmdline = ["sha256sum", "-c", "--ignore-missing", "sha256sums"]
+            proc = subprocess.Popen(
+                cmdline,
+                cwd=tempdir,
+                stdout=subprocess.PIPE,
+                shell=False,
+                stderr=subprocess.STDOUT
+            )
+
+            sha256_output, erros = proc.communicate()
+            return_code = proc.returncode
+            sha256_output = sha256_output.decode('utf-8')
+            if not sha256_output == "{}: OK\n".format(self.tar_name()):
+                self.log.warn("bad sha256sum")
+                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'sha256sum_fail')
+                return False
+            self.log.debug("good sha256sum")
+
             os.system("tar -C {} --strip=1 -xf {}".format(self.path, tar_path))
             #tar = tarfile.open(tar_path)
-            #tar.extractall(path=tar_folder)
-            #for (dirpath, dirnames, filenames) in walk(os.path.join(tar_folder, tar.getnames()[0])):
+            #tar.extractall(path=tempdir)
+            #for (dirpath, dirnames, filenames) in walk(os.path.join(tempdir, tar.getnames()[0])):
             #    for dirname in dirnames:
             #        shutil.move(os.path.join(dirpath, dirname), self.path)
             #    for filename in filenames:
@@ -208,7 +246,6 @@ class ImageBuilder(threading.Thread):
         output, erros = proc.communicate()
         returnCode = proc.returncode
         output = output.decode('utf-8')
-       # print(output)
         if returnCode == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
