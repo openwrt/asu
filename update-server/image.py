@@ -29,7 +29,10 @@ class Image(threading.Thread):
         self.profile = profile
 
         if not packages:
-            self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
+            if self.target != "x86":
+                self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
+            else:
+                self.packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
         elif type(packages) is str:
             self.packages = packages.split(" ")
         else:
