@@ -73,7 +73,7 @@ class Database():
         self.commit()
 
     def check_profile(self, distro, release, target, subtarget, profile):
-        self.log.debug("check_profile %s/%s/%s/%s/s", distro, release, target, subtarget, profile)
+        self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
         self.c.execute("""SELECT EXISTS(
             SELECT 1 FROM profiles
             WHERE 
@@ -81,9 +81,9 @@ class Database():
                 release=? AND 
                 target=? AND 
                 subtarget = ? AND 
-                (name = ? OR board = ?)
+                name = ?
             LIMIT 1);""",
-            distro, release, target, subtarget, profile, profile)
+            distro, release, target, subtarget, profile)
         if self.c.fetchone()[0]:
             return True
         return False
@@ -163,7 +163,7 @@ class Database():
                 distro = ? AND 
                 release = ? AND 
                 target LIKE ? AND 
-                subtarget LIKE ?;""", 
+                subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
     def get_image_status(self, image):

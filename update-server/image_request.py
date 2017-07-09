@@ -19,7 +19,7 @@ class ImageRequest(Request):
             return bad_request
 
         self.profile = self.request_json["board"]
-        if not self.check_profile:
+        if not self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.profile):
             self.response_dict["error"] = "board not found"
             return self.respond(), HTTPStatus.BAD_REQUEST
 
@@ -74,11 +74,6 @@ class ImageRequest(Request):
             queue_position = 0
         self.response_dict["queue"] = queue_position
         return self.respond(), HTTPStatus.CREATED # 201
-
-    def check_profile(self):
-        if database.check_target(self.distro, self.release, self.target, self.subtarget, self.profile):
-            return True
-        return False
 
     def check_network_profile(self):
         network_profile = self.request_json["network_profile"]
