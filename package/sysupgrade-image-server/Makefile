@@ -30,8 +30,8 @@ define Package/sysupgrade-image-server
              +perlbase-attributes +perlbase-findbin +perlbase-getopt \
              +perlbase-thread +python-light +tar +unzip +wget +xz +xzdiff \
              +xzgrep +xzless +xz-utils +zlib-dev \
-             +psqlodbcw +curl +nginx +python3-distutils +python3-flask \
-             +python3-openssl +python3-pyodbc +python3-yaml
+             +psqlodbcw +curl +nginx +python3-distutils +python3-gnupg \
+             +python3-flask +python3-openssl +python3-pyodbc +python3-yaml
     USERID:=upimaged:upimaged
 endef
 
