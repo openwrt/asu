@@ -1,7 +1,9 @@
 {
     "distro": "lede",
-    "target": "ar71xx",
-    "subtarget": "generic",
+    "target": "ramips",
+    "subtarget": "mt7688",
+    "version": "17.01.2",
+    "board": "omega2",
     "packages": {
         "mkf2fs": "1.8.0-1",
         "opkg": "2011-04-08-9c97d5ec-17",
@@ -26,7 +28,5 @@
         "luci": "git-17.152.82987-7f6fc16-1",
         "kmod-button-hotplug": "4.4.50-3",
         "kmod-igb": "4.4.50-1"
-    },
-    "version": "17.01.2",
-    "board": "cpe510-520"
+    }
 }
