@@ -27,12 +27,11 @@ class Image(threading.Thread):
         self.target = target
         self.subtarget = subtarget
         self.profile = profile
+        if self.target == "x86": 
+            self.profile = "Generic"
 
-        if not packages:
-            if self.target != "x86":
-                self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
-            else:
-                self.packages = self.database.get_default_packages(self.distro, self.release, self.target, self.subtarget)
+        if not packages: # install default packages
+            self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
         elif type(packages) is str:
             self.packages = packages.split(" ")
         else:
@@ -54,8 +53,7 @@ class Image(threading.Thread):
             create_folder(os.path.dirname(self.path))
 
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
-            if self.target != "x86":
-                cmdline.append('PROFILE=%s' % self.profile)
+            cmdline.append('PROFILE=%s' % self.profile)
             print(self.packages)
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
             if self.network_profile:
@@ -119,16 +117,13 @@ class Image(threading.Thread):
 
         if self.target != "x86":
             path_array.append(self.profile)
-        ## .bin should always be fine
         path_array.append("sysupgrade.bin")
-       # else:
-       #     path_array.append("sysupgrade.img")
 
         self.name = "-".join(path_array)
-        self.path = os.path.join(get_dir("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.name)
+        self.path = os.path.join(get_dir("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.name)
 
     def as_array(self):
-        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.pkg_hash,  self.network_profile]
+        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.pkg_hash, self.network_profile]
         return array
 
     def diff_packages(self):
