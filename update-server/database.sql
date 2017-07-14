@@ -168,3 +168,49 @@ create or replace rule insert_packages_profile AS
 			NEW.profile,
 			NEW.packages
 );
+
+create table if not exists packages_hashes_table (
+	id serial primary key,
+	hash text
+);
+
+create table if not exists packages_hashes_link(
+	hash_id integer references packages_hashes_table(id),
+	package_id integer references packages_names(id),
+	primary key(hash_id, package_id)
+);
+
+create or replace view packages_hashes as
+	select
+		hash, string_agg(packages_names.name, ' ') as packages
+	from packages_names, packages_hashes_table, packages_hashes_link
+	where
+		packages_hashes_table.id = packages_hashes_link.hash_id and
+		packages_names.id = packages_hashes_link.package_id
+	group by (hash)
+;
+
+create or replace function add_packages_hashes(hash varchar(20), packages text) returns void as
+$$
+declare
+	package varchar(40);
+	packages_array varchar(40)[] = string_to_array(packages, ' ');
+begin
+	insert into packages_hashes_table (hash) values (add_packages_hashes.hash) on conflict do nothing;
+	FOREACH package IN array packages_array
+	loop
+		insert into packages_hashes_link values (
+			(select packages_hashes_table.id from packages_hashes_table where
+				packages_hashes_table.hash = add_packages_hashes.hash),
+			(select id from packages_names where packages_names.name = package)
+		) on conflict do nothing;
+	end loop;
+end
+$$ language 'plpgsql';
+
+create or replace rule insert_packages_hashes AS
+	ON insert TO packages_hashes DO INSTEAD
+		SELECT add_packages_hashes(
+			NEW.hash,
+			NEW.packages
+);
