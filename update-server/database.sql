@@ -23,7 +23,7 @@ create table if not exists profiles_table(
 
 create or replace view profiles as
 	select
-		distro, release, target, subtarget, profile
+		profiles_table.id, distro, release, target, subtarget, profile
 	from subtargets, profiles_table
 	where 
 		profiles_table.subtarget_id = subtargets.id
@@ -39,7 +39,7 @@ begin
 			subtargets.target = add_profiles.target and
 			subtargets.subtarget = add_profiles.subtarget),
 		name
-	) on conflict do nothing;
+	)  on conflict do nothing;
 end
 $$ language 'plpgsql';
 
@@ -181,7 +181,8 @@ begin
 	FOREACH package IN array packages_array
 	loop
 		insert into packages_names (name) values (package) on conflict do nothing;
-		insert into profiles values (distro, release, target, subtarget, profile);
+		insert into profiles (distro, release, target, subtarget, profile) 
+			values (distro, release, target, subtarget, profile);
 		insert into packages_profile_table values (
 			(select profiles_table.id from profiles_table, subtargets where
 				profiles_table.profile = add_packages_profile.profile and
@@ -209,7 +210,7 @@ create or replace rule insert_packages_profile AS
 
 create table if not exists packages_hashes_table (
 	id serial primary key,
-	hash text
+	hash text unique
 );
 
 create table if not exists packages_hashes_link(
@@ -251,7 +252,8 @@ create or replace rule insert_packages_hashes AS
 		SELECT add_packages_hashes(
 			NEW.hash,
 			NEW.packages
-);
+	)
+;
 
 create or replace view packages_image as
 	select
@@ -267,4 +269,70 @@ create or replace view packages_image as
 		packages_default.release = packages_profile.release AND
 		packages_default.target = packages_profile.target AND
 		packages_default.subtarget = packages_profile.subtarget
+;
+
+create table if not exists imagebuilder_table (
+    id SERIAL PRIMARY KEY,
+	subtarget_id integer references subtargets(id),
+    status varchar(20) DEFAULT 'requested' -- 'ready', 'disabled', 'failded'
+);
+
+create or replace view imagebuilder as
+	select
+		distro, release, target, subtarget, status
+	from subtargets, imagebuilder_table
+	where 
+		subtargets.id = imagebuilder_table.subtarget_id
+;
+
+create or replace rule insert_imagebuilder AS
+	ON insert TO imagebuilder DO INSTEAD
+		insert into imagebuilder_table (subtarget_id)  values (
+			(select id from subtargets where
+				subtargets.distro = NEW.distro and
+				subtargets.release = NEW.release and
+				subtargets.target = NEW.target and
+				subtargets.subtarget = NEW.subtarget)
+		) on conflict do nothing;
+;
+
+create table if not exists images_table (
+    id SERIAL PRIMARY KEY,
+    image_hash text UNIQUE,
+	profile_id integer references profiles_table(id),
+	packages_hash_id integer references packages_hashes_table(id),
+    network_profile text,
+    checksum varchar(30),
+	filesize integer,
+	build_date timestamp,
+	last_download timestamp,
+	downloads integer DEFAULT 0,
+	keep boolean DEFAULT false, -- may used in future
+    status text DEFAULT 'requested'
+);
+
+create or replace view images as
+	select
+		image_hash, distro, release, target, subtarget, profile, hash as packages_hash, network_profile, status, checksum, filesize
+	from profiles, images_table, packages_hashes_table
+	where 
+		profiles.id = images_table.profile_id and
+		packages_hashes_table.id = images_table.packages_hash_id
+;
+
+create or replace rule insert_images AS
+	ON insert TO images DO INSTEAD
+		insert into images_table (image_hash, profile_id, packages_hash_id, network_profile, checksum, filesize) values (
+			NEW.image_hash,
+			(select profiles.id from profiles where
+				profiles.distro = NEW.distro and
+				profiles.release = NEW.release and
+				profiles.target = NEW.target and
+				profiles.subtarget = NEW.subtarget),
+			(select packages_hashes_table.id from packages_hashes_table where
+				packages_hashes_table.hash = NEW.packages_hash),
+			NEW.network_profile,
+			NEW.checksum,
+			NEW.filesize
+		) on conflict do nothing;
 ;
