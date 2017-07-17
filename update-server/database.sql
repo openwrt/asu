@@ -58,13 +58,51 @@ create table if not exists packages_names(
 	name varchar(50) unique
 );
 
-create table if not exists packages_available(
+create table if not exists packages_available_table(
 	subtarget_id integer references subtargets(id),
 	package integer references packages_names(id),
 	version varchar(30),
 	primary key(subtarget_id, package)
 
 );
+
+create or replace view packages_available as
+	select
+		distro, release, target, subtarget, name, version
+	from packages_names, subtargets, packages_available_table
+	where 
+		subtargets.id = packages_available_table.subtarget_id and
+		packages_available_table.package = packages_names.id
+;
+
+create or replace function add_packages_available(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), name varchar(50), version varchar(30)) returns void as
+$$
+begin
+	insert into packages_names (name) values (add_packages_available.name) on conflict do nothing;
+	insert into packages_available_table values (
+		(select id from subtargets where
+			subtargets.distro = add_packages_available.distro and
+			subtargets.release = add_packages_available.release and
+			subtargets.target = add_packages_available.target and
+			subtargets.subtarget = add_packages_available.subtarget),
+		(select id from packages_names where 
+			packages_names.name = add_packages_available.name),
+		add_packages_available.version
+	) on conflict do nothing;
+end
+$$ language 'plpgsql';
+
+create or replace rule insert_available_default AS
+	ON insert TO packages_available DO INSTEAD
+		SELECT add_packages_available(
+			NEW.distro,
+			NEW.release,
+			NEW.target,
+			NEW.subtarget,
+			NEW.name,
+			NEW.version
+);
+
 
 create table if not exists packages_default_table(
 	subtarget_id integer references subtargets(id),
@@ -214,3 +252,19 @@ create or replace rule insert_packages_hashes AS
 			NEW.hash,
 			NEW.packages
 );
+
+create or replace view packages_image as
+	select
+		packages_profile.distro, 
+		packages_profile.release,
+		packages_profile.target,
+		packages_profile.subtarget,
+		packages_profile.profile, 
+		packages_default.packages || ' ' || packages_profile.packages as packages
+	from packages_default, packages_profile
+	where 
+		packages_default.distro = packages_profile.distro AND
+		packages_default.release = packages_profile.release AND
+		packages_default.target = packages_profile.target AND
+		packages_default.subtarget = packages_profile.subtarget
+;
