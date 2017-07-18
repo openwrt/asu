@@ -41,7 +41,7 @@ begin
 		name
 	)  on conflict do nothing;
 end
-$$ language 'plpgsql';
+$$ language 'sql';
 
 create or replace rule insert_profiles AS
 	ON insert TO profiles DO INSTEAD
@@ -90,7 +90,7 @@ begin
 		add_packages_available.version
 	) on conflict do nothing;
 end
-$$ language 'plpgsql';
+$$ language 'sql';
 
 create or replace rule insert_available_default AS
 	ON insert TO packages_available DO INSTEAD
