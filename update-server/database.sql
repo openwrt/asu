@@ -10,6 +10,7 @@ create table if not exists subtargets(
 	release varchar(20),
 	target varchar(20),
 	subtarget varchar(20),
+	supported boolean DEFAULT false,
 	unique(distro, release, target, subtarget),
     foreign key (distro, release) references releases
 );
@@ -17,7 +18,7 @@ create table if not exists subtargets(
 create table if not exists profiles_table(
 	id serial primary key,
 	subtarget_id integer references subtargets(id),
-	profile varchar(20),
+	profile varchar(50),
 	unique(subtarget_id, profile)
 );
 
@@ -41,7 +42,7 @@ begin
 		name
 	)  on conflict do nothing;
 end
-$$ language 'sql';
+$$ language 'plpgsql';
 
 create or replace rule insert_profiles AS
 	ON insert TO profiles DO INSTEAD
@@ -55,13 +56,13 @@ create or replace rule insert_profiles AS
 
 create table if not exists packages_names(
 	id serial primary key,
-	name varchar(50) unique
+	name varchar(100) unique
 );
 
 create table if not exists packages_available_table(
 	subtarget_id integer references subtargets(id),
 	package integer references packages_names(id),
-	version varchar(30),
+	version varchar(100), -- gnunet 0.10.2-git-20170111-a4295da3df82817ff2fe1fa547374a96a2e0280b-1
 	primary key(subtarget_id, package)
 
 );
@@ -75,7 +76,7 @@ create or replace view packages_available as
 		packages_available_table.package = packages_names.id
 ;
 
-create or replace function add_packages_available(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), name varchar(50), version varchar(30)) returns void as
+create or replace function add_packages_available(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), name varchar(100), version varchar(100)) returns void as
 $$
 begin
 	insert into packages_names (name) values (add_packages_available.name) on conflict do nothing;
@@ -90,7 +91,7 @@ begin
 		add_packages_available.version
 	) on conflict do nothing;
 end
-$$ language 'sql';
+$$ language 'plpgsql';
 
 create or replace rule insert_available_default AS
 	ON insert TO packages_available DO INSTEAD
@@ -210,7 +211,7 @@ create or replace rule insert_packages_profile AS
 
 create table if not exists packages_hashes_table (
 	id serial primary key,
-	hash text unique
+	hash varchar(30) unique
 );
 
 create table if not exists packages_hashes_link(
@@ -279,7 +280,7 @@ create table if not exists imagebuilder_table (
 
 create or replace view imagebuilder as
 	select
-		distro, release, target, subtarget, status
+		imagebuilder_table.id, distro, release, target, subtarget, status
 	from subtargets, imagebuilder_table
 	where 
 		subtargets.id = imagebuilder_table.subtarget_id
@@ -296,24 +297,38 @@ create or replace rule insert_imagebuilder AS
 		) on conflict do nothing;
 ;
 
+create or replace rule update_imagebuilder AS
+	ON update TO imagebuilder DO INSTEAD
+		update imagebuilder_table set
+			status = coalesce(NEW.status, status)
+		where imagebuilder_table.subtarget_id = 
+			(select id from subtargets where
+				subtargets.distro = NEW.distro and
+				subtargets.release = NEW.release and
+				subtargets.target = NEW.target and
+				subtargets.subtarget = NEW.subtarget)
+		returning
+			old.*
+;
+
 create table if not exists images_table (
     id SERIAL PRIMARY KEY,
-    image_hash text UNIQUE,
+    image_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id),
 	packages_hash_id integer references packages_hashes_table(id),
-    network_profile text,
+    network_profile varchar(30),
     checksum varchar(30),
 	filesize integer,
 	build_date timestamp,
 	last_download timestamp,
 	downloads integer DEFAULT 0,
 	keep boolean DEFAULT false, -- may used in future
-    status text DEFAULT 'requested'
+    status varchar(20) DEFAULT 'requested'
 );
 
 create or replace view images as
 	select
-		image_hash, distro, release, target, subtarget, profile, hash as packages_hash, network_profile, status, checksum, filesize
+		images_table.id, image_hash, distro, release, target, subtarget, profile, hash as packages_hash, network_profile, status, checksum, filesize
 	from profiles, images_table, packages_hashes_table
 	where 
 		profiles.id = images_table.profile_id and
@@ -333,6 +348,17 @@ create or replace rule insert_images AS
 				packages_hashes_table.hash = NEW.packages_hash),
 			NEW.network_profile,
 			NEW.checksum,
-			NEW.filesize
-		) on conflict do nothing;
+			NEW.filesize) 
+		on conflict do nothing;
+;
+
+create or replace rule update_images_data AS
+	ON update TO images DO INSTEAD
+		update images_table set
+			status = coalesce(NEW.status, status),
+			checksum = coalesce(new.checksum, checksum),
+			filesize = coalesce(new.filesize, filesize)
+		where images_table.image_hash = NEW.image_hash
+		returning
+			old.*
 ;
