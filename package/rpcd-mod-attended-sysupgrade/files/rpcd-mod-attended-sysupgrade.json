@@ -8,9 +8,14 @@
 				], 
 				"system": [
 					"board"
+				],
+				"uci": [ 
+					"get" 
 				]
 			},
-			"uci": [ "*" ]
+			"uci": [ 
+				"attendedsysupgrade" 
+			]
 		},
 		"write": {
 			"cgi-io": [

@@ -86,11 +86,6 @@
 
 <script type="text/javascript">
 
-// the ip where the update-server (server.py) runs
-// TODO: uci based
-update_server = "http://35.189.253.152/"
-//update_server = "http://192.168.1.3:5000/"
-
 latest_release = "";
 data = {};
 ubus_counter = 1
@@ -99,7 +94,7 @@ ubus_url = origin + "/ubus/"
 
 // requests to the update server
 function server_request(request_dict, path, callback) {
-	url = update_server + path
+	url = data.update_server + "/" + path
 	request_dict.distro = data.release.distribution;
 	request_dict.target = data.release.target.split("\/")[0];
 	request_dict.subtarget = data.release.target.split("\/")[1];
@@ -124,26 +119,41 @@ function ubus_request(command, argument, params, callback) {
 	var xmlhttp = new XMLHttpRequest();
 	xmlhttp.open("POST", ubus_url, true);
 	xmlhttp.setRequestHeader("Content-type", "application/json");
-	xmlhttp.send(request_data);
-	//request_object = request(request_data, url)
+	xmlhttp.onerror = function(e) {
+		setTimeout(back_online, 5000)
+	}
 	xmlhttp.addEventListener('load', function(event) {
-		ubus_request_callback(xmlhttp, callback)
+		if(command === "uci") {
+			ubus_request_callback_uci(xmlhttp, callback)
+		} else {
+			ubus_request_callback(xmlhttp, callback)
+		}
 	});
+	xmlhttp.send(request_data);
 }
 
 // handle ubus_requests, set variables or perform functions
-function ubus_request_callback(request_object, callback) {
-	if(request_object.status === 200) {
+function ubus_request_callback(response_object, callback) {
+	if(response_object.status === 200) {
 		console.log(callback)
-		console.log(request_object)
-		response_json = JSON.parse(request_object.responseText).result[1]
 		if(typeof callback === "string") {
+			response_json = JSON.parse(response_object.responseText).result[1]
 			data[callback] = response_json[callback]
 		} else {
-			callback(response_json)
+			callback(response_object)
 		}
 	} else {
-		console.log(request_object.responseText)
+		console.log(respons_object.responseText)
+	}
+}
+
+function ubus_request_callback_uci(response_object, callback) {
+	if(response_object.status === 200) {
+		console.log(callback)
+		response_json = JSON.parse(response_object.responseText).result[1].value
+		data[callback] = response_json
+	} else {
+		console.log(respons_object.responseText)
 	}
 }
 
@@ -153,6 +163,7 @@ function setup() {
 	ubus_request("rpcd-mod-packagelist", "list", '{  }', "installed_pkgs")
 	ubus_request("system", "board", '{  }', "release")
 	ubus_request("system", "board", '{  }', "board_name")
+	ubus_request("uci", "get", '{"config": "attendedsysupgrade", "section": "@settings[0]", "option": "update_server"}', "update_server")	
 }
 
 // shows notification if update is available
@@ -208,6 +219,21 @@ function update_request_callback(response_object) {
 	}
 }
 
+function back_online() {
+	ubus_request("session", "login", '{  }', back_online_callback)
+}
+
+function back_online_callback(response_object) {
+	if (response_object.status != 200) {
+		setTimeout(back_online, 5000)
+	} else {
+		update_info("upgrade successfull!")
+		document.getElementById("update_button").value = "reload page";
+		document.getElementById("update_button").onclick = function() { location.reload(); } 
+	}
+
+}
+
 function update_request_200(response_content) {
 	info_output = ""
 	if(response_content.version != undefined) {
@@ -228,7 +254,7 @@ function image_request() {
 	request_dict = {}
 	request_dict.version = latest_version;
 	request_dict.board = data.board_name
-	server_request(request_dict, "image-request", image_request_handler)
+	server_request(request_dict, "/image-request", image_request_handler)
 }
 
 function image_request_handler(response) {
@@ -286,7 +312,7 @@ function upload_image(blob) {
 	upload_request.addEventListener('load', function(event) {
 		// this checksum should be parsed
 		document.getElementById("update_info").innerHTML = "successfully uploaded image to router. flashing"
-		ubus_request("rpcd-mod-attended-sysupgrade", "sysupgrade", '{  }', please_wait);
+		ubus_request("rpcd-mod-attended-sysupgrade", "sysupgrade", '{  }', 'done');
   	});
 
   	upload_request.addEventListener('error', function(event) {
