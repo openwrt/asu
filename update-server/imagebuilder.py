@@ -151,7 +151,7 @@ class ImageBuilder(threading.Thread):
         self.patch_makefile()
         self.add_custom_repositories()
         self.pkg_arch = self.parse_packages_arch()
-        self.parse_profiles()
+        self.parse_info()
         self.parse_packages()
         self.log.info("initialized imagebuilder %s", self.path)
         self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'ready')
@@ -203,7 +203,8 @@ class ImageBuilder(threading.Thread):
             return True
         return False
 
-    def parse_profiles(self):
+    def parse_info(self):
+        self.log.debug("parse info")
         cmdline = ['make', 'info']
         self.log.info("receive profiles for %s/%s", self.target, self.subtarget)
 
@@ -222,12 +223,14 @@ class ImageBuilder(threading.Thread):
             default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
             default_packages = re.match(default_packages_pattern, output, re.M).group(2)
             logging.debug("default packages: %s", default_packages)
-            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
+            print(output)
+            profiles_pattern = r"(.+):\n    .+\n    Packages: (.*)\n"
             profiles = re.findall(profiles_pattern, output)
+            print(profiles)
             if not profiles:
                 profiles = []
 #            print(output)
-            self.database.insert_profiles(self.distro, self.release, self.target, self.subtarget, (default_packages, profiles))
+            self.database.insert_profiles(self.distro, self.release, self.target, self.subtarget, default_packages, profiles)
         else:
             logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
 
@@ -249,7 +252,7 @@ class ImageBuilder(threading.Thread):
         if returnCode == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
-            self.database.insert_packages(self.distro, self.release, self.target, self.subtarget, packages)
+            self.database.insert_packages_available(self.distro, self.release, self.target, self.subtarget, packages)
         else:
             print(output)
             self.log.warning("could not receive packages of %s/%s", self.target, self.subtarget)

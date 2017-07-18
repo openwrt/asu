@@ -40,11 +40,11 @@ class Request():
         self.target = self.request_json["target"]
         self.subtarget = self.request_json["subtarget"]
 
-        target_check =  self.database.get_targets(self.distro, self.release, self.target, self.subtarget)
-        if not len(target_check) == 1: 
+        subtarget_check =  self.database.get_subtargets(self.distro, self.release, self.target, self.subtarget)
+        if not len(subtarget_check) == 1: 
             self.response_dict["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
             return self.respond(), HTTPStatus.BAD_REQUEST
-        elif not target_check[0][2] == "1": # [2] is supported flag
+        elif not subtarget_check[0][2] == "1": # [2] is supported flag
             self.response_dict["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
             return self.respond(), HTTPStatus.BAD_REQUEST
 

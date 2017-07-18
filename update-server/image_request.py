@@ -28,7 +28,6 @@ class ImageRequest(Request):
             self.packages = self.request_json["packages"]
             all_found, missing_package = self.check_packages()
             if not all_found:
-
                 self.response_dict["error"] = "could not find package {} for requested target".format(missing_package)
                 return self.respond(), HTTPStatus.BAD_REQUEST
         
@@ -37,15 +36,17 @@ class ImageRequest(Request):
                 self.response_dict["error"] = "network profile not found"
                 return self.respond(), HTTPStatus.BAD_REQUEST
         else:
-            self.network_profile = None
+            self.network_profile = ''
         
         self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
         response = self.database.get_image_status(self.image)
         if not response:
+            self.log.debug("adding image to database")
             image_id = self.database.add_build_job(self.image)
             return self.respond_requested(image_id)
         else:
             image_id, image_status, image_checksum, image_filesize = response
+            self.log.debug("found image in database: %s", image_status)
             if image_status == "created":
                 if self.image.created():
                     self.response_dict["url"] =  self.config.get("update_server") + "/download/" + self.image.get_sysupgrade()
@@ -89,7 +90,7 @@ class ImageRequest(Request):
         return False
 
     def check_packages(self):
-        available_packages = self.database.get_available_packages(self.distro, self.release, self.target, self.subtarget).keys()
+        available_packages = self.database.get_packages_available(self.distro, self.release, self.target, self.subtarget).keys()
         for package in self.packages:
             if package == "kernel":
                 pass # kernel is not an installable package, but installed...

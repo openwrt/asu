@@ -73,16 +73,12 @@ class ServerCli():
 
     def setup_imagebuilder(self, distro, version, target, subtarget):
         ib = ImageBuilder(distro, version, target, subtarget)
-        if not ib.created():
-            print("downloaded imagebuilder {} - initiating".format(ib.path))
-            ib.run()
-            print("initiaded")
-        else:
-            print("found imagebuilder {}".format(ib.path))
+        ib.run()
         if self.args["update_repositories"]:
             ib.add_custom_repositories()
         if self.args["update_packages"]:
             ib.parse_packages()
+
 
     def download_releases(self):
         if self.config.get("snapshots"):
@@ -98,7 +94,7 @@ class ServerCli():
                 subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
                 subtargets = re.findall(subtarget_pattern, subtarget_website)
                 print("snapshots {} {}".format("snapshots", target, subtargets))
-                self.database.insert_target("lede", "snapshot", target, subtargets)    
+                self.database.insert_subtargets("lede", "snapshot", target, subtargets)    
 
         for distro, distro_url in self.config.get("distributions").items():
             print("searching {} releases".format(distro))
@@ -118,7 +114,7 @@ class ServerCli():
                         subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
                         subtargets = re.findall(subtarget_pattern, subtarget_website)
                         print("{} {} {}".format(release, target, subtargets))
-                        self.database.insert_target(distro, release, target, subtargets)
+                        self.database.insert_subtargets(distro, release, target, subtargets)
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()

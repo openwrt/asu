@@ -22,6 +22,9 @@ class Database():
 
     def create_tables(self):
         self.log.info("creating tables")
+        with open('database.sql') as t:
+            self.c.execute(t.read())
+        self.commit()
         with open('tables.sql') as t:
             self.c.execute(t.read())
         self.commit()
@@ -35,7 +38,7 @@ class Database():
 
     def insert_supported(self, distro, release, target, subtarget="%"):
         self.log.info("insert supported {} {} {} {}".format(distro, release, target, subtarget))
-        sql = """UPDATE targets SET supported = true
+        sql = """UPDATE subtargets SET supported = true
             WHERE 
                 distro=? AND 
                 release=? AND 
@@ -55,21 +58,19 @@ class Database():
             return respond
 
     def insert_hash(self, hash, packages):
-        sql = """INSERT INTO packages_hashes
-            VALUES (?, ?)
-            ON CONFLICT DO NOTHING;"""
+        sql = "INSERT INTO packages_hashes VALUES (?, ?)"
         self.c.execute(sql, (hash, " ".join(packages)))
         self.commit()
 
-    def insert_profiles(self, distro, release, target, subtarget, profiles_data):
-        self.log.debug("insert_profiels %s/%s/%s/%s", distro, release, target, subtarget)
-        default_packages, profiles = profiles_data
-        sql = """INSERT INTO profiles 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT DO NOTHING;"""
+    def insert_profiles(self, distro, release, target, subtarget, packages_default, profiles):
+        self.log.debug("insert_profiles %s/%s/%s/%s", distro, release, target, subtarget)
+        sql = "INSERT INTO packages_profile VALUES (?, ?, ?, ?, ?, ?);"
         for profile in profiles:
-            self.c.execute(sql, distro, release, target, subtarget, *profile)
-        self.c.execute("INSERT INTO default_packages VALUES (?, ?, ?, ?, ?) on conflict do nothing;", distro, release, target, subtarget, default_packages)
+            print(profile)
+            profile_name, profile_packages = profile
+            self.log.debug("%s\n%s", profile_name, profile_packages)
+            self.c.execute(sql, distro, release, target, subtarget, profile_name, profile_packages)
+        self.c.execute("INSERT INTO packages_default VALUES (?, ?, ?, ?, ?);", distro, release, target, subtarget, packages_default)
         self.commit()
 
     def check_profile(self, distro, release, target, subtarget, profile):
@@ -81,7 +82,7 @@ class Database():
                 release=? AND 
                 target=? AND 
                 subtarget = ? AND 
-                name = ?
+                profile = ?
             LIMIT 1);""",
             distro, release, target, subtarget, profile)
         if self.c.fetchone()[0]:
@@ -90,53 +91,31 @@ class Database():
 
     def get_profile_packages(self, distro, release, target, subtarget, profile):
         self.log.debug("get_profile_packages for %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
-        self.c.execute("""SELECT default_packages.packages || ' ' || profiles.packages
-            FROM default_packages , profiles
-            WHERE
-                default_packages.distro = profiles.distro AND
-                default_packages.release = profiles.release AND
-                default_packages.target = profiles.target AND
-                default_packages.subtarget = profiles.subtarget AND
-                profiles.distro=? AND
-                profiles.release=? AND
-                profiles.target=? AND
-                profiles.subtarget=? AND
-                profiles.name = ?;""",
+        self.c.execute("""select packages from packages_image
+                where 
+                    distro = ? and
+                    release = ? and
+                    target = ? and
+                    subtarget = ? and
+                    profile = ?""",
             distro, release, target, subtarget, profile)
         response = self.c.fetchone()
         if response:
             return response[0].split(" ")
         return response
 
-    def get_default_packages(self, distro, release, target, subtarget):
-        self.log.debug("get_default_packages for %s/%s", target, subtarget)
-        self.c.execute("""SELECT packages
-            FROM default_packages
-            WHERE 
-                distro=? AND 
-                release=? AND 
-                target=? AND 
-                subtarget=?;""", 
-            distro, release, target, subtarget)
-        response = self.c.fetchone()
-        if response:
-            return response[0].split(" ")
-        return response
-
-    def insert_packages(self, distro, release, target, subtarget, packages):
+    def insert_packages_available(self, distro, release, target, subtarget, packages):
         self.log.info("insert packages of %s/%s ", target, subtarget)
-        sql = """INSERT INTO packages
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT DO NOTHING;"""
+        sql = """INSERT INTO packages_available VALUES (?, ?, ?, ?, ?, ?);"""
         for package in packages:
-            # (name, version)
-            self.c.execute(sql, distro, release, target, subtarget, *package)
+            name, version = package
+            self.c.execute(sql, distro, release, target, subtarget, name, version)
         self.commit()
 
-    def get_available_packages(self, distro, release, target, subtarget):
+    def get_packages_available(self, distro, release, target, subtarget):
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, release, target, subtarget)
         self.c.execute("""SELECT name, version
-            FROM packages 
+            FROM packages_available
             WHERE 
                 distro=? AND 
                 release=? AND 
@@ -148,17 +127,17 @@ class Database():
             response[name] = version 
         return response
     
-    def insert_target(self, distro, release, target, subtargets):
+    def insert_subtargets(self, distro, release, target, subtargets):
         self.log.info("insert %s/%s ", target, " ".join(subtargets))
-        sql = "INSERT INTO targets VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING;"
+        sql = "INSERT INTO subtargets (distro, release, target, subtarget) VALUES (?, ?, ?, ?);"
         for subtarget in subtargets:
             self.c.execute(sql, distro, release, target, subtarget)
 
         self.commit()
 
-    def get_targets(self, distro, release, target="%", subtarget="%"):
+    def get_subtargets(self, distro, release, target="%", subtarget="%"):
         self.log.debug("get_targets {} {} {} {}".format(distro, release, target, subtarget))
-        return self.c.execute("""SELECT target, subtarget, supported FROM targets
+        return self.c.execute("""SELECT target, subtarget, supported FROM subtargets
             WHERE 
                 distro = ? AND 
                 release = ? AND 
@@ -177,17 +156,13 @@ class Database():
 
     def add_build_job(self, image):
         sql = """INSERT INTO images
-            (image_hash, distro, release, target, subtarget, profile, package_hash, network_profile)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
-            ON CONFLICT DO NOTHING
-            RETURNING id"""
+            (image_hash, distro, release, target, subtarget, profile, packages_hash, network_profile)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
         image_array = image.as_array()
+        self.log.debug(image_array)
         self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array, ))
-        if self.c.description:
-            self.commit()
-            return self.c.fetchone()[0]
-        else:
-            return None
+        self.commit()
+        return 1
 
     def get_last_build_id(self):
         sql = """SELECT MIN(id) FROM images;"""
@@ -202,7 +177,7 @@ class Database():
         sql = """UPDATE images
             SET status = 'building'
             FROM packages_hashes
-            WHERE images.package_hash = packages_hashes.hash AND status = 'requested' AND id = (
+            WHERE images.packages_hash = packages_hashes.hash AND status = 'requested' AND id = (
                 SELECT MIN(id)
                 FROM images
                 WHERE status = 'requested'
@@ -259,7 +234,7 @@ class Database():
             return self.c.fetchone()[0]
         else:
             sql = """INSERT INTO imagebuilder (distro, release, target, subtarget) 
-                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING;"""
+                VALUES (?, ?, ?, ?);"""
             self.c.execute(sql, (distro, release, target, subtarget))
             self.commit()
             return 'requested'
