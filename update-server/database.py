@@ -22,9 +22,6 @@ class Database():
 
     def create_tables(self):
         self.log.info("creating tables")
-        with open('database.sql') as t:
-            self.c.execute(t.read())
-        self.commit()
         with open('tables.sql') as t:
             self.c.execute(t.read())
         self.commit()
@@ -101,7 +98,7 @@ class Database():
             distro, release, target, subtarget, profile)
         response = self.c.fetchone()
         if response:
-            return response[0].split(" ")
+            return response[0].rstrip().split(" ")
         return response
 
     def insert_packages_available(self, distro, release, target, subtarget, packages):

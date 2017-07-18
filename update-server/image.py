@@ -148,6 +148,7 @@ class Image(threading.Thread):
         self.packages = sorted(list(set(self.packages)))
 
         package_hash = get_hash(" ".join(self.packages), 12)
+        self.log.debug("pkg hash %s - %s", package_hash, self.packages)
         self.database.insert_hash(package_hash, self.packages)
         return package_hash
 
