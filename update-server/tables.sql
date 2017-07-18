@@ -342,18 +342,17 @@ create or replace view images as
 
 create or replace rule insert_images AS
 	ON insert TO images DO INSTEAD
-		insert into images_table (image_hash, profile_id, packages_hash_id, network_profile, checksum, filesize) values (
+		insert into images_table (image_hash, profile_id, packages_hash_id, network_profile) values (
 			NEW.image_hash,
 			(select profiles.id from profiles where
 				profiles.distro = NEW.distro and
 				profiles.release = NEW.release and
 				profiles.target = NEW.target and
-				profiles.subtarget = NEW.subtarget),
+				profiles.subtarget = NEW.subtarget and
+				profiles.profile = NEW.profile),
 			(select packages_hashes_table.id from packages_hashes_table where
 				packages_hashes_table.hash = NEW.packages_hash),
-			NEW.network_profile,
-			NEW.checksum,
-			NEW.filesize) 
+			NEW.network_profile) 
 		on conflict do nothing;
 ;
 
