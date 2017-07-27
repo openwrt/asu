@@ -14,7 +14,8 @@ class BuildManager(threading.Thread):
         self.imagebuilder_threads = []
         self.log = logging.getLogger(__name__)
         self.database = Database()
-        self.last_build_id = self.database.get_last_build_id()
+        self.last_build_id = 1
+#        self.last_build_id = self.database.get_last_build_id()
         if not self.last_build_id:
             self.last_build_id = 1
 

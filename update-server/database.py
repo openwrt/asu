@@ -142,41 +142,71 @@ class Database():
                 subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def get_image_status(self, image):
-        sql = """select id, status, checksum, filesize from images
+    def check_request(self, image):
+        image_array = image.as_array()
+        image_hash = get_hash(" ".join(image_array), 12)
+        sql = """select status, image_id from image_requests
             where image_hash = ?"""
-        self.c.execute(sql, (get_hash(" ".join(image.as_array()), 12)))
-        if self.c.description:
+        self.c.execute(sql, image_hash)
+        if self.c.rowcount > 0:
             return self.c.fetchone()
         else:
-            return None
-
-    def add_build_job(self, image):
-        sql = """INSERT INTO images
-            (image_hash, distro, release, target, subtarget, profile, packages_hash, network_profile)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-        image_array = image.as_array()
-        self.log.debug(image_array)
-        self.c.execute(sql, (get_hash(" ".join(image_array), 12), *image_array, ))
-        self.commit()
-        return 1
-
-    def get_last_build_id(self):
-        sql = """SELECT MIN(id) FROM images;"""
-        self.c.execute(sql)
-        if self.c.description:
+            self.log.debug("add build job")
+            sql = """INSERT INTO image_requests
+                (image_hash, distro, release, target, subtarget, profile, packages_hash, network_profile)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+            image_array = image.as_array()
+            self.log.debug(image_array)
+            self.c.execute(sql, image_hash, *image_array)
             self.commit()
+            return 'requested', 0
+
+    def get_image(self, image_id):
+        sql = "select filename, checksum, filesize from images_download where id = ?"
+        self.c.execute(sql, image_id)
+        if self.c.rowcount > 0:
+            return self.c.fetchone()
+        else:
+            return False
+
+    def add_image(self, image_array):
+        self.log.debug("add image %s", image_array)
+        image_hash = get_hash(" ".join(str(x) for x in image_array), 12)
+        sql = """INSERT INTO images
+            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, build_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        self.c.execute(sql, image_hash, *image_array, datetime.datetime.now())
+        self.commit()
+        sql = """select id from images where image_hash = ?"""
+        self.c.execute(sql, image_hash)
+        if self.c.rowcount > 0:
             return self.c.fetchone()[0]
         else:
-            return None
+            return False
+
+    def add_manifest(self, manifest_hash):
+        sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
+        self.c.execute(sql, manifest_hash)
+        self.commit()
+        sql = """select id from manifest_table where hash = ?;"""
+        self.c.execute(sql, manifest_hash)
+        return self.c.fetchone()[0]
+
+    def add_manifest_packages(self, manifest_hash, packages):
+        self.log.debug("add manifest packages")
+        for package in packages: 
+            name, version = package
+            sql = """INSERT INTO manifest_packages (manifest_hash, name, version) VALUES (?, ?, ?);"""
+            self.c.execute(sql, manifest_hash, name, version)
+        self.commit()
 
     def get_build_job(self):
-        sql = """UPDATE images
+        sql = """UPDATE image_requests
             SET status = 'building'
             FROM packages_hashes
-            WHERE images.packages_hash = packages_hashes.hash AND status = 'requested' AND id = (
+            WHERE image_requests.packages_hash = packages_hashes.hash AND status = 'requested' AND id = (
                 SELECT MIN(id)
-                FROM images
+                FROM image_requests
                 WHERE status = 'requested'
                 )
             RETURNING id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages, network_profile;"""
@@ -187,36 +217,26 @@ class Database():
         else:
             return None
 
-    def set_image_status(self, image_request_hash, status):
-        sql = """UPDATE images
+    def set_image_requests_status(self, image_request_hash, status):
+        sql = """UPDATE image_requests
             SET status = ?
             WHERE image_hash = ?;"""
         self.c.execute(sql, status, image_request_hash)
         self.commit()
-    
-    def reset_build_job(self, image):
-        image_request_hash = get_hash(" ".join(image), 12)
-        sql = """UPDATE images
-            SET status = 'requested'
-            WHERE image_hash = ?;"""
-        self.c.execute(sql, (image_request_hash, ))
-        self.commit()
 
     def set_build_job_fail(self, image_request_hash):
-        sql = """UPDATE images
+        sql = """UPDATE image_requests
             SET status = 'failed'
             WHERE image_hash = ?;"""
         self.c.execute(sql, (image_request_hash, ))
         self.commit()
 
-    def done_build_job(self, image_request_hash, checksum, filesize):
-        sql = """UPDATE images SET 
+    def done_build_job(self, image_request_hash, image_id):
+        sql = """UPDATE image_requests SET 
             status = 'created',
-            checksum = ?,
-            filesize = ?,
-            build_date = ?
+            image_id = ?
             WHERE image_hash = ?;"""
-        self.c.execute(sql, checksum, filesize, datetime.datetime.now(), image_request_hash)
+        self.c.execute(sql, image_id, image_request_hash)
         self.commit()
 
     def get_imagebuilder_status(self, distro, release, target, subtarget):
@@ -264,7 +284,7 @@ class Database():
 
     def reset_build_requests(self):
         self.log.debug("reset building images")
-        sql = "UPDATE images SET status = 'requested' WHERE status = 'building'"
+        sql = "UPDATE image_requests SET status = 'requested' WHERE status = 'building'"
         self.c.execute(sql)
         self.commit()
         

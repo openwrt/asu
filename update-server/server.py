@@ -59,7 +59,12 @@ def requst_image():
 # may show some stats
 @app.route("/")
 def rootPath():
-    return "update server running"
+    response = "update server running<br>"
+    response += "currently supported<br>"
+    for target, subtarget, supported in database.get_targets("lede", "17.01.2"):
+        if supported:
+            response += "{} - {}<br>".format(target, subtarget)
+    return response
 
 def get_last_build_id():
     if config.get("dev"):
@@ -82,7 +87,7 @@ if __name__ == "__main__":
     if config.get("dev"):
         bm = BuildManager()
         bm.start()
-    get_last_build_id()
+    #get_last_build_id()
 
     if config.get("dev"):
         app.run(host="0.0.0.0")

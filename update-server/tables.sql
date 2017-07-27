@@ -59,6 +59,11 @@ create table if not exists packages_names(
 	name varchar(100) unique
 );
 
+create table if not exists packages_versions(
+	id serial primary key,
+	version varchar(100) unique
+);
+
 create table if not exists packages_available_table(
 	subtarget_id integer references subtargets(id),
 	package integer references packages_names(id),
@@ -209,9 +214,51 @@ create or replace rule insert_packages_profile AS
 			NEW.packages
 );
 
+create table if not exists manifest_table (
+	id serial primary key, 
+	hash varchar(64) unique
+);
+
+create table if not exists manifest_packages_link (
+	manifest_id integer references manifest_table(id),
+	name_id integer references packages_names(id),
+	version_id integer references packages_versions(id)
+);
+
+create or replace view manifest_packages as
+	select manifest_table.hash as manifest_hash, name, version
+	from manifest_table, manifest_packages_link, packages_names, packages_versions
+	where
+		packages_names.id = manifest_packages_link.name_id and
+		packages_versions.id = manifest_packages_link.version_id
+;
+
+create or replace function add_manifest_packages(manifest_hash varchar(64), name varchar(100), version varchar(100)) returns void as
+$$
+declare
+begin
+	insert into packages_names (name) values (add_manifest_packages.name) on conflict do nothing;
+	insert into packages_versions (version) values (add_manifest_packages.version) on conflict do nothing;
+	insert into manifest_packages_link values (
+		(select id from manifest_table where manifest_table.hash = add_manifest_packages.manifest_hash),
+		(select id from packages_names where packages_names.name = add_manifest_packages.name),
+		(select id from packages_versions where packages_versions.version = add_manifest_packages.version)
+	) on conflict do nothing;
+end
+$$ language 'plpgsql';
+
+create or replace rule insert_manifest_packages AS
+	ON insert TO manifest_packages DO INSTEAD
+		SELECT add_manifest_packages(
+			NEW.manifest_hash,
+			NEW.name,
+			NEW.version
+	)
+;
+
 create table if not exists packages_hashes_table (
 	id serial primary key,
-	hash varchar(30) unique
+	hash varchar(40) unique
 );
 
 create table if not exists packages_hashes_link(
@@ -221,8 +268,7 @@ create table if not exists packages_hashes_link(
 );
 
 create or replace view packages_hashes as
-	select
-		hash, string_agg(packages_names.name, ' ') as packages
+	select hash, string_agg(packages_names.name, ' ') as packages
 	from packages_names, packages_hashes_table, packages_hashes_link
 	where
 		packages_hashes_table.id = packages_hashes_link.hash_id and
@@ -320,29 +366,88 @@ create table if not exists images_table (
     id SERIAL PRIMARY KEY,
     image_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id),
-	packages_hash_id integer references packages_hashes_table(id),
+	manifest_id integer references manifest_table(id),
     network_profile varchar(30),
     checksum varchar(32),
 	filesize integer,
 	build_date timestamp,
 	last_download timestamp,
 	downloads integer DEFAULT 0,
-	keep boolean DEFAULT false, -- may used in future
-    status varchar(20) DEFAULT 'requested'
+    status varchar(20) DEFAULT 'untested'
 );
 
 create or replace view images as
 	select
-		images_table.id, image_hash, distro, release, target, subtarget, profile, hash as packages_hash, network_profile, checksum, filesize, build_date, last_download, downloads, keep, status
-	from profiles, images_table, packages_hashes_table
+		images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, checksum, filesize, build_date, last_download, downloads, status
+	from profiles, images_table, manifest_table
 	where 
 		profiles.id = images_table.profile_id and
-		packages_hashes_table.id = images_table.packages_hash_id
+		images_table.manifest_id = manifest_table.id
+;
+
+create or replace view images_download as
+	select 
+		id, image_hash,
+		distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-sysupgrade.bin' as filename,
+		checksum, filesize
+		from images
 ;
 
 create or replace rule insert_images AS
 	ON insert TO images DO INSTEAD
-		insert into images_table (image_hash, profile_id, packages_hash_id, network_profile) values (
+		insert into images_table (image_hash, profile_id, manifest_id, network_profile, checksum, filesize, build_date) values (
+			NEW.image_hash,
+			(select profiles.id from profiles where
+				profiles.distro = NEW.distro and
+				profiles.release = NEW.release and
+				profiles.target = NEW.target and
+				profiles.subtarget = NEW.subtarget and
+				profiles.profile = NEW.profile),
+			(select manifest_table.id from manifest_table where
+				manifest_table.hash = NEW.manifest_hash),
+			NEW.network_profile,
+			NEW.checksum,
+			NEW.filesize,
+			NEW.build_date) 
+		on conflict do nothing;
+;
+
+create or replace rule update_images AS
+	ON update TO images DO INSTEAD
+		update images_table set
+			checksum = coalesce(new.checksum, checksum),
+			filesize = coalesce(new.filesize, filesize),
+			build_date = coalesce(new.build_date, build_date),
+			last_download = coalesce(new.last_download, last_download),
+			downloads = coalesce(new.downloads, downloads),
+			status = coalesce(NEW.status, status)
+		where images_table.image_hash = NEW.image_hash
+		returning
+			old.*
+;
+
+create table if not exists image_requests_table (
+    id SERIAL PRIMARY KEY,
+    image_hash varchar(30) UNIQUE,
+	profile_id integer references profiles_table(id),
+	packages_hash_id integer references packages_hashes_table(id),
+    network_profile varchar(30),
+	image_id integer references images_table(id),
+    status varchar(20) DEFAULT 'requested'
+);
+
+create or replace view image_requests as
+	select
+		image_requests_table.id, image_hash, distro, release, target, subtarget, profile, hash as packages_hash, network_profile, image_id, status
+	from profiles, image_requests_table, packages_hashes_table
+	where 
+		profiles.id = image_requests_table.profile_id and
+		packages_hashes_table.id = image_requests_table.packages_hash_id
+;
+
+create or replace rule insert_image_requests AS
+	ON insert TO image_requests DO INSTEAD
+		insert into image_requests_table (image_hash, profile_id, packages_hash_id, network_profile) values (
 			NEW.image_hash,
 			(select profiles.id from profiles where
 				profiles.distro = NEW.distro and
@@ -356,17 +461,13 @@ create or replace rule insert_images AS
 		on conflict do nothing;
 ;
 
-create or replace rule update_images_data AS
-	ON update TO images DO INSTEAD
-		update images_table set
-			checksum = coalesce(new.checksum, checksum),
-			filesize = coalesce(new.filesize, filesize),
-			build_date = coalesce(new.build_date, build_date),
-			last_download = coalesce(new.last_download, last_download),
-			downloads = coalesce(new.downloads, downloads),
-			keep = coalesce(new.keep, keep),
-			status = coalesce(NEW.status, status)
-		where images_table.image_hash = NEW.image_hash
+create or replace rule update_image_requests AS
+	ON update TO image_requests DO INSTEAD
+		update image_requests_table set
+			status = coalesce(NEW.status, status),
+			image_id = coalesce(NEW.image_id, image_id)
+		where image_requests_table.image_hash = NEW.image_hash
 		returning
 			old.*
 ;
+

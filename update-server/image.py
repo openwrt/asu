@@ -1,4 +1,5 @@
 import tarfile
+import glob
 from config import Config
 from database import Database
 from imagebuilder import ImageBuilder
@@ -38,7 +39,7 @@ class Image(threading.Thread):
             self.packages = packages
 
         self.check_network_profile(network_profile)
-        self._set_path()
+        #self._set_path()
         self.set_image_request_hash()
 
     def run(self):
@@ -49,8 +50,7 @@ class Image(threading.Thread):
 
         self.diff_packages()
 
-        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as build_path:
-            create_folder(os.path.dirname(self.path))
+        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as self.build_path:
 
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
@@ -59,8 +59,8 @@ class Image(threading.Thread):
             if self.network_profile:
                 self.log.debug("add network_profile %s", self.network_profile)
                 cmdline.append('FILES=%s' % self.network_profile_path)
-            cmdline.append('BIN_DIR=%s' % build_path)
-            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.pkg_hash)
+            cmdline.append('BIN_DIR=%s' % self.build_path)
+            #cmdline.append('EXTRA_IMAGE_NAME=%s' % self.manifest_hash)
 
             self.log.info("start build: %s", " ".join(cmdline))
 
@@ -75,10 +75,21 @@ class Image(threading.Thread):
             output, erros = proc.communicate()
             returnCode = proc.returncode
             if returnCode == 0:
-                for sysupgrade in os.listdir(build_path):
-                    if sysupgrade.endswith("combined-squashfs.img") or sysupgrade.endswith("sysupgrade.bin"):
-                        self.log.info("move %s to %s", sysupgrade, self.path)
-                        shutil.move(os.path.join(build_path, sysupgrade), self.path)
+                self.manifest_hash = hashlib.sha256(open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0],'rb').read()).hexdigest()
+                self.manifest_id = self.database.add_manifest(self.manifest_hash)
+                self.parse_manifest()
+                self._set_path()
+                create_folder(os.path.dirname(self.path))
+                sysupgrade = glob.glob(os.path.join(self.build_path, '*sysupgrade.bin'))
+                if not sysupgrade:
+                    sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
+                if not sysupgrade:
+                    self.log.warn("image to big - choose less packages")
+                    self.database.set_build_job_fail(self.image_request_hash)
+                    return False
+
+                self.log.info("move %s to %s", sysupgrade, self.path)
+                shutil.move(sysupgrade[0], self.path)
 
                 self.done()
                 return True
@@ -89,26 +100,27 @@ class Image(threading.Thread):
                 return False
 
     def done(self):
-        if self.created():
+        if os.path.exists(self.path):
             self.log.info("build successfull")
             self.gen_checksum()
             self.gen_filesize()
-            self.database.done_build_job(self.image_request_hash, self.checksum, self.filesize)
+
+            self.image_id = self.database.add_image(self.as_array_build())
+            self.database.done_build_job(self.image_request_hash, self.image_id)
         else:
             self.log.error("created image was to big")
             self.database.set_image_status(self.image_request_hash, 'imagesize_fail')
 
     def gen_checksum(self):
         self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
+        self.log.debug("got md5sum %s for %s", self.checksum, self.path)
 
     def gen_filesize(self):
         self.filesize = os.stat(self.path).st_size
 
     def _set_path(self):
-        self.pkg_hash = self.get_pkg_hash()
-
         # using lede naming convention
-        path_array = [self.distro, self.release, self.pkg_hash]
+        path_array = [self.distro, self.release, self.manifest_hash]
 
         if self.network_profile:
             path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
@@ -122,7 +134,12 @@ class Image(threading.Thread):
         self.name = "-".join(path_array)
         self.path = os.path.join(get_dir("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.name)
 
+    def as_array_build(self):
+        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash, self.network_profile, self.checksum, self.filesize]
+        return array
+
     def as_array(self):
+        self.pkg_hash = self.get_pkg_hash()
         array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.pkg_hash, self.network_profile]
         return array
 
@@ -133,6 +150,12 @@ class Image(threading.Thread):
                 profile_packages.remove(package)
         for remove_package in profile_packages:
             self.packages.append("-" + remove_package)
+
+    def parse_manifest(self):
+        manifest_pattern = r"(.+) - (.+)\n"
+        with open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0], "r") as manifest_file:
+            manifest_packages = re.findall(manifest_pattern, manifest_file.read())
+            self.database.add_manifest_packages(self.manifest_hash, manifest_packages)
 
     # returns the path of the created image
     def get_sysupgrade(self):

@@ -39,23 +39,20 @@ class ImageRequest(Request):
             self.network_profile = ''
         
         self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        response = self.database.get_image_status(self.image)
+        response = self.database.check_request(self.image)
         if not response:
             self.log.debug("adding image to database")
             image_id = self.database.add_build_job(self.image)
             return self.respond_requested(image_id)
         else:
-            image_id, image_status, image_checksum, image_filesize = response
+            image_status, image_id = response
             self.log.debug("found image in database: %s", image_status)
             if image_status == "created":
-                if self.image.created():
-                    self.response_dict["url"] =  self.config.get("update_server") + "/download/" + self.image.get_sysupgrade()
-                    self.response_dict["checksum"] = image_checksum
-                    self.response_dict["filesize"] = image_filesize
-                    return self.respond(), HTTPStatus.OK # 200
-                else:
-                    self.database.reset_build_job(self.image.as_array())
-                    return "", HTTPStatus.PARTIAL_CONTENT # 206
+                filename, checksum, filesize = self.database.get_image(image_id)
+                self.response_dict["url"] =  self.config.get("update_server") + "/download/" + filename
+                self.response_dict["checksum"] = checksum
+                self.response_dict["filesize"] = filesize
+                return self.respond(), HTTPStatus.OK # 200
             else:
                 if image_status == "requested":
                     self.respond_requested(image_id)
