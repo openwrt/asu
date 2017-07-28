@@ -75,41 +75,36 @@ class Image(threading.Thread):
             output, erros = proc.communicate()
             returnCode = proc.returncode
             if returnCode == 0:
+                self.log.info("build successfull")
                 self.manifest_hash = hashlib.sha256(open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0],'rb').read()).hexdigest()
                 self.manifest_id = self.database.add_manifest(self.manifest_hash)
                 self.parse_manifest()
+                self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
                 self._set_path()
                 create_folder(os.path.dirname(self.path))
-                sysupgrade = glob.glob(os.path.join(self.build_path, '*sysupgrade.bin'))
-                if not sysupgrade:
-                    sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
-                if not sysupgrade:
-                    self.log.warn("image to big - choose less packages")
-                    self.database.set_build_job_fail(self.image_request_hash)
-                    return False
+                if not os.path.exists(self.path):
+                    sysupgrade = glob.glob(os.path.join(self.build_path, '*sysupgrade.bin'))
+                    if not sysupgrade:
+                        sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
+                    if not sysupgrade:
+                        self.log.error("created image was to big")
+                        self.database.set_image_status(self.image_request_hash, 'imagesize_fail')
+                        return False
 
-                self.log.info("move %s to %s", sysupgrade, self.path)
-                shutil.move(sysupgrade[0], self.path)
-
-                self.done()
+                    self.log.info("move %s to %s", sysupgrade, self.path)
+                    shutil.move(sysupgrade[0], self.path)
+                    self.gen_checksum()
+                    self.gen_filesize()
+                    self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize)
+                else:
+                    self.log.info("image already created")
+                self.database.done_build_job(self.image_request_hash, self.image_hash)
                 return True
             else:
                 print(output.decode('utf-8'))
                 self.log.info("build failed")
                 self.database.set_build_job_fail(self.image_request_hash)
                 return False
-
-    def done(self):
-        if os.path.exists(self.path):
-            self.log.info("build successfull")
-            self.gen_checksum()
-            self.gen_filesize()
-
-            self.image_id = self.database.add_image(self.as_array_build())
-            self.database.done_build_job(self.image_request_hash, self.image_id)
-        else:
-            self.log.error("created image was to big")
-            self.database.set_image_status(self.image_request_hash, 'imagesize_fail')
 
     def gen_checksum(self):
         self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
@@ -135,7 +130,7 @@ class Image(threading.Thread):
         self.path = os.path.join(get_dir("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.name)
 
     def as_array_build(self):
-        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash, self.network_profile, self.checksum, self.filesize]
+        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash, self.network_profile]
         return array
 
     def as_array(self):

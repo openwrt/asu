@@ -428,7 +428,7 @@ create or replace rule update_images AS
 
 create table if not exists image_requests_table (
     id SERIAL PRIMARY KEY,
-    image_hash varchar(30) UNIQUE,
+    request_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id),
 	packages_hash_id integer references packages_hashes_table(id),
     network_profile varchar(30),
@@ -438,8 +438,9 @@ create table if not exists image_requests_table (
 
 create or replace view image_requests as
 	select
-		image_requests_table.id, image_hash, distro, release, target, subtarget, profile, hash as packages_hash, network_profile, image_id, status
-	from profiles, image_requests_table, packages_hashes_table
+		image_requests_table.id, request_hash, distro, release, target, subtarget, profile, hash as packages_hash, image_requests_table.network_profile, image_hash, image_requests_table.status
+	from profiles, packages_hashes_table, image_requests_table left join images_table on
+		images_table.id = image_requests_table.image_id
 	where 
 		profiles.id = image_requests_table.profile_id and
 		packages_hashes_table.id = image_requests_table.packages_hash_id
@@ -447,8 +448,8 @@ create or replace view image_requests as
 
 create or replace rule insert_image_requests AS
 	ON insert TO image_requests DO INSTEAD
-		insert into image_requests_table (image_hash, profile_id, packages_hash_id, network_profile) values (
-			NEW.image_hash,
+		insert into image_requests_table (request_hash, profile_id, packages_hash_id, network_profile) values (
+			NEW.request_hash,
 			(select profiles.id from profiles where
 				profiles.distro = NEW.distro and
 				profiles.release = NEW.release and
@@ -465,9 +466,11 @@ create or replace rule update_image_requests AS
 	ON update TO image_requests DO INSTEAD
 		update image_requests_table set
 			status = coalesce(NEW.status, status),
-			image_id = coalesce(NEW.image_id, image_id)
-		where image_requests_table.image_hash = NEW.image_hash
+			image_id = coalesce((
+				select id from images_table where
+				images_table.image_hash = NEW.image_hash
+			), image_id)
+		where image_requests_table.request_hash = NEW.request_hash
 		returning
 			old.*
 ;
-

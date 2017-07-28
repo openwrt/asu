@@ -142,22 +142,21 @@ class Database():
                 subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def check_request(self, image):
-        image_array = image.as_array()
-        image_hash = get_hash(" ".join(image_array), 12)
-        sql = """select status, image_id from image_requests
-            where image_hash = ?"""
-        self.c.execute(sql, image_hash)
+    def check_request(self, request):
+        self.log.debug("check_request")
+        request_array = request.as_array()
+        request_hash = get_hash(" ".join(request_array), 12)
+        sql = """select status, id from image_requests
+            where request_hash = ?"""
+        self.c.execute(sql, request_hash)
         if self.c.rowcount > 0:
             return self.c.fetchone()
         else:
             self.log.debug("add build job")
             sql = """INSERT INTO image_requests
-                (image_hash, distro, release, target, subtarget, profile, packages_hash, network_profile)
+                (request_hash, distro, release, target, subtarget, profile, packages_hash, network_profile)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-            image_array = image.as_array()
-            self.log.debug(image_array)
-            self.c.execute(sql, image_hash, *image_array)
+            self.c.execute(sql, request_hash, *request_array)
             self.commit()
             return 'requested', 0
 
@@ -169,13 +168,12 @@ class Database():
         else:
             return False
 
-    def add_image(self, image_array):
+    def add_image(self, image_hash, image_array, checksum, filesize):
         self.log.debug("add image %s", image_array)
-        image_hash = get_hash(" ".join(str(x) for x in image_array), 12)
         sql = """INSERT INTO images
             (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, build_date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        self.c.execute(sql, image_hash, *image_array, datetime.datetime.now())
+        self.c.execute(sql, image_hash, *image_array, checksum, filesize, datetime.datetime.now())
         self.commit()
         sql = """select id from images where image_hash = ?"""
         self.c.execute(sql, image_hash)
@@ -231,12 +229,12 @@ class Database():
         self.c.execute(sql, (image_request_hash, ))
         self.commit()
 
-    def done_build_job(self, image_request_hash, image_id):
+    def done_build_job(self, request_hash, image_hash):
         sql = """UPDATE image_requests SET 
             status = 'created',
-            image_id = ?
-            WHERE image_hash = ?;"""
-        self.c.execute(sql, image_id, image_request_hash)
+            image_hash = ?
+            WHERE request_hash = ?;"""
+        self.c.execute(sql, image_hash, request_hash)
         self.commit()
 
     def get_imagebuilder_status(self, distro, release, target, subtarget):
