@@ -120,10 +120,8 @@ class Image(threading.Thread):
         if self.network_profile:
             path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
         
-        path_array.extend([self.target, self.subtarget])
+        path_array.extend([self.target, self.subtarget, self.profile])
 
-        if self.target != "x86":
-            path_array.append(self.profile)
         path_array.append("sysupgrade.bin")
 
         self.name = "-".join(path_array)

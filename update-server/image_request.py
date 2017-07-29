@@ -42,32 +42,32 @@ class ImageRequest(Request):
         response = self.database.check_request(self.image)
         if not response:
             self.log.debug("adding image to database")
-            image_id = self.database.add_build_job(self.image)
-            return self.respond_requested(image_id)
+            request_id = self.database.add_build_job(self.image)
+            return self.respond_requested(request_id)
         else:
-            image_status, image_id = response
-            self.log.debug("found image in database: %s", image_status)
-            if image_status == "created":
-                filename, checksum, filesize = self.database.get_image(image_id)
+            request_status, request_id = response
+            self.log.debug("found image in database: %s", request_status)
+            if  request_status == "created":
+                filename, checksum, filesize = self.database.get_image(request_id)
                 self.response_dict["url"] =  self.config.get("update_server") + "/download/" + filename
                 self.response_dict["checksum"] = checksum
                 self.response_dict["filesize"] = filesize
                 return self.respond(), HTTPStatus.OK # 200
             else:
-                if image_status == "requested":
-                    self.respond_requested(image_id)
-                elif image_status == "building":
+                if request_status == "requested":
+                    self.respond_requested(request_id)
+                elif request_status == "building":
                     return "", HTTPStatus.PARTIAL_CONTENT # 206
-                elif image_status == "failed":
+                elif request_status == "failed":
                     self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
                     return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
-                elif image_status == "imagesize_fail":
+                elif request_status == "imagesize_fail":
                     self.response_dict["error"] = "requested image is too big for requested target. retry with less packages"
                     return self.respond(), HTTPStatus.BAD_REQUEST # 400
             return 503
 
-    def respond_requested(self, image_id):
-        queue_position = image_id - self.last_build_id
+    def respond_requested(self, request_id):
+        queue_position = request_id - self.last_build_id
         if queue_position < 0:
             queue_position = 0
         self.response_dict["queue"] = queue_position

@@ -388,7 +388,7 @@ create or replace view images as
 create or replace view images_download as
 	select 
 		id, image_hash,
-		distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-sysupgrade.bin' as filename,
+		distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-' || profile || '-sysupgrade.bin' as filename,
 		checksum, filesize
 		from images
 ;

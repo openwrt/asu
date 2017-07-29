@@ -38,6 +38,8 @@ def download_image(image_path, image_name):
     # offer file to download
     # redirect to image so nginx handels download
     # raise image download counter
+    
+    database.increase_downloads(os.path.join(image_path, image_name))
 
     # use different approach?
     if not config.get("dev"):

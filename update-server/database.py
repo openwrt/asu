@@ -161,7 +161,8 @@ class Database():
             return 'requested', 0
 
     def get_image(self, image_id):
-        sql = "select filename, checksum, filesize from images_download where id = ?"
+        self.log.debug("get image %s", image_id)
+        sql = "select filename, checksum, filesize from images_download, image_requests where image_requests.id = ? and image_requests.image_hash = images_download.image_hash"
         self.c.execute(sql, image_id)
         if self.c.rowcount > 0:
             return self.c.fetchone()
@@ -284,6 +285,12 @@ class Database():
         self.log.debug("reset building images")
         sql = "UPDATE image_requests SET status = 'requested' WHERE status = 'building'"
         self.c.execute(sql)
+        self.commit()
+
+    def increase_downloads(self, image_path):
+        self.log.debug("increase downloads of %s", image_path)
+        sql = "UPDATE images_table SET downloads = downloads + 1 FROM images_download WHERE images_download.filename = ? and images_table.image_hash = images_download.image_hash"
+        self.c.execute(sql, image_path)
         self.commit()
         
 if __name__ == "__main__":
