@@ -58,7 +58,7 @@ class ImageRequest(Request):
                 return self.respond(), HTTPStatus.OK # 200
             else:
                 if request_status == "requested":
-                    self.respond_requested(request_id)
+                    return self.respond_requested(request_id)
                 elif request_status == "building":
                     return "", HTTPStatus.PARTIAL_CONTENT # 206
                 elif request_status == "failed":
