@@ -72,17 +72,16 @@ class Database():
 
     def check_profile(self, distro, release, target, subtarget, profile):
         self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
-        self.c.execute("""SELECT EXISTS(
-            SELECT 1 FROM profiles
+        self.c.execute("""SELECT 1 FROM profiles
             WHERE 
                 distro=? AND 
                 release=? AND 
                 target=? AND 
                 subtarget = ? AND 
                 profile = ?
-            LIMIT 1);""",
+            LIMIT 1;""",
             distro, release, target, subtarget, profile)
-        if self.c.fetchone()[0]:
+        if self.c.rowcount > 0:
             return True
         return False
 

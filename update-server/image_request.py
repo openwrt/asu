@@ -20,8 +20,11 @@ class ImageRequest(Request):
 
         self.profile = self.request_json["board"]
         if not self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.profile):
-            self.response_dict["error"] = "board not found"
-            return self.respond(), HTTPStatus.BAD_REQUEST
+            if not self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
+                self.response_dict["error"] = "board not found"
+                return self.respond(), HTTPStatus.BAD_REQUEST
+            else:
+                self.profile = "Generic"
 
         self.packages = None
         if "packages" in self.request_json:
@@ -67,9 +70,10 @@ class ImageRequest(Request):
             return 503
 
     def respond_requested(self, request_id):
-        queue_position = request_id - self.last_build_id
-        if queue_position < 0:
-            queue_position = 0
+        #queue_position = request_id - self.last_build_id
+        #if queue_position < 0:
+        #    queue_position = 0
+        queue_position = 1
         self.response_dict["queue"] = queue_position
         return self.respond(), HTTPStatus.CREATED # 201
 
