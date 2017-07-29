@@ -28,8 +28,6 @@ class Image(threading.Thread):
         self.target = target
         self.subtarget = subtarget
         self.profile = profile
-        if self.target == "x86": 
-            self.profile = "Generic"
 
         if not packages: # install default packages
             self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
