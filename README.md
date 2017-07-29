@@ -1,26 +1,32 @@
 # Attended Sysupgrade (GSoC 2017)
 
-This package will offer an easy way to reflash the router with a new release
+This package will offer an easy way to reflash the router with a new release or package updates.
 
 *This documentation will grow and is constantly updated*
 
-### ubus package
+### ubus packages
 
-The package `rpcd-mod-attended-sysupgrade` offers a function to perform a sysupgrade via luci. `rpcd-mod-packagelist` has the function `list` to show all user installed packages without the need of `opkg` installed.
+* `rpcd-mod-attendedsysupgrade`
 
-Dependencies:
-* rpcd
-* cgi-op (to upload sysupgrade.bin via webinterface)
+Offers a function to perform a sysupgrade via ubus. [Moved to official packages.git](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-attendedsysupgrade)
 
-A Luci view is created in `System -> Attended Sysupgrade`. It shows a simple button to search for sysupgrades.
+* `rpcd-mod-packagelist` 
 
-Use LEDE-SDK to create the image.
+Has the function `list` to show all user installed packages without the need of `opkg` installed. [Moved to official packages.git](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-packagelist)
+
+* `luci-app-attendedsysupgrade`
+
+Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server. [Pull request pending on luci.git](https://github.com/openwrt/luci/pull/1254)
+
+**Dependencies:**
+* `rpcd`
+* `cgi-op` (to upload sysupgrade.bin via webinterface)
 
 ### server side
 
 The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of target/subtarget. 
 
-Currently all server side functions are single threaded and an image requests may times out if the server side needs to long for the ImageBuilder to setup.
+All requests are stored in a queue, the web interface informs on progress. 
 
 ## API
 
