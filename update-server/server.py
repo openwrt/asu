@@ -60,12 +60,8 @@ def requst_image():
 
 # may show some stats
 @app.route("/")
-def rootPath():
+def root_path():
     response = "update server running<br>"
-    response += "currently supported<br>"
-    for target, subtarget, supported in database.get_targets("lede", "17.01.2"):
-        if supported:
-            response += "{} - {}<br>".format(target, subtarget)
     return response
 
 def get_last_build_id():
