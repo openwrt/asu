@@ -40,7 +40,7 @@ class Image(threading.Thread):
 
         self.check_network_profile(network_profile)
         #self._set_path()
-        self.set_image_request_hash()
+        self.set_request_hash()
 
     def run(self):
         imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
@@ -76,7 +76,7 @@ class Image(threading.Thread):
             returnCode = proc.returncode
             if returnCode == 0:
                 self.log.info("build successfull")
-                self.manifest_hash = hashlib.sha256(open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0],'rb').read()).hexdigest()
+                self.manifest_hash = hashlib.sha256(open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0],'rb').read()).hexdigest()[0:15]
                 self.manifest_id = self.database.add_manifest(self.manifest_hash)
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
@@ -88,7 +88,7 @@ class Image(threading.Thread):
                         sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
                     if not sysupgrade:
                         self.log.error("created image was to big")
-                        self.database.set_image_status(self.image_request_hash, 'imagesize_fail')
+                        self.database.set_image_status(self.request_hash, 'imagesize_fail')
                         return False
 
                     self.log.info("move %s to %s", sysupgrade, self.path)
@@ -98,12 +98,12 @@ class Image(threading.Thread):
                     self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize)
                 else:
                     self.log.info("image already created")
-                self.database.done_build_job(self.image_request_hash, self.image_hash)
+                self.database.done_build_job(self.request_hash, self.image_hash)
                 return True
             else:
                 print(output.decode('utf-8'))
                 self.log.info("build failed")
-                self.database.set_build_job_fail(self.image_request_hash)
+                self.database.set_build_job_fail(self.request_hash)
                 return False
 
     def gen_checksum(self):
@@ -168,8 +168,8 @@ class Image(threading.Thread):
         self.database.insert_hash(package_hash, self.packages)
         return package_hash
 
-    def set_image_request_hash(self):
-        self.image_request_hash = get_hash(" ".join(self.as_array()), 12)
+    def set_request_hash(self):
+        self.request_hash = get_hash(" ".join(self.as_array()), 12)
 
     # builds the image with the specific packages at output path
 
