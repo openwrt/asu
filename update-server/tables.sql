@@ -26,7 +26,7 @@ create or replace view profiles as
 	select
 		profiles_table.id, distro, release, target, subtarget, profile
 	from subtargets, profiles_table
-	where 
+	where
 		profiles_table.subtarget_id = subtargets.id
 ;
 
@@ -304,11 +304,11 @@ create or replace rule insert_packages_hashes AS
 
 create or replace view packages_image as
 	select distinct
-		packages_default.distro, 
+		packages_default.distro,
 		packages_default.release,
 		packages_default.target,
 		packages_default.subtarget,
-		profiles.profile, 
+		profiles.profile,
 		packages_default.packages || ' ' || coalesce(packages_profile.packages, '') as packages
 	from profiles join packages_default on
 		packages_default.distro = profiles.distro and
@@ -333,7 +333,7 @@ create or replace view imagebuilder as
 	select
 		imagebuilder_table.id, distro, release, target, subtarget, status
 	from subtargets, imagebuilder_table
-	where 
+	where
 		subtargets.id = imagebuilder_table.subtarget_id
 ;
 
@@ -352,7 +352,7 @@ create or replace rule update_imagebuilder AS
 	ON update TO imagebuilder DO INSTEAD
 		update imagebuilder_table set
 			status = coalesce(NEW.status, status)
-		where imagebuilder_table.subtarget_id = 
+		where imagebuilder_table.subtarget_id =
 			(select id from subtargets where
 				subtargets.distro = NEW.distro and
 				subtargets.release = NEW.release and
@@ -458,7 +458,7 @@ create or replace rule insert_image_requests AS
 				profiles.profile = NEW.profile),
 			(select packages_hashes_table.id from packages_hashes_table where
 				packages_hashes_table.hash = NEW.packages_hash),
-			NEW.network_profile) 
+			NEW.network_profile)
 		on conflict do nothing;
 ;
 
@@ -496,6 +496,12 @@ create table if not exists worker_skills (
 	subtarget_id integer references subtargets(id)
 );
 
+create or replace view worker_imagebuilder as
+	select distinct distro, release, target, subtarget
+	from worker_skills join subtargets
+	on worker_skills.subtarget_id = subtargets.id
+;
+
 create or replace view worker_skills_subtargets as
 	select count(*) as worker, subtarget_id
 	from worker_skills
@@ -507,6 +513,6 @@ create or replace view worker_skills_subtargets as
 create or replace view worker_needed as
 	select image_requests_subtargets.subtarget_id, coalesce(worker, 0) as worker, requests
 	from image_requests_subtargets left outer join worker_skills_subtargets
-	on worker_skills_subtargets.subtarget_id = image_requests_subtargets.subtarget_id
+		on worker_skills_subtargets.subtarget_id = image_requests_subtargets.subtarget_id
 	order by worker, requests desc
 	limit 1
