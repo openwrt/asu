@@ -11,7 +11,7 @@ class Database():
         self.log = logging.getLogger(__name__)
         self.config = Config()
         connection_string = "DRIVER={};SERVER=localhost;DATABASE={};UID={};PWD={};PORT={}".format(
-                self.config.get("database_type"), self.config.get("database_name"), self.config.get("database_user"), 
+                self.config.get("database_type"), self.config.get("database_name"), self.config.get("database_user"),
                 self.config.get("database_pass"), self.config.get("database_port"))
         self.cnxn = pyodbc.connect(connection_string)
         self.c = self.cnxn.cursor()
@@ -36,10 +36,10 @@ class Database():
     def insert_supported(self, distro, release, target, subtarget="%"):
         self.log.info("insert supported {} {} {} {}".format(distro, release, target, subtarget))
         sql = """UPDATE subtargets SET supported = true
-            WHERE 
-                distro=? AND 
-                release=? AND 
-                target=? AND 
+            WHERE
+                distro=? AND
+                release=? AND
+                target=? AND
                 subtarget LIKE ?"""
         self.c.execute(sql, distro, release, target, subtarget)
         self.commit()
@@ -73,11 +73,11 @@ class Database():
     def check_profile(self, distro, release, target, subtarget, profile):
         self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
         self.c.execute("""SELECT 1 FROM profiles
-            WHERE 
-                distro=? AND 
-                release=? AND 
-                target=? AND 
-                subtarget = ? AND 
+            WHERE
+                distro=? AND
+                release=? AND
+                target=? AND
+                subtarget = ? AND
                 profile = ?
             LIMIT 1;""",
             distro, release, target, subtarget, profile)
@@ -88,7 +88,7 @@ class Database():
     def get_profile_packages(self, distro, release, target, subtarget, profile):
         self.log.debug("get_profile_packages for %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
         self.c.execute("""select packages from packages_image
-                where 
+                where
                     distro = ? and
                     release = ? and
                     target = ? and
@@ -112,17 +112,17 @@ class Database():
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, release, target, subtarget)
         self.c.execute("""SELECT name, version
             FROM packages_available
-            WHERE 
-                distro=? AND 
-                release=? AND 
-                target=? AND 
-                subtarget=?;""", 
+            WHERE
+                distro=? AND
+                release=? AND
+                target=? AND
+                subtarget=?;""",
             distro, release, target, subtarget)
         response = {}
         for name, version in self.c.fetchall():
-            response[name] = version 
+            response[name] = version
         return response
-    
+
     def insert_subtargets(self, distro, release, target, subtargets):
         self.log.info("insert %s/%s ", target, " ".join(subtargets))
         sql = "INSERT INTO subtargets (distro, release, target, subtarget) VALUES (?, ?, ?, ?);"
@@ -134,10 +134,10 @@ class Database():
     def get_subtargets(self, distro, release, target="%", subtarget="%"):
         self.log.debug("get_targets {} {} {} {}".format(distro, release, target, subtarget))
         return self.c.execute("""SELECT target, subtarget, supported FROM subtargets
-            WHERE 
-                distro = ? AND 
-                release = ? AND 
-                target LIKE ? AND 
+            WHERE
+                distro = ? AND
+                release = ? AND
+                target LIKE ? AND
                 subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
@@ -192,7 +192,7 @@ class Database():
 
     def add_manifest_packages(self, manifest_hash, packages):
         self.log.debug("add manifest packages")
-        for package in packages: 
+        for package in packages:
             name, version = package
             sql = """INSERT INTO manifest_packages (manifest_hash, name, version) VALUES (?, ?, ?);"""
             self.c.execute(sql, manifest_hash, name, version)
@@ -230,7 +230,7 @@ class Database():
         self.commit()
 
     def done_build_job(self, request_hash, image_hash):
-        sql = """UPDATE image_requests SET 
+        sql = """UPDATE image_requests SET
             status = 'created',
             image_hash = ?
             WHERE request_hash = ?;"""
@@ -239,27 +239,27 @@ class Database():
 
     def get_imagebuilder_status(self, distro, release, target, subtarget):
         sql = """select status from imagebuilder
-            WHERE 
-                distro=? AND 
-                release=? AND 
-                target=? AND 
+            WHERE
+                distro=? AND
+                release=? AND
+                target=? AND
                 subtarget=?;"""
         self.c.execute(sql, distro, release, target, subtarget)
         if self.c.rowcount > 0:
             return self.c.fetchone()[0]
         else:
-            sql = """INSERT INTO imagebuilder (distro, release, target, subtarget) 
+            sql = """INSERT INTO imagebuilder (distro, release, target, subtarget)
                 VALUES (?, ?, ?, ?);"""
             self.c.execute(sql, (distro, release, target, subtarget))
             self.commit()
             return 'requested'
-    
+
     def set_imagebuilder_status(self, distro, release, target, subtarget, status):
         sql = """UPDATE imagebuilder SET status = ?
-            WHERE 
-                distro=? AND 
-                release=? AND 
-                target=? AND 
+            WHERE
+                distro=? AND
+                release=? AND
+                target=? AND
                 subtarget=?"""
         self.c.execute(sql, status, distro, release, target, subtarget)
         self.commit()
@@ -286,12 +286,50 @@ class Database():
         self.c.execute(sql)
         self.commit()
 
+    def worker_needed(self):
+        self.log.info("get needed worker")
+        sql = """select distro, release, target, subtarget
+            from worker_needed, subtargets
+            where worker_needed.subtarget_id = subtargets.id"""
+        self.c.execute(sql)
+        result = self.c.fetchone()
+        self.log.debug("need worker for %s", result)
+        return result
+
     def increase_downloads(self, image_path):
         self.log.debug("increase downloads of %s", image_path)
         sql = "UPDATE images_table SET downloads = downloads + 1 FROM images_download WHERE images_download.filename = ? and images_table.image_hash = images_download.image_hash"
         self.c.execute(sql, image_path)
         self.commit()
-        
+
+    def worker_register(self, name=datetime.datetime.now(), address=""):
+        self.log.info("register worker %s %s", name, address)
+        sql = """INSERT INTO worker (name, address, heartbeat)
+            VALUES (?, ?, ?)
+            RETURNING id;"""
+        self.c.execute(sql, name, address, datetime.datetime.now())
+        self.commit()
+        return self.c.fetchone()[0]
+
+    def worker_destroy(self, worker_id):
+        self.log.info("destroy worker %s", worker_id)
+        sql = """delete from worker where id = ?"""
+        self.c.execute(sql, worker_id)
+        self.commit()
+
+    def worker_add_skill(self, worker_id, subtarget_id):
+        self.log.info("register worker skill %s %s", worker_id, subtarget_id)
+        sql = """INSERT INTO worker_skills (worker_id, subtarget_id) VALUES (?, ?)"""
+        self.c.execute(sql, worker_id, subtarget_id)
+        self.commit()
+
+    def worker_heartbeat(self, worker_id):
+        self.log.debug("heartbeat %s", worker_id)
+        sql = "UPDATE worker SET last_seen = ? WHERE id = ?"
+        self.c.execute(sql, datetime.datetime.now(), worker_id)
+        self.commit()
+
 if __name__ == "__main__":
     db = Database()
     db.create_tables()
+    #print(db.worker_needed())
