@@ -474,3 +474,39 @@ create or replace rule update_image_requests AS
 		returning
 			old.*
 ;
+
+create or replace view image_requests_subtargets as
+	select count(*) as requests, subtarget_id
+	from image_requests_table, profiles_table
+	where profiles_table.id = image_requests_table.profile_id
+	-- where status = 'requested' -- currently for testing
+	group by (subtarget_id)
+	order by requests desc
+;
+
+create table if not exists worker (
+	id serial primary key,
+	name varchar(100),
+	address varchar(100),
+	hearbeat timestamp
+);
+
+create table if not exists worker_skills (
+	worker_id integer references worker(id),
+	subtarget_id integer references subtargets(id)
+);
+
+create or replace view worker_skills_subtargets as
+	select count(*) as worker, subtarget_id
+	from worker_skills
+	-- where status = 'requested' -- currently for testing
+	group by (subtarget_id)
+	order by worker desc
+;
+
+create or replace view worker_needed as
+	select image_requests_subtargets.subtarget_id, coalesce(worker, 0) as worker, requests
+	from image_requests_subtargets left outer join worker_skills_subtargets
+	on worker_skills_subtargets.subtarget_id = image_requests_subtargets.subtarget_id
+	order by worker, requests desc
+	limit 1
