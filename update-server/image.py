@@ -87,7 +87,7 @@ class Image(threading.Thread):
                         if not sysupgrade:
                             sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img.gz'))
                             if sysupgrade:
-                                cmdline = ["unzip", sysupgrade[0]]
+                                cmdline = ["gzip", "-d", sysupgrade[0]]
                                 proc = subprocess.Popen(
                                     cmdline,
                                     cwd=self.build_path,
@@ -95,11 +95,15 @@ class Image(threading.Thread):
                                     shell=False,
                                     stderr=subprocess.STDOUT
                                 )
+                                gzip_output, errors = proc.communicate()
+                                gzip_code = proc.returncode
                                 sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
+
+                    self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
 
                     if not sysupgrade:
                         self.log.error("created image was to big")
-                        self.database.set_image_request_status(self.request_hash, 'imagesize_fail')
+                        self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                         return False
 
                     self.log.info("move %s to %s", sysupgrade, self.path)
