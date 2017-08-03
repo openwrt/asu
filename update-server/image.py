@@ -99,7 +99,7 @@ class Image(threading.Thread):
 
                     if not sysupgrade:
                         self.log.error("created image was to big")
-                        self.database.set_image_status(self.request_hash, 'imagesize_fail')
+                        self.database.set_image_request_status(self.request_hash, 'imagesize_fail')
                         return False
 
                     self.log.info("move %s to %s", sysupgrade, self.path)
