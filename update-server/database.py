@@ -9,13 +9,15 @@ class Database():
         # python3 immport pyodbc; pyodbc.drivers()
         #self.cnxn = pyodbc.connect("DRIVER={SQLite3};SERVER=localhost;DATABASE=test.db;Trusted_connection=yes")
         self.log = logging.getLogger(__name__)
+        self.log.info("log initialized")
         self.config = Config()
-        connection_string = "DRIVER={};SERVER=localhost;DATABASE={};UID={};PWD={};PORT={}".format(
-                self.config.get("database_type"), self.config.get("database_name"), self.config.get("database_user"),
+        self.log.info("config initialized")
+        connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
+                self.config.get("database_type"), self.config.get("database_address"), self.config.get("database_name"), self.config.get("database_user"),
                 self.config.get("database_pass"), self.config.get("database_port"))
         self.cnxn = pyodbc.connect(connection_string)
         self.c = self.cnxn.cursor()
-        self.log.debug("connected to databse")
+        self.log.info("database connected")
 
     def commit(self):
         self.cnxn.commit()

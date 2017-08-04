@@ -5,6 +5,7 @@ snapshots: Flase
 imagebuilder_snapshots_url: "https://downloads.lede-project.org/snapshots/"
 update_server: "http://localhost:5000"
 database_type: PostgreSQL Unicode
+database_address: "localhost"
 database_name: attendedsysupgrade
 database_user: upimaged
 database_pass: password
