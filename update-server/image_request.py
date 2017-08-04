@@ -33,49 +33,37 @@ class ImageRequest(Request):
             if not all_found:
                 self.response_dict["error"] = "could not find package {} for requested target".format(missing_package)
                 return self.respond(), HTTPStatus.BAD_REQUEST
-        
+
         if "network_profile" in self.request_json:
             if not self.check_network_profile():
                 self.response_dict["error"] = "network profile not found"
                 return self.respond(), HTTPStatus.BAD_REQUEST
         else:
             self.network_profile = ''
-        
+
         self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
         response = self.database.check_request(self.image)
-        if not response:
-            self.log.debug("adding image to database")
-            request_id = self.database.add_build_job(self.image)
-            return self.respond_requested(request_id)
+        request_status, request_id = response
+        self.log.debug("found image in database: %s", request_status)
+        if  request_status == "created":
+            filename, checksum, filesize = self.database.get_image(request_id)
+            self.response_dict["url"] =  self.config.get("update_server") + "/download/" + filename
+            self.response_dict["checksum"] = checksum
+            self.response_dict["filesize"] = filesize
+            return self.respond(), HTTPStatus.OK # 200
         else:
-            request_status, request_id = response
-            self.log.debug("found image in database: %s", request_status)
-            if  request_status == "created":
-                filename, checksum, filesize = self.database.get_image(request_id)
-                self.response_dict["url"] =  self.config.get("update_server") + "/download/" + filename
-                self.response_dict["checksum"] = checksum
-                self.response_dict["filesize"] = filesize
-                return self.respond(), HTTPStatus.OK # 200
-            else:
-                if request_status == "requested":
-                    return self.respond_requested(request_id)
-                elif request_status == "building":
-                    return "", HTTPStatus.PARTIAL_CONTENT # 206
-                elif request_status == "failed":
-                    self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
-                    return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
-                elif request_status == "imagesize_fail":
-                    self.response_dict["error"] = "requested image is too big for requested target. retry with less packages"
-                    return self.respond(), HTTPStatus.BAD_REQUEST # 400
-            return 503
-
-    def respond_requested(self, request_id):
-        #queue_position = request_id - self.last_build_id
-        #if queue_position < 0:
-        #    queue_position = 0
-        queue_position = 1
-        self.response_dict["queue"] = queue_position
-        return self.respond(), HTTPStatus.CREATED # 201
+            if request_status == "requested":
+                self.response_dict["queue"] = 1 # currently not implemented
+                return self.respond(), HTTPStatus.CREATED # 201
+            elif request_status == "building":
+                return "", HTTPStatus.PARTIAL_CONTENT # 206
+            elif request_status == "failed":
+                self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
+                return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
+            elif request_status == "imagesize_fail":
+                self.response_dict["error"] = "requested image is too big for requested target. retry with less packages"
+                return self.respond(), HTTPStatus.BAD_REQUEST # 400
+        return 503
 
     def check_network_profile(self):
         network_profile = self.request_json["network_profile"]

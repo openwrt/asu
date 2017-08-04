@@ -159,6 +159,13 @@ class Database():
             self.commit()
             return 'requested', 0
 
+    def request_imagebuilder(self, distro, release, target, subtarget):
+        sql = """INSERT INTO image_requests
+            (distro, release, target, subtarget, status)
+            VALUES (?, ?, ?, ?, ?)"""
+        self.c.execute(sql, distro, release, target, subtarget, "imagebuilder")
+        self.commit()
+
     def get_image(self, image_id):
         self.log.debug("get image %s", image_id)
         sql = "select filename, checksum, filesize from images_download, image_requests where image_requests.id = ? and image_requests.image_hash = images_download.image_hash"
@@ -198,22 +205,33 @@ class Database():
             self.c.execute(sql, manifest_hash, name, version)
         self.commit()
 
-    def get_build_job(self):
+    def get_build_job(self, distro='%', release='%', target='%', subtarget='%'):
+        self.log.debug("get build job %s %s %s %s", distro, release, target, subtarget)
         sql = """UPDATE image_requests
             SET status = 'building'
             FROM packages_hashes
-            WHERE image_requests.packages_hash = packages_hashes.hash AND status = 'requested' AND id = (
-                SELECT MIN(id)
-                FROM image_requests
-                WHERE status = 'requested'
+            WHERE image_requests.packages_hash = packages_hashes.hash AND
+                distro LIKE ? AND
+                release LIKE ? AND
+                target LIKE ? AND
+                subtarget LIKE ? AND
+                id = (
+                    SELECT MIN(id)
+                    FROM image_requests
+                    WHERE status = 'requested' AND
+                    distro LIKE ? AND
+                    release LIKE ? AND
+                    target LIKE ? AND
+                    subtarget LIKE ?
                 )
             RETURNING id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages, network_profile;"""
-        self.c.execute(sql)
+        self.c.execute(sql, distro, release, target, subtarget, distro, release, target, subtarget)
         if self.c.description:
+            self.log.debug("found image request")
             self.commit()
             return self.c.fetchone()
-        else:
-            return None
+        self.log.debug("no image request")
+        return None
 
     def set_image_requests_status(self, image_request_hash, status):
         sql = """UPDATE image_requests
@@ -222,14 +240,16 @@ class Database():
         self.c.execute(sql, status, image_request_hash)
         self.commit()
 
-    def set_build_job_fail(self, image_request_hash):
+    def set_build_job_fail(self, request_hash):
+        self.log.debug("set job failed %s", request_hash)
         sql = """UPDATE image_requests
             SET status = 'failed'
-            WHERE image_hash = ?;"""
-        self.c.execute(sql, (image_request_hash, ))
+            WHERE request_hash = ?;"""
+        self.c.execute(sql, request_hash)
         self.commit()
 
     def done_build_job(self, request_hash, image_hash):
+        self.log.info("done build job: rqst %s img %s", request_hash, image_hash)
         sql = """UPDATE image_requests SET
             status = 'created',
             image_hash = ?
@@ -237,8 +257,8 @@ class Database():
         self.c.execute(sql, image_hash, request_hash)
         self.commit()
 
-    def get_imagebuilder_status(self, distro, release, target, subtarget):
-        sql = """select status from imagebuilder
+    def imagebuilder_status(self, distro, release, target, subtarget):
+        sql = """select 1 from worker_imagebuilder
             WHERE
                 distro=? AND
                 release=? AND
@@ -246,11 +266,13 @@ class Database():
                 subtarget=?;"""
         self.c.execute(sql, distro, release, target, subtarget)
         if self.c.rowcount > 0:
-            return self.c.fetchone()[0]
+            return "ready"
         else:
-            sql = """INSERT INTO imagebuilder (distro, release, target, subtarget)
-                VALUES (?, ?, ?, ?);"""
-            self.c.execute(sql, (distro, release, target, subtarget))
+            self.log.debug("add imagebuilder request")
+            sql = """insert into imagebuilder_requests
+                (distro, release, target, subtarget)
+                VALUES (?, ?, ?, ?)"""
+            self.c.execute(sql, distro, release, target, subtarget)
             self.commit()
             return 'requested'
 
@@ -288,9 +310,10 @@ class Database():
 
     def worker_needed(self):
         self.log.info("get needed worker")
-        sql = """select distro, release, target, subtarget
-            from worker_needed, subtargets
-            where worker_needed.subtarget_id = subtargets.id"""
+        sql = """(select * from imagebuilder_requests union
+            select distro, release, target, subtarget
+                from worker_needed, subtargets
+                where worker_needed.subtarget_id = subtargets.id) limit 1"""
         self.c.execute(sql)
         result = self.c.fetchone()
         self.log.debug("need worker for %s", result)
@@ -317,15 +340,19 @@ class Database():
         self.c.execute(sql, worker_id)
         self.commit()
 
-    def worker_add_skill(self, worker_id, subtarget_id):
-        self.log.info("register worker skill %s %s", worker_id, subtarget_id)
-        sql = """INSERT INTO worker_skills (worker_id, subtarget_id) VALUES (?, ?)"""
-        self.c.execute(sql, worker_id, subtarget_id)
+    def worker_add_skill(self, worker_id, distro, release, target, subtarget, status):
+        self.log.info("register worker skill %s %s", worker_id, status)
+        sql = """INSERT INTO worker_skills
+            select ?, subtargets.id, ? from subtargets
+            WHERE distro = ? AND release = ? AND target LIKE ? AND subtarget = ?;
+            delete from imagebuilder_requests
+            WHERE distro = ? AND release = ? AND target LIKE ? AND subtarget = ?;"""
+        self.c.execute(sql, worker_id, status, distro, release, target, subtarget, distro, release, target, subtarget)
         self.commit()
 
     def worker_heartbeat(self, worker_id):
         self.log.debug("heartbeat %s", worker_id)
-        sql = "UPDATE worker SET last_seen = ? WHERE id = ?"
+        sql = "UPDATE worker SET heartbeat = ? WHERE id = ?"
         self.c.execute(sql, datetime.datetime.now(), worker_id)
         self.commit()
 

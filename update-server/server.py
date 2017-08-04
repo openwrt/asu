@@ -1,5 +1,6 @@
 from flask import Flask
-from build_manager import BuildManager
+#from build_manager import BuildManager
+from worker import Worker
 import socket
 import time
 import threading
@@ -38,7 +39,7 @@ def download_image(image_path, image_name):
     # offer file to download
     # redirect to image so nginx handels download
     # raise image download counter
-    
+
     database.increase_downloads(os.path.join(image_path, image_name))
 
     # use different approach?
@@ -66,7 +67,8 @@ def root_path():
 
 def get_last_build_id():
     if config.get("dev"):
-        return bm.get_last_build_id()
+        return 1
+        #return bm.get_last_build_id()
 
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     socket_name = "/tmp/build_manager_last_build_id"
@@ -83,9 +85,8 @@ def get_last_build_id():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     if config.get("dev"):
-        bm = BuildManager()
-        bm.start()
-    #get_last_build_id()
+        worker = Worker()
+        worker.start()
 
     if config.get("dev"):
         app.run(host="0.0.0.0")

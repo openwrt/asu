@@ -323,6 +323,13 @@ create or replace view packages_image as
 		packages_profile.profile = profiles.profile
 ;
 
+create table if not exists imagebuilder_requests (
+	distro text, 
+	release text,
+	target text,
+	subtarget text
+);
+
 create table if not exists imagebuilder_table (
     id SERIAL PRIMARY KEY,
 	subtarget_id integer references subtargets(id),
@@ -478,8 +485,7 @@ create or replace rule update_image_requests AS
 create or replace view image_requests_subtargets as
 	select count(*) as requests, subtarget_id
 	from image_requests_table, profiles_table
-	where profiles_table.id = image_requests_table.profile_id
-	-- where status = 'requested' -- currently for testing
+	where profiles_table.id = image_requests_table.profile_id and status = 'requested'
 	group by (subtarget_id)
 	order by requests desc
 ;
@@ -488,12 +494,13 @@ create table if not exists worker (
 	id serial primary key,
 	name varchar(100),
 	address varchar(100),
-	hearbeat timestamp
+	heartbeat timestamp
 );
 
 create table if not exists worker_skills (
-	worker_id integer references worker(id),
-	subtarget_id integer references subtargets(id)
+	worker_id integer references worker(id) ON DELETE CASCADE,
+	subtarget_id integer references subtargets(id),
+    status varchar(20) DEFAULT 'init'
 );
 
 create or replace view worker_imagebuilder as
@@ -505,7 +512,7 @@ create or replace view worker_imagebuilder as
 create or replace view worker_skills_subtargets as
 	select count(*) as worker, subtarget_id
 	from worker_skills
-	-- where status = 'requested' -- currently for testing
+	where status = 'ready' 
 	group by (subtarget_id)
 	order by worker desc
 ;

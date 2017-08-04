@@ -203,6 +203,9 @@ class ImageBuilder(threading.Thread):
             return True
         return False
 
+    def as_array(self):
+        return [self.distro, self.release, self.target, self.subtarget]
+
     def parse_info(self):
         self.log.debug("parse info")
         cmdline = ['make', 'info']

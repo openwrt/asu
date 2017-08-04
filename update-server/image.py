@@ -15,8 +15,6 @@ import os.path
 import subprocess
 import threading
 
-#self.log.basicConfig(filename="output.log")
-
 class Image(threading.Thread):
     def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
         threading.Thread.__init__(self)
