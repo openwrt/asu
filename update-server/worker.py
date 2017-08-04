@@ -22,14 +22,14 @@ class Worker(threading.Thread):
         self.log.info("config initialized")
         self.database = Database()
         self.log.info("database initialized")
-        self.number = None
+        self.worker_id = None
         self.imagebuilders = []
 
     def worker_register(self):
-        self.number = str(self.database.worker_register(gethostname()))
+        self.worker_id = str(self.database.worker_register(gethostname()))
 
     def worker_add_skill(self, imagebuilder):
-        self.database.worker_add_skill(self.number, *imagebuilder, 'ready')
+        self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
 
     def add_imagebuilder(self):
         self.log.info("adding imagebuilder")
@@ -64,8 +64,8 @@ class Worker(threading.Thread):
         self.log.info("added imagebuilder")
 
     def destroy(self, signal=None, frame=None):
-        self.log.info("destroy worker %s", self.number)
-        self.database.worker_destroy(self.number)
+        self.log.info("destroy worker %s", self.worker_id)
+        self.database.worker_destroy(self.worker_id)
         sys.exit(0)
 
     def run(self):
@@ -95,14 +95,14 @@ class Worker(threading.Thread):
                 time.sleep(5)
 
     def heartbeat(self):
-        self.log.debug("heartbeat %s", self.number)
-        self.database.worker_heartbeat(self.number)
+        self.log.debug("heartbeat %s", self.worker_id)
+        self.database.worker_heartbeat(self.worker_id)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     #try:
     w = Worker()
-    signal.signal(signal.SIGINT, w.destroy)
+#    signal.signal(signal.SIGINT, w.destroy)
     w.run()
     #finally:
     #    w.destroy()
