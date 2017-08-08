@@ -38,10 +38,10 @@ Sends information about the device to the server to see if a new distribution re
 
 	{
 		"distro": "LEDE",
-		"version": "17.01.0",
+        "version": "17.01.0",
 		"target": "ar71xx",
 		"subtarget": "generic",
-		"board": "TP-LINK CPE510/520",
+		"board": "tl-wdr4300-v1",
 		"packages": {
 			"opkg": "2017-05-03-04e279eb-1"
 			...
@@ -82,7 +82,7 @@ The *update reponse* should be shown to the user in a readable way. Once the use
 		"version": "17.01.1",
 		"target": "ar71xx",
 		"subtarget": "generic",
-		"board": "TP-LINK CPE510/520",
+		"board": "tl-wdr4300-v1",
 		"packages": {
 			"opkg": "2017-05-03-04e279eb-1"
 			...
