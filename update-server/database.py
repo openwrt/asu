@@ -310,6 +310,14 @@ class Database():
         self.c.execute(sql)
         self.commit()
 
+    def worker_active_subtargets(self):
+        self.log.debug("worker active subtargets")
+        sql = """select distro, release, target, subtarget from worker_skills_subtargets, subtargets
+                where worker_skills_subtargets.subtarget_id = subtargets.id"""
+        self.c.execute(sql)
+        result = self.c.fetchall()
+        return result
+
     def worker_needed(self):
         self.log.info("get needed worker")
         sql = """(select * from imagebuilder_requests union
@@ -357,6 +365,36 @@ class Database():
         sql = "UPDATE worker SET heartbeat = ? WHERE id = ?"
         self.c.execute(sql, datetime.datetime.now(), worker_id)
         self.commit()
+
+    def get_subtargets_supported(self):
+        self.log.debug("get subtargets supported")
+        sql = """select distro, release, target, subtarget from subtargets
+                where supported = 'true'"""
+        self.c.execute(sql)
+        result = self.c.fetchall()
+        return result
+
+    def get_images_list(self):
+        self.log.debug("get images list")
+        sql = """select id, image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, build_date from images"""
+        self.c.execute(sql)
+        result = self.c.fetchall()
+        return result
+
+    def get_image_info(self, image_hash):
+        self.log.debug("get image info %s", image_hash)
+        sql = """select * from images"""
+        self.c.execute(sql, image_hash)
+        result = self.c.fetchone()
+        return result
+
+    def get_manifest_info(self, manifest_hash):
+        self.log.debug("get manifest info %s", manifest_hash)
+        sql = """select name, version from manifest_packages
+            where manifest_hash = ?"""
+        self.c.execute(sql, manifest_hash)
+        result = self.c.fetchall()
+        return result
 
 if __name__ == "__main__":
     db = Database()

@@ -222,7 +222,8 @@ create table if not exists manifest_table (
 create table if not exists manifest_packages_link (
 	manifest_id integer references manifest_table(id),
 	name_id integer references packages_names(id),
-	version_id integer references packages_versions(id)
+	version_id integer references packages_versions(id),
+	unique(manifest_id, name_id, version_id)
 );
 
 create or replace view manifest_packages as
