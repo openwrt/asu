@@ -76,7 +76,7 @@ create or replace view packages_available as
 	select
 		distro, release, target, subtarget, name, version
 	from packages_names, subtargets, packages_available_table
-	where 
+	where
 		subtargets.id = packages_available_table.subtarget_id and
 		packages_available_table.package = packages_names.id
 ;
@@ -91,7 +91,7 @@ begin
 			subtargets.release = add_packages_available.release and
 			subtargets.target = add_packages_available.target and
 			subtargets.subtarget = add_packages_available.subtarget),
-		(select id from packages_names where 
+		(select id from packages_names where
 			packages_names.name = add_packages_available.name),
 		add_packages_available.version
 	) on conflict do nothing;
@@ -215,7 +215,7 @@ create or replace rule insert_packages_profile AS
 );
 
 create table if not exists manifest_table (
-	id serial primary key, 
+	id serial primary key,
 	hash varchar(64) unique
 );
 
@@ -230,6 +230,7 @@ create or replace view manifest_packages as
 	select manifest_table.hash as manifest_hash, name, version
 	from manifest_table, manifest_packages_link, packages_names, packages_versions
 	where
+		manifest_table.id = manifest_packages_link.manifest_id and
 		packages_names.id = manifest_packages_link.name_id and
 		packages_versions.id = manifest_packages_link.version_id
 ;
