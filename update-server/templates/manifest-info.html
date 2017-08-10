@@ -1,0 +1,15 @@
+{% include 'header.html' %}
+<h2>packages in image</h2>
+<table>
+	<tr>
+		<th>name</th>
+		<th>version</th>
+	</tr>
+{% for name, version in manifest %}
+	<tr>
+		<td>{{ name }}</td>
+		<td>{{ version }}</td>
+	</tr>
+{% endfor %}
+</table>
+{% include 'footer.html' %}

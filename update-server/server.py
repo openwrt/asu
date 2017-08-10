@@ -2,6 +2,7 @@ from flask import Flask
 #from build_manager import BuildManager
 from worker import Worker
 import socket
+from flask import render_template
 import time
 import threading
 from queue import Queue
@@ -62,47 +63,22 @@ def requst_image():
 # may show some stats
 @app.route("/")
 def root_path():
-    response = "update server running<br>\n"
-    response += "<a href='images'>created images</a></br>\n"
-    response += "<a href='supported'>supported targets/subtargets</a></br>\n"
-    return response
+    return render_template("index.html")
 
 @app.route("/supported")
 def supported():
-    response = "currently supported targets/subtargets</br>\n"
-    response += "<pre>\n"
-    for supported in database.get_subtargets_supported():
-        response += "{:10} {:10} {:10} {:10}</br>\n".format(*supported)
-    response += "</pre>\n"
-    return response
-
-@app.route("/active-worker")
-def active_worker():
-    response = "currently active worker</br>\n"
-    response += "<pre>\n"
-    for worker in database.worker_active_subtargets():
-        response += "{:10} {:10} {:10} {:10}</br>\n".format(*worker)
-    response += "</pre>\n"
-    return response
+    supported = database.get_subtargets_supported()
+    return render_template("supported.html", supported=supported)
 
 @app.route("/images")
 def images():
-    response = "created images</br>\n"
-    response += "<pre>\n"
-    response += "{:3} {:15} {:10} {:10} {:10} {:10} {:15} {:8} {:15} {:20}</br>\n".format("id", "image_hash", "distro", "release", "target", "subtarget", "profile", "manifest", "network_profile", "build_date")
-    for image in database.get_images_list():
-        response += "{:3} {:15} {:10} {:10} {:10} {:10} {:15} <a href='manifest-info/{}'>packages</a> {:15} {}</br>\n".format(*image)
-    response += "</pre>\n"
-    return response
+    images = database.get_images_list()
+    return render_template("images.html", images=images)
 
 @app.route("/manifest-info/<manifest_hash>")
 def image_info(manifest_hash):
-    response = "packages in manifest</br>\n"
-    response += "<pre>\n"
-    for name, version in database.get_manifest_info(manifest_hash):
-        response += "{:100}: {:100}</br>\n".format(name, version)
-    response += "</pre>\n"
-    return response
+    manifest = database.get_manifest_info(manifest_hash)
+    return render_template("manifest-info.html", manifest=manifest)
 
 def get_last_build_id():
     if config.get("dev"):

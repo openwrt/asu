@@ -1,0 +1,18 @@
+{% include 'header.html' %}
+<table>
+	<tr>
+		<th>distro</th>
+		<th>release</th>
+		<th>target</th>
+		<th>subtarget</th>
+	</tr>
+{% for distro, release, target, subtarget in supported %}
+	<tr>
+		<td>{{ distro }}</td>
+		<td>{{ release }}</td>
+		<td>{{ target }}</td>
+		<td>{{ subtarget }}</td>
+	</tr>
+{% endfor %}
+</table>
+{% include 'footer.html' %}

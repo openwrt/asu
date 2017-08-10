@@ -1,0 +1,30 @@
+{% include 'header.html' %}
+<table>
+	<tr>
+		<th>id</th>
+		<th>image hash</th>
+		<th>distro</th>
+		<th>release</th>
+		<th>target</th>
+		<th>subtarget</th>
+		<th>profile</th>
+		<th>manifest</th>
+		<th><a href="https://github.com/libremesh/network-profiles">network profile</a></th>
+		<th>build date</th>
+	</tr>
+{% for id, image_hash, distro, release, target, subtarget, profile, manifest, network_profile, build_date in images %}
+	<tr>
+		<td>{{ id }}</td>
+		<td>{{ image_hash }}</td>
+		<td>{{ distro }}</td>
+		<td>{{ release }}</td>
+		<td>{{ target }}</td>
+		<td>{{ subtarget }}</td>
+		<td>{{ profile }}</td>
+		<td><a href="manifest-info/{{ manifest }}">{{ manifest }}</a></td>
+		<td>{{ network_profile }}</td>
+		<td>{{ build_date }}</td>
+	</tr>
+{% endfor %}
+</table>
+{% include 'footer.html' %}
