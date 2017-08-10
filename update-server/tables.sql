@@ -19,27 +19,29 @@ create table if not exists profiles_table(
 	id serial primary key,
 	subtarget_id integer references subtargets(id),
 	profile varchar(50),
-	unique(subtarget_id, profile)
+	model varchar(100),
+	unique(subtarget_id, profile, model)
 );
 
 create or replace view profiles as
 	select
-		profiles_table.id, distro, release, target, subtarget, profile
+		profiles_table.id, distro, release, target, subtarget, profile, model
 	from subtargets, profiles_table
 	where
 		profiles_table.subtarget_id = subtargets.id
 ;
 
-create or replace function add_profiles(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), name varchar(20)) returns void as
+create or replace function add_profiles(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), name varchar(50), model varchar(100)) returns void as
 $$
 begin
-	insert into profiles_table (subtarget_id, profile) values (
+	insert into profiles_table (subtarget_id, profile, model) values (
 		(select id from subtargets where
 			subtargets.distro = add_profiles.distro and
 			subtargets.release = add_profiles.release and
 			subtargets.target = add_profiles.target and
 			subtargets.subtarget = add_profiles.subtarget),
-		name
+		name,
+		model
 	)  on conflict do nothing;
 end
 $$ language 'plpgsql';
@@ -51,7 +53,8 @@ create or replace rule insert_profiles AS
 			NEW.release,
 			NEW.target,
 			NEW.subtarget,
-			NEW.profile
+			NEW.profile,
+			NEW.model
 );
 
 create table if not exists packages_names(
@@ -168,24 +171,24 @@ create table if not exists packages_profile_table(
 
 create or replace view packages_profile as
 	select
-		distro, release, target, subtarget, profile,
+		distro, release, target, subtarget, profile, model,
 		string_agg(packages_names.name, ' ') as packages
 	from packages_names, packages_profile_table, subtargets, profiles_table
 	where 	
 		packages_profile_table.package = packages_names.id and
 		packages_profile_table.profile_id = profiles_table.id and
 		subtargets.id = profiles_table.subtarget_id
-	group by (distro, release, target, subtarget, profile)
+	group by (distro, release, target, subtarget, profile, model)
 ;
 
-create or replace function add_packages_profile(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), profile varchar(20), packages text) returns void as
+create or replace function add_packages_profile(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), profile varchar(20), model varchar(50), packages text) returns void as
 $$
 declare
 	package varchar(40);
 	packages_array varchar(40)[] = string_to_array(packages, ' ');
 begin
-	insert into profiles (distro, release, target, subtarget, profile) 
-		values (distro, release, target, subtarget, profile);
+	insert into profiles (distro, release, target, subtarget, profile, model) 
+		values (distro, release, target, subtarget, profile, model);
 	FOREACH package IN array packages_array
 	loop
 		insert into packages_names (name) values (package) on conflict do nothing;
@@ -211,6 +214,7 @@ create or replace rule insert_packages_profile AS
 			NEW.target,
 			NEW.subtarget,
 			NEW.profile,
+			NEW.model,
 			NEW.packages
 );
 

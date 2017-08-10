@@ -226,13 +226,10 @@ class ImageBuilder(threading.Thread):
             default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
             default_packages = re.match(default_packages_pattern, output, re.M).group(2)
             logging.debug("default packages: %s", default_packages)
-            print(output)
-            profiles_pattern = r"(.+):\n    .+\n    Packages: (.*)\n"
+            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
             profiles = re.findall(profiles_pattern, output)
-            print(profiles)
             if not profiles:
                 profiles = []
-#            print(output)
             self.database.insert_profiles(self.distro, self.release, self.target, self.subtarget, default_packages, profiles)
         else:
             logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)

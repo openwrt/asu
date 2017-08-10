@@ -11,20 +11,28 @@ class ImageRequest(Request):
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.last_build_id = last_build_id
-        self.needed_values = ["distro", "version", "target", "subtarget", "board"]
+        self.needed_values = ["distro", "version", "target", "subtarget", "board", "model"]
 
     def get_sysupgrade(self):
         bad_request = self.check_bad_request()
         if bad_request:
             return bad_request
 
-        self.profile = self.request_json["board"]
-        if not self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.profile):
-            if not self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
-                self.response_dict["error"] = "board not found"
-                return self.respond(), HTTPStatus.BAD_REQUEST
-            else:
+        profile_request = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
+        if profile_request:
+            self.profile = profile_request
+        else:
+            if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
                 self.profile = "Generic"
+            else:
+                # added due to different values of board_name (e.g. ubnt-loco-m-xw (ImageBuilder) vs. loco-m-w (device))
+                # see https://github.com/aparcar/gsoc17-attended-sysupgrade/issues/26
+                profile_request = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
+                if profile_request:
+                    self.profile = profile_request
+                else:
+                    self.response_dict["error"] = "unknown board: {}/{} not found".format(self.request_json["board"], self.request_json["model"])
+                    return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.packages = None
         if "packages" in self.request_json:
@@ -36,7 +44,7 @@ class ImageRequest(Request):
 
         if "network_profile" in self.request_json:
             if not self.check_network_profile():
-                self.response_dict["error"] = "network profile not found"
+                self.response_dict["error"] = 'network profile "{}" not found'.format(self.request_json["network_profile"])
                 return self.respond(), HTTPStatus.BAD_REQUEST
         else:
             self.network_profile = ''

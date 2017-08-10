@@ -63,18 +63,18 @@ class Database():
 
     def insert_profiles(self, distro, release, target, subtarget, packages_default, profiles):
         self.log.debug("insert_profiles %s/%s/%s/%s", distro, release, target, subtarget)
-        sql = "INSERT INTO packages_profile VALUES (?, ?, ?, ?, ?, ?);"
-        for profile in profiles:
-            print(profile)
-            profile_name, profile_packages = profile
-            self.log.debug("%s\n%s", profile_name, profile_packages)
-            self.c.execute(sql, distro, release, target, subtarget, profile_name, profile_packages)
         self.c.execute("INSERT INTO packages_default VALUES (?, ?, ?, ?, ?);", distro, release, target, subtarget, packages_default)
+
+        sql = "INSERT INTO packages_profile VALUES (?, ?, ?, ?, ?, ?, ?);"
+        for profile in profiles:
+            profile_name, profile_model, profile_packages = profile
+            self.log.debug("insert '%s' '%s' '%s'", profile_name, profile_model, profile_packages)
+            self.c.execute(sql, distro, release, target, subtarget, profile_name, profile_model, profile_packages)
         self.commit()
 
     def check_profile(self, distro, release, target, subtarget, profile):
         self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
-        self.c.execute("""SELECT 1 FROM profiles
+        self.c.execute("""SELECT profile FROM profiles
             WHERE
                 distro=? AND
                 release=? AND
@@ -83,8 +83,36 @@ class Database():
                 profile = ?
             LIMIT 1;""",
             distro, release, target, subtarget, profile)
-        if self.c.rowcount > 0:
-            return True
+        if self.c.rowcount == 1:
+            return self.c.fetchone()[0]
+        else:
+            self.log.debug("use wildcard profile search")
+            profile = '%' + profile
+            self.c.execute("""SELECT profile FROM profiles
+                WHERE
+                    distro=? AND
+                    release=? AND
+                    target=? AND
+                    subtarget = ? AND
+                    profile LIKE ?
+                LIMIT 1;""",
+                distro, release, target, subtarget, profile)
+            if self.c.rowcount == 1:
+                return self.c.fetchone()[0]
+        return False
+
+    def check_model(self, distro, release, target, subtarget, model):
+        self.log.debug("check_model %s/%s/%s/%s/%s", distro, release, target, subtarget, model)
+        self.c.execute("""SELECT profile FROM profiles
+            WHERE
+                distro=? AND
+                release=? AND
+                target=? AND
+                subtarget = ? AND
+                model = ?;""",
+            distro, release, target, subtarget, model)
+        if self.c.rowcount == 1:
+            return self.c.fetchone()[0]
         return False
 
     def get_profile_packages(self, distro, release, target, subtarget, profile):
