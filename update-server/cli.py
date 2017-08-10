@@ -22,7 +22,6 @@ class ServerCli():
         parser.add_argument("-c", "--update-repositories", action="store_true")
         parser.add_argument("-s", "--set-supported", action="store_true")
         parser.add_argument("--ignore-not-supported", action="store_true")
-        parser.add_argument("--add-snapshots", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
             self.download_releases()
@@ -32,8 +31,6 @@ class ServerCli():
             self.setup_imagebuilder(*self.args["setup_imagebuilder"])
         if self.args["set_supported"]:
             self.set_supported()
-        if self.args["add_snapshots"]:
-            self.add_snapshots()
 
     def set_supported(self):
         for distro, release in self.database.get_releases():

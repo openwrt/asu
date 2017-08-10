@@ -132,7 +132,7 @@ class Image(threading.Thread):
 
         if self.network_profile:
             path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
-        
+
         path_array.extend([self.target, self.subtarget, self.profile])
 
         path_array.append("sysupgrade.bin")
@@ -170,7 +170,7 @@ class Image(threading.Thread):
         else:
             self.log.debug("Heureka!")
             return "/".join(self.path.split("/")[-5:])
-    
+
     # generate a hash of the installed packages
     def get_pkg_hash(self):
         # sort list and remove duplicates
