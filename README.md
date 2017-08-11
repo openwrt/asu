@@ -16,10 +16,11 @@ Has the function `list` to show all user installed packages without the need of 
 
 * `luci-app-attendedsysupgrade`
 
-Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server. [Pull request pending on luci.git](https://github.com/openwrt/luci/pull/1254)
+Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server. [Moved to official luci.git](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
 
 **Dependencies:**
 * `rpcd`
+* `uhttpd-mod-ubus`
 * `cgi-op` (to upload sysupgrade.bin via webinterface)
 
 ### server side
