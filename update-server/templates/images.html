@@ -23,7 +23,7 @@
 		<td>{{ profile }}</td>
 		<td><a href="manifest-info/{{ manifest }}">{{ manifest }}</a></td>
 		<td>{{ network_profile }}</td>
-		<td>{{ build_date }}</td>
+		<td>{{ build_date.strftime('%Y-%m-%d') }}</td>
 	</tr>
 {% endfor %}
 </table>
