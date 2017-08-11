@@ -424,6 +424,16 @@ class Database():
         result = self.c.fetchall()
         return result
 
+    def get_popular_subtarget(self):
+        self.log.debug("get popular subtarget")
+        sql = """select count(*) as count, target, subtarget from images
+            group by (target, subtarget)
+            order by count desc
+            limit 10"""
+        self.c.execute(sql)
+        result = self.c.fetchall()
+        return result
+
 if __name__ == "__main__":
     db = Database()
     db.create_tables()
