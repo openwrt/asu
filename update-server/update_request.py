@@ -26,7 +26,10 @@ class UpdateRequest(Request):
             # perform package transformation
             response = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.request_json["packages"])
             if response:
-                self.response_dict["packages"] = str(response)
+                self.response_dict["packages"] = {}
+                for name, version, version_installed in response:
+                    self.response_dict["packages"][name] = [version, version_installed]
+
                 return self.respond(), HTTPStatus.OK
 
         return("", HTTPStatus.NO_CONTENT)
