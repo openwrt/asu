@@ -2,8 +2,10 @@
     "distro": "lede",
     "target": "x86",
     "subtarget": "64",
+    "version": "snapshot",
+    "board": "ignored_on_x86",
     "packages": {
-		"luci-app-attended-sysupgrade": "1",
+		"luci-app-attendedsysupgrade": "1",
         "mkf2fs": "1.8.0-1",
         "opkg": "2011-04-08-9c97d5ec-17",
         "busybox": "1.25.1-4",
@@ -27,7 +29,5 @@
         "luci": "git-17.152.82987-7f6fc16-1",
         "kmod-button-hotplug": "4.4.50-3",
         "kmod-igb": "4.4.50-1"
-    },
-    "version": "snapshot",
-    "board": "foobar"
+    }
 }
