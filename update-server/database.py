@@ -38,11 +38,7 @@ class Database():
     def insert_supported(self, distro, release, target, subtarget="%"):
         self.log.info("insert supported {} {} {} {}".format(distro, release, target, subtarget))
         sql = """UPDATE subtargets SET supported = true
-            WHERE
-                distro=? AND
-                release=? AND
-                target=? AND
-                subtarget LIKE ?"""
+            WHERE distro=? and release=? and target=? and subtarget LIKE ?"""
         self.c.execute(sql, distro, release, target, subtarget)
         self.commit()
 
@@ -75,12 +71,7 @@ class Database():
     def check_profile(self, distro, release, target, subtarget, profile):
         self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
         self.c.execute("""SELECT profile FROM profiles
-            WHERE
-                distro=? AND
-                release=? AND
-                target=? AND
-                subtarget = ? AND
-                profile = ?
+            WHERE distro=? and release=? and target=? and subtarget = ? and profile = ?
             LIMIT 1;""",
             distro, release, target, subtarget, profile)
         if self.c.rowcount == 1:
@@ -89,12 +80,7 @@ class Database():
             self.log.debug("use wildcard profile search")
             profile = '%' + profile
             self.c.execute("""SELECT profile FROM profiles
-                WHERE
-                    distro=? AND
-                    release=? AND
-                    target=? AND
-                    subtarget = ? AND
-                    profile LIKE ?
+                WHERE distro=? and release=? and target=? and subtarget = ? and profile LIKE ?
                 LIMIT 1;""",
                 distro, release, target, subtarget, profile)
             if self.c.rowcount == 1:
@@ -104,12 +90,7 @@ class Database():
     def check_model(self, distro, release, target, subtarget, model):
         self.log.debug("check_model %s/%s/%s/%s/%s", distro, release, target, subtarget, model)
         self.c.execute("""SELECT profile FROM profiles
-            WHERE
-                distro=? AND
-                release=? AND
-                target=? AND
-                subtarget = ? AND
-                model = ?;""",
+            WHERE distro=? and release=? and target=? and subtarget = ? and model = ?;""",
             distro, release, target, subtarget, model)
         if self.c.rowcount == 1:
             return self.c.fetchone()[0]
@@ -118,12 +99,7 @@ class Database():
     def get_profile_packages(self, distro, release, target, subtarget, profile):
         self.log.debug("get_profile_packages for %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
         self.c.execute("""select packages from packages_image
-                where
-                    distro = ? and
-                    release = ? and
-                    target = ? and
-                    subtarget = ? and
-                    profile = ?""",
+                where distro = ? and release = ? and target = ? and subtarget = ? and profile = ?""",
             distro, release, target, subtarget, profile)
         response = self.c.fetchone()
         if response:
@@ -142,11 +118,7 @@ class Database():
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, release, target, subtarget)
         self.c.execute("""SELECT name, version
             FROM packages_available
-            WHERE
-                distro=? AND
-                release=? AND
-                target=? AND
-                subtarget=?;""",
+            WHERE distro=? and release=? and target=? and subtarget=?;""",
             distro, release, target, subtarget)
         response = {}
         for name, version in self.c.fetchall():
@@ -165,9 +137,9 @@ class Database():
         self.log.debug("get_targets {} {} {} {}".format(distro, release, target, subtarget))
         return self.c.execute("""SELECT target, subtarget, supported FROM subtargets
             WHERE
-                distro = ? AND
-                release = ? AND
-                target LIKE ? AND
+                distro = ? and
+                release = ? and
+                target LIKE ? and
                 subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
@@ -240,18 +212,18 @@ class Database():
         sql = """UPDATE image_requests
             SET status = 'building'
             FROM packages_hashes
-            WHERE image_requests.packages_hash = packages_hashes.hash AND
-                distro LIKE ? AND
-                release LIKE ? AND
-                target LIKE ? AND
-                subtarget LIKE ? AND
+            WHERE image_requests.packages_hash = packages_hashes.hash and
+                distro LIKE ? and
+                release LIKE ? and
+                target LIKE ? and
+                subtarget LIKE ? and
                 id = (
                     SELECT MIN(id)
                     FROM image_requests
-                    WHERE status = 'requested' AND
-                    distro LIKE ? AND
-                    release LIKE ? AND
-                    target LIKE ? AND
+                    WHERE status = 'requested' and
+                    distro LIKE ? and
+                    release LIKE ? and
+                    target LIKE ? and
                     subtarget LIKE ?
                 )
             RETURNING id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages, network_profile;"""
@@ -289,11 +261,7 @@ class Database():
 
     def imagebuilder_status(self, distro, release, target, subtarget):
         sql = """select 1 from worker_imagebuilder
-            WHERE
-                distro=? AND
-                release=? AND
-                target=? AND
-                subtarget=?;"""
+            WHERE distro=? and release=? and target=? and subtarget=?;"""
         self.c.execute(sql, distro, release, target, subtarget)
         if self.c.rowcount > 0:
             return "ready"
@@ -308,11 +276,7 @@ class Database():
 
     def set_imagebuilder_status(self, distro, release, target, subtarget, status):
         sql = """UPDATE imagebuilder SET status = ?
-            WHERE
-                distro=? AND
-                release=? AND
-                target=? AND
-                subtarget=?"""
+            WHERE distro=? and release=? and target=? and subtarget=?"""
         self.c.execute(sql, status, distro, release, target, subtarget)
         self.commit()
 
@@ -382,9 +346,9 @@ class Database():
         self.log.info("register worker skill %s %s", worker_id, status)
         sql = """INSERT INTO worker_skills
             select ?, subtargets.id, ? from subtargets
-            WHERE distro = ? AND release = ? AND target LIKE ? AND subtarget = ?;
+            WHERE distro = ? and release = ? and target LIKE ? and subtarget = ?;
             delete from imagebuilder_requests
-            WHERE distro = ? AND release = ? AND target LIKE ? AND subtarget = ?;"""
+            WHERE distro = ? and release = ? and target LIKE ? and subtarget = ?;"""
         self.c.execute(sql, worker_id, status, distro, release, target, subtarget, distro, release, target, subtarget)
         self.commit()
 
@@ -431,6 +395,17 @@ class Database():
             order by count desc
             limit 10"""
         self.c.execute(sql)
+        result = self.c.fetchall()
+        return result
+
+    def packages_updates(self, distro, release, target, subtarget, packages):
+        self.log.debug("packages updates")
+        sql = """select name, version, installed_version from packages_available join (
+                select key as installed_name, value as installed_version from json_each_text(?)
+                ) as installed on installed.installed_name = packages_available.name
+        where installed.installed_version != packages_available.version and
+            distro = ? and release = ? and target = ? and subtarget = ?"""
+        self.c.execute(sql, str(packages).replace("\'", "\""), distro, release, target, subtarget)
         result = self.c.fetchall()
         return result
 
