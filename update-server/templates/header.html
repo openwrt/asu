@@ -1,19 +1,32 @@
+{% set navigation_bar = [
+('/', 'root_path', 'Index'),
+('/images', 'images', 'Images'),
+('/supported', 'supported', 'Supported')
+] -%}
 <!doctype html>
 <html lang="en">
 	<head>
-		<title>Bootstrap Example</title>
+		<title>LEDE Update Server</title>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 		<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+
 	</head>
 	<body>
-		<div class="container">
+		<nav class="navbar navbar-toggleable-md navbar-inverse bg-inverse sticky-top">
+			<button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<a class="navbar-brand" href="#">BETA LEDE Update Server</a>
 
-			<div class=navi>
-				<ul>
-					<li><a href='{{ url_for("root_path") }}'>start</a></br></li>
-					<li><a href='{{ url_for("images") }}'>created images</a></br></li>
-					<li><a href='{{ url_for("supported") }}'>supported targets/subtargets</a></br></li>
+			<div class="collapse navbar-collapse" id="navbarsExampleDefault">
+				<ul class="navbar-nav mr-auto">
+					{% for href, id, caption in navigation_bar %}
+					<li{% if id == request.endpoint %} class="active"{% endif %}>
+						<a class="nav-link" href="{{ href|e }}">{{ caption|e }}</a>
+					</li>
+					{% endfor %}
 				</ul>
 			</div>
-			<h1>BETA Update Server for LEDE</h1>
+		</nav>
+		<div class="container">

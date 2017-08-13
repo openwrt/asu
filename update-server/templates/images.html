@@ -1,4 +1,5 @@
 {% include 'header.html' %}
+<h2>created images</h2>
 <table class="table table-striped">
 	<tr>
 		<th>id</th>
@@ -12,7 +13,7 @@
 		<th><a href="https://github.com/libremesh/network-profiles">network profile</a></th>
 		<th>build date</th>
 	</tr>
-{% for id, image_hash, distro, release, target, subtarget, profile, manifest, network_profile, build_date in images %}
+	{% for id, image_hash, distro, release, target, subtarget, profile, manifest, network_profile, build_date in images %}
 	<tr>
 		<td>{{ id }}</td>
 		<td>{{ image_hash }}</td>
@@ -25,6 +26,6 @@
 		<td>{{ network_profile }}</td>
 		<td>{{ build_date.strftime('%Y-%m-%d') }}</td>
 	</tr>
-{% endfor %}
+	{% endfor %}
 </table>
 {% include 'footer.html' %}
