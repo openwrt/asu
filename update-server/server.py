@@ -37,10 +37,6 @@ def update_request():
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
-    # offer file to download
-    # redirect to image so nginx handels download
-    # raise image download counter
-
     database.increase_downloads(os.path.join(image_path, image_name))
 
     # use different approach?
@@ -82,6 +78,7 @@ def image_info(manifest_hash):
     return render_template("manifest-info.html", manifest=manifest)
 
 def get_last_build_id():
+    return 1 # currently not working
     if config.get("dev"):
         return 1
         #return bm.get_last_build_id()
