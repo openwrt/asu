@@ -361,7 +361,9 @@ class Database():
     def get_subtargets_supported(self):
         self.log.debug("get subtargets supported")
         sql = """select distro, release, target, subtarget from subtargets
-                where supported = 'true'"""
+                where supported = 'true'
+                order by distro, release, target, subtarget"""
+
         self.c.execute(sql)
         result = self.c.fetchall()
         return result
