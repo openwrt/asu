@@ -102,7 +102,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     #try:
     w = Worker()
-#    signal.signal(signal.SIGINT, w.destroy)
+    signal.signal(signal.SIGINT, w.destroy)
     w.run()
     #finally:
     #    w.destroy()
