@@ -167,8 +167,8 @@ class ImageBuilder(threading.Thread):
                 self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'signature_fail')
                 return False
             self.log.debug("good signature")
-            tar_path = os.path.join(tempdir, self.tar_name())
-            print(tar_path)
+            tar_name = url.split("/")[-1]
+            tar_path = os.path.join(tempdir, tar_name)
             self.log.info("downloading url %s", url)
             urllib.request.urlretrieve(url, tar_path)
 
@@ -184,22 +184,13 @@ class ImageBuilder(threading.Thread):
             sha256_output, erros = proc.communicate()
             return_code = proc.returncode
             sha256_output = sha256_output.decode('utf-8')
-            if not sha256_output == "{}: OK\n".format(self.tar_name()):
+            if not sha256_output == "{}: OK\n".format(tar_name):
                 self.log.warn("bad sha256sum")
                 self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'sha256sum_fail')
                 return False
             self.log.debug("good sha256sum")
 
             os.system("tar -C {} --strip=1 -xf {}".format(self.path, tar_path))
-            #tar = tarfile.open(tar_path)
-            #tar.extractall(path=tempdir)
-            #for (dirpath, dirnames, filenames) in walk(os.path.join(tempdir, tar.getnames()[0])):
-            #    for dirname in dirnames:
-            #        shutil.move(os.path.join(dirpath, dirname), self.path)
-            #    for filename in filenames:
-            #        shutil.move(os.path.join(dirpath, filename), self.path)
-            #    break
-            #tar.close()
             return True
         return False
 
