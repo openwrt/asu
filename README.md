@@ -21,7 +21,7 @@ Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button 
 **Dependencies:**
 * `rpcd`
 * `uhttpd-mod-ubus`
-* `cgi-op` (to upload sysupgrade.bin via webinterface)
+* `cgi-io` (to upload sysupgrade.bin via webinterface)
 
 ### server side
 
