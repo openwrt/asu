@@ -400,6 +400,20 @@ class Database():
         result = self.c.fetchall()
         return result
 
+    def get_worker_active(self):
+        self.log.debug("get worker active")
+        sql = "select count(*) as count from worker;"
+        self.c.execute(sql)
+        result = self.c.fetchone()
+        return result[0]
+
+    def get_images_count(self):
+        self.log.debug("get images count")
+        sql = "select count(*) as count from images;"
+        self.c.execute(sql)
+        result = self.c.fetchone()
+        return result[0]
+
     def packages_updates(self, distro, release, target, subtarget, packages):
         self.log.debug("packages updates")
         sql = """select name, version, installed_version from packages_available join (

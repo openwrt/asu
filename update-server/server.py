@@ -59,8 +59,10 @@ def requst_image():
 # may show some stats
 @app.route("/")
 def root_path():
-    popular_subtargets = database.get_popular_subtarget()
-    return render_template("index.html", popular_subtargets=popular_subtargets)
+    return render_template("index.html", 
+            popular_subtarget=database.get_popular_subtarget(),
+            worker_active=database.get_worker_active(),
+            images_count=database.get_images_count())
 
 @app.route("/supported")
 def supported():
@@ -98,6 +100,7 @@ def get_last_build_id():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     if config.get("dev"):
+        app.debug = True
         worker = Worker()
         worker.start()
 
