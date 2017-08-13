@@ -390,8 +390,8 @@ class Database():
         result = self.c.fetchall()
         return result
 
-    def get_popular_subtarget(self):
-        self.log.debug("get popular subtarget")
+    def get_popular_subtargets(self):
+        self.log.debug("get popular subtargets")
         sql = """select count(*) as count, target, subtarget from images
             group by (target, subtarget)
             order by count desc

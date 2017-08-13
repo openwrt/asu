@@ -59,8 +59,8 @@ def requst_image():
 # may show some stats
 @app.route("/")
 def root_path():
-    return render_template("index.html", 
-            popular_subtarget=database.get_popular_subtarget(),
+    return render_template("index.html",
+            popular_subtargets=database.get_popular_subtargets(),
             worker_active=database.get_worker_active(),
             images_count=database.get_images_count())
 
