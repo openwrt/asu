@@ -29,11 +29,13 @@ class ImageRequest(Request):
                 # see https://github.com/aparcar/gsoc17-attended-sysupgrade/issues/26
                 if "model" in self.request_json:
                     profile_request = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
+                else:
+                    self.request_json["model"] = "unknown"
 
                 if profile_request:
                     self.profile = profile_request
                 else:
-                    self.response_dict["error"] = "unknown board: {}/{} not found".format(self.request_json["board"], self.request_json["model"])
+                    self.response_dict["error"] = "unknown board: {}/{}".format(self.request_json["board"], self.request_json["model"] )
                     return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.packages = None
