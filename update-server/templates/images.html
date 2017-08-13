@@ -1,22 +1,22 @@
 {% include 'header.html' %}
-<h2>created images</h2>
+<h2>Created images</h2>
 <table class="table table-striped">
 	<tr>
-		<th>id</th>
-		<th>image hash</th>
-		<th>distro</th>
-		<th>release</th>
-		<th>target</th>
-		<th>subtarget</th>
-		<th>profile</th>
-		<th>manifest</th>
-		<th><a href="https://github.com/libremesh/network-profiles">network profile</a></th>
-		<th>build date</th>
+		<th>ID</th>
+		<th>Image hash</th>
+		<th>Distro</th>
+		<th>Release</th>
+		<th>Target</th>
+		<th>Subtarget</th>
+		<th>Profile</th>
+		<th>Manifest</th>
+		<th><a href="https://github.com/libremesh/network-profiles">Network profile</a></th>
+		<th>Build date</th>
 	</tr>
-	{% for id, image_hash, distro, release, target, subtarget, profile, manifest, network_profile, build_date in images %}
+	{% for id, image_hash, distro, release, target, subtarget, profile, manifest, network_profile, build_date, filename in images %}
 	<tr>
 		<td>{{ id }}</td>
-		<td>{{ image_hash }}</td>
+		<td><a href="download/{{ filename }}">{{ image_hash }}</a></td>
 		<td>{{ distro }}</td>
 		<td>{{ release }}</td>
 		<td>{{ target }}</td>
