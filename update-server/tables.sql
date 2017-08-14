@@ -97,7 +97,8 @@ begin
 		(select id from packages_names where
 			packages_names.name = add_packages_available.name),
 		add_packages_available.version
-	) on conflict do nothing;
+	) on conflict (subtarget_id, package) do update
+		set version = add_packages_available.version;
 end
 $$ language 'plpgsql';
 
