@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from database import Database
 import re
 import urllib.request

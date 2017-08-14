@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from flask import Flask
 #from build_manager import BuildManager
 from worker import Worker
