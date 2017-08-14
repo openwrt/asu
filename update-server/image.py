@@ -84,18 +84,8 @@ class Image(threading.Thread):
                         sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
                         if not sysupgrade:
                             sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img.gz'))
-                            if sysupgrade:
-                                cmdline = ["gzip", "-d", sysupgrade[0]]
-                                proc = subprocess.Popen(
-                                    cmdline,
-                                    cwd=self.build_path,
-                                    stdout=subprocess.PIPE,
-                                    shell=False,
-                                    stderr=subprocess.STDOUT
-                                )
-                                gzip_output, errors = proc.communicate()
-                                gzip_code = proc.returncode
-                                sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
+                            if not sysupgrade:
+                                sysupgrade = glob.glob(os.path.join(self.build_path, '*squashfs-sysupgrade.tar')) # ipq806x/EA8500
 
                     self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
 
