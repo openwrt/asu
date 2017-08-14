@@ -1,5 +1,5 @@
 from os import walk
-from util import create_folder, get_statuscode, get_latest_release, get_dir, get_root, check_signature, setup_gnupg
+from util import create_folder, get_statuscode, get_latest_release, get_dir, get_root, check_signature
 import logging
 import tarfile
 from database import Database
@@ -126,8 +126,7 @@ class ImageBuilder(threading.Thread):
         name += ".Linux-x86_64.tar.xz"
         return name
 
-    def run(self): 
-        setup_gnupg() # this should be run only once per worker TODO
+    def run(self):
         self.log.info("downloading imagebuilder %s", self.path)
         if not self.created():
             create_folder(self.path)

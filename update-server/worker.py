@@ -10,6 +10,7 @@ from imagebuilder import ImageBuilder
 import yaml
 from config import Config
 from database import Database
+from util import setup_gnupg
 
 MAX_TARGETS=0
 
@@ -71,6 +72,8 @@ class Worker(threading.Thread):
     def run(self):
         self.log.info("register worker")
         self.worker_register()
+        self.log.debug("setting up gnupg")
+        setup_gnupg() 
         while True:
             self.log.debug("severing %s", self.imagebuilders)
             build_job_request = None
