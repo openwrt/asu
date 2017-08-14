@@ -90,11 +90,10 @@ def setup_gnupg():
     key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B"]
     gpg.recv_keys('pool.sks-keyservers.net', *key_array)
 
-setup_gnupg()
-
 def check_signature(path):
     gpg_folder = get_dir("gnupg")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
     print("xxxx", path)
     verified = gpg.verify_file(open(os.path.join(path, "sha256sums.gpg"), "rb"), os.path.join(path, "sha256sums"))
     return verified.valid
+
