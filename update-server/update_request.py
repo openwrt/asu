@@ -30,18 +30,19 @@ class UpdateRequest(Request):
             self.response_dict["version"] = self.latest_release
 
         if "packages" in self.request_json:
-            self.packages_installed = self.package_transformation(self.distro, self.release, self.request_json["packages"])
+            if "version" in self.response_dict or "update_packages" in self.request_json:
+                self.packages_installed = self.package_transformation(self.distro, self.release, self.request_json["packages"])
 
-            packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
-            if packages_updates:
-                self.response_dict["updates"] = {}
-                for name, version, version_installed in packages_updates:
-                    self.response_dict["updates"][name] = [version, version_installed]
+                packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
+                if packages_updates:
+                    self.response_dict["updates"] = {}
+                    for name, version, version_installed in packages_updates:
+                        self.response_dict["updates"][name] = [version, version_installed]
 
-            self.response_dict["packages"] = []
-            self.response_dict["packages"].extend(list(self.packages_installed.keys()))
-            self.response_dict["packages"].extend(list(self.packages_transformed.keys()))
-            self.log.warning(self.response_dict["packages"])
+                self.response_dict["packages"] = []
+                self.response_dict["packages"].extend(list(self.packages_installed.keys()))
+                self.response_dict["packages"].extend(list(self.packages_transformed.keys()))
+                self.log.warning(self.response_dict["packages"])
 
         if "version" in self.response_dict or "packages" in self.response_dict:
             return(self.respond(), HTTPStatus.OK)
