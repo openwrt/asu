@@ -414,6 +414,14 @@ class Database():
         result = self.c.fetchone()
         return result[0]
 
+    def get_packages_count(self):
+        self.log.debug("get packages count")
+        sql = "select count(*) as count from packages_names;"
+        self.c.execute(sql)
+        result = self.c.fetchone()
+        return result[0]
+
+
     def packages_updates(self, distro, release, target, subtarget, packages):
         self.log.debug("packages updates")
         sql = """select name, version, installed_version from packages_available join (
