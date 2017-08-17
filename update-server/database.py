@@ -365,7 +365,7 @@ class Database():
                 from subtargets
                 where supported = 'true'
                 group by (distro, release, target)
-                order by (distro, release, target)"""
+                order by distro, release desc, target"""
 
         self.c.execute(sql)
         result = self.c.fetchall()
@@ -373,7 +373,8 @@ class Database():
 
     def get_images_list(self):
         self.log.debug("get images list")
-        sql = """select images.id, images.image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, build_date, filename from images join images_download on images.image_hash = images_download.image_hash"""
+        sql = """select images.id, images.image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, build_date, filename from images join images_download on images.image_hash = images_download.image_hash
+        order by id desc"""
         self.c.execute(sql)
         result = self.c.fetchall()
         return result
