@@ -360,9 +360,12 @@ class Database():
 
     def get_subtargets_supported(self):
         self.log.debug("get subtargets supported")
-        sql = """select distro, release, target, subtarget from subtargets
+        sql = """select distro, release, target,
+		string_agg(subtarget, ', ') as subtargets
+                from subtargets
                 where supported = 'true'
-                order by distro, release, target, subtarget"""
+                group by (distro, release, target)
+                order by (distro, release, target)"""
 
         self.c.execute(sql)
         result = self.c.fetchall()
