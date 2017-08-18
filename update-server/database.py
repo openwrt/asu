@@ -126,8 +126,8 @@ class Database():
         return response
 
     def insert_subtargets(self, distro, release, target, subtargets):
-        self.log.info("insert %s/%s ", target, " ".join(subtargets))
-        sql = "INSERT INTO subtargets (distro, release, target, subtarget) VALUES (?, ?, ?, ?);"
+        self.log.info("insert subtargets %s/%s ", target, " ".join(subtargets))
+        sql = "INSERT INTO subtargets (distro, release, target, subtarget) VALUES (?, ?, ?, ?) on conflict do nothing;"
         for subtarget in subtargets:
             self.c.execute(sql, distro, release, target, subtarget)
 
