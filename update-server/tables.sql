@@ -394,13 +394,13 @@ create or replace view images as
 	select
 		images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, checksum, filesize, build_date, last_download, downloads, status
 	from profiles, images_table, manifest_table
-	where 
+	where
 		profiles.id = images_table.profile_id and
 		images_table.manifest_id = manifest_table.id
 ;
 
 create or replace view images_download as
-	select 
+	select
 		id, image_hash,
 		distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-' || profile || '-sysupgrade.bin' as filename,
 		checksum, filesize
@@ -422,7 +422,7 @@ create or replace rule insert_images AS
 			NEW.network_profile,
 			NEW.checksum,
 			NEW.filesize,
-			NEW.build_date) 
+			NEW.build_date)
 		on conflict do nothing;
 ;
 
@@ -440,13 +440,19 @@ create or replace rule update_images AS
 			old.*
 ;
 
+create or replace rule delete_images as
+	on delete to images do instead
+		delete from images_table
+			where old.id = images_table.id
+;
+
 create table if not exists image_requests_table (
     id SERIAL PRIMARY KEY,
     request_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id),
 	packages_hash_id integer references packages_hashes_table(id),
     network_profile varchar(30),
-	image_id integer references images_table(id),
+	image_id integer references images_table(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'requested'
 );
 
@@ -519,7 +525,7 @@ create or replace view worker_imagebuilder as
 create or replace view worker_skills_subtargets as
 	select count(*) as worker, subtarget_id
 	from worker_skills
-	where status = 'ready' 
+	where status = 'ready'
 	group by (subtarget_id)
 	order by worker desc
 ;
@@ -530,3 +536,13 @@ create or replace view worker_needed as
 		on worker_skills_subtargets.subtarget_id = image_requests_subtargets.subtarget_id
 	order by worker, requests desc
 	limit 1
+;
+
+prepare insert_release (text, text) as
+	insert into releases values ($1, $2) on conflict do nothing;
+;
+
+prepare insert_supported (text, text, text, text) as
+	update subtargets set supported = true
+        where distro = $1 and release = $2 and target = $3 and subtarget LIKE $4;
+;

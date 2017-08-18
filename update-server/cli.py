@@ -2,15 +2,18 @@
 
 from database import Database
 import re
+from shutil import rmtree
 import urllib.request
 import logging
 from config import Config
 from imagebuilder import ImageBuilder
 import argparse
-from util import get_supported_targets
+import os
+from util import get_supported_targets, get_dir
 
 class ServerCli():
     def __init__(self):
+        self.log = logging.getLogger(__name__)
         self.database = Database()
         self.config = Config()
         self.init_args()
@@ -23,6 +26,7 @@ class ServerCli():
         parser.add_argument("-u", "--update-packages", action="store_true")
         parser.add_argument("-c", "--update-repositories", action="store_true")
         parser.add_argument("-s", "--set-supported", action="store_true")
+        parser.add_argument("-f", "--flush-snapshots", action="store_true")
         parser.add_argument("--ignore-not-supported", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
@@ -33,6 +37,21 @@ class ServerCli():
             self.setup_imagebuilder(*self.args["setup_imagebuilder"])
         if self.args["set_supported"]:
             self.set_supported()
+        if self.args["flush_snapshots"]:
+            self.flush_snapshots()
+
+    def flush_snapshots(self):
+        self.log.info("flush snapshots")
+        self.database.flush_snapshots()
+        workdir = os.path.join(get_dir("workdir"), "lede", "snapshot")
+        if os.path.exists(workdir):
+            self.log.info("remove snapshots imagebuidler")
+            rmtree(workdir)
+        downloaddir = os.path.join(get_dir("downloaddir"), "lede", "snapshot")
+
+        if os.path.exists(downloaddir):
+            self.log.info("remove snapshots images")
+            rmtree(downloaddir)
 
     def set_supported(self):
         for distro, release in self.database.get_releases():
@@ -93,7 +112,7 @@ class ServerCli():
                 subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
                 subtargets = re.findall(subtarget_pattern, subtarget_website)
                 print("snapshots {} {}".format("snapshots", target, subtargets))
-                self.database.insert_subtargets("lede", "snapshot", target, subtargets)    
+                self.database.insert_subtargets("lede", "snapshot", target, subtargets)
 
         for distro, distro_url in self.config.get("distributions").items():
             print("searching {} releases".format(distro))

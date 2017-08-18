@@ -437,6 +437,12 @@ class Database():
         result = self.c.fetchall()
         return result
 
+    def flush_snapshots(self):
+        self.log.debug("flush snapshots")
+        sql = "delete from images where release = 'snapshot';"
+        self.c.execute(sql)
+        self.commit()
+
 if __name__ == "__main__":
     db = Database()
     db.create_tables()
