@@ -1,114 +1,109 @@
 # Attended Sysupgrade (GSoC 2017)
 
-This package will offer an easy way to reflash the router with a new release or package updates.
+This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new release or package updates, without the need of `opkg` installed. 
 
-*This documentation will grow and is constantly updated*
+![luci-app-attendedsysupgrade-screenshot](https://screenshots.firefoxusercontent.com/images/72b35ace-4fe2-4bba-9996-786e753d34b2.png)
 
-### ubus packages
+### Created LEDE packages
 
-* `rpcd-mod-attendedsysupgrade`
+* [`rpcd-mod-attendedsysupgrade`](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-attendedsysupgrade)
 
-Offers a function to perform a sysupgrade via ubus. [Moved to official packages.git](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-attendedsysupgrade)
+Offers a function to perform a sysupgrade via ubus. 
 
-* `rpcd-mod-packagelist` 
+* [`rpcd-mod-packagelist`](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-packagelist)
 
-Has the function `list` to show all user installed packages without the need of `opkg` installed. [Moved to official packages.git](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-packagelist)
+Has the function `list` to show all user installed packages without the need of `opkg` installed. 
 
-* `luci-app-attendedsysupgrade`
+* [`luci-app-attendedsysupgrade`](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
 
-Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server. [Moved to official luci.git](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
+Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server. 
 
 **Dependencies:**
 * `rpcd`
+	Used by both `rpcd-*` packages
 * `uhttpd-mod-ubus`
-* `cgi-io` (to upload sysupgrade.bin via webinterface)
+	Communication between the Browser and the Router
+* `cgi-io`
+	Upload image from Browser to Router
 
-### server side
+### Server side
 
-The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of target/subtarget. 
+The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of distribution, release, target & subtarget. 
 
-All requests are stored in a queue, the web interface informs on progress. 
+All requests are stored in a queue and build by workers. 
 
 ## API
 
 To communicate with the update server one have to distinguish between *update request*, *update response*, *image request* and *image response*. The different types are explained below.
 
-### update request
+### Update request
 
 Sends information about the device to the server to see if a new distribution release or package updates are available. An *update request* could look like this:
 
-	{
-		"distro": "LEDE",
-        "version": "17.01.0",
-		"target": "ar71xx",
-		"subtarget": "generic",
-		"board": "tl-wdr4300-v1",
-		"packages": {
-			"opkg": "2017-05-03-04e279eb-1"
-			...
-		}   
-	}
+| key 	| value | information 	|
+| --- 	| --- 	| --- 		|
+| `distro` | `LEDE` | installed distribution |
+| `version` | `17.01.0` | installed release |
+| `target` | `ar71xx` | |
+| `subtarget` | `generic` | |
+| `packages` | `{libuci-lua: 2017-04-12-c4df32b3-1, cgi-io: 3, ...}` | all user installed packages |
 
 Most information can be retrieved via `ubus call system board`. Missing information can be gathered via the `rpcd-mod-packagelist` package.
 `packages` contains all user installed packages. Packages installed as an dependence are excluded.
 
-### update response
+### Update response
 
-The server validates the request. If all checks pass an response is send, currently only distribution releases are notified. 
+The server validates the request. Below is a possible response for a new release:
 
-	{
-		"version": "17.01.1"
-		"error": ""
-	}
+| key 		| value 	| information 	|
+| --- 		| --- 		| --- 		|
+| `version` 	| `17.01.2` 	| newest release |
+| `updates` 	| `{luci-lib-jsonc: [git-17.230.25723-2163284-1, git-17.228.56579-209deb5-1], ...}` | Package updates `[new_version, current_version]` |
+| `packages` 	| `[libuci-lua, cgi-io: 3, ...]` | All packages for the new image |
+
 
 The client should check the status code:
 
-| status 	| meaning 					| information 	|
-| --- 		| --- 						| --- 			|
-| 500 		| error						| see `error` in response | 
+| status 	| meaning 				| information 	|
+| --- 		| --- 					| --- 			|
+| 500 		| error					| see `error` in response | 
 | 503 		| server overload	   		| see `error` in response | 
 | 204 		| no updates				| | 
-| 201 		| imagebuilder not ready	| setting up imagebuilder, retry soon | 
-| 200		| new release				| see `version` in response |
-| 200		| package updates			| see `packages` in response | 
+| 201 		| imagebuilder not ready		| setting up imagebuilder, retry soon | 
+| 200		| new release / new package updates	| see `version` and `updates` in response |
 
-An release update does not ignore package updates for the following reason. Between releases packages names may change. The *update reponse* contains all packages included renamed ones.
+An release update does not ignore package updates for the following reason. Between releases packages names may change, packages are dropped or merged. The *update reponse* contains all packages included changed ones.
 
-### image request
+### Image request
 
 The *update reponse* should be shown to the user in a readable way. Once the user decides to perform the sysupgrade a new request is send to the server called *image request*
 
-	{
-		"distro": "LEDE",
-		"version": "17.01.1",
-		"target": "ar71xx",
-		"subtarget": "generic",
-		"board": "tl-wdr4300-v1",
-		"packages": {
-			"opkg": "2017-05-03-04e279eb-1"
-			...
-		}   
-	}
+| key 		| value 				| information 	|
+| --- 		| --- 					| --- 		|
+| `distro` 	| `LEDE` 				| installed distribution |
+| `version`	| `17.01.2` 				| installed release |
+| `target` 	| `ar71xx` 				| |
+| `subtarget` 	| `generic` 				| |
+| `board` 	| `tl-wdr4300-v1` 			| `board_name` of `ubus call system board` |
+| `model` 	| `TP-Link TL-WDR4300 v1` 		| `model` of `ubus call system board` |
+| `packages` 	| `[libuci-lua, cgi-io: 3, ...]` 	| All packages for the new image |
 
-The *image request* is nearly the same as the *update request* before, except only containing current versions of release and packages. While the update server builds the requests image the clients keeps polling the server, sending *exacly* the same *image request*. The client _does not_ receive a ticket ID or anything similar. This is due to the situation when same devices poll in parallel only one build job is triggered, resulting in the same image for all devices.
+The *image request* is nearly the same as the *update request* before, except only containing package names without version and adding `board` and `model`. While the update server builds the requested image the clients keeps polling the server, sending *exacly* the same *image request*. The client _does not_ receive a ticket ID or anything similar. This is due to the situation when same devices poll in parallel only one build job is triggered, resulting in the same image for all devices.
 
-### image response
+### Image response
 
-	{
-		"queue": 3
-		"url": "https://update.lede/download/lede/17.01.1/ar71xx/generic/lede-17.01.1-2fe136c15026-ar71xx-generic-<device profile>-sysupgrade.bin"
-		"size": 4000000
-		"md5": <checksum>
-	}
-
-`usign` signatures can bei retrieved via `response['url'] + ".sig"`
+| key 	| value | information 	|
+| --- 	| --- 	| --- 		|
+| `checksum` | `8b32f569dca8dcd780414f7850ed11e8` | md5 |
+| `filesize` | `5570113` |  |
+| `url` | `https://betaupdate.libremesh.o…x86-64-Generic-sysupgrade.bin` | download link |
 
 The `status` code has again different meanings.
 
 | status 	| meaning 				| information 	|
 | --- 		| --- 					| --- 			|
-| 500		| build faild			| see `error`	|
-| 503 		| server overload   | see `error` in response | 
-| 201		| queued				| requests wait to build, see `queue` decreasing |
+| 500		| build faild				| see `error`	|
+| 503 		| server overload   			| see `error` in response | 
+| 201		| queued				| requests wait to build |
 | 206		| building				| building right now |
-| 200		| ready					| build finished successful, see `url` to retrieve image |
+| 200		| ready					| build finished successful |
