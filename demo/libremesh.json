@@ -1,5 +1,5 @@
 {
-    "distro": "libremesh",
+    "distro": "LiMe",
     "version": "17.06",
     "target": "ar71xx",
     "subtarget": "generic",
