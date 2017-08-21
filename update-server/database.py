@@ -31,7 +31,7 @@ class Database():
 
     def insert_release(self, distro, release):
         self.log.info("insert %s/%s ", distro, release)
-        sql = "INSERT INTO releases VALUES (?, ?) ON CONFLICT DO NOTHING;"
+        sql = "INSERT INTO releases (distro, release) VALUES (?, ?);"
         self.c.execute(sql, distro, release)
         self.commit()
 
@@ -44,7 +44,7 @@ class Database():
 
     def get_releases(self, distro=None):
         if not distro:
-            return self.c.execute("select * from releases").fetchall()
+            return self.c.execute("select distro, release from releases").fetchall()
         else:
             releases = self.c.execute("select release from releases WHERE distro=?", (distro, )).fetchall()
             respond = []
@@ -127,7 +127,7 @@ class Database():
 
     def insert_subtargets(self, distro, release, target, subtargets):
         self.log.info("insert subtargets %s/%s ", target, " ".join(subtargets))
-        sql = "INSERT INTO subtargets (distro, release, target, subtarget) VALUES (?, ?, ?, ?) on conflict do nothing;"
+        sql = "INSERT INTO subtargets (distro, release, target, subtarget) VALUES (?, ?, ?, ?);"
         for subtarget in subtargets:
             self.c.execute(sql, distro, release, target, subtarget)
 
