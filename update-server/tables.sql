@@ -1,4 +1,4 @@
---drop schema public cascade; create schema public;
+-- drop schema public cascade; create schema public;
 
 create table if not exists distributions (
 	id serial primary key,
@@ -123,7 +123,7 @@ SELECT add_profiles(
 
 create table if not exists packages_names(
 	id serial primary key,
-	name varchar(100) unique
+	name varchar(100) unique not null
 );
 
 create table if not exists packages_versions(
@@ -574,26 +574,22 @@ CREATE TABLE IF NOT EXISTS transformations_table (
 	context_id INTEGER,
 	FOREIGN KEY (distro_id) REFERENCES distributions(id),
 	FOREIGN KEY (release_id) REFERENCES releases_table(id),
-	FOREIGN KEY (package_id) REFERENCES packages_names(id),
-	FOREIGN KEY (replacement_id) REFERENCES packages_names(id),
-	FOREIGN KEY (context_id) REFERENCES packages_names(id)
+	FOREIGN KEY (package_id) REFERENCES packages_names(id)
 );
 
 create or replace view transformations as
 select distro, release, p.name as package, r.name as replacement, c.name as context
-from transformations_table, releases, packages_names p, packages_names r, packages_names c
-where
-releases.id = transformations_table.release_id and
-transformations_table.package_id = p.id and
-transformations_table.replacement_id = r.id and
-transformations_table.context_id = c.id;
+from transformations_table
+join releases on releases.id = transformations_table.release_id
+join packages_names p on transformations_table.package_id = p.id
+left join packages_names r on transformations_table.replacement_id = r.id
+left join packages_names c on transformations_table.context_id = c.id;
 
 create or replace function add_transformations(distro varchar, release varchar, package varchar, replacement varchar, context varchar) returns void as
 $$
 begin
-	insert into packages_names (name) values (add_transformations.package) on conflict do nothing;
-	insert into packages_names (name) values (add_transformations.replacement) on conflict do nothing;
-	insert into packages_names (name) values (add_transformations.context) on conflict do nothing;
+	-- evil hack to not insert Null names
+	insert into packages_names (name) values (add_transformations.package), (coalesce(add_transformations.replacement, 'busybox')), (coalesce(add_transformations.context, 'busybox')) on conflict do nothing;
 	insert into transformations_table (distro_id, release_id, package_id, replacement_id, context_id) values (
 		(select id from distributions where distributions.name = add_transformations.distro),
 		(select id from releases where releases.release = add_transformations.release),
@@ -614,12 +610,11 @@ SELECT add_transformations(
 	NEW.context
 );
 
-
-CREATE OR REPLACE FUNCTION transform(distro_id INTEGER, origrelease_id INTEGER, targetrelease_id INTEGER, origpkgar INTEGER[])
+CREATE OR REPLACE FUNCTION transform_function(distro_id INTEGER, origrelease_id INTEGER, targetrelease_id INTEGER, origpkgar INTEGER[])
 RETURNS INTEGER[] AS $$
-WITH origpkgs AS (SELECT unnest(transform.origpkgar) AS pkgnameid)
+WITH origpkgs AS (SELECT unnest(transform_function.origpkgar) AS pkgnameid)
 SELECT ARRAY(
-	SELECT DISTINCT COALESCE(transformq.replacement_id, transformq.pkgnameid) FROM (
+	SELECT DISTINCT COALESCE(transform_functionq.replacement_id, transform_functionq.pkgnameid) FROM (
 		SELECT
 		origpkgs.pkgnameid AS pkgnameid,
 		transformations_table.package_id AS package_id,
@@ -629,9 +624,9 @@ SELECT ARRAY(
 		LEFT OUTER JOIN
 		(
 			SELECT package_id, replacement_id, context_id FROM transformations_table WHERE
-			transformations_table.distro_id = transform.distro_id AND
-			transformations_table.release_id > transform.origrelease_id AND
-			transformations_table.release_id <= transform.targetrelease_id
+			transformations_table.distro_id = transform_function.distro_id AND
+			transformations_table.release_id > transform_function.origrelease_id AND
+			transformations_table.release_id <= transform_function.targetrelease_id
 		) AS transformations_table
 		ON (origpkgs.pkgnameid = transformations_table.package_id)
 		WHERE
@@ -645,6 +640,18 @@ SELECT ARRAY(
 			)
 		)
 		GROUP BY origpkgs.pkgnameid, transformations_table.package_id
-	) AS transformq
+	) AS transform_functionq
 )
 $$ LANGUAGE sql;
+
+create or replace function transform(distro varchar, origrelease varchar, targetrelease varchar, origpackages varchar) returns table(packages varchar) as $$
+begin
+	return query select name
+		from unnest(transform_function(
+			(select id from distributions where distributions.name = transform.distro),
+			(select id from releases where releases.release = transform.origrelease),
+			(select id from releases where releases.release = transform.targetrelease),
+			(select array_agg(id) from packages_names, unnest(string_to_array(transform.origpackages, ' ')) as origpackages_rec where packages_names.name = origpackages_rec))) as result_ids
+			join packages_names on packages_names.id = result_ids;
+end
+$$ LANGUAGE 'plpgsql';

@@ -44,17 +44,17 @@ def insert_replacements(distro, release, transformations):
         if not action:
             # drop package
             #print("drop", package)
-            database.insert_transformation(distro, release, package, False, False)
+            database.insert_transformation(distro, release, package, None, None)
         elif type(action) is str:
             # replace package
             #print("replace", package, "with", action)
-            database.insert_transformation(distro, release, package, action, False)
+            database.insert_transformation(distro, release, package, action, None)
         elif type(action) is dict:
             for choice, context in action.items():
                 if context is True:
                     # set default
                     #print("default", choice)
-                    database.insert_transformation(distro, release, package, choice, False)
+                    database.insert_transformation(distro, release, package, choice, None)
                 elif context is False:
                     # possible choice
                     #print("choice", choice)
