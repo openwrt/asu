@@ -1,0 +1,32 @@
+{
+    "distro": "lede",
+    "target": "x86",
+    "subtarget": "64",
+    "version": "15.05",
+    "board": "Generic",
+    "packages": {
+        "polarssl": "1.8.0-1",
+        "openvpn": "2011-04-08-9c97d5ec-17",
+        "kmod-ipv6": "1.25.1-4",
+        "odhcpd": "2017-04-28-9268ca65-1",
+        "base-files": "172-r3205-59508e3",
+        "partx-utils": "2.29.2-1",
+        "netifd": "2017-01-25-650758b1-1",
+        "kmod-r8169": "4.4.50-1",
+        "dnsmasq": "2.77-1",
+        "firewall": "2017-05-27-a4d98aea-1",
+        "odhcp6c": "2017-01-30-c13b6a05-1",
+        "fstools": "2016-12-04-84b530a7-1",
+        "uclient-fetch": "2016-12-09-52d955fd-1",
+        "uci": "2016-07-04-e1bf4356-1",
+        "dropbear": "2017.75-1",
+        "mtd": "21",
+        "logd": "2017-03-10-16f7e161-1",
+        "iptables": "1.4.21-2",
+        "e2fsprogs": "1.43.3-2",
+        "ip6tables": "1.4.21-2",
+        "luci": "git-17.152.82987-7f6fc16-1",
+        "kmod-button-hotplug": "4.4.50-3",
+        "kmod-igb": "4.4.50-1"
+    }
+}

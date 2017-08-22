@@ -18,6 +18,10 @@ class ImageRequest(Request):
         if bad_request:
             return bad_request
 
+        bad_target = self.check_bad_target()
+        if bad_target:
+            return bad_target
+
         profile_request = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
         if profile_request:
             self.profile = profile_request

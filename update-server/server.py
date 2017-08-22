@@ -17,7 +17,6 @@ from util import get_dir
 from flask import request, send_from_directory,redirect
 import os
 from image import Image
-from replacement_table import *
 from update_request import UpdateRequest
 from image_request import ImageRequest
 from config import Config
@@ -83,10 +82,10 @@ def image_info(manifest_hash):
     return render_template("manifest-info.html", manifest=manifest)
 
 def get_last_build_id():
-    return 1 # currently not working
     if config.get("dev"):
         return 1
-        #return bm.get_last_build_id()
+    return 1 # currently not working
+    #return bm.get_last_build_id()
 
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     socket_name = "/tmp/build_manager_last_build_id"
@@ -103,9 +102,9 @@ def get_last_build_id():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     if config.get("dev"):
-        app.debug = True
         worker = Worker()
         worker.start()
+        #app.debug = True
 
     if config.get("dev"):
         app.run(host="0.0.0.0")

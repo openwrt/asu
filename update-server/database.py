@@ -444,11 +444,17 @@ class Database():
         self.commit()
 
     def insert_transformation(self, distro, release, package, replacement, context):
-        print("transformation {} {} {}".format(package, replacement, context))
+        print("insert transformation {} {} {}".format(package, replacement, context))
         self.log.info("insert %s/%s ", distro, release)
         sql = "INSERT INTO transformations (distro, release, package, replacement, context) VALUES (?, ?, ?, ?, ?);"
         self.c.execute(sql, distro, release, package, replacement, context)
         self.commit()
+
+    def transform_packages(self, distro, orig_release, dest_release, packages):
+        self.log.debug("transform packages {} {} {} {}".format(distro, orig_release, dest_release, packages))
+        sql = "select transform(?, ?, ?, ?)"
+        self.c.execute(sql, distro, orig_release, dest_release, packages)
+        return self.c.fetchall()
 
 if __name__ == "__main__":
     db = Database()

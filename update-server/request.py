@@ -22,7 +22,7 @@ class Request():
         if not self.vaild_request():
             self.log.info("received invaild request")
             self.response_dict["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
-            return self.respond(), HTTPStatus.BAD_REQUEST  
+            return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.distro = self.request_json["distro"].lower()
 
@@ -37,11 +37,12 @@ class Request():
             self.response_dict["error"] = "unknown release %s" % self.release
             return self.respond(), HTTPStatus.BAD_REQUEST
 
+    def check_bad_target(self):
         self.target = self.request_json["target"]
         self.subtarget = self.request_json["subtarget"]
 
         subtarget_check =  self.database.get_subtargets(self.distro, self.release, self.target, self.subtarget)
-        if not len(subtarget_check) == 1: 
+        if not len(subtarget_check) == 1:
             self.response_dict["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
             return self.respond(), HTTPStatus.BAD_REQUEST
         elif not subtarget_check[0][2] == "1": # [2] is supported flag
@@ -64,7 +65,7 @@ class Request():
     def respond(self):
         self.log.debug(self.response_dict)
         return json.dumps(self.response_dict)
-   
+
     # if local version is newer than received returns true
     def release_latest(self, latest, external):
         return LooseVersion(external) >= LooseVersion(latest)

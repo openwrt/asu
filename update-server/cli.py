@@ -2,6 +2,7 @@
 
 from database import Database
 import re
+import yaml
 from shutil import rmtree
 import urllib.request
 import util
@@ -29,6 +30,7 @@ class ServerCli():
         parser.add_argument("-s", "--set-supported", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
         parser.add_argument("--ignore-not-supported", action="store_true")
+        parser.add_argument("-t", "--parse-transformations", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_releases"]:
             self.download_releases()
@@ -40,6 +42,8 @@ class ServerCli():
             self.set_supported()
         if self.args["flush_snapshots"]:
             self.flush_snapshots()
+        if self.args["parse_transformations"]:
+            self.load_tables()
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
@@ -138,6 +142,47 @@ class ServerCli():
                         self.database.insert_subtargets(distro, release, target, subtargets)
                 else:
                     print("release {} offline".format(release))
+
+    def insert_replacements(self, distro, release, transformations):
+        for package, action in transformations.items():
+            if not action:
+                # drop package
+                #print("drop", package)
+                self.database.insert_transformation(distro, release, package, None, None)
+            elif type(action) is str:
+                # replace package
+                #print("replace", package, "with", action)
+                self.database.insert_transformation(distro, release, package, action, None)
+            elif type(action) is dict:
+                for choice, context in action.items():
+                    if context is True:
+                        # set default
+                        #print("default", choice)
+                        self.database.insert_transformation(distro, release, package, choice, None)
+                    elif context is False:
+                        # possible choice
+                        #print("choice", choice)
+                        pass
+                    elif type(context) is list:
+                        for dependencie in context:
+                            # if context package exists
+                            #print("dependencie", dependencie, "for", choice)
+                            self.database.insert_transformation(distro, release, package, choice, dependencie)
+
+    def load_tables(self):
+        distros = {}
+        for distro in self.config.get("distributions").keys():
+            distros[distro] = {}
+            releases = yaml.load(open(os.path.join("distributions", distro, "releases.yml")).read())
+            for release in releases:
+                release = str(release)
+                release_replacements_path = os.path.join("distributions", distro, (release + ".yml"))
+                if os.path.exists(release_replacements_path):
+                    with open(release_replacements_path, "r") as release_replacements_file:
+                        replacements = yaml.load(release_replacements_file.read())
+                        if replacements:
+                            if "transformations" in replacements:
+                                self.insert_replacements(distro, release, replacements["transformations"])
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()

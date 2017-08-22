@@ -47,8 +47,8 @@ def get_releases(distro):
     return None
 
 def get_latest_release(distro):
-    with open(os.path.join("distributions", distro, "releases"), "r") as releases:
-        return releases.readlines()[-1].strip()
+    with open(os.path.join("distributions", distro, "releases.yml"), "r") as releases:
+        return yaml.load(releases.read())[-1]
     return None
 
 def get_release_config(distro, release):
