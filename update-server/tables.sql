@@ -36,15 +36,6 @@ SELECT add_releases(
 	NEW.release
 );
 
-CREATE TABLE IF NOT EXISTS transformations (
-	distro_id INTEGER NOT NULL,
-	release_id INTEGER NOT NULL,
-	origpkgname INTEGER NOT NULL,
-	destpkgname INTEGER,
-	contextpkgname INTEGER,
-	FOREIGN KEY (release_id) REFERENCES releases_table(id)
-);
-
 create table if not exists subtargets_table(
 	id serial primary key,
 	release_id integer,
@@ -575,37 +566,85 @@ on worker_skills_subtargets.subtarget_id = image_requests_subtargets.subtarget_i
 order by worker, requests desc
 limit 1;
 
+CREATE TABLE IF NOT EXISTS transformations_table (
+	distro_id INTEGER NOT NULL,
+	release_id INTEGER NOT NULL,
+	package_id INTEGER NOT NULL,
+	replacement_id INTEGER,
+	context_id INTEGER,
+	FOREIGN KEY (distro_id) REFERENCES distributions(id),
+	FOREIGN KEY (release_id) REFERENCES releases_table(id),
+	FOREIGN KEY (package_id) REFERENCES packages_names(id),
+	FOREIGN KEY (replacement_id) REFERENCES packages_names(id),
+	FOREIGN KEY (context_id) REFERENCES packages_names(id)
+);
+
+create or replace view transformations as
+select distro, release, p.name as package, r.name as replacement, c.name as context
+from transformations_table, releases, packages_names p, packages_names r, packages_names c
+where
+releases.id = transformations_table.release_id and
+transformations_table.package_id = p.id and
+transformations_table.replacement_id = r.id and
+transformations_table.context_id = c.id;
+
+create or replace function add_transformations(distro varchar, release varchar, package varchar, replacement varchar, context varchar) returns void as
+$$
+begin
+	insert into packages_names (name) values (add_transformations.package) on conflict do nothing;
+	insert into packages_names (name) values (add_transformations.replacement) on conflict do nothing;
+	insert into packages_names (name) values (add_transformations.context) on conflict do nothing;
+	insert into transformations_table (distro_id, release_id, package_id, replacement_id, context_id) values (
+		(select id from distributions where distributions.name = add_transformations.distro),
+		(select id from releases where releases.release = add_transformations.release),
+		(select id from packages_names where packages_names.name = add_transformations.package),
+		(select id from packages_names where packages_names.name = add_transformations.replacement),
+		(select id from packages_names where packages_names.name = add_transformations.context)
+	) on conflict do nothing;
+end
+$$ language 'plpgsql';
+
+create or replace rule insert_transformations AS
+ON insert TO transformations DO INSTEAD
+SELECT add_transformations(
+	NEW.distro,
+	NEW.release,
+	NEW.package,
+	NEW.replacement,
+	NEW.context
+);
+
 
 CREATE OR REPLACE FUNCTION transform(distro_id INTEGER, origrelease_id INTEGER, targetrelease_id INTEGER, origpkgar INTEGER[])
 RETURNS INTEGER[] AS $$
 WITH origpkgs AS (SELECT unnest(transform.origpkgar) AS pkgnameid)
 SELECT ARRAY(
-	SELECT DISTINCT COALESCE(transformq.destpkgname, transformq.pkgnameid) FROM (
+	SELECT DISTINCT COALESCE(transformq.replacement_id, transformq.pkgnameid) FROM (
 		SELECT
 		origpkgs.pkgnameid AS pkgnameid,
-		transformations.origpkgname AS origpkgname,
-		MAX(transformations.destpkgname) AS destpkgname
+		transformations_table.package_id AS package_id,
+		MAX(transformations_table.replacement_id) AS replacement_id
 		FROM
 		origpkgs
 		LEFT OUTER JOIN
 		(
-			SELECT origpkgname, destpkgname, contextpkgname FROM transformations WHERE
-			transformations.distro_id = transform.distro_id AND
-			transformations.release_id > transform.origrelease_id AND
-			transformations.release_id <= transform.targetrelease_id
-		) AS transformations
-		ON (origpkgs.pkgnameid = transformations.origpkgname)
+			SELECT package_id, replacement_id, context_id FROM transformations_table WHERE
+			transformations_table.distro_id = transform.distro_id AND
+			transformations_table.release_id > transform.origrelease_id AND
+			transformations_table.release_id <= transform.targetrelease_id
+		) AS transformations_table
+		ON (origpkgs.pkgnameid = transformations_table.package_id)
 		WHERE
-		transformations.origpkgname IS NULL OR (
-			origpkgs.pkgnameid = transformations.origpkgname AND (
-				transformations.contextpkgname IS NULL OR EXISTS (
-					SELECT origpkgs.pkgnameid FROM origpkgs WHERE origpkgs.pkgnameid = transformations.contextpkgname
+		transformations_table.package_id IS NULL OR (
+			origpkgs.pkgnameid = transformations_table.package_id AND (
+				transformations_table.context_id IS NULL OR EXISTS (
+					SELECT origpkgs.pkgnameid FROM origpkgs WHERE origpkgs.pkgnameid = transformations_table.context_id
 				)
 				) AND NOT (
-				origpkgs.pkgnameid = transformations.origpkgname AND transformations.destpkgname IS NULL
+				origpkgs.pkgnameid = transformations_table.package_id AND transformations_table.replacement_id IS NULL
 			)
 		)
-		GROUP BY origpkgs.pkgnameid, transformations.origpkgname
+		GROUP BY origpkgs.pkgnameid, transformations_table.package_id
 	) AS transformq
 )
 $$ LANGUAGE sql;

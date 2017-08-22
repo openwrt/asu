@@ -1,4 +1,5 @@
 import json
+from database import Database
 import yaml
 from config import Config
 import os
@@ -20,6 +21,8 @@ def check_packages(distro, installedRelease, packages):
 
     return response
 # this function will load all replacement tables
+database = Database()
+
 def load_tables():
     config = Config()
     distros = {}
@@ -40,18 +43,26 @@ def insert_replacements(distro, release, transformations):
     for package, action in transformations.items():
         if not action:
             # drop package
-            print("drop", package)
+            #print("drop", package)
+            database.insert_transformation(distro, release, package, False, False)
         elif type(action) is str:
-            # replace
-            print("replace", package, "with", action)
+            # replace package
+            #print("replace", package, "with", action)
+            database.insert_transformation(distro, release, package, action, False)
         elif type(action) is dict:
-            for key, value in action.items():
-                if value is True:
-                    print("default", key)
-                elif value is False:
-                    print("choice", key)
-                elif type(value) is list:
-                    for dependencie in value:
-                        print("dependencie", dependencie, "for", key)
+            for choice, context in action.items():
+                if context is True:
+                    # set default
+                    #print("default", choice)
+                    database.insert_transformation(distro, release, package, choice, False)
+                elif context is False:
+                    # possible choice
+                    #print("choice", choice)
+                    pass
+                elif type(context) is list:
+                    for dependencie in context:
+                        # if context package exists
+                        #print("dependencie", dependencie, "for", choice)
+                        database.insert_transformation(distro, release, package, choice, dependencie)
 
 load_tables()

@@ -443,6 +443,13 @@ class Database():
         self.c.execute(sql)
         self.commit()
 
+    def insert_transformation(self, distro, release, package, replacement, context):
+        print("transformation {} {} {}".format(package, replacement, context))
+        self.log.info("insert %s/%s ", distro, release)
+        sql = "INSERT INTO transformations (distro, release, package, replacement, context) VALUES (?, ?, ?, ?, ?);"
+        self.c.execute(sql, distro, release, package, replacement, context)
+        self.commit()
+
 if __name__ == "__main__":
     db = Database()
     db.create_tables()
