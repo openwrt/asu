@@ -1,6 +1,7 @@
 import urllib.request
 import gnupg
 import yaml
+import yaml
 import http.client
 import tarfile
 import re
@@ -39,6 +40,11 @@ def get_statuscode(url):
     conn = http.client.HTTPConnection(host)
     conn.request("HEAD", path) 
     return conn.getresponse().status
+
+def get_releases(distro):
+    with open(os.path.join("distributions", distro, "releases.yml"), "r") as releases:
+        return yaml.load(releases.read())
+    return None
 
 def get_latest_release(distro):
     with open(os.path.join("distributions", distro, "releases"), "r") as releases:

@@ -4,6 +4,7 @@ from database import Database
 import re
 from shutil import rmtree
 import urllib.request
+import util
 import logging
 from config import Config
 from imagebuilder import ImageBuilder
@@ -84,7 +85,7 @@ class ServerCli():
                 if len(args) > 3:
                     if subtarget != args[3]:
                         continue
-                if supported == "1" or self.args["ignore_not_supported"]: 
+                if supported == "1" or self.args["ignore_not_supported"]:
                     self.setup_imagebuilder(distro, release, target, subtarget)
                 else:
                     print("target {} not supported for sysupgrade, skipping".format(target))
@@ -115,24 +116,28 @@ class ServerCli():
                 self.database.insert_subtargets("lede", "snapshot", target, subtargets)
 
         for distro, distro_url in self.config.get("distributions").items():
-            print("searching {} releases".format(distro))
-            releases_website = urllib.request.urlopen(distro_url).read().decode('utf-8')
-            releases_pattern = r'href="(.+?)/?">.+/?</a>/?</td>'
-            releases = re.findall(releases_pattern, releases_website)
-            for release in releases:
-                # need a better regex here
-                if release != ".." and not release.startswith("packages") and not "rc" in release and not "/" == release and not release == "current" and not release == "lime-16.07":
-                    print("{} {}".format(distro, release))
-                    self.database.insert_release(distro, release)
-                    target_website = urllib.request.urlopen("{}/{}/targets/".format(distro_url, release)).read().decode('utf-8')
-                    target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                    targets = re.findall(target_pattern, target_website)
+            #print("searching {} releases".format(distro))
+            #releases_website = urllib.request.urlopen(distro_url).read().decode('utf-8')
+            #releases_pattern = r'href="(.+?)/?">.+/?</a>/?</td>'
+            #releases = re.findall(releases_pattern, releases_website)
+            for release in util.get_releases(distro):
+                release = str(release)
+                print("{} {}".format(distro, release))
+                self.database.insert_release(distro, release)
+                release_url = "{}/{}/targets/".format(distro_url, release)
+                if util.get_statuscode(release_url) != 404:
+                    print("release {} online".format(release))
+                    targets_website = urllib.request.urlopen(release_url).read().decode('utf-8')
+                    targets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                    targets = re.findall(targets_pattern, targets_website)
                     for target in targets:
-                        subtarget_website = urllib.request.urlopen("{}/{}/targets/{}".format(distro_url, release, target)).read().decode('utf-8')
-                        subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                        subtargets = re.findall(subtarget_pattern, subtarget_website)
+                        subtargets_website = urllib.request.urlopen("{}/{}/targets/{}".format(distro_url, release, target)).read().decode('utf-8')
+                        subtargets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                        subtargets = re.findall(subtargets_pattern, subtargets_website)
                         print("{} {} {}".format(release, target, subtargets))
                         self.database.insert_subtargets(distro, release, target, subtargets)
+                else:
+                    print("release {} offline".format(release))
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
