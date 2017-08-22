@@ -27,3 +27,15 @@ supported:
   - ar71xx
   - octeon
   - sunxi
+transformations:
+  libmicrohttpd:
+    libmicrohttpd-no-ssl: true
+    libmicrohttpd: false
+  openvpn:
+    openvpn-openssl: true
+    openvpn-mbedtls:
+      - polarssl
+      - mbedtls
+    openvpn-nossl: false
+  polarssl: mbedtls
+  kmod-ipv6: False
