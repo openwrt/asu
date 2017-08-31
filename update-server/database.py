@@ -147,7 +147,7 @@ class Database():
         self.log.debug("check_request")
         request_array = request.as_array()
         request_hash = get_hash(" ".join(request_array), 12)
-        sql = """select status, id from image_requests
+        sql = """select id, request_hash, status from image_requests
             where request_hash = ?"""
         self.c.execute(sql, request_hash)
         if self.c.rowcount > 0:
@@ -159,7 +159,7 @@ class Database():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
             self.c.execute(sql, request_hash, *request_array)
             self.commit()
-            return 'requested', 0
+            return(0, '', 'requested')
 
     def request_imagebuilder(self, distro, release, target, subtarget):
         sql = """INSERT INTO image_requests

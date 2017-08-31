@@ -14,6 +14,7 @@ from image import ImageBuilder
 from database import Database
 import logging
 from util import get_dir
+import util
 from flask import request, send_from_directory,redirect
 import os
 from image import Image
@@ -101,6 +102,7 @@ def get_last_build_id():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    util.create_folder("{}/{}".format(util.get_dir("downloaddir"), "faillogs"))
     if config.get("dev"):
         worker = Worker()
         worker.start()

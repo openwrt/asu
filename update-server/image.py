@@ -35,7 +35,6 @@ class Image(threading.Thread):
             self.packages = packages
 
         self.check_network_profile(network_profile)
-        #self._set_path()
         self.set_request_hash()
 
     def run(self):
@@ -47,7 +46,6 @@ class Image(threading.Thread):
         self.diff_packages()
 
         with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as self.build_path:
-
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
             print(self.packages)
@@ -56,7 +54,6 @@ class Image(threading.Thread):
                 self.log.debug("add network_profile %s", self.network_profile)
                 cmdline.append('FILES=%s' % self.network_profile_path)
             cmdline.append('BIN_DIR=%s' % self.build_path)
-            #cmdline.append('EXTRA_IMAGE_NAME=%s' % self.manifest_hash)
 
             self.log.info("start build: %s", " ".join(cmdline))
 
@@ -68,7 +65,7 @@ class Image(threading.Thread):
                 stderr=subprocess.STDOUT
             )
 
-            output, erros = proc.communicate()
+            self.log_output, erros = proc.communicate()
             returnCode = proc.returncode
             if returnCode == 0:
                 self.log.info("build successfull")
@@ -76,8 +73,11 @@ class Image(threading.Thread):
                 self.manifest_id = self.database.add_manifest(self.manifest_hash)
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
-                self._set_path()
+                self.set_path()
                 create_folder(os.path.dirname(self.path))
+
+                self.store_log(self.path)
+
                 if not os.path.exists(self.path):
                     sysupgrade = glob.glob(os.path.join(self.build_path, '*sysupgrade.bin'))
                     if not sysupgrade:
@@ -104,10 +104,15 @@ class Image(threading.Thread):
                 self.database.done_build_job(self.request_hash, self.image_hash)
                 return True
             else:
-                print(output.decode('utf-8'))
                 self.log.info("build failed")
                 self.database.set_build_job_fail(self.request_hash)
+                self.store_log(os.path.join(get_dir("downloaddir"), "faillogs", self.request_hash))
                 return False
+
+    def store_log(self, path):
+        self.log.debug("write log to %s", path)
+        log_file = open(path + ".log", "a")
+        log_file.writelines(self.log_output.decode('utf-8'))
 
     def gen_checksum(self):
         self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
@@ -116,7 +121,7 @@ class Image(threading.Thread):
     def gen_filesize(self):
         self.filesize = os.stat(self.path).st_size
 
-    def _set_path(self):
+    def set_path(self):
         # using lede naming convention
         path_array = [self.distro, self.release, self.manifest_hash]
 

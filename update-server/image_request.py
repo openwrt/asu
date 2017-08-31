@@ -59,11 +59,12 @@ class ImageRequest(Request):
 
         self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
         response = self.database.check_request(self.image)
-        request_status, request_id = response
+        request_id, request_hash, request_status = response
         self.log.debug("found image in database: %s", request_status)
         if  request_status == "created":
             filename, checksum, filesize = self.database.get_image(request_id)
             self.response_dict["url"] =  self.config.get("update_server") + "/download/" + filename
+            self.response_dict["log"] = self.response_dict["url"] + ".log"
             self.response_dict["checksum"] = checksum
             self.response_dict["filesize"] = filesize
             return self.respond(), HTTPStatus.OK # 200
@@ -75,9 +76,11 @@ class ImageRequest(Request):
                 return "", HTTPStatus.PARTIAL_CONTENT # 206
             elif request_status == "failed":
                 self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
+                self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
             elif request_status == "imagesize_fail":
                 self.response_dict["error"] = "requested image is too big for requested target. retry with less packages"
+                self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.BAD_REQUEST # 400
         return 503
 
