@@ -103,6 +103,10 @@ def get_last_build_id():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     util.create_folder("{}/{}".format(util.get_dir("downloaddir"), "faillogs"))
+    if config.get("sign_images"):
+        print("sign images")
+        util.init_usign()
+
     if config.get("dev"):
         worker = Worker()
         worker.start()

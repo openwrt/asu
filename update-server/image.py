@@ -4,6 +4,7 @@ from config import Config
 from database import Database
 from imagebuilder import ImageBuilder
 from util import create_folder,get_hash,get_dir
+import util
 import re
 import shutil
 import urllib.request
@@ -96,6 +97,12 @@ class Image(threading.Thread):
 
                     self.log.info("move %s to %s", sysupgrade, self.path)
                     shutil.move(sysupgrade[0], self.path)
+                    if self.config.get("sign_images"):
+                        if util.sign_image(self.path):
+                            self.log.info("signed %s", self.path)
+                        else:
+                            self.database.set_image_requests_status(self.request_hash, 'signing_fail')
+                            return False
                     self.gen_checksum()
                     self.gen_filesize()
                     self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize)

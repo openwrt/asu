@@ -1,5 +1,6 @@
 dev: True
-network_profile_folder: 
+sign_images: False
+network_profile_folder:
 imagebuilder_url: "http://downloads.lede-project.org/releases/"
 snapshots: Flase
 imagebuilder_snapshots_url: "https://downloads.lede-project.org/snapshots/"
@@ -13,6 +14,7 @@ database_port: 5432
 workdir: imagebuilder
 downloaddir: download
 tempdir: /tmp
+keys_folder: keys
 
 distributions:
     lede: https://downloads.lede-project.org/releases/

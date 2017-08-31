@@ -81,7 +81,10 @@ class ImageRequest(Request):
                 self.response_dict["error"] = "requested image is too big for requested target. retry with less packages"
                 self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.BAD_REQUEST # 400
-        return 503
+
+        self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
+        self.response_dict["error"] = request_status
+        return self.respond(), 503
 
     def check_network_profile(self):
         network_profile = self.request_json["network_profile"]

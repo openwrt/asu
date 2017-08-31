@@ -22,7 +22,7 @@ def create_folder(folder):
             os.makedirs(folder)
             logging.info("created folder %s", folder)
         return True
-    except: 
+    except:
         logging.error("could not create %s", folder)
         return False
 
@@ -38,7 +38,7 @@ def get_statuscode(url):
     host = url_split[2]
     path = "/" +"/".join(url_split[3:])
     conn = http.client.HTTPConnection(host)
-    conn.request("HEAD", path) 
+    conn.request("HEAD", path)
     return conn.getresponse().status
 
 def get_releases(distro):
@@ -62,7 +62,7 @@ def get_release_config(distro, release):
 def get_root():
     return os.path.dirname(os.path.realpath(__file__))
 
-def get_dir(requested_folder):
+def get_folder(requested_folder):
     folder = config.get(requested_folder)
     if folder:
         if create_folder(folder):
@@ -73,6 +73,10 @@ def get_dir(requested_folder):
         return default_folder
     else:
         quit()
+
+# shortly removed
+def get_dir(requested_folder):
+    return get_folder(requested_folder)
 
 def get_supported_targets(distro, release):
     response = {}
@@ -90,16 +94,50 @@ def get_supported_targets(distro, release):
     return None
 
 def setup_gnupg():
-    gpg_folder = get_dir("gnupg")
+    gpg_folder = get_folder("key_folder")
     os.chmod(gpg_folder, 0o700)
     gpg = gnupg.GPG(gnupghome=gpg_folder)
     key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B"]
     gpg.recv_keys('pool.sks-keyservers.net', *key_array)
 
 def check_signature(path):
-    gpg_folder = get_dir("gnupg")
+    gpg_folder = get_folder("key_folder")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
-    print("xxxx", path)
     verified = gpg.verify_file(open(os.path.join(path, "sha256sums.gpg"), "rb"), os.path.join(path, "sha256sums"))
     return verified.valid
 
+def init_usign():
+    key_folder = get_folder("key_folder")
+    if not os.path.exists(key_folder + "/secret"):
+        print("create keypair")
+        cmdline = ['usign', '-G', '-s', 'secret', '-p', 'public']
+        proc = subprocess.Popen(
+            cmdline,
+            cwd=key_folder,
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT
+        )
+        output, erros = proc.communicate()
+        return_code = proc.returncode
+        if not return_code == 0:
+            return False
+    else:
+        print("found keys, ready to sign")
+    return True
+
+def sign_image(image_path):
+    key_folder = get_folder("key_folder")
+    cmdline = ['usign', '-S', '-s', 'secret', '-m', image_path]
+    proc = subprocess.Popen(
+        cmdline,
+        cwd=key_folder,
+        stdout=subprocess.PIPE,
+        shell=False,
+        stderr=subprocess.STDOUT
+    )
+    output, erros = proc.communicate()
+    return_code = proc.returncode
+    if not return_code == 0:
+        return False
+    return True
