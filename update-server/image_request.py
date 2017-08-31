@@ -63,8 +63,7 @@ class ImageRequest(Request):
         self.log.debug("found image in database: %s", request_status)
         if  request_status == "created":
             filename, checksum, filesize = self.database.get_image(request_id)
-            self.response_dict["url"] =  self.config.get("update_server") + "/download/" + filename
-            self.response_dict["log"] = self.response_dict["url"] + ".log"
+            self.response_dict["url"] =  "{}/download/{}".format(self.config.get("update_server"), filename)
             self.response_dict["checksum"] = checksum
             self.response_dict["filesize"] = filesize
             return self.respond(), HTTPStatus.OK # 200
