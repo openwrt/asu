@@ -242,14 +242,6 @@ class Database():
         self.c.execute(sql, status, image_request_hash)
         self.commit()
 
-    def set_build_job_fail(self, request_hash):
-        self.log.debug("set job failed %s", request_hash)
-        sql = """UPDATE image_requests
-            SET status = 'failed'
-            WHERE request_hash = ?;"""
-        self.c.execute(sql, request_hash)
-        self.commit()
-
     def done_build_job(self, request_hash, image_hash):
         self.log.info("done build job: rqst %s img %s", request_hash, image_hash)
         sql = """UPDATE image_requests SET

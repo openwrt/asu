@@ -112,7 +112,7 @@ class Image(threading.Thread):
                 return True
             else:
                 self.log.info("build failed")
-                self.database.set_build_job_fail(self.request_hash)
+                self.database.set_image_requests_status(self.request_hash, 'build_faild')
                 self.store_log(os.path.join(get_dir("downloaddir"), "faillogs", self.request_hash))
                 return False
 
