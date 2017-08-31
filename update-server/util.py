@@ -66,11 +66,11 @@ def get_folder(requested_folder):
     folder = config.get(requested_folder)
     if folder:
         if create_folder(folder):
-            return folder
+            return os.path.abspath(folder)
 
     default_folder = os.path.join(get_root(), requested_folder)
     if create_folder(default_folder):
-        return default_folder
+        return os.path.abspath(default_folder)
     else:
         quit()
 
