@@ -1,8 +1,9 @@
-from util import get_hash
 import datetime
-from config import Config
 import pyodbc
 import logging
+
+from utils.common import get_hash
+from utils.config import Config
 
 class Database():
     def __init__(self):
@@ -447,8 +448,3 @@ class Database():
         sql = "select transform(?, ?, ?, ?)"
         self.c.execute(sql, distro, orig_release, dest_release, packages)
         return self.c.fetchall()
-
-if __name__ == "__main__":
-    db = Database()
-    db.create_tables()
-    #print(db.worker_needed())

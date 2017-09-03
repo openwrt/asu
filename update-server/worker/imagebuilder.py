@@ -1,19 +1,18 @@
-from os import walk
-from util import create_folder, get_statuscode, get_latest_release, get_dir, get_root, check_signature
 import logging
 import tarfile
-from database import Database
 import re
 import shutil
 import urllib.request
 import tempfile
 import logging
-import hashlib
 import os
 import os.path
-from config import Config
 import threading
 import subprocess
+
+from utils.common import create_folder, get_statuscode, get_latest_release, get_dir, get_root, check_signature
+from utils.database import Database
+from utils.config import Config
 
 class ImageBuilder(threading.Thread):
     def __init__(self, distro, version, target, subtarget):

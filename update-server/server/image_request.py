@@ -1,9 +1,10 @@
-from image import Image
 import os
 import logging
-from config import Config
-from request import Request
 from http import HTTPStatus
+
+from utils.imagemeta import ImageMeta
+from server.request import Request
+from utils.config import Config
 
 class ImageRequest(Request):
     def __init__(self, request_json, last_build_id):
@@ -57,8 +58,8 @@ class ImageRequest(Request):
         else:
             self.network_profile = ''
 
-        self.image = Image(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        response = self.database.check_request(self.image)
+        self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
+        response = self.database.check_request(self.imagemeta)
         request_id, request_hash, request_status = response
         self.log.debug("found image in database: %s", request_status)
         if  request_status == "created":
@@ -73,7 +74,7 @@ class ImageRequest(Request):
                 return self.respond(), HTTPStatus.CREATED # 201
             elif request_status == "building":
                 return "", HTTPStatus.PARTIAL_CONTENT # 206
-            elif request_status == "failed":
+            elif request_status == "build_fail":
                 self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
                 self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500

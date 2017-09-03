@@ -1,4 +1,4 @@
--- drop schema public cascade; create schema public;
+drop schema public cascade; create schema public;
 
 create table if not exists distributions (
 	id serial primary key,

@@ -1,7 +1,6 @@
 import urllib.request
 import gnupg
 import yaml
-import yaml
 import http.client
 import tarfile
 import re
@@ -11,8 +10,9 @@ import logging
 import hashlib
 import os
 import os.path
-from config import Config
 import subprocess
+
+from utils.config import Config
 
 config = Config()
 
@@ -141,3 +141,13 @@ def sign_image(image_path):
     if not return_code == 0:
         return False
     return True
+
+def pkg_hash(packages):
+    packages = sorted(list(set(packages)))
+    package_hash = get_hash(" ".join(packages), 12)
+    database.insert_hash(package_hash, packages)
+    return package_hash
+
+def request_hash(distro, release, target, subtarget, profile, packages, network_profile):
+    request_array = [distro, release, target, subtarget, profile, pkg_hash, network_profile]
+    return(get_hash(" ".join(request_array), 12))

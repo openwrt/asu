@@ -1,9 +1,9 @@
-from database import Database
-from distutils.version import LooseVersion
 from http import HTTPStatus
 import logging
-from config import Config
 import json
+
+from utils.config import Config
+from utils.database import Database
 
 class Request():
     def __init__(self, request_json):

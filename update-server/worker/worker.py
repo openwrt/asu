@@ -1,44 +1,121 @@
-import tarfile
+import threading
 import glob
-from config import Config
-from database import Database
-from imagebuilder import ImageBuilder
-from util import create_folder,get_hash,get_dir
-import util
 import re
+from socket import gethostname
 import shutil
 import urllib.request
 import tempfile
-import logging
 import hashlib
 import os
 import os.path
 import subprocess
-import threading
+import signal
+import sys
+import logging
+import time
+import os
+import yaml
 
-class Image(threading.Thread):
-    def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
+from worker.imagebuilder import ImageBuilder
+from utils.imagemeta import ImageMeta
+from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_image
+from utils.config import Config
+from utils.database import Database
+
+MAX_TARGETS=0
+
+class Worker(threading.Thread):
+    def __init__(self):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
-        self.database = Database()
+        self.log.info("log initialized")
         self.config = Config()
-        self.distro = distro.lower()
-        self.release = release
-        self.target = target
-        self.subtarget = subtarget
-        self.profile = profile
+        self.log.info("config initialized")
+        self.database = Database()
+        self.log.info("database initialized")
+        self.worker_id = None
+        self.imagebuilders = []
 
-        if not packages: # install default packages
-            self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
-        elif type(packages) is str:
-            self.packages = packages.split(" ")
-        else:
-            self.packages = packages
+    def worker_register(self):
+        self.worker_id = str(self.database.worker_register(gethostname()))
 
-        self.check_network_profile(network_profile)
-        self.set_request_hash()
+    def worker_add_skill(self, imagebuilder):
+        self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
+
+    def add_imagebuilder(self):
+        self.log.info("adding imagebuilder")
+        imagebuilder_request = None
+
+        while not imagebuilder_request:
+            imagebuilder_request = self.database.worker_needed()
+            if not imagebuilder_request:
+                self.heartbeat()
+                time.sleep(5)
+                continue
+
+            self.log.info("found worker_needed %s", imagebuilder_request)
+            for imagebuilder_setup in self.imagebuilders:
+                if len(set(imagebuilder_setup).intersection(imagebuilder_request)) == 4:
+                    self.log.info("already handels imagebuilder")
+                    return
+
+            self.distro, self.release, self.target, self.subtarget = imagebuilder_request
+            self.log.info("worker serves %s %s %s %s", self.distro, self.release, self.target, self.subtarget)
+            imagebuilder = ImageBuilder(self.distro, str(self.release), self.target, self.subtarget)
+            self.log.info("initializing imagebuilder")
+            if imagebuilder.run():
+                self.log.info("register imagebuilder")
+                self.worker_add_skill(imagebuilder.as_array())
+                self.imagebuilders.append(imagebuilder.as_array())
+                self.log.info("imagebuilder initialzed")
+            else:
+                # manage failures
+                # add in skill status
+                pass
+        self.log.info("added imagebuilder")
+
+    def destroy(self, signal=None, frame=None):
+        self.log.info("destroy worker %s", self.worker_id)
+        self.database.worker_destroy(self.worker_id)
+        sys.exit(0)
 
     def run(self):
+        self.log.info("register worker")
+        self.worker_register()
+        self.log.debug("setting up gnupg")
+        setup_gnupg() 
+        while True:
+            self.log.debug("severing %s", self.imagebuilders)
+            build_job_request = None
+            for imagebuilder in self.imagebuilders:
+                build_job_request = self.database.get_build_job(*imagebuilder)
+                if build_job_request:
+                    break
+
+            if build_job_request:
+                self.log.debug("found build job")
+                self.last_build_id = build_job_request[0]
+                image = Image(*build_job_request[2:9])
+                self.log.debug(image.as_array())
+                if not image.build():
+                    self.log.warn("build failed for %s", image.name)
+                    self.database.set_build_job_fail(image.request_hash)
+            else:
+                # heartbeat should be more less than 5 seconds
+                if len(self.imagebuilders) < MAX_TARGETS or MAX_TARGETS == 0:
+                    self.add_imagebuilder()
+                self.heartbeat()
+                time.sleep(5)
+
+    def heartbeat(self):
+        self.log.debug("heartbeat %s", self.worker_id)
+        self.database.worker_heartbeat(self.worker_id)
+
+class Image(ImageMeta):
+    def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
+        super().__init__(distro, release, target, subtarget, profile, packages, network_profile)
+
+    def build(self):
         imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
         self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
 
@@ -46,7 +123,7 @@ class Image(threading.Thread):
 
         self.diff_packages()
 
-        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as self.build_path:
+        with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
             print(self.packages)
@@ -98,7 +175,7 @@ class Image(threading.Thread):
                     self.log.info("move %s to %s", sysupgrade, self.path)
                     shutil.move(sysupgrade[0], self.path)
                     if self.config.get("sign_images"):
-                        if util.sign_image(self.path):
+                        if sign_image(self.path):
                             self.log.info("signed %s", self.path)
                         else:
                             self.database.set_image_requests_status(self.request_hash, 'signing_fail')
@@ -112,8 +189,8 @@ class Image(threading.Thread):
                 return True
             else:
                 self.log.info("build failed")
-                self.database.set_image_requests_status(self.request_hash, 'build_faild')
-                self.store_log(os.path.join(get_dir("downloaddir"), "faillogs", self.request_hash))
+                self.database.set_image_requests_status(self.request_hash, 'build_fail')
+                self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
                 return False
 
     def store_log(self, path):
@@ -140,16 +217,7 @@ class Image(threading.Thread):
         path_array.append("sysupgrade.bin")
 
         self.name = "-".join(path_array)
-        self.path = os.path.join(get_dir("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.name)
-
-    def as_array_build(self):
-        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash, self.network_profile]
-        return array
-
-    def as_array(self):
-        self.pkg_hash = self.get_pkg_hash()
-        array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.pkg_hash, self.network_profile]
-        return array
+        self.path = os.path.join(get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.name)
 
     def diff_packages(self):
         profile_packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
@@ -165,39 +233,17 @@ class Image(threading.Thread):
             manifest_packages = re.findall(manifest_pattern, manifest_file.read())
             self.database.add_manifest_packages(self.manifest_hash, manifest_packages)
 
-    # returns the path of the created image
-    def get_sysupgrade(self):
-        if not self.created():
-            return None
-        else:
-            self.log.debug("Heureka!")
-            return "/".join(self.path.split("/")[-5:])
-
-    # generate a hash of the installed packages
-    def get_pkg_hash(self):
-        # sort list and remove duplicates
-        self.packages = sorted(list(set(self.packages)))
-
-        package_hash = get_hash(" ".join(self.packages), 12)
-        self.log.debug("pkg hash %s - %s", package_hash, self.packages)
-        self.database.insert_hash(package_hash, self.packages)
-        return package_hash
-
-    def set_request_hash(self):
-        self.request_hash = get_hash(" ".join(self.as_array()), 12)
-
-    # builds the image with the specific packages at output path
-
-    # add network profile in image
-    def check_network_profile(self, network_profile):
-        self.log.debug("check network profile")
-        if network_profile:
-            network_profile_path = os.path.join(self.config.get("network_profile_folder"), network_profile) + "/"
-            self.network_profile = network_profile
-            self.network_profile_path = network_profile_path
-        else:
-            self.network_profile = ""
-
     # check if image exists
     def created(self):
         return os.path.exists(self.path)
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    #try:
+    w = Worker()
+    signal.signal(signal.SIGINT, w.destroy)
+    w.run()
+    #finally:
+    #    w.destroy()
+
+

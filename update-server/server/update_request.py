@@ -1,7 +1,9 @@
-from request import Request
-from util import get_latest_release
 from http import HTTPStatus
 import logging
+
+from server.request import Request
+from utils.common import get_latest_release
+
 
 class UpdateRequest(Request):
     def __init__(self, request_json):
