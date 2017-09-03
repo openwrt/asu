@@ -1,6 +1,7 @@
 ansible/*.retry
 ansible/roles/update-server/defaults
-update-server/*.log
-update-server/config.yml
-update-server/imagebuilder/
-update-server/gnupg/
+*.log
+config.yml
+imagebuilder/
+gnupg/
+keys/

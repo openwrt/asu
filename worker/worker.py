@@ -236,14 +236,3 @@ class Image(ImageMeta):
     # check if image exists
     def created(self):
         return os.path.exists(self.path)
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    #try:
-    w = Worker()
-    signal.signal(signal.SIGINT, w.destroy)
-    w.run()
-    #finally:
-    #    w.destroy()
-
-
