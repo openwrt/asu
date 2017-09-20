@@ -1,0 +1,9 @@
+[Unit]
+Description=run flush service at midnight utc
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

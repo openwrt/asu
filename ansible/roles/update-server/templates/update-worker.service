@@ -1,0 +1,13 @@
+[Unit]
+Description=update worker for lede/openwrt/libremesh
+After=nginx.target
+
+[Service]
+User={{ update_worker_user }}
+Type=simple
+PIDFile=/run/update-worker.pid
+WorkingDirectory={{ update_folder }}
+ExecStart=/usr/bin/python3 worker.py
+
+[Install]
+WantedBy=multi-user.target
