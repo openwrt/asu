@@ -56,6 +56,7 @@ def root_path():
             popular_subtargets=database.get_popular_subtargets(),
             worker_active=database.get_worker_active(),
             images_count=database.get_images_count(),
+            images_total=database.get_images_total(),
             packages_count=database.get_packages_count())
 
 @app.route("/supported")

@@ -411,6 +411,13 @@ class Database():
         result = self.c.fetchone()
         return result[0]
 
+    def get_images_total(self):
+        self.log.debug("get images count")
+        sql = "select MAX(id) as total from images;"
+        self.c.execute(sql)
+        result = self.c.fetchone()
+        return result[0]
+
     def get_packages_count(self):
         self.log.debug("get packages count")
         sql = "select count(*) as count from packages_names;"
