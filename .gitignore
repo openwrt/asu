@@ -5,3 +5,4 @@ config.yml
 imagebuilder/
 gnupg/
 keys/
+**/__pycache__/
