@@ -413,7 +413,7 @@ class Database():
 
     def get_images_total(self):
         self.log.debug("get images count")
-        sql = "select MAX(id) as total from images;"
+        sql = "select last_value as total from image_requests_table_id_seq;"
         self.c.execute(sql)
         result = self.c.fetchone()
         return result[0]
