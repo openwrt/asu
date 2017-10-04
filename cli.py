@@ -7,7 +7,7 @@ import urllib.request
 import logging
 import argparse
 import os
-from utils.common import get_supported_targets, get_dir
+from utils.common import get_supported_targets, get_dir, get_statuscode, get_releases
 from utils.database import Database
 from utils.config import Config
 
@@ -82,12 +82,12 @@ class ServerCli():
             #releases_website = urllib.request.urlopen(distro_url).read().decode('utf-8')
             #releases_pattern = r'href="(.+?)/?">.+/?</a>/?</td>'
             #releases = re.findall(releases_pattern, releases_website)
-            for release in util.get_releases(distro):
+            for release in get_releases(distro):
                 release = str(release)
                 print("{} {}".format(distro, release))
                 self.database.insert_release(distro, release)
                 release_url = "{}/{}/targets/".format(distro_url, release)
-                if util.get_statuscode(release_url) != 404:
+                if get_statuscode(release_url) != 404:
                     print("release {} online".format(release))
                     targets_website = urllib.request.urlopen(release_url).read().decode('utf-8')
                     targets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
