@@ -17,7 +17,7 @@ server {
 	location /static {
 		add_header Access-Control-Allow-Origin * always;
 		add_header Access-Control-Allow-Headers: Access-Control-Allow-Headers,Content-Type always;
-		alias /srv/update-server/download/;
+		alias /srv/download/;
 		index nothing_will_match;
 		autoindex on;
 	}
