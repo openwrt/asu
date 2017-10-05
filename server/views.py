@@ -12,6 +12,7 @@ from server.update_request import UpdateRequest
 from server.image_request import ImageRequest
 from server import app
 
+import utils
 from utils.config import Config
 from utils.database import Database
 from utils.common import get_dir, create_folder, init_usign
@@ -73,6 +74,8 @@ def api(function):
         release = request.args.get("release", "")
         model_search = request.args.get("model_search", "")
         data = database.get_supported_models(model_search, distro, release)
+    elif function == "network_profiles":
+        data = utils.common.get_network_profiles()
     else:
         status=404
     response = app.response_class(response=data, status=status, mimetype='application/json')

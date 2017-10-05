@@ -1,5 +1,6 @@
 import urllib.request
 import gnupg
+import json
 import yaml
 import http.client
 import tarfile
@@ -151,3 +152,14 @@ def pkg_hash(packages):
 def request_hash(distro, release, target, subtarget, profile, packages, network_profile):
     request_array = [distro, release, target, subtarget, profile, pkg_hash, network_profile]
     return(get_hash(" ".join(request_array), 12))
+
+def get_network_profiles():
+    network_profiles = []
+    network_profile_folder = get_folder("network_profile_folder")
+    for network_profile in os.listdir(network_profile_folder):
+        network_profile_path = os.path.join(network_profile_folder, network_profile)
+        if os.path.isdir(network_profile_path) and not network_profile.startswith("."):
+            for network_sub_profile in os.listdir(os.path.join(network_profile_path)):
+                network_profiles.append(os.path.join(network_profile, network_sub_profile))
+
+    return(json.dumps(network_profiles))

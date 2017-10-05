@@ -372,8 +372,10 @@ class Database():
         sql = """select coalesce(array_to_json(array_agg(row_to_json(releases))), '[]') from releases where distro = ?;"""
         return self.c.execute(sql, distro).fetchone()[0]
 
-    def get_supported_models(self, model='', distro='%', release='%'):
+    def get_supported_models(self, model='', distro='', release=''):
         model_search = '%' + model + '%'
+        if distro == '': distro = '%'
+        if release == '': release = '%'
         sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE lower(?) and distro LIKE ? and release LIKE ?;"""
         return self.c.execute(sql, model_search, distro, release).fetchone()[0]
 
@@ -442,7 +444,6 @@ class Database():
         self.c.execute(sql)
         result = self.c.fetchone()
         return result[0]
-
 
     def packages_updates(self, distro, release, target, subtarget, packages):
         self.log.debug("packages updates")
