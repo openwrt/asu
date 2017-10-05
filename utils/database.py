@@ -369,7 +369,8 @@ class Database():
         return self.c.execute(sql).fetchone()[0]
 
     def get_supported_releases(self, distro):
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(releases))), '[]') from releases where distro = ?;"""
+        if distro == '': distro='%'
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(releases))), '[]') from releases where distro LIKE ?;"""
         return self.c.execute(sql, distro).fetchone()[0]
 
     def get_supported_models(self, model='', distro='', release=''):

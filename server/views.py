@@ -60,7 +60,7 @@ def root_path():
             images_total=database.get_images_total(),
             packages_count=database.get_packages_count())
 
-@app.route("/api/<function>/")
+@app.route("/api/<function>")
 def api(function):
     data = '[]'
     status = 200
@@ -70,9 +70,11 @@ def api(function):
         distro = request.args.get("distro", "")
         data = database.get_supported_releases(distro)
     elif function == "models":
+        print("yea")
         distro = request.args.get("distro", "")
         release = request.args.get("release", "")
         model_search = request.args.get("model_search", "")
+        print(model_search)
         data = database.get_supported_models(model_search, distro, release)
     elif function == "network_profiles":
         data = utils.common.get_network_profiles()
