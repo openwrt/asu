@@ -156,10 +156,12 @@ def request_hash(distro, release, target, subtarget, profile, packages, network_
 def get_network_profiles():
     network_profiles = []
     network_profile_folder = get_folder("network_profile_folder")
-    for network_profile in os.listdir(network_profile_folder):
-        network_profile_path = os.path.join(network_profile_folder, network_profile)
-        if os.path.isdir(network_profile_path) and not network_profile.startswith("."):
-            for network_sub_profile in os.listdir(os.path.join(network_profile_path)):
-                network_profiles.append(os.path.join(network_profile, network_sub_profile))
+    for community in os.listdir(network_profile_folder):
+        community_path = os.path.join(network_profile_folder, community)
+        if os.path.isdir(community_path) and not community.startswith("."):
+            for network_profile in os.listdir(os.path.join(community_path)):
+                network_profile_path = os.path.join(community_path, network_profile)
+                if os.path.isdir(network_profile_path) and not network_profile.startswith("."):
+                    network_profiles.append(os.path.join(community, network_profile))
 
     return(json.dumps(network_profiles))
