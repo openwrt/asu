@@ -364,6 +364,24 @@ class Database():
         result = self.c.fetchall()
         return result
 
+    def get_supported_distros(self):
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]') from distributions;"""
+        return self.c.execute(sql).fetchone()[0]
+
+    def get_supported_releases(self, distro):
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(releases))), '[]') from releases where distro = ?;"""
+        return self.c.execute(sql, distro).fetchone()[0]
+
+    def get_supported_models(self, model='', distro='%', release='%'):
+        model_search = '%' + model + '%'
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE lower(?) and distro LIKE ? and release LIKE ?;"""
+        return self.c.execute(sql, model_search, distro, release).fetchone()[0]
+
+    def get_subtargets_json(self, distro='%', release='%', target='%'):
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and release like ? and target like ?;"""
+        self.c.execute(sql, distro, release, target)
+        return self.c.fetchone()[0]
+
     def get_images_list(self):
         self.log.debug("get images list")
         sql = """select images.id, images.image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, build_date, filename from images join images_download on images.image_hash = images_download.image_hash

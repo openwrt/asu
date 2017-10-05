@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from flask import Flask
-from flask import render_template, request, send_from_directory,redirect
+from flask import render_template, request, send_from_directory, redirect, jsonify
 import json
 import socket
 import os
@@ -59,10 +59,37 @@ def root_path():
             images_total=database.get_images_total(),
             packages_count=database.get_packages_count())
 
+@app.route("/api/<function>/")
+def api(function):
+    data = '[]'
+    status = 200
+    if function == "distros":
+        data = database.get_supported_distros()
+    elif function == "releases":
+        distro = request.args.get("distro", "")
+        data = database.get_supported_releases(distro)
+    elif function == "models":
+        distro = request.args.get("distro", "")
+        release = request.args.get("release", "")
+        model_search = request.args.get("model_search", "")
+        data = database.get_supported_models(model_search, distro, release)
+    else:
+        status=404
+    response = app.response_class(response=data, status=status, mimetype='application/json')
+    return response
+
 @app.route("/supported")
 def supported():
-    supported = database.get_subtargets_supported()
-    return render_template("supported.html", supported=supported)
+    show_json = request.args.get('json', False)
+    if show_json:
+        distro = request.args.get('distro', '%')
+        release = request.args.get('release', '%')
+        target = request.args.get('target', '%')
+        supported = database.get_subtargets_json(distro, release, target)
+        return supported
+    else:
+        supported = database.get_subtargets_supported()
+        return render_template("supported.html", supported=supported)
 
 @app.route("/images")
 def images():
