@@ -3,6 +3,7 @@ import glob
 import re
 from socket import gethostname
 import shutil
+import json
 import urllib.request
 import tempfile
 import hashlib
@@ -95,11 +96,11 @@ class Worker(threading.Thread):
             if build_job_request:
                 self.log.debug("found build job")
                 self.last_build_id = build_job_request[0]
-                image = Image(*build_job_request[2:9])
-                self.log.debug(image.as_array())
-                if not image.build():
-                    self.log.warn("build failed for %s", image.name)
-                    self.database.set_build_job_fail(image.request_hash)
+                self.image = Image(*build_job_request[2:9])
+                self.log.debug(self.image.as_array())
+                if not self.image.build():
+                    self.log.warn("build failed for %s", self.image.name)
+                    self.database.set_image_request_status(self.image.request_hash, "build_fail")
             else:
                 # heartbeat should be more less than 5 seconds
                 if len(self.imagebuilders) < MAX_TARGETS or MAX_TARGETS == 0:
@@ -196,6 +197,8 @@ class Image(ImageMeta):
     def store_log(self, path):
         self.log.debug("write log to %s", path)
         log_file = open(path + ".log", "a")
+        log_file.writelines(json.dumps(self.image.as_array(), indent=4, sort_keys=True))
+        log_file.write("\n\n")
         log_file.writelines(self.log_output.decode('utf-8'))
 
     def gen_checksum(self):
