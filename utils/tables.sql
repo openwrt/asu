@@ -1,5 +1,3 @@
-drop schema public cascade; create schema public;
-
 create table if not exists distributions (
 	id serial primary key,
 	name varchar not null,
@@ -445,6 +443,37 @@ select
 id, image_hash,
 distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-' || profile || '-sysupgrade.bin' as filename,
 checksum, filesize
+from images;
+
+create or replace view images_download as
+select
+id, image_hash,
+CASE network_profile
+    WHEN '' THEN distro || '/' 
+		|| release || '/' 
+		|| target || '/' 
+		|| subtarget || '/'
+		|| profile || '/'
+		|| distro || '-'
+		|| release || '-'
+		|| manifest_hash || '-'
+		|| target || '-'
+		|| subtarget || '-'
+		|| profile || '-sysupgrade.bin'
+    ELSE distro || '/'
+		|| release || '/'
+		|| target || '/'
+		|| subtarget || '/'
+		|| profile || '/'
+		|| distro || '-'
+		|| release || '-'
+		|| manifest_hash || '-'
+		|| replace(replace(network_profile, '/', '-'), '.', '_') || '-'
+		|| target || '-'
+		|| subtarget || '-'
+		|| profile || '-sysupgrade.bin'
+	END as filename,
+	checksum, filesize
 from images;
 
 create or replace rule insert_images AS
