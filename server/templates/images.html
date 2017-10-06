@@ -6,28 +6,26 @@
 <table class="table table-striped">
 	<tr>
 		<th>ID</th>
-		<th>Image hash</th>
+		<th>Download</th>
 		<th>Distro</th>
 		<th>Release</th>
-		<th>Target</th>
-		<th>Subtarget</th>
-		<th>Profile</th>
-		<th>Manifest</th>
+		<th>model</th>
+		<th>Installed</th>
 		<th><a href="https://github.com/libremesh/network-profiles">Network profile</a></th>
 		<th>Build date</th>
+		<th>Size</th>
 	</tr>
-	{% for id, image_hash, distro, release, target, subtarget, profile, manifest, network_profile, build_date, filename in images %}
+	{% for id, image_hash, distro, release, model, manifest, network_profile, build_date, filename, filesize in images %}
 	<tr>
 		<td>{{ id }}</td>
 		<td><a href="download/{{ filename }}">{{ image_hash }}</a></td>
 		<td>{{ distro }}</td>
 		<td>{{ release }}</td>
-		<td>{{ target }}</td>
-		<td>{{ subtarget }}</td>
-		<td>{{ profile }}</td>
-		<td><a href="manifest-info/{{ manifest }}">{{ manifest }}</a></td>
+		<td>{{ model }}</td>
+		<td><a href="manifest-info/{{ manifest }}">Packages</a></td>
 		<td>{{ network_profile }}</td>
 		<td>{{ build_date.strftime('%Y-%m-%d') }}</td>
+		<td>{{ filesize | filesizeformat }}</td>
 	</tr>
 	{% endfor %}
 </table>
