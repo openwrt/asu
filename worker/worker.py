@@ -121,16 +121,16 @@ class Image(ImageMeta):
 
         self.log.info("use imagebuilder %s", self.imagebuilder.path)
 
-        self.diff_packages()
 
         with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
-            print(self.packages)
-            cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
             if self.network_profile:
                 self.log.debug("add network_profile %s", self.network_profile)
+                self.network_profile_packages()
                 cmdline.append('FILES=%s' % self.network_profile_path)
+            self.diff_packages()
+            cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
             cmdline.append('BIN_DIR=%s' % self.build_path)
 
             self.log.info("start build: %s", " ".join(cmdline))
@@ -218,6 +218,12 @@ class Image(ImageMeta):
 
         self.name = "-".join(path_array)
         self.path = os.path.join(get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.name)
+
+    def network_profile_packages(self):
+        extra_packages = os.path.join(self.network_profile_path, 'PACKAGES')
+        if os.path.exists(extra_packages):
+            with open(extra_packages, "r") as extra_packages_file:
+                self.packages.extend(extra_packages_file.read().split())
 
     def diff_packages(self):
         profile_packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
