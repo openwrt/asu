@@ -447,6 +447,37 @@ distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile 
 checksum, filesize
 from images;
 
+create or replace view images_download as
+select
+id, image_hash,
+CASE network_profile
+    WHEN '' THEN distro || '/' 
+		|| release || '/' 
+		|| target || '/' 
+		|| subtarget || '/'
+		|| profile || '/'
+		|| distro || '-'
+		|| release || '-'
+		|| manifest_hash || '-'
+		|| target || '-'
+		|| subtarget || '-'
+		|| profile || '-sysupgrade.bin'
+    ELSE distro || '/'
+		|| release || '/'
+		|| target || '/'
+		|| subtarget || '/'
+		|| profile || '/'
+		|| distro || '-'
+		|| release || '-'
+		|| manifest_hash || '-'
+		|| replace(replace(network_profile, '/', '-'), '.', '_') || '-'
+		|| target || '-'
+		|| subtarget || '-'
+		|| profile || '-sysupgrade.bin'
+	END as filename,
+	checksum, filesize
+from images;
+
 create or replace rule insert_images AS
 ON insert TO images DO INSTEAD
 insert into images_table (image_hash, profile_id, manifest_id, network_profile, checksum, filesize, build_date) values (
