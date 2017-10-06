@@ -96,11 +96,11 @@ class Worker(threading.Thread):
             if build_job_request:
                 self.log.debug("found build job")
                 self.last_build_id = build_job_request[0]
-                self.image = Image(*build_job_request[2:9])
-                self.log.debug(self.image.as_array())
-                if not self.image.build():
-                    self.log.warn("build failed for %s", self.image.name)
-                    self.database.set_image_requests_status(self.image.request_hash, "build_fail")
+                image = Image(*build_job_request[2:9])
+                self.log.debug(image.as_array())
+                if not image.build():
+                    self.log.warn("build failed for %s", image.name)
+                    self.database.set_image_requests_status(image.request_hash, "build_fail")
             else:
                 # heartbeat should be more less than 5 seconds
                 if len(self.imagebuilders) < MAX_TARGETS or MAX_TARGETS == 0:
