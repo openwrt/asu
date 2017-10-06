@@ -84,7 +84,7 @@ class Worker(threading.Thread):
         self.log.info("register worker")
         self.worker_register()
         self.log.debug("setting up gnupg")
-        setup_gnupg() 
+        setup_gnupg()
         while True:
             self.log.debug("severing %s", self.imagebuilders)
             build_job_request = None
@@ -197,7 +197,7 @@ class Image(ImageMeta):
     def store_log(self, path):
         self.log.debug("write log to %s", path)
         log_file = open(path + ".log", "a")
-        log_file.writelines(json.dumps(self.image.as_array(), indent=4, sort_keys=True))
+        log_file.writelines(json.dumps(self.as_array(), indent=4, sort_keys=True))
         log_file.write("\n\n")
         log_file.writelines(self.log_output.decode('utf-8'))
 
