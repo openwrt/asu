@@ -56,7 +56,7 @@
     role_attr_flags: NOSUPERUSER,NOCREATEDB
 
 - name: copy nginx default page
-  copy: src=nginx_default dest=/etc/nginx/sites-enabled/default
+  copy: src=betaupdate.libremesh.org dest=/etc/nginx/sites-enabled/betaupdate.libremesh.org
 
 - name: copy server service
   template:

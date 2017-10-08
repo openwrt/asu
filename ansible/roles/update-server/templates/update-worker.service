@@ -8,6 +8,7 @@ Type=simple
 PIDFile=/run/update-worker.pid
 WorkingDirectory={{ update_folder }}
 ExecStart=/usr/bin/python3 worker.py
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
