@@ -337,6 +337,7 @@ begin
 	insert into packages_hashes_table (hash) values (add_packages_hashes.hash) on conflict do nothing;
 	FOREACH package IN array packages_array
 	loop
+		insert into packages_names (name) values (package) on conflict do nothing;
 		insert into packages_hashes_link values (
 			(select packages_hashes_table.id from packages_hashes_table where
 				packages_hashes_table.hash = add_packages_hashes.hash),
