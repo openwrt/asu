@@ -17,7 +17,7 @@ class ImageMeta():
         self.profile = profile
 
         if not packages: # install default packages
-            self.packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
+            self.packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
         elif type(packages) is str:
             self.packages = packages.split(" ")
         else:

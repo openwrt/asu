@@ -1,6 +1,7 @@
 import datetime
 import pyodbc
 import logging
+import json
 
 from utils.common import get_hash
 from utils.config import Config
@@ -97,15 +98,19 @@ class Database():
             return self.c.fetchone()[0]
         return False
 
-    def get_profile_packages(self, distro, release, target, subtarget, profile):
-        self.log.debug("get_profile_packages for %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
-        self.c.execute("""select packages from packages_image
-                where distro = ? and release = ? and target = ? and subtarget = ? and profile = ?""",
-            distro, release, target, subtarget, profile)
+    def get_image_packages(self, distro, release, target, subtarget, profile, as_json=False):
+        self.log.debug("get_image_packages for %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
+        sql = "select packages from packages_image where distro = ? and release = ? and target = ? and subtarget = ? and profile = ?"
+        self.c.execute(sql, distro, release, target, subtarget, profile)
         response = self.c.fetchone()
         if response:
-            return response[0].rstrip().split(" ")
-        return response
+            packages = response[0].rstrip().split(" ")
+            if as_json:
+                return json.dumps({"packages": packages})
+            else:
+                return packages
+        else:
+            return response
 
     def insert_packages_available(self, distro, release, target, subtarget, packages):
         self.log.info("insert packages of %s/%s ", target, subtarget)
@@ -384,6 +389,10 @@ class Database():
         sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and release like ? and target like ?;"""
         self.c.execute(sql, distro, release, target)
         return self.c.fetchone()[0]
+
+    def get_request_packages(self, distro, release, target, subtarget, profile):
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and release like ? and target like ?;"""
+
 
     def get_images_list(self):
         self.log.debug("get images list")

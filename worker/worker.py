@@ -229,7 +229,7 @@ class Image(ImageMeta):
                 self.packages.extend(extra_packages_file.read().split())
 
     def diff_packages(self):
-        profile_packages = self.database.get_profile_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
+        profile_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
         for package in self.packages:
             if package in profile_packages:
                 profile_packages.remove(package)

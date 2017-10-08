@@ -63,7 +63,7 @@ def root_path():
 @app.route("/api/<function>")
 def api(function):
     data = '[]'
-    status = 200
+    status = HTTPStatus.OK
     if function == "distros":
         data = database.get_supported_distros()
     elif function == "releases":
@@ -78,8 +78,18 @@ def api(function):
         data = database.get_supported_models(model_search, distro, release)
     elif function == "network_profiles":
         data = utils.common.get_network_profiles()
+    elif function == "packages_image":
+        distro = request.args.get("distro", "")
+        release = request.args.get("release", "")
+        target = request.args.get("target", "")
+        subtarget = request.args.get("subtarget", "")
+        profile = request.args.get("profile", "")
+        if distro != "" and release != "" and target != "" and subtarget != "" and profile != "":
+            data = database.get_image_packages(distro, release, target, subtarget, profile, as_json=True)
+        else:
+            status = HTTPStatus.BAD_REQUEST
     else:
-        status=404
+        status = HTTPStatus.NOT_FOUND
     response = app.response_class(response=data, status=status, mimetype='application/json')
     return response
 
