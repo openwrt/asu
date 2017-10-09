@@ -20,6 +20,7 @@ class ServerCli():
 
     def init_args(self):
         parser = argparse.ArgumentParser(description="CLI for update-server")
+        parser.add_argument("-a", "--init-all-imagebuilders", action="store_true")
         parser.add_argument("-r", "--download-releases", action="store_true")
         parser.add_argument("-u", "--update-packages", action="store_true")
         parser.add_argument("-c", "--update-repositories", action="store_true")
@@ -28,6 +29,8 @@ class ServerCli():
         parser.add_argument("--ignore-not-supported", action="store_true")
         parser.add_argument("-t", "--parse-transformations", action="store_true")
         self.args = vars(parser.parse_args())
+        if self.args["init_all_imagebuilders"]:
+            self.init_all_imagebuilders()
         if self.args["download_releases"]:
             self.download_releases()
         if self.args["set_supported"]:
@@ -36,6 +39,14 @@ class ServerCli():
             self.flush_snapshots()
         if self.args["parse_transformations"]:
             self.load_tables()
+
+    def init_all_imagebuilders(self):
+        for distro, release in self.database.get_releases():
+            subtargets = self.database.get_subtargets(distro, release)
+            for target, subtarget, supported in subtargets:
+                if supported:
+                    self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
+                    self.database.imagebuilder_status(distro, release, target, subtarget)
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")

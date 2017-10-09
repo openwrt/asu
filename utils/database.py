@@ -140,7 +140,7 @@ class Database():
         self.commit()
 
     def get_subtargets(self, distro, release, target="%", subtarget="%"):
-        self.log.debug("get_targets {} {} {} {}".format(distro, release, target, subtarget))
+        self.log.debug("get_subtargets {} {} {} {}".format(distro, release, target, subtarget))
         return self.c.execute("""SELECT target, subtarget, supported FROM subtargets
             WHERE
                 distro = ? and
