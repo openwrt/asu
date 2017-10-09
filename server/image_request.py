@@ -103,7 +103,7 @@ class ImageRequest(Request):
     def check_packages(self):
         available_packages = self.database.get_packages_available(self.distro, self.release, self.target, self.subtarget).keys()
         for package in self.packages:
-            if package == "kernel":
+            if package in ["kernel", "libc", "base-files"]: # these tend to cause problems, even tho always installed
                 pass # kernel is not an installable package, but installed...
             elif package not in available_packages:
                 logging.warning("could not find package {}".format(package))
