@@ -113,7 +113,7 @@ class Database():
             return response
 
     def insert_packages_available(self, distro, release, target, subtarget, packages):
-        self.log.info("insert packages of %s/%s ", target, subtarget)
+        self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
         sql = """INSERT INTO packages_available VALUES (?, ?, ?, ?, ?, ?);"""
         for package in packages:
             name, version = package
