@@ -106,6 +106,6 @@ class ImageRequest(Request):
             if package in ["kernel", "libc", "base-files"]: # these tend to cause problems, even tho always installed
                 pass # kernel is not an installable package, but installed...
             elif package not in available_packages:
-                logging.warning("could not find package {}".format(package))
+                logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
                 return False, package
         return True, None
