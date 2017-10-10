@@ -115,3 +115,7 @@ def images():
 def image_info(manifest_hash):
     manifest = database.get_manifest_info(manifest_hash)
     return render_template("manifest-info.html", manifest=manifest)
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
