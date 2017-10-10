@@ -7,7 +7,7 @@ import urllib.request
 import logging
 import argparse
 import os
-from utils.common import get_supported_targets, get_dir, get_statuscode, get_releases
+from utils.common import get_supported_targets, get_dir, get_statuscode, get_releases, get_latest_release
 from utils.database import Database
 from utils.config import Config
 
@@ -42,11 +42,12 @@ class ServerCli():
 
     def init_all_imagebuilders(self):
         for distro, release in self.database.get_releases():
-            subtargets = self.database.get_subtargets(distro, release)
-            for target, subtarget, supported in subtargets:
-                if supported:
-                    self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
-                    self.database.imagebuilder_status(distro, release, target, subtarget)
+            if release == 'snapshot' or release == get_latest_release(distro):
+                subtargets = self.database.get_subtargets(distro, release)
+                for target, subtarget, supported in subtargets:
+                    if supported:
+                        self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
+                        self.database.imagebuilder_status(distro, release, target, subtarget)
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
