@@ -60,16 +60,13 @@ def get_release_config(distro, release):
 
     return None
 
-def get_root():
-    return os.path.dirname(os.path.realpath(__file__))
-
 def get_folder(requested_folder):
     folder = config.get(requested_folder)
     if folder:
         if create_folder(folder):
             return os.path.abspath(folder)
 
-    default_folder = os.path.join(get_root(), requested_folder)
+    default_folder = os.path.join(os.getcwdb(), requested_folder)
     if create_folder(default_folder):
         return os.path.abspath(default_folder)
     else:

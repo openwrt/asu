@@ -11,10 +11,11 @@ database_name: attendedsysupgrade
 database_user: upimaged
 database_pass: password
 database_port: 5432
-workdir: imagebuilder
+imagebuilder_folder: imagebuilder
 downloaddir: static
 tempdir: /tmp
 keys_folder: keys
+distro_folder: distributions
 
 distributions:
     lede: https://downloads.lede-project.org/releases/

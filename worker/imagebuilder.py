@@ -10,7 +10,7 @@ import os.path
 import threading
 import subprocess
 
-from utils.common import create_folder, get_statuscode, get_latest_release, get_dir, get_root, check_signature
+from utils.common import create_folder, get_statuscode, get_latest_release, get_dir, check_signature
 from utils.database import Database
 from utils.config import Config
 
@@ -33,10 +33,7 @@ class ImageBuilder(threading.Thread):
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
-        self.root = os.path.dirname(os.path.realpath(__file__))
-        self.workdir = get_dir("workdir")
-
-        self.path = os.path.join(self.workdir, self.distro, self.version, self.target, self.subtarget)
+        self.path = os.path.join(get_dir("imagebuilder_folder"), self.distro, self.version, self.target, self.subtarget)
         self.log.debug("imagebuilder path %s", self.path)
 
     def created(self):
@@ -52,7 +49,7 @@ class ImageBuilder(threading.Thread):
 
     def patch_makefile(self):
         self.log.debug("patch makefile")
-        cmdline = ["patch", "-p4", "--dry-run", "-i", get_root() + "/imagebuilder-add-package_list-function.patch"]
+        cmdline = ["patch", "-p4", "--dry-run", "-i", os.getcwd() + "/imagebuilder-add-package_list-function.patch"]
         proc = subprocess.Popen(
             cmdline,
             cwd=self.path,
@@ -76,14 +73,14 @@ class ImageBuilder(threading.Thread):
             )
         else:
             if not output.decode('utf-8').startswith("checking file Makefile\nReversed"):
-                self.log.error("could not path imagebuilder makefile")
+                self.log.error("could not patch imagebuilder makefile")
                 self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, "patch_fail")
 
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()
         self.log.info("adding custom repositories")
         custom_repositories = None
-        custom_repositories_path = os.path.join(self.root, "distributions", self.distro, "repositories.conf")
+        custom_repositories_path = os.path.join(get_folder("distro_folder"), self.distro, "repositories.conf")
         if os.path.exists(custom_repositories_path):
             with open(custom_repositories_path, "r") as custom_repositories_distro:
                 custom_repositories = self.fill_repositories_template(custom_repositories_distro.read())
