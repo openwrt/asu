@@ -10,7 +10,7 @@ import os.path
 import threading
 import subprocess
 
-from utils.common import create_folder, get_statuscode, get_latest_release, get_dir, check_signature
+from utils.common import create_folder, get_statuscode, get_latest_release, get_folder, check_signature
 from utils.database import Database
 from utils.config import Config
 
@@ -33,7 +33,7 @@ class ImageBuilder(threading.Thread):
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
-        self.path = os.path.join(get_dir("imagebuilder_folder"), self.distro, self.version, self.target, self.subtarget)
+        self.path = os.path.join(get_folder("imagebuilder_folder"), self.distro, self.version, self.target, self.subtarget)
         self.log.debug("imagebuilder path %s", self.path)
 
     def created(self):
@@ -153,7 +153,7 @@ class ImageBuilder(threading.Thread):
         return True
 
     def download(self, url):
-        with tempfile.TemporaryDirectory(dir=get_dir("tempdir")) as tempdir:
+        with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as tempdir:
             self.log.info("downloading signature")
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums"), (tempdir + "/sha256sums"))
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
