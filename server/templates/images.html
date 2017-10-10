@@ -6,7 +6,6 @@
 <table class="table table-striped">
 	<tr>
 		<th>ID</th>
-		<th>Download</th>
 		<th>Distro</th>
 		<th>Release</th>
 		<th>Model</th>
@@ -14,11 +13,11 @@
 		<th><a href="https://github.com/libremesh/network-profiles">Network profile</a></th>
 		<th>Build date</th>
 		<th>Size</th>
+		<th></th>
 	</tr>
 	{% for id, image_hash, distro, release, model, manifest, network_profile, build_date, filename, filesize in images %}
 	<tr>
 		<td>{{ id }}</td>
-		<td><a href="download/{{ filename }}">{{ image_hash }}</a></td>
 		<td>{{ distro }}</td>
 		<td>{{ release }}</td>
 		<td>{{ model }}</td>
@@ -26,6 +25,7 @@
 		<td>{{ network_profile }}</td>
 		<td>{{ build_date.strftime('%Y-%m-%d') }}</td>
 		<td>{{ filesize | filesizeformat }}</td>
+		<td><a href="download/{{ filename }}" alt="download image"><span class="octicon octicon-desktop-download"></span></a></td>
 	</tr>
 	{% endfor %}
 </table>

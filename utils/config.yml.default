@@ -12,7 +12,7 @@ database_user: upimaged
 database_pass: password
 database_port: 5432
 workdir: imagebuilder
-downloaddir: download
+downloaddir: static
 tempdir: /tmp
 keys_folder: keys
 
