@@ -242,9 +242,10 @@ class Database():
         return None
 
     def set_image_requests_status(self, image_request_hash, status):
+        self.log.info("set image {} status to {}".format(image_request_hash, status))
         sql = """UPDATE image_requests
             SET status = ?
-            WHERE image_hash = ?;"""
+            WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_request_hash)
         self.commit()
 

@@ -25,6 +25,7 @@ class ImageMeta():
 
         self.check_network_profile(network_profile)
         self.set_request_hash()
+        self.log.debug("image request hash: {}".format(self.request_hash))
 
     def as_array_build(self):
         array = [self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash, self.network_profile]
@@ -47,8 +48,6 @@ class ImageMeta():
 
     def set_request_hash(self):
         self.request_hash = get_hash(" ".join(self.as_array()), 12)
-
-    # builds the image with the specific packages at output path
 
     # add network profile in image
     def check_network_profile(self, network_profile):

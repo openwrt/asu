@@ -49,7 +49,7 @@ class ImageBuilder(threading.Thread):
 
     def patch_makefile(self):
         self.log.debug("patch makefile")
-        cmdline = ["patch", "-p4", "--dry-run", "-i", os.getcwd() + "/imagebuilder-add-package_list-function.patch"]
+        cmdline = ["patch", "-p4", "--dry-run", "-i", os.getcwd() + "/worker/imagebuilder-add-package_list-function.patch"]
         proc = subprocess.Popen(
             cmdline,
             cwd=self.path,
