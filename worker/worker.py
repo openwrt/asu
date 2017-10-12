@@ -154,16 +154,18 @@ class Image(ImageMeta):
                 self.set_path()
                 create_folder(os.path.dirname(self.path))
 
+                sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
+                    "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
+                    "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
+
+                sysupgrade = None
+
                 if not os.path.exists(self.path):
-                    sysupgrade = glob.glob(os.path.join(self.build_path, '*sysupgrade.bin'))
-                    if not sysupgrade:
-                        sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img'))
+                    for(sysupgrade_file in sysupgrade_files):
                         if not sysupgrade:
-                            sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img.gz'))
-                            if not sysupgrade:
-                                sysupgrade = glob.glob(os.path.join(self.build_path, '*squashfs-sysupgrade.tar')) # ipq806x/EA8500
-                                if not sysupgrade:
-                                    sysupgrade = glob.glob(os.path.join(self.build_path, '*squashfs-sysupgrade.tar')) # ipq806x/EA8500
+                            sysupgrade = glob.glob(os.path.join(self.build_path, sysupgrade_file))
+                        else:
+                            break
 
                     self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
 
