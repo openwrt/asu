@@ -161,7 +161,7 @@ class Image(ImageMeta):
                 sysupgrade = None
 
                 if not os.path.exists(self.path):
-                    for(sysupgrade_file in sysupgrade_files):
+                    for sysupgrade_file in sysupgrade_files:
                         if not sysupgrade:
                             sysupgrade = glob.glob(os.path.join(self.build_path, sysupgrade_file))
                         else:
