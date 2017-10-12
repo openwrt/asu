@@ -154,8 +154,6 @@ class Image(ImageMeta):
                 self.set_path()
                 create_folder(os.path.dirname(self.path))
 
-                self.store_log(self.path)
-
                 if not os.path.exists(self.path):
                     sysupgrade = glob.glob(os.path.join(self.build_path, '*sysupgrade.bin'))
                     if not sysupgrade:
@@ -164,11 +162,14 @@ class Image(ImageMeta):
                             sysupgrade = glob.glob(os.path.join(self.build_path, '*combined-squashfs.img.gz'))
                             if not sysupgrade:
                                 sysupgrade = glob.glob(os.path.join(self.build_path, '*squashfs-sysupgrade.tar')) # ipq806x/EA8500
+                                if not sysupgrade:
+                                    sysupgrade = glob.glob(os.path.join(self.build_path, '*squashfs-sysupgrade.tar')) # ipq806x/EA8500
 
                     self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
 
                     if not sysupgrade:
                         self.log.error("created image was to big")
+                        self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
                         self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                         return False
 
@@ -182,6 +183,7 @@ class Image(ImageMeta):
                             return False
                     self.gen_checksum()
                     self.gen_filesize()
+                    self.store_log(self.path)
                     self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize)
                 else:
                     self.log.info("image already created")
