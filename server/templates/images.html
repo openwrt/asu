@@ -5,7 +5,6 @@
 </div>
 <table class="table table-striped">
 	<tr>
-		<th>ID</th>
 		<th>Distro</th>
 		<th>Release</th>
 		<th>Model</th>
@@ -17,15 +16,18 @@
 	</tr>
 	{% for id, image_hash, distro, release, model, manifest, network_profile, build_date, filename, filesize in images %}
 	<tr>
-		<td>{{ id }}</td>
 		<td>{{ distro }}</td>
 		<td>{{ release }}</td>
 		<td>{{ model }}</td>
 		<td>{{ network_profile }}</td>
 		<td>{{ build_date.strftime('%Y-%m-%d') }}</td>
 		<td>{{ filesize | filesizeformat }}</td>
-		<td><a href="manifest-info/{{ manifest }}" alt="installed packages"><span class="octicon octicon-package"></span></a></td>
-		<td><a href="download/{{ filename }}" alt="download image"><span class="octicon octicon-desktop-download"></span></a></td>
+		<td>
+			<a href="static/{{ filename }}.log" title="build log"><span class="octicon octicon-file-text"></span></a>
+			<a href="static/{{ filename }}.sig" title="signature"><span class="octicon octicon-key"></span></a>
+			<a href="manifest-info/{{ manifest }}" title="installed packages"><span class="octicon octicon-package"></span></a>
+		</td>
+		<td><a href="download/{{ filename }}" title="download image"><span class="octicon octicon-desktop-download"></span></a></td>
 	</tr>
 	{% endfor %}
 </table>
