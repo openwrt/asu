@@ -1,0 +1,13 @@
+{% include 'header.html' %}
+<h2>Packages</h2>
+<table class="table table-hover table-sm" >
+	<tr>
+		<th>Name</th>
+	</tr>
+{% for name in packages %}
+	<tr>
+		<td>{{ name }}</td>
+	</tr>
+{% endfor %}
+</table>
+{% include 'footer.html' %}

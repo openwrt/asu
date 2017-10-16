@@ -70,11 +70,9 @@ def api(function):
         distro = request.args.get("distro", "")
         data = database.get_supported_releases(distro)
     elif function == "models":
-        print("yea")
         distro = request.args.get("distro", "")
         release = request.args.get("release", "")
         model_search = request.args.get("model_search", "")
-        print(model_search)
         data = database.get_supported_models(model_search, distro, release)
     elif function == "network_profiles":
         data = utils.common.get_network_profiles()
@@ -91,6 +89,7 @@ def api(function):
     else:
         status = HTTPStatus.NOT_FOUND
     response = app.response_class(response=data, status=status, mimetype='application/json')
+    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 @app.route("/supported")
@@ -110,6 +109,16 @@ def supported():
 def images():
     images = database.get_images_list()
     return render_template("images.html", images=images)
+
+@app.route("/fails")
+def fails():
+    fails = database.get_fails_list()
+    return render_template("fails.html", fails=fails)
+
+@app.route("/packages-hash/<packages_hash>")
+def packages_hash(packages_hash):
+    packages = database.get_packages_hash(packages_hash).split(" ")
+    return render_template("packages_list.html", packages=packages)
 
 @app.route("/manifest-info/<manifest_hash>")
 def image_info(manifest_hash):

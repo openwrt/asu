@@ -321,12 +321,12 @@ create table if not exists packages_hashes_link(
 );
 
 create or replace view packages_hashes as
-select hash, string_agg(packages_names.name, ' ') as packages
+select packages_hashes_table.id, hash, string_agg(packages_names.name, ' ') as packages
 from packages_names, packages_hashes_table, packages_hashes_link
 where
 packages_hashes_table.id = packages_hashes_link.hash_id and
 packages_names.id = packages_hashes_link.package_id
-group by (hash);
+group by (packages_hashes_table.id, hash);
 
 create or replace function add_packages_hashes(hash varchar(20), packages text) returns void as
 $$

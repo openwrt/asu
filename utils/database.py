@@ -142,11 +142,7 @@ class Database():
     def get_subtargets(self, distro, release, target="%", subtarget="%"):
         self.log.debug("get_subtargets {} {} {} {}".format(distro, release, target, subtarget))
         return self.c.execute("""SELECT target, subtarget, supported FROM subtargets
-            WHERE
-                distro = ? and
-                release = ? and
-                target LIKE ? and
-                subtarget LIKE ?;""",
+            WHERE distro = ? and release = ? and target LIKE ? and subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
     def check_request(self, request):
@@ -360,7 +356,7 @@ class Database():
     def get_subtargets_supported(self):
         self.log.debug("get subtargets supported")
         sql = """select distro, release, target,
-		string_agg(subtarget, ', ') as subtargets
+                string_agg(subtarget, ', ') as subtargets
                 from subtargets
                 where supported = 'true'
                 group by (distro, release, target)
@@ -404,6 +400,15 @@ class Database():
         result = self.c.fetchall()
         return result
 
+    def get_fails_list(self):
+        self.log.debug("get fails list")
+        sql = """select distro, release, target, subtarget, profile, hash packages_hash, status
+            from image_requests_table join profiles on image_requests_table.profile_id = profiles.id join packages_hashes on image_requests_table.packages_hash_id = packages_hashes.id
+            where status like '%_fail'"""
+        self.c.execute(sql)
+        result = self.c.fetchall()
+        return result
+
     def get_image_info(self, image_hash):
         self.log.debug("get image info %s", image_hash)
         sql = """select * from images"""
@@ -418,6 +423,11 @@ class Database():
         self.c.execute(sql, manifest_hash)
         result = self.c.fetchall()
         return result
+
+    def get_packages_hash(self, packages_hash):
+        self.log.debug("get packages_hash %s", packages_hash)
+        sql = "select packages from packages_hashes where hash = ?;"
+        return self.c.execute(sql, packages_hash).fetchone()[0]
 
     def get_popular_subtargets(self):
         self.log.debug("get popular subtargets")
