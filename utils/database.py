@@ -55,7 +55,7 @@ class Database():
             return respond
 
     def insert_hash(self, hash, packages):
-        sql = "INSERT INTO packages_hashes VALUES (?, ?)"
+        sql = "INSERT INTO packages_hashes (hash, packages) VALUES (?, ?)"
         self.c.execute(sql, (hash, " ".join(packages)))
         self.commit()
 
@@ -219,7 +219,7 @@ class Database():
                 release LIKE ? and
                 target LIKE ? and
                 subtarget LIKE ? and
-                id = (
+                image_requests.id = (
                     SELECT MIN(id)
                     FROM image_requests
                     WHERE status = 'requested' and
@@ -228,7 +228,7 @@ class Database():
                     target LIKE ? and
                     subtarget LIKE ?
                 )
-            RETURNING id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages, network_profile;"""
+            RETURNING image_requests.id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages, network_profile;"""
         self.c.execute(sql, distro, release, target, subtarget, distro, release, target, subtarget)
         if self.c.description:
             self.log.debug("found image request")
