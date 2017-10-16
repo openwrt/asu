@@ -125,6 +125,7 @@ class Image(ImageMeta):
         with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
+            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.request_hash)
             if self.network_profile:
                 self.log.debug("add network_profile %s", self.network_profile)
                 self.network_profile_packages()
@@ -187,6 +188,9 @@ class Image(ImageMeta):
                     self.gen_filesize()
                     self.store_log(self.path)
                     self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize)
+                    for filename in os.listdir(self.build_path):
+                        os.rename(filename, filename.replace(self.request_hash, self.manifest_hash))
+                        shutil.move(filename, os.path.join(get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, filename.replace(self.request_hash, self.manifest_hash)))
                 else:
                     self.log.info("image already created")
                 self.database.done_build_job(self.request_hash, self.image_hash)
