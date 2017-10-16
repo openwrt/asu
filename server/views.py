@@ -89,7 +89,8 @@ def api(function):
     else:
         status = HTTPStatus.NOT_FOUND
     response = app.response_class(response=data, status=status, mimetype='application/json')
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    if config.get("dev"):
+        response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 @app.route("/supported")
