@@ -126,27 +126,31 @@ create table if not exists packages_names(
 
 create table if not exists packages_versions(
 	id serial primary key,
-	version varchar(100) unique
+	version varchar(100) unique not null
 );
 
 create table if not exists packages_available_table(
 	subtarget_id integer references subtargets_table(id),
-	package integer references packages_names(id),
-	version varchar(100), -- gnunet 0.10.2-git-20170111-a4295da3df82817ff2fe1fa547374a96a2e0280b-1
-	primary key(subtarget_id, package)
+	package_id integer references packages_names(id),
+	version_id integer references packages_versions(id),
+---	version varchar(100), -- gnunet 0.10.2-git-20170111-a4295da3df82817ff2fe1fa547374a96a2e0280b-1
+	primary key(subtarget_id, package_id)
 
 );
 
 create or replace view packages_available as
 select
 distro, release, target, subtarget, name, version
-from packages_names, subtargets, packages_available_table
-where subtargets.id = packages_available_table.subtarget_id and packages_available_table.package = packages_names.id;
+from packages_names, packages_versions, subtargets, packages_available_table
+where subtargets.id = packages_available_table.subtarget_id
+	and packages_available_table.package_id = packages_names.id
+	and packages_available_table.version_id = packages_versions.id;
 
 create or replace function add_packages_available(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), name varchar(100), version varchar(100)) returns void as
 $$
 begin
 	insert into packages_names (name) values (add_packages_available.name) on conflict do nothing;
+	insert into packages_versions (version) values (add_packages_available.version) on conflict do nothing;
 	insert into packages_available_table values (
 		(select id from subtargets where
 			subtargets.distro = add_packages_available.distro and
@@ -155,9 +159,11 @@ begin
 			subtargets.subtarget = add_packages_available.subtarget),
 		(select id from packages_names where
 			packages_names.name = add_packages_available.name),
-		add_packages_available.version
-	) on conflict (subtarget_id, package) do update
-	set version = add_packages_available.version;
+		(select id from packages_versions where
+			packages_versions.version = add_packages_available.version)
+	) on conflict (subtarget_id, package_id) do update
+	set version_id = (select id from packages_versions where
+			packages_versions.version = add_packages_available.version);
 end
 $$ language 'plpgsql';
 
