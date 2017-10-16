@@ -52,10 +52,10 @@ class ServerCli():
     def flush_snapshots(self):
         self.log.info("flush snapshots")
         self.database.flush_snapshots()
-        workdir = os.path.join(get_dir("workdir"), "lede", "snapshot")
-        if os.path.exists(workdir):
+        imagebuilder_folder = os.path.join(get_dir("imagebuilder_folder"), "lede", "snapshot")
+        if os.path.exists(imagebuilder_folder):
             self.log.info("remove snapshots imagebuidler")
-            rmtree(workdir)
+            rmtree(imagebuilder_folder)
         downloaddir = os.path.join(get_dir("downloaddir"), "lede", "snapshot")
 
         if os.path.exists(downloaddir):
