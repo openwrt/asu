@@ -177,7 +177,7 @@ class Image(ImageMeta):
                         return False
 
                     self.log.info("move %s to %s", sysupgrade, self.path)
-                    shutil.move(sysupgrade[0], self.path)
+                    shutil.copyfile(sysupgrade[0], self.path)
                     if self.config.get("sign_images"):
                         if sign_image(self.path):
                             self.log.info("signed %s", self.path)
