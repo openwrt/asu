@@ -188,8 +188,18 @@ class Image(ImageMeta):
                     self.gen_filesize()
                     self.store_log(self.path)
                     self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize)
+
+                    path_array = [self.distro, self.release, self.manifest_hash]
+
+                    if self.network_profile:
+                        path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+
+                    path_array.extend([self.target, self.subtarget, self.profile])
+
+                    self.name = "-".join(path_array)
                     for filename in os.listdir(self.build_path):
-                        shutil.move(os.path.join(self.build_path, filename), os.path.join(get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, filename.replace(self.request_hash, self.manifest_hash)))
+                        if not filename == "sha256sums" and not filename.endswith("manifest"):
+                            shutil.move(os.path.join(self.build_path, filename), os.path.join(get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, filename.replace(self.request_hash, self.manifest_hash)))
                 else:
                     self.log.info("image already created")
                 self.database.done_build_job(self.request_hash, self.image_hash)
