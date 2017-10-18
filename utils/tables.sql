@@ -445,41 +445,36 @@ where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id;
 
-create or replace view images_download as
+create or replace view images_download_path as
 select
 id, image_hash,
-distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || manifest_hash || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-' || profile || '-sysupgrade.bin' as filename,
-checksum, filesize
+	distro || '/'
+	|| release || '/' 
+	|| target || '/' 
+	|| subtarget || '/'
+	|| profile || '/'
+	|| manifest_hash || '/'
+	as file_path
 from images;
 
-create or replace view images_download as
+create or replace view images_download_name as
 select
 id, image_hash,
 CASE network_profile
-    WHEN '' THEN distro || '/' 
-		|| release || '/' 
-		|| target || '/' 
-		|| subtarget || '/'
-		|| profile || '/'
-		|| distro || '-'
+    WHEN '' THEN distro || '-'
 		|| release || '-'
 		|| manifest_hash || '-'
 		|| target || '-'
 		|| subtarget || '-'
 		|| profile || '-sysupgrade.bin'
-    ELSE distro || '/'
-		|| release || '/'
-		|| target || '/'
-		|| subtarget || '/'
-		|| profile || '/'
-		|| distro || '-'
+    ELSE distro || '-'
 		|| release || '-'
 		|| manifest_hash || '-'
 		|| replace(replace(network_profile, '/', '-'), '.', '_') || '-'
 		|| target || '-'
 		|| subtarget || '-'
 		|| profile || '-sysupgrade.bin'
-	END as filename,
+	END as file_name,
 	checksum, filesize
 from images;
 

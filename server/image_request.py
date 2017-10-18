@@ -60,36 +60,20 @@ class ImageRequest(Request):
             self.network_profile = ''
 
         self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        response = self.database.check_request(self.imagemeta)
-        request_id, request_hash, request_status = response
+        request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
         self.log.debug("found image in database: %s", request_status)
         if  request_status == "created":
+            file_path = self.database.get_image_path(request_id)
+            self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
             if sysupgrade:
-                filename, checksum, filesize = self.database.get_image(request_id)
-                self.response_dict["sysupgrade"] =  "{}/static/{}".format(self.config.get("update_server"), filename)
+                filename, checksum, filesize = self.database.get_sysupgrade(request_id)
+                sysupgrade_url = "{}/static/{}{}".format(self.config.get("update_server"), file_path, filename)
+                self.response_dict["sysupgrade"] = sysupgrade_url
                 # this is somewhat outdated
-                self.response_dict["url"] =  "{}/static/{}".format(self.config.get("update_server"), filename)
+                self.response_dict["url"] = sysupgrade_url
                 self.response_dict["checksum"] = checksum
                 self.response_dict["filesize"] = filesize
-                return self.respond(), HTTPStatus.OK # 200
-            else:
-                # woohoo
-                distro, release, target, subtarget, profile, manifest_hash, network_profile = self.database.get_image_path(request_hash)
-                # point to static to use nginx directly
-                base_path = os.path.join(distro, release, target, subtarget, profile, manifest_hash)
-
-                #if network_profile == "":
-                #    file_glob = "{}-{}-{}-*".format(distro, release, manifest_hash)
-                #else:
-                #    network_profile_sanitized = network_profile.replace("/", "-").replace(".", "_")
-                #    file_glob = "{}-{}-{}-{}-*".format(distro, release, manifest_hash, network_profile_sanitized)
-
-                #image_files = glob.glob(os.path.join(self.config.get("downloaddir"), base_path, file_glob))
-                #self.log.debug("image_files %s", image_files)
-                #self.response_dict["files"] =  [os.path.basename(filename) for filename in image_files]
-
-                self.response_dict["files"] =  "{}/json/{}/".format(self.config.get("update_server"), base_path)
-                return self.respond(), HTTPStatus.OK # 200
+            return self.respond(), HTTPStatus.OK # 200
         else:
             if request_status == "requested":
                 self.response_dict["queue"] = 1 # currently not implemented
