@@ -448,7 +448,7 @@ images_table.manifest_id = manifest_table.id;
 create or replace view images_download as
 select
 id, image_hash,
-distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-' || profile || '-sysupgrade.bin' as filename,
+distro || '/' || release || '/' || target || '/' || subtarget || '/' || profile || '/' || manifest_hash || '/' || distro || '-' || release || '-' || manifest_hash || '-' || target || '-' || subtarget || '-' || profile || '-sysupgrade.bin' as filename,
 checksum, filesize
 from images;
 

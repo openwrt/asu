@@ -1,5 +1,6 @@
 import os
 import logging
+import glob
 from http import HTTPStatus
 
 from utils.imagemeta import ImageMeta
@@ -14,7 +15,7 @@ class ImageRequest(Request):
         self.last_build_id = last_build_id
         self.needed_values = ["distro", "version", "target", "subtarget", "board"]
 
-    def get_sysupgrade(self):
+    def get_image(self, sysupgrade=False):
         bad_request = self.check_bad_request()
         if bad_request:
             return bad_request
@@ -48,7 +49,7 @@ class ImageRequest(Request):
             self.packages = self.request_json["packages"]
             all_found, missing_package = self.check_packages()
             if not all_found:
-                self.response_dict["error"] = "could not find package {} for requested target".format(missing_package)
+                self.response_dict["error"] = "could not find package '{}' for requested target".format(missing_package)
                 return self.respond(), HTTPStatus.BAD_REQUEST
 
         if "network_profile" in self.request_json:
@@ -63,11 +64,32 @@ class ImageRequest(Request):
         request_id, request_hash, request_status = response
         self.log.debug("found image in database: %s", request_status)
         if  request_status == "created":
-            filename, checksum, filesize = self.database.get_image(request_id)
-            self.response_dict["url"] =  "{}/download/{}".format(self.config.get("update_server"), filename)
-            self.response_dict["checksum"] = checksum
-            self.response_dict["filesize"] = filesize
-            return self.respond(), HTTPStatus.OK # 200
+            if sysupgrade:
+                filename, checksum, filesize = self.database.get_image(request_id)
+                self.response_dict["sysupgrade"] =  "{}/static/{}".format(self.config.get("update_server"), filename)
+                # this is somewhat outdated
+                self.response_dict["url"] =  "{}/static/{}".format(self.config.get("update_server"), filename)
+                self.response_dict["checksum"] = checksum
+                self.response_dict["filesize"] = filesize
+                return self.respond(), HTTPStatus.OK # 200
+            else:
+                # woohoo
+                distro, release, target, subtarget, profile, manifest_hash, network_profile = self.database.get_image_path(request_hash)
+                # point to static to use nginx directly
+                base_path = os.path.join(distro, release, target, subtarget, profile, manifest_hash)
+
+                #if network_profile == "":
+                #    file_glob = "{}-{}-{}-*".format(distro, release, manifest_hash)
+                #else:
+                #    network_profile_sanitized = network_profile.replace("/", "-").replace(".", "_")
+                #    file_glob = "{}-{}-{}-{}-*".format(distro, release, manifest_hash, network_profile_sanitized)
+
+                #image_files = glob.glob(os.path.join(self.config.get("downloaddir"), base_path, file_glob))
+                #self.log.debug("image_files %s", image_files)
+                #self.response_dict["files"] =  [os.path.basename(filename) for filename in image_files]
+
+                self.response_dict["files"] =  "{}/json/{}/".format(self.config.get("update_server"), base_path)
+                return self.respond(), HTTPStatus.OK # 200
         else:
             if request_status == "requested":
                 self.response_dict["queue"] = 1 # currently not implemented
@@ -75,7 +97,7 @@ class ImageRequest(Request):
             elif request_status == "building":
                 return "", HTTPStatus.PARTIAL_CONTENT # 206
             elif request_status == "build_fail":
-                self.response_dict["error"] = "imagebuilder faild to create image - techniker ist informiert"
+                self.response_dict["error"] = "imagebuilder faild to create image"
                 self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
             elif request_status == "imagesize_fail":
@@ -83,7 +105,6 @@ class ImageRequest(Request):
                 self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.BAD_REQUEST # 400
 
-        self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
         self.response_dict["error"] = request_status
         return self.respond(), 503
 

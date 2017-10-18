@@ -43,14 +43,18 @@ def download_image(image_path, image_name):
 
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
-@app.route("/image-request", methods=['GET', 'POST'])
+@app.route("/image-request", methods=['POST'])
 def requst_image():
-    if request.method == 'POST':
-        request_json = request.get_json()
-        ir = ImageRequest(request_json, 1)
-        return ir.get_sysupgrade()
+    request_json = request.get_json()
+    ir = ImageRequest(request_json, 1)
+    return ir.get_image(sysupgrade=1)
 
-# may show some stats
+@app.route("/files-request", methods=['POST'])
+def files_request():
+    request_json = request.get_json()
+    ir = ImageRequest(request_json, 1)
+    return ir.get_image()
+
 @app.route("/")
 def root_path():
     return render_template("index.html",

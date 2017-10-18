@@ -170,6 +170,17 @@ class Database():
         self.c.execute(sql, distro, release, target, subtarget, "imagebuilder")
         self.commit()
 
+    def get_image_path(self, request_hash):
+        self.log.debug("get sysupgrade image for %s", request_hash)
+        sql = """select images.distro, images.release, images.target, images.subtarget, images.profile, images.manifest_hash, images.network_profile
+            from images join image_requests on images.image_hash = image_requests.image_hash
+            where image_requests.request_hash = ?"""
+        self.c.execute(sql, request_hash)
+        if self.c.rowcount > 0:
+            return self.c.fetchone()
+        else:
+            return False
+
     def get_image(self, image_id):
         self.log.debug("get image %s", image_id)
         sql = "select filename, checksum, filesize from images_download, image_requests where image_requests.id = ? and image_requests.image_hash = images_download.image_hash"
