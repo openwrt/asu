@@ -329,12 +329,6 @@ class Database():
         self.log.debug("need worker for %s", result)
         return result
 
-    def increase_downloads(self, image_path):
-        self.log.debug("increase downloads of %s", image_path)
-        sql = "UPDATE images_table SET downloads = downloads + 1 FROM images_download WHERE images_download.filename = ? and images_table.image_hash = images_download.image_hash"
-        self.c.execute(sql, image_path)
-        self.commit()
-
     def worker_register(self, name=datetime.datetime.now(), address=""):
         self.log.info("register worker %s %s", name, address)
         sql = """INSERT INTO worker (name, address, heartbeat)

@@ -31,11 +31,6 @@ def update_request():
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
-    database.increase_downloads(os.path.join(image_path, image_name))
-
-    # use different approach?
-    if not config.get("dev"):
-        return redirect(os.path.join(config.get("update_server"), "static", image_path, image_name), HTTPStatus.FOUND)
     return send_from_directory(directory=os.path.join(get_dir("downloaddir"), image_path), filename=image_name)
 
 # request methos for individual image

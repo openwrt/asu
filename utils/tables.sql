@@ -432,8 +432,6 @@ create table if not exists images_table (
 	checksum varchar(32),
 	filesize integer,
 	build_date timestamp,
-	last_download timestamp,
-	downloads integer DEFAULT 0,
 	status varchar(20) DEFAULT 'untested'
 );
 
