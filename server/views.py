@@ -64,38 +64,59 @@ def root_path():
             images_total=database.get_images_total(),
             packages_count=database.get_packages_count())
 
-@app.route("/api/<function>")
-def api(function):
-    data = '[]'
-    status = HTTPStatus.OK
-    if function == "distros":
-        data = database.get_supported_distros()
-    elif function == "releases":
-        distro = request.args.get("distro", "")
-        data = database.get_supported_releases(distro)
-    elif function == "models":
-        distro = request.args.get("distro", "")
-        release = request.args.get("release", "")
-        model_search = request.args.get("model_search", "")
-        data = database.get_supported_models(model_search, distro, release)
-    elif function == "network_profiles":
-        data = utils.common.get_network_profiles()
-    elif function == "packages_image":
-        distro = request.args.get("distro", "")
-        release = request.args.get("release", "")
-        target = request.args.get("target", "")
-        subtarget = request.args.get("subtarget", "")
-        profile = request.args.get("profile", "")
-        if distro != "" and release != "" and target != "" and subtarget != "" and profile != "":
-            data = database.get_image_packages(distro, release, target, subtarget, profile, as_json=True)
-        else:
-            status = HTTPStatus.BAD_REQUEST
+@app.route("/api/distros")
+def api_distros():
+    return app.response_class(
+            response=database.get_supported_distros(),
+            status=HTTPStatus.OK,
+            mimetype='application/json')
+
+@app.route("/api/releases")
+def api_releases():
+    distro = request.args.get("distro", "")
+    if distro:
+        return app.response_class(
+                response=database.get_supported_releases(distro),
+                status=HTTPStatus.OK,
+                mimetype='application/json')
     else:
-        status = HTTPStatus.NOT_FOUND
-    response = app.response_class(response=data, status=status, mimetype='application/json')
-    if config.get("dev"):
-        response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+        return "[]", HTTPStatus.BAD_REQUEST
+
+@app.route("/api/models")
+def api_models():
+    distro = request.args.get("distro", "")
+    release = request.args.get("release", "")
+    model_search = request.args.get("model_search", "")
+    if distro != "" and release != "" and model_search != "":
+        return app.response_class(
+                response=database.get_supported_models(model_search, distro, release),
+                status=HTTPStatus.OK,
+                mimetype='application/json')
+    else:
+        return "[]", HTTPStatus.BAD_REQUEST
+
+@app.route("/api/network_profiles")
+def api_network_profiles():
+    return app.response_class(
+            response=utils.common.get_network_profiles(),
+            status=HTTPStatus.OK,
+            mimetype='application/json')
+
+@app.route("/api/packages_image")
+def api_packages_image():
+    data = []
+    distro = request.args.get("distro", "")
+    release = request.args.get("release", "")
+    target = request.args.get("target", "")
+    subtarget = request.args.get("subtarget", "")
+    profile = request.args.get("profile", "")
+    if distro != "" and release != "" and target != "" and subtarget != "" and profile != "":
+        return app.response_class(
+                response=database.get_image_packages(distro, release, target, subtarget, profile, as_json=True),
+                status=HTTPStatus.OK,
+                mimetype='application/json')
+    else:
+        return "[]", HTTPStatus.BAD_REQUEST
 
 @app.route("/supported")
 def supported():
