@@ -74,13 +74,10 @@ def api_distros():
 @app.route("/api/releases")
 def api_releases():
     distro = request.args.get("distro", "")
-    if distro:
-        return app.response_class(
-                response=database.get_supported_releases(distro),
-                status=HTTPStatus.OK,
-                mimetype='application/json')
-    else:
-        return "[]", HTTPStatus.BAD_REQUEST
+    return app.response_class(
+            response=database.get_supported_releases(distro),
+            status=HTTPStatus.OK,
+            mimetype='application/json')
 
 @app.route("/api/models")
 def api_models():
