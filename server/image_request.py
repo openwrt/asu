@@ -63,16 +63,18 @@ class ImageRequest(Request):
         request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
         self.log.debug("found image in database: %s", request_status)
         if  request_status == "created":
-            file_path = self.database.get_image_path(request_id)
-            self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
-            if sysupgrade:
-                filename, checksum, filesize = self.database.get_sysupgrade(request_id)
-                sysupgrade_url = "{}/static/{}{}".format(self.config.get("update_server"), file_path, filename)
+            if not sysupgrade:
+                file_path = self.database.get_image_path(request_id)
+            else:
+                file_path, file_name, checksum, filesize = self.database.get_sysupgrade(request_id)
+                sysupgrade_url = "{}/static/{}{}".format(self.config.get("update_server"), file_path, file_name)
                 self.response_dict["sysupgrade"] = sysupgrade_url
                 # this is somewhat outdated
                 self.response_dict["url"] = sysupgrade_url
                 self.response_dict["checksum"] = checksum
                 self.response_dict["filesize"] = filesize
+
+            self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
             return self.respond(), HTTPStatus.OK # 200
         else:
             if request_status == "requested":
