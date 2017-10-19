@@ -173,7 +173,7 @@ class Database():
     def get_image_path(self, image_id):
         self.log.debug("get sysupgrade image for %s", image_id)
         sql = """select file_path
-            from images_download_path join image_requests using (image_hash)
+            from images_download join image_requests using (image_hash)
             where image_requests.id = ?"""
         self.c.execute(sql, image_id)
         if self.c.rowcount > 0:
@@ -183,8 +183,8 @@ class Database():
 
     def get_sysupgrade(self, image_id):
         self.log.debug("get image %s", image_id)
-        sql = """select file_name, checksum, filesize
-            from images_download_name join image_requests using (image_hash)
+        sql = """select file_path, file_name, checksum, filesize
+            from images_download join image_requests using (image_hash)
             where image_requests.id = ?"""
         self.c.execute(sql, image_id)
         if self.c.rowcount > 0:
@@ -400,7 +400,7 @@ class Database():
 
     def get_images_list(self):
         self.log.debug("get images list")
-        sql = """select distinct images.id, images.image_hash, images.distro, images.release, model, manifest_hash, network_profile, build_date, filename, images.filesize
+        sql = """select distinct images.id, images.image_hash, images.distro, images.release, model, manifest_hash, network_profile, build_date, file_path, file_name, images.filesize
             from images join images_download on images.image_hash = images_download.image_hash join profiles on images.distro = profiles.distro and images.release = profiles.release and images.target = profiles.target and images.subtarget = profiles.subtarget and images.profile = profiles.profile
         order by id desc"""
         self.c.execute(sql)

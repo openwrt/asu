@@ -14,7 +14,7 @@
 		<th></th>
 		<th></th>
 	</tr>
-	{% for id, image_hash, distro, release, model, manifest, network_profile, build_date, filename, filesize in images %}
+	{% for id, image_hash, distro, release, model, manifest, network_profile, build_date, file_path, file_name, filesize in images %}
 	<tr>
 		<td>{{ distro }}</td>
 		<td>{{ release }}</td>
@@ -27,7 +27,7 @@
 			<a href="static/{{ filename }}.sig" title="signature"><span class="octicon octicon-key"></span></a>
 			<a href="manifest-info/{{ manifest }}" title="installed packages"><span class="octicon octicon-package"></span></a>
 		</td>
-		<td><a href="download/{{ filename }}" title="download image"><span class="octicon octicon-desktop-download"></span></a></td>
+		<td><a href="download/{{ file_path }}{{ file_name }}" title="download image"><span class="octicon octicon-desktop-download"></span></a></td>
 	</tr>
 	{% endfor %}
 </table>

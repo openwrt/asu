@@ -443,7 +443,7 @@ where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id;
 
-create or replace view images_download_path as
+create or replace view images_download as
 select
 id, image_hash,
 	distro || '/'
@@ -452,12 +452,7 @@ id, image_hash,
 	|| subtarget || '/'
 	|| profile || '/'
 	|| manifest_hash || '/'
-	as file_path
-from images;
-
-create or replace view images_download_name as
-select
-id, image_hash,
+	as file_path,
 CASE network_profile
     WHEN '' THEN distro || '-'
 		|| release || '-'
@@ -475,6 +470,7 @@ CASE network_profile
 	END as file_name,
 	checksum, filesize
 from images;
+
 
 create or replace rule insert_images AS
 ON insert TO images DO INSTEAD
