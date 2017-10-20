@@ -1,28 +1,31 @@
 create table if not exists distributions (
 	id serial primary key,
-	name varchar not null,
+	name varchar(20) not null,
+	alias varchar(20) default '',
 	unique(name)
 );
 
 create table if not exists releases_table(
 	id serial primary key,
 	distro_id integer not null,
-	name varchar(20),
+	name varchar(20) not null,
+	alias varchar(20) default '',
 	unique(distro_id, name),
 	foreign key (distro_id) references distributions(id)
 );
 
 create or replace view releases as
-select releases_table.id, distributions.name as distro, releases_table.name as release
+select releases_table.id, distributions.name as distro, releases_table.name as release, releases_table.alias
 from distributions join releases_table on distributions.id = releases_table.distro_id;
 
-create or replace function add_releases(distro varchar, release varchar) returns void as
+create or replace function add_releases(distro varchar, release varchar, alias varchar) returns void as
 $$
 begin
 	insert into distributions (name) values (add_releases.distro) on conflict do nothing;
-	insert into releases_table (distro_id, name) values (
+	insert into releases_table (distro_id, name, alias) values (
 		(select id from distributions where distributions.name = add_releases.distro),
-		add_releases.release
+		add_releases.release,
+		add_releases.alias
 	) on conflict do nothing;
 end
 $$ language 'plpgsql';
@@ -31,7 +34,8 @@ create or replace rule insert_releases AS
 ON insert TO releases DO INSTEAD
 SELECT add_releases(
 	NEW.distro,
-	NEW.release
+	NEW.release,
+	NEW.alias
 );
 
 create table if not exists subtargets_table(
@@ -437,7 +441,7 @@ create table if not exists images_table (
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, checksum, filesize, build_date, last_download, downloads, status
+images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, checksum, filesize, build_date, status
 from profiles, images_table, manifest_table
 where
 profiles.id = images_table.profile_id and
@@ -447,8 +451,8 @@ create or replace view images_download as
 select
 id, image_hash,
 	distro || '/'
-	|| release || '/' 
-	|| target || '/' 
+	|| release || '/'
+	|| target || '/'
 	|| subtarget || '/'
 	|| profile || '/'
 	|| manifest_hash || '/'
@@ -496,8 +500,6 @@ update images_table set
 checksum = coalesce(new.checksum, checksum),
 filesize = coalesce(new.filesize, filesize),
 build_date = coalesce(new.build_date, build_date),
-last_download = coalesce(new.last_download, last_download),
-downloads = coalesce(new.downloads, downloads),
 status = coalesce(NEW.status, status)
 where images_table.image_hash = NEW.image_hash
 returning
@@ -680,3 +682,18 @@ begin
 			join packages_names on packages_names.id = result_ids;
 end
 $$ LANGUAGE 'plpgsql';
+
+create or replace view images_list as
+select distinct images.id, images.image_hash, distributions.alias, images.release, model, manifest_hash, network_profile, build_date, file_path, file_name, images.filesize
+            from images 
+				join images_download on 
+					images.image_hash = images_download.image_hash 
+				join profiles on 
+					images.distro = profiles.distro and 
+					images.release = profiles.release and 
+					images.target = profiles.target and 
+					images.subtarget = profiles.subtarget and 
+					images.profile = profiles.profile
+				join distributions on
+					distributions.name = profiles.distro
+        order by id desc;

@@ -31,10 +31,16 @@ class Database():
         self.commit()
         self.log.info("created tables")
 
-    def insert_release(self, distro, release):
+    def set_distro_alias(self, distro, alias):
+        self.log.info("set alias %s/%s ", distro, alias)
+        sql = "UPDATE distributions SET alias = ? WHERE name = ?;"
+        self.c.execute(sql, alias, distro)
+        self.commit()
+
+    def insert_release(self, distro, release, alias=""):
         self.log.info("insert %s/%s ", distro, release)
-        sql = "INSERT INTO releases (distro, release) VALUES (?, ?);"
-        self.c.execute(sql, distro, release)
+        sql = "INSERT INTO releases (distro, release, alias) VALUES (?, ?, ?);"
+        self.c.execute(sql, distro, release, alias)
         self.commit()
 
     def insert_supported(self, distro, release, target, subtarget="%"):
@@ -400,16 +406,14 @@ class Database():
 
     def get_images_list(self):
         self.log.debug("get images list")
-        sql = """select distinct images.id, images.image_hash, images.distro, images.release, model, manifest_hash, network_profile, build_date, file_path, file_name, images.filesize
-            from images join images_download on images.image_hash = images_download.image_hash join profiles on images.distro = profiles.distro and images.release = profiles.release and images.target = profiles.target and images.subtarget = profiles.subtarget and images.profile = profiles.profile
-        order by id desc"""
+        sql = "select * from images_list"
         self.c.execute(sql)
         result = self.c.fetchall()
         return result
 
     def get_fails_list(self):
         self.log.debug("get fails list")
-        sql = """select distro, release, target, subtarget, profile, hash packages_hash, status
+        sql = """select distro, release, target, subtarget, profile, request_hash, hash packages_hash, status
             from image_requests_table join profiles on image_requests_table.profile_id = profiles.id join packages_hashes on image_requests_table.packages_hash_id = packages_hashes.id
             where status like '%_fail'"""
         self.c.execute(sql)

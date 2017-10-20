@@ -42,14 +42,19 @@ def get_statuscode(url):
     conn.request("HEAD", path)
     return conn.getresponse().status
 
+def get_distro_alias(distro):
+    with open(os.path.join("distributions", distro, "distro_config.yml"), "r") as releases:
+        return yaml.load(releases.read())['distro_alias']
+    return None
+
 def get_releases(distro):
-    with open(os.path.join("distributions", distro, "releases.yml"), "r") as releases:
-        return yaml.load(releases.read())
+    with open(os.path.join("distributions", distro, "distro_config.yml"), "r") as releases:
+        return yaml.load(releases.read())['releases']
     return None
 
 def get_latest_release(distro):
-    with open(os.path.join("distributions", distro, "releases.yml"), "r") as releases:
-        return yaml.load(releases.read())[-1]
+    with open(os.path.join("distributions", distro, "distro_config.yml"), "r") as releases:
+        return yaml.load(releases.read())['releases'][-1]
     return None
 
 def get_release_config(distro, release):

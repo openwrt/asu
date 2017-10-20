@@ -7,7 +7,7 @@ import urllib.request
 import logging
 import argparse
 import os
-from utils.common import get_supported_targets, get_dir, get_statuscode, get_releases, get_latest_release
+from utils.common import get_supported_targets, get_dir, get_statuscode, get_releases, get_latest_release, get_distro_alias
 from utils.database import Database
 from utils.config import Config
 
@@ -24,7 +24,7 @@ class ServerCli():
         parser.add_argument("-r", "--download-releases", action="store_true")
         parser.add_argument("-u", "--update-packages", action="store_true")
         parser.add_argument("-c", "--update-repositories", action="store_true")
-        parser.add_argument("-s", "--set-supported", action="store_true")
+        parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
         parser.add_argument("--ignore-not-supported", action="store_true")
         parser.add_argument("-t", "--parse-transformations", action="store_true")
@@ -33,8 +33,8 @@ class ServerCli():
             self.init_all_imagebuilders()
         if self.args["download_releases"]:
             self.download_releases()
-        if self.args["set_supported"]:
-            self.set_supported()
+        if self.args["init_server"]:
+            self.init_server()
         if self.args["flush_snapshots"]:
             self.flush_snapshots()
         if self.args["parse_transformations"]:
@@ -62,8 +62,12 @@ class ServerCli():
             self.log.info("remove snapshots images")
             rmtree(downloaddir)
 
-    def set_supported(self):
+    def init_server(self):
+        self.download_releases()
         for distro, release in self.database.get_releases():
+            alias = get_distro_alias(distro)
+            self.log.info("set alias %s for %s", distro, alias)
+            self.database.set_distro_alias(distro, alias)
             supported = get_supported_targets(distro, release)
             if supported:
                 for target, subtargets in supported.items():

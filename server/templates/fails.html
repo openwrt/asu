@@ -4,13 +4,15 @@
 	<tr>
 		<th>Distro</th>
 		<th>Device</th>
+		<th>Log</th>
 		<th>Packages</th>
 		<th>Status</th>
 	</tr>
-	{% for distro, release, target, subtarget, profile, packages_hash, status in fails %}
+	{% for distro, release, target, subtarget, profile, request_hash, packages_hash, status in fails %}
 	<tr>
 		<td>{{ distro }} - {{ release }}</td>
 		<td>{{ target }}/{{ subtarget }}/{{ profile }}</td>
+		<td><a href="static/faillogs/{{ request_hash }}" title="build log"><span class="octicon octicon-text-file"></span></a></td>
 		<td><a href="packages-hash/{{ packages_hash }}" title="packages"><span class="octicon octicon-package"></span></a></td>
 		<td>{{ status }}</td>
 	</tr>
