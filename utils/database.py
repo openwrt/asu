@@ -98,7 +98,7 @@ class Database():
     def check_model(self, distro, release, target, subtarget, model):
         self.log.debug("check_model %s/%s/%s/%s/%s", distro, release, target, subtarget, model)
         self.c.execute("""SELECT profile FROM profiles
-            WHERE distro=? and release=? and target=? and subtarget = ? and model = ?;""",
+            WHERE distro=? and release=? and target=? and subtarget = ? and lower(model) = lower(?);""",
             distro, release, target, subtarget, model)
         if self.c.rowcount == 1:
             return self.c.fetchone()[0]

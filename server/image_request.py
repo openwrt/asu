@@ -26,13 +26,16 @@ class ImageRequest(Request):
 
         profile_request = None
         if "board" in self.request_json:
+            self.log.debug("board in request, search for %s", self.request_json["board"])
             profile_request = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
 
         if profile_request:
             self.profile = profile_request
         else:
             if "model" in self.request_json:
+                self.log.debug("model in request, search for %s", self.request_json["model"])
                 profile_request = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
+                self.log.debug("model search found profile %s", profile_request)
                 if profile_request:
                     self.profile = profile_request
                 else:
