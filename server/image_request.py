@@ -13,7 +13,7 @@ class ImageRequest(Request):
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.last_build_id = last_build_id
-        self.needed_values = ["distro", "version", "target", "subtarget", "board"]
+        self.needed_values = ["distro", "version", "target", "subtarget"]
 
     def get_image(self, sysupgrade=False):
         bad_request = self.check_bad_request()
@@ -24,24 +24,25 @@ class ImageRequest(Request):
         if bad_target:
             return bad_target
 
-        profile_request = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
+        profile_request = None
+        if "board" in self.request_json:
+            profile_request = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
+
         if profile_request:
             self.profile = profile_request
         else:
-            if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
-                self.profile = "Generic"
-            else:
-                # added due to different values of board_name (e.g. ubnt-loco-m-xw (ImageBuilder) vs. loco-m-w (device))
-                # see https://github.com/aparcar/gsoc17-attended-sysupgrade/issues/26
-                if "model" in self.request_json:
-                    profile_request = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
-                else:
-                    self.request_json["model"] = "unknown"
-
+            if "model" in self.request_json:
+                profile_request = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
                 if profile_request:
                     self.profile = profile_request
                 else:
-                    self.response_dict["error"] = "unknown board: {}/{}".format(self.request_json["board"], self.request_json["model"] )
+                    self.response_dict["error"] = "unknown device, please check model and board params"
+                    return self.respond(), HTTPStatus.BAD_REQUEST
+            else:
+                if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
+                    self.profile = "Generic"
+                else:
+                    self.response_dict["error"] = "unknown device, please check model and board params"
                     return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.packages = None
