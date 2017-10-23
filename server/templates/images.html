@@ -20,7 +20,7 @@
 		<td>{{ release }}</td>
 		<td>{{ model }}</td>
 		<td>{{ network_profile }}</td>
-		<td>{{ build_date }}</td>
+		<td>{{ build_date.strftime('%x %X') }}</td>
 		<td>{{ filesize | filesizeformat }}</td>
 		<td>
 			<a href="static/{{ file_path }}{{ file_name }}.log" title="build log"><span class="octicon octicon-file-text"></span></a>
