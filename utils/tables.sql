@@ -11,7 +11,7 @@ create table if not exists releases_table(
 	name varchar(20) not null,
 	alias varchar(20) default '',
 	unique(distro_id, name),
-	foreign key (distro_id) references distributions(id)
+	foreign key (distro_id) references distributions(id) ON DELETE CASCADE
 );
 
 create or replace view releases as
@@ -86,7 +86,7 @@ old.*;
 
 create table if not exists profiles_table(
 	id serial primary key,
-	subtarget_id integer references subtargets_table(id),
+	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
 	profile varchar(50),
 	model varchar(100),
 	unique(subtarget_id, profile, model)
@@ -134,9 +134,9 @@ create table if not exists packages_versions(
 );
 
 create table if not exists packages_available_table(
-	subtarget_id integer references subtargets_table(id),
-	package_id integer references packages_names(id),
-	version_id integer references packages_versions(id),
+	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
+	package_id integer references packages_names(id) ON DELETE CASCADE,
+	version_id integer references packages_versions(id) ON DELETE CASCADE,
 ---	version varchar(100), -- gnunet 0.10.2-git-20170111-a4295da3df82817ff2fe1fa547374a96a2e0280b-1
 	primary key(subtarget_id, package_id)
 
@@ -183,8 +183,8 @@ SELECT add_packages_available(
 );
 
 create table if not exists packages_default_table(
-	subtarget_id integer references subtargets_table(id),
-	package integer references packages_names(id),
+	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
+	package integer references packages_names(id) ON DELETE CASCADE,
 	primary key(subtarget_id, package)
 );
 
@@ -227,8 +227,8 @@ SELECT add_packages_default(
 );
 
 create table if not exists packages_profile_table(
-	profile_id integer references profiles_table(id),
-	package integer references packages_names(id),
+	profile_id integer references profiles_table(id) ON DELETE CASCADE,
+	package integer references packages_names(id) ON DELETE CASCADE,
 	primary key(profile_id, package)
 );
 
@@ -283,9 +283,9 @@ create table if not exists manifest_table (
 );
 
 create table if not exists manifest_packages_link (
-	manifest_id integer references manifest_table(id),
-	name_id integer references packages_names(id),
-	version_id integer references packages_versions(id),
+	manifest_id integer references manifest_table(id) ON DELETE CASCADE,
+	name_id integer references packages_names(id) ON DELETE CASCADE,
+	version_id integer references packages_versions(id) ON DELETE CASCADE,
 	unique(manifest_id, name_id, version_id)
 );
 
@@ -325,8 +325,8 @@ create table if not exists packages_hashes_table (
 );
 
 create table if not exists packages_hashes_link(
-	hash_id integer references packages_hashes_table(id),
-	package_id integer references packages_names(id),
+	hash_id integer references packages_hashes_table(id) ON DELETE CASCADE,
+	package_id integer references packages_names(id) ON DELETE CASCADE,
 	primary key(hash_id, package_id)
 );
 
@@ -393,7 +393,7 @@ create table if not exists imagebuilder_requests (
 
 create table if not exists imagebuilder_table (
 	id SERIAL PRIMARY KEY,
-	subtarget_id integer references subtargets_table(id),
+	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'requested' -- 'ready', 'disabled', 'failded'
 );
 
@@ -430,8 +430,8 @@ old.*;
 create table if not exists images_table (
 	id SERIAL PRIMARY KEY,
 	image_hash varchar(30) UNIQUE,
-	profile_id integer references profiles_table(id),
-	manifest_id integer references manifest_table(id),
+	profile_id integer references profiles_table(id) ON DELETE CASCADE,
+	manifest_id integer references manifest_table(id) ON DELETE CASCADE,
 	network_profile varchar(30),
 	checksum varchar(32),
 	filesize integer,
@@ -513,8 +513,8 @@ where old.id = images_table.id;
 create table if not exists image_requests_table (
 	id SERIAL PRIMARY KEY,
 	request_hash varchar(30) UNIQUE,
-	profile_id integer references profiles_table(id),
-	packages_hash_id integer references packages_hashes_table(id),
+	profile_id integer references profiles_table(id) ON DELETE CASCADE,
+	packages_hash_id integer references packages_hashes_table(id) ON DELETE CASCADE,
 	network_profile varchar(30),
 	image_id integer references images_table(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'requested'
@@ -570,7 +570,7 @@ create table if not exists worker (
 
 create table if not exists worker_skills (
 	worker_id integer references worker(id) ON DELETE CASCADE,
-	subtarget_id integer references subtargets_table(id),
+	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'init'
 );
 
