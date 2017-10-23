@@ -198,7 +198,18 @@ class Image(ImageMeta):
 
                     self.name = "-".join(path_array)
                     for filename in os.listdir(self.build_path):
-                        shutil.move(os.path.join(self.build_path, filename), os.path.join(get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash, filename.replace(self.request_hash, self.manifest_hash)))
+                        filename_output = filename.replace("lede", self.distro)
+                        filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
+                        filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
+                        shutil.move(os.path.join(self.build_path, filename), os.path.join(
+                            get_folder("downloaddir"),
+                            self.distro,
+                            self.release,
+                            self.target,
+                            self.subtarget,
+                            self.profile,
+                            self.manifest_hash,
+                            filename_output))
                 else:
                     self.log.info("image already created")
                 self.database.done_build_job(self.request_hash, self.image_hash)
