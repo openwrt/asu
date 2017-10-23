@@ -222,23 +222,28 @@ class ImageBuilder(threading.Thread):
 
     def parse_packages(self):
         self.log.info("receive packages for %s/%s", self.target, self.subtarget)
+        if self.database.outdated_package_index(self.distro, self.release, self.target, self.subtarget):
+            self.log.info("packages outdated, run sync")
+            cmdline = ['make', 'package_list']
+            proc = subprocess.Popen(
+                cmdline,
+                cwd=self.path,
+                stdout=subprocess.PIPE,
+                shell=False,
+                stderr=subprocess.STDOUT
+            )
 
-        cmdline = ['make', 'package_list']
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=self.path,
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT
-        )
-
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
-        output = output.decode('utf-8')
-        if returnCode == 0:
-            packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
-            self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
-            self.database.insert_packages_available(self.distro, self.release, self.target, self.subtarget, packages)
+            output, erros = proc.communicate()
+            returnCode = proc.returncode
+            output = output.decode('utf-8')
+            if returnCode == 0:
+                packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
+                self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
+                self.database.insert_packages_available(self.distro, self.release, self.target, self.subtarget, packages)
+            else:
+                print(output)
+                self.log.warning("could not receive packages of %s/%s", self.target, self.subtarget)
         else:
-            print(output)
-            self.log.warning("could not receive packages of %s/%s", self.target, self.subtarget)
+            self.log.info("packages up to date")
+
+

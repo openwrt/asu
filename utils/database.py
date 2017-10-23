@@ -65,7 +65,18 @@ class Database():
         self.c.execute(sql, (hash, " ".join(packages)))
         self.commit()
 
+    def delete_profiles(self, distro, release, target, subtarget, profiles):
+        self.log.debug("delete profiles of %s/%s/%s/%s", distro, release, target, subtarget)
+        subtarget_id = self.c.execute("""delete from profiles_table
+            where subtarget_id = (select id from subtargets where
+            subtargets.distro = ? and
+            subtargets.release = ? and
+            subtargets.target = ? and
+            subtargets.subtarget = ?)""", distro, release, target, subtarget)
+        self.commit()
+
     def insert_profiles(self, distro, release, target, subtarget, packages_default, profiles):
+
         self.log.debug("insert_profiles %s/%s/%s/%s", distro, release, target, subtarget)
         self.c.execute("INSERT INTO packages_default VALUES (?, ?, ?, ?, ?);", distro, release, target, subtarget, packages_default)
 
@@ -118,8 +129,30 @@ class Database():
         else:
             return response
 
+    def outdated_package_index(self, distro, release, target, subtarget):
+        self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
+        sql = """select 1 from subtargets
+            where distro = ? and
+            release = ? and
+            target = ? and
+            subtarget = ? and
+            package_sync < NOW() - INTERVAL '1 day';"""
+        self.c.execute(sql, distro, release, target, subtarget)
+        if self.c.rowcount == 1:
+            return True
+        else:
+            return False
+
+
     def insert_packages_available(self, distro, release, target, subtarget, packages):
         self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
+        sql = """update subtargets set package_sync = NOW()
+            where distro = ? and
+            release = ? and
+            target = ? and
+            subtarget = ?;"""
+        self.c.execute(sql, distro, release, target, subtarget)
+
         sql = """INSERT INTO packages_available VALUES (?, ?, ?, ?, ?, ?);"""
         for package in packages:
             name, version = package

@@ -44,11 +44,12 @@ create table if not exists subtargets_table(
 	target varchar(20),
 	subtarget varchar(20),
 	supported boolean DEFAULT false,
+	package_sync timestamp default date('1970-01-01'),
 	unique(release_id, target, subtarget)
 );
 
 create or replace view subtargets as
-select subtargets_table.id, distro, release, target, subtarget, supported
+select subtargets_table.id, distro, release, target, subtarget, supported, package_sync
 from releases join subtargets_table on releases.id = subtargets_table.release_id;
 
 create or replace function add_subtargets(distro varchar, release varchar, target varchar, subtarget varchar) returns void as
@@ -74,7 +75,8 @@ SELECT add_subtargets(
 create or replace rule update_subtargets AS
 ON update TO subtargets DO INSTEAD
 update subtargets_table set
-supported = coalesce(NEW.supported, supported)
+supported = coalesce(NEW.supported, supported),
+package_sync = coalesce(NEW.package_sync, package_sync)
 where subtargets_table.id =
 (select id from subtargets where
 	subtargets.distro = NEW.distro and
