@@ -1,8 +1,10 @@
 {% include 'header.html' %}
 <h2>Created images</h2>
+{% if snapshots_enabled %}
 <div class="alert alert-warning">
 	  <strong>Warning!</strong> All snapshots builds are deleted at 00:00 UTC.
 </div>
+{% endif %}
 <table class="table table-striped">
 	<tr>
 		<th>Distro</th>

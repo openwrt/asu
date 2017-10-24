@@ -126,7 +126,9 @@ def supported():
 @app.route("/images")
 def images():
     images = database.get_images_list()
-    return render_template("images.html", images=images)
+    return render_template("images.html",
+            snapshots_enabled=config.get("snapshots"),
+            images=images)
 
 @app.route("/fails")
 def fails():
