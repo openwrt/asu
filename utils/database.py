@@ -233,10 +233,11 @@ class Database():
 
     def add_image(self, image_hash, image_array, checksum, filesize):
         self.log.debug("add image %s", image_array)
+        sysupgrade_suffix = "-squashfs-sysupgrade.bin"
         sql = """INSERT INTO images
-            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, build_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        self.c.execute(sql, image_hash, *image_array, checksum, filesize, datetime.datetime.now())
+            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"""
+        self.c.execute(sql, image_hash, *image_array, checksum, filesize, sysupgrade_suffix)
         self.commit()
         sql = """select id from images where image_hash = ?"""
         self.c.execute(sql, image_hash)
