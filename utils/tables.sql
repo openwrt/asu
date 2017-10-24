@@ -529,14 +529,16 @@ CASE network_profile
 		|| manifest_hash || '-'
 		|| target || '-'
 		|| subtarget || '-'
-		|| profile || '-sysupgrade.bin'
+		|| profile || '-'
+		|| sysupgrade_suffix
     ELSE distro || '-'
 		|| release || '-'
 		|| manifest_hash || '-'
 		|| replace(replace(network_profile, '/', '-'), '.', '_') || '-'
 		|| target || '-'
 		|| subtarget || '-'
-		|| profile || '-sysupgrade.bin'
+		|| profile || '-'
+		|| sysupgrade_suffix
 	END as file_name,
 	checksum, filesize
 from images;

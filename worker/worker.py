@@ -155,65 +155,68 @@ class Image(ImageMeta):
                 self.set_path()
                 create_folder(os.path.dirname(self.path))
 
+                path_array = [self.distro, self.release, self.manifest_hash]
+
+                if self.network_profile:
+                    path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+
+                path_array.extend([self.target, self.subtarget, self.profile])
+
+                self.name = "-".join(path_array)
+                store_path = os.path.join(
+                        get_folder("downloaddir"),
+                        self.distro,
+                        self.release,
+                        self.target,
+                        self.subtarget,
+                        self.profile,
+                        self.manifest_hash)
+
+                for filename in os.listdir(self.build_path):
+                    filename_output = filename.replace("lede", self.distro)
+                    filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
+                    filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
+                    shutil.move(os.path.join(self.build_path, filename), os.path.join(store_path, filename_output))
+
                 sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
                     "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
                     "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
 
                 sysupgrade = None
 
-                if not os.path.exists(self.path):
-                    for sysupgrade_file in sysupgrade_files:
-                        if not sysupgrade:
-                            sysupgrade = glob.glob(os.path.join(self.build_path, sysupgrade_file))
-                        else:
-                            break
-
-                    self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
-
+                for sysupgrade_file in sysupgrade_files:
                     if not sysupgrade:
-                        self.log.error("created image was to big")
-                        self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
-                        self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
+                        sysupgrade = glob.glob(os.path.join(store_path, sysupgrade_file))
+                    else:
+                        break
+
+                self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
+
+                if not sysupgrade:
+                    self.log.error("created image was to big")
+                    self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
+                    self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
+                    return False
+
+                self.log.info("move %s to %s", sysupgrade, self.path)
+                shutil.copyfile(sysupgrade[0], self.path)
+                if self.config.get("sign_images"):
+                    if sign_image(self.path):
+                        self.log.info("signed %s", self.path)
+                    else:
+                        self.database.set_image_requests_status(self.request_hash, 'signing_fail')
                         return False
-
-                    self.log.info("move %s to %s", sysupgrade, self.path)
-                    shutil.copyfile(sysupgrade[0], self.path)
-                    if self.config.get("sign_images"):
-                        if sign_image(self.path):
-                            self.log.info("signed %s", self.path)
-                        else:
-                            self.database.set_image_requests_status(self.request_hash, 'signing_fail')
-                            return False
-                    self.gen_checksum()
-                    self.gen_filesize()
-                    self.store_log(self.path)
-                    self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize)
-
-                    path_array = [self.distro, self.release, self.manifest_hash]
-
-                    if self.network_profile:
-                        path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
-
-                    path_array.extend([self.target, self.subtarget, self.profile])
-
-                    self.name = "-".join(path_array)
-                    for filename in os.listdir(self.build_path):
-                        filename_output = filename.replace("lede", self.distro)
-                        filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
-                        filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
-                        shutil.move(os.path.join(self.build_path, filename), os.path.join(
-                            get_folder("downloaddir"),
-                            self.distro,
-                            self.release,
-                            self.target,
-                            self.subtarget,
-                            self.profile,
-                            self.manifest_hash,
-                            filename_output))
-                else:
-                    self.log.info("image already created")
-                self.database.done_build_job(self.request_hash, self.image_hash)
+                self.gen_checksum()
+                self.gen_filesize()
+                self.store_log(self.path)
+                self.log.warning(sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
+                self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize, sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
                 return True
+
+               # else:
+               #     self.log.info("image already created")
+               # self.database.done_build_job(self.request_hash, self.image_hash)
+               # return True
             else:
                 self.log.info("build failed")
                 self.database.set_image_requests_status(self.request_hash, 'build_fail')

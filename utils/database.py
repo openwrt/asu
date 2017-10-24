@@ -231,9 +231,8 @@ class Database():
         else:
             return False
 
-    def add_image(self, image_hash, image_array, checksum, filesize):
+    def add_image(self, image_hash, image_array, checksum, filesize, sysupgrade_suffix):
         self.log.debug("add image %s", image_array)
-        sysupgrade_suffix = "-squashfs-sysupgrade.bin"
         sql = """INSERT INTO images
             (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"""
