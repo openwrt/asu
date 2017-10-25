@@ -1,1 +1,7 @@
-attended-sysupgrade-poc
+[server]
+betaupdate.libremesh.org
+ledeupdate.planetexpress.cc
+
+[worker]
+betaupdate.libremesh.org
+ledeupdate.planetexpress.cc

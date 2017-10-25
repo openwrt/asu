@@ -3,10 +3,10 @@ Description=update worker for lede/openwrt/libremesh
 After=nginx.target
 
 [Service]
-User={{ update_worker_user }}
+User={{ worker_user }}
 Type=simple
 PIDFile=/run/update-worker.pid
-WorkingDirectory={{ update_folder }}
+WorkingDirectory={{ worker_folder }}
 ExecStart=/usr/bin/python3 worker.py
 Restart=always
 

@@ -1,4 +1,0 @@
-- hosts: attended-sysupgrade-poc
-  become: true
-  roles:
-      - update-server

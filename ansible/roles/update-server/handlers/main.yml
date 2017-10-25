@@ -1,5 +1,0 @@
-- name: restart update-server
-  service: name=update-server state=restarted
-
-- name: restart update-worker
-  service: name=update-worker state=restarted
