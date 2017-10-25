@@ -431,7 +431,7 @@ old.*;
 
 create table if not exists sysupgrade_suffixes (
 	id SERIAL PRIMARY KEY,
-	sysupgrade_suffix varchar(30) not null
+	sysupgrade_suffix varchar(30) not null unique
 );
 
 create table if not exists images_table (
@@ -528,8 +528,8 @@ CASE network_profile
 		|| release || '-'
 		|| manifest_hash || '-'
 		|| target || '-'
-		|| subtarget || '-'
-		|| profile || '-'
+		|| subtarget || '-' ||
+		(CASE target WHEN 'x86' THEN '' ELSE profile || '-'  END)
 		|| sysupgrade_suffix
     ELSE distro || '-'
 		|| release || '-'

@@ -123,13 +123,17 @@ class Image(ImageMeta):
 
 
         with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
+            already_created = False
+            extra_image_name = self.request_hash
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
-            cmdline.append('EXTRA_IMAGE_NAME=%s' % self.request_hash)
             if self.network_profile:
                 self.log.debug("add network_profile %s", self.network_profile)
+                extra_image_name = "{}-{}".format(extra_image_name, self.network_profile.replace("/", "-").replace(".", "_"))
                 self.network_profile_packages()
                 cmdline.append('FILES=%s' % self.network_profile_path)
+            self.log.warning(extra_image_name)
+            cmdline.append('EXTRA_IMAGE_NAME=%s' % extra_image_name)
             self.diff_packages()
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
             cmdline.append('BIN_DIR=%s' % self.build_path)
@@ -152,71 +156,68 @@ class Image(ImageMeta):
                 self.manifest_id = self.database.add_manifest(self.manifest_hash)
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
-                self.set_path()
-                create_folder(os.path.dirname(self.path))
 
-                path_array = [self.distro, self.release, self.manifest_hash]
-
+                name_array = [self.distro, self.release, self.manifest_hash]
                 if self.network_profile:
-                    path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+                    name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+                name_array.extend([self.target, self.subtarget])
+                if self.target != "x86":
+                    name_array.append(self.profile)
+                self.name = "-".join(name_array)
 
-                path_array.extend([self.target, self.subtarget, self.profile])
+                path_array = [get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash]
 
-                self.name = "-".join(path_array)
-                store_path = os.path.join(
-                        get_folder("downloaddir"),
-                        self.distro,
-                        self.release,
-                        self.target,
-                        self.subtarget,
-                        self.profile,
-                        self.manifest_hash)
+                store_path = os.path.join(*path_array)
+                create_folder(store_path)
 
                 for filename in os.listdir(self.build_path):
                     filename_output = filename.replace("lede", self.distro)
                     filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
                     filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
-                    shutil.move(os.path.join(self.build_path, filename), os.path.join(store_path, filename_output))
-
-                sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
-                    "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
-                    "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
-
-                sysupgrade = None
-
-                for sysupgrade_file in sysupgrade_files:
-                    if not sysupgrade:
-                        sysupgrade = glob.glob(os.path.join(store_path, sysupgrade_file))
+                    if not os.path.exists(os.path.join(store_path, filename_output)):
+                        self.log.info("move file %s", filename_output)
+                        shutil.move(os.path.join(self.build_path, filename), os.path.join(store_path, filename_output))
                     else:
+                        self.log.info("file %s exists so image was created before", filename_output)
+                        already_created = True
                         break
 
-                self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
+                if not already_created:
+                    sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
+                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
+                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
 
-                if not sysupgrade:
-                    self.log.error("created image was to big")
-                    self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
-                    self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
-                    return False
+                    sysupgrade = None
 
-                self.log.info("move %s to %s", sysupgrade, self.path)
-                shutil.copyfile(sysupgrade[0], self.path)
-                if self.config.get("sign_images"):
-                    if sign_image(self.path):
-                        self.log.info("signed %s", self.path)
-                    else:
-                        self.database.set_image_requests_status(self.request_hash, 'signing_fail')
+                    for sysupgrade_file in sysupgrade_files:
+                        if not sysupgrade:
+                            sysupgrade = glob.glob(os.path.join(store_path, sysupgrade_file))
+                        else:
+                            break
+
+                    self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
+
+                    if not sysupgrade:
+                        self.log.error("created image was to big")
+                        self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
+                        self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                         return False
-                self.gen_checksum()
-                self.gen_filesize()
-                self.store_log(self.path)
-                self.log.warning(sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
-                self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize, sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
-                return True
 
-               # else:
-               #     self.log.info("image already created")
-               # self.database.done_build_job(self.request_hash, self.image_hash)
-               # return True
+                    self.path = sysupgrade[0]
+
+                    if self.config.get("sign_images"):
+                        if sign_image(self.path):
+                            self.log.info("signed %s", self.path)
+                        else:
+                            self.database.set_image_requests_status(self.request_hash, 'signing_fail')
+                            return False
+                    self.gen_checksum()
+                    self.gen_filesize()
+                    self.store_log(self.path)
+                    self.log.warning(sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
+                    self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize, sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
+                self.database.done_build_job(self.request_hash, self.image_hash)
+                return True
             else:
                 self.log.info("build failed")
                 self.database.set_image_requests_status(self.request_hash, 'build_fail')
@@ -236,20 +237,6 @@ class Image(ImageMeta):
 
     def gen_filesize(self):
         self.filesize = os.stat(self.path).st_size
-
-    def set_path(self):
-        # using lede naming convention
-        path_array = [self.distro, self.release, self.manifest_hash]
-
-        if self.network_profile:
-            path_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
-
-        path_array.extend([self.target, self.subtarget, self.profile])
-
-        path_array.append("sysupgrade.bin")
-
-        self.name = "-".join(path_array)
-        self.path = os.path.join(get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash, self.name)
 
     def network_profile_packages(self):
         extra_packages = os.path.join(self.network_profile_path, 'PACKAGES')
