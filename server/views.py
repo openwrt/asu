@@ -110,6 +110,10 @@ def api_packages_image():
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
+@app.route("/imagebuilder")
+def imagebuilder():
+    return render_template("imagebuilder.html", update_server=config.get("update_server"))
+
 @app.route("/supported")
 def supported():
     show_json = request.args.get('json', False)
