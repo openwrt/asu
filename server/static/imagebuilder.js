@@ -252,6 +252,9 @@ function distro_changed() {
 }
 
 function create() {
+	document.getElementById("files_box").innerHTML = "Advanced view";
+	document.getElementById("info_box").style.display = "none";
+	document.getElementById("error_box").style.display = "none";
 	packages = [];
 	edit_packages_split = document.request_form.edit_packages.value.split("\n")
 	for(var i = 0; i < edit_packages_split.length; i++) {
