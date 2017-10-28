@@ -157,10 +157,21 @@ class Image(ImageMeta):
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
 
-                name_array = [self.distro, self.release, self.manifest_hash]
+                name_array = [self.distro]
+
+                # snapshot build are no release
+                if self.release != "snapshot":
+                    name_array.append(self.release)
+
+                name_array.append(self.manifest_hash)
+
+                # add network_profile to name if set
                 if self.network_profile:
                     name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+
                 name_array.extend([self.target, self.subtarget])
+
+                # x86 as target has no profile in name as it's generic
                 if self.target != "x86":
                     name_array.append(self.profile)
                 self.name = "-".join(name_array)

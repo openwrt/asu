@@ -523,23 +523,15 @@ id, image_hash,
 	|| profile || '/'
 	|| manifest_hash || '/'
 	as file_path,
-CASE network_profile
-    WHEN '' THEN distro || '-'
-		|| release || '-'
-		|| manifest_hash || '-'
-		|| target || '-'
-		|| subtarget || '-' ||
-		(CASE target WHEN 'x86' THEN '' ELSE profile || '-'  END)
-		|| sysupgrade_suffix
-    ELSE distro || '-'
-		|| release || '-'
-		|| manifest_hash || '-'
-		|| replace(replace(network_profile, '/', '-'), '.', '_') || '-'
-		|| target || '-'
-		|| subtarget || '-'
-		|| profile || '-'
-		|| sysupgrade_suffix
-	END as file_name,
+    distro || '-' ||
+	(CASE release WHEN 'snapshot' THEN '' ELSE  release || '-'  END)
+	|| manifest_hash || '-' ||
+	(CASE network_profile WHEN '' THEN '' ELSE replace(replace(network_profile, '/', '-'), '.', '_') || '-' END)
+	|| target || '-'
+	|| subtarget || '-' ||
+	(CASE target WHEN 'x86' THEN '' ELSE profile || '-'  END)
+	|| sysupgrade_suffix
+	as file_name,
 	checksum, filesize
 from images;
 
