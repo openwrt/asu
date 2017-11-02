@@ -421,12 +421,18 @@ class Database():
         sql = """select coalesce(array_to_json(array_agg(row_to_json(releases))), '[]') from (select distro, release from releases where distro LIKE ? order by release desc) as releases;"""
         return self.c.execute(sql, distro).fetchone()[0]
 
-    def get_supported_models(self, model='', distro='', release=''):
-        model_search = '%' + model + '%'
+    def get_supported_models(self, search='', distro='', release=''):
+        search_like = '%' + search.lower() + '%'
         if distro == '': distro = '%'
         if release == '': release = '%'
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE lower(?) and distro LIKE ? and release LIKE ?;"""
-        return self.c.execute(sql, model_search, distro, release).fetchone()[0]
+
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE ? and distro LIKE ? and release LIKE ?;"""
+        response = self.c.execute(sql, search_like, distro, release).fetchone()[0]
+        if response == "[]":
+            sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where (lower(target) LIKE ? or lower(subtarget) LIKE ? or lower(profile) LIKE ?)and distro LIKE ? and release LIKE ?;"""
+            response = self.c.execute(sql, search_like, search_like, search_like, distro, release).fetchone()[0]
+
+        return response
 
     def get_subtargets_json(self, distro='%', release='%', target='%'):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and release like ? and target like ?;"""
