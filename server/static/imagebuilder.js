@@ -33,7 +33,11 @@ function search() {
 			document.request_form.profile[0] = new Option("Not found")
 		} else {
 			for(var i = 0; i < devices.length; i++) {
-				document.request_form.profile[i] = new Option(devices[i].model)
+				if(document.request_form.advanced_view.checked) {
+					document.request_form.profile[i] = new Option(devices[i].model + " (" + devices[i].target + "/" +devices[i].subtarget + "/" + devices[i].profile + ")")
+				} else {
+					document.request_form.profile[i] = new Option(devices[i].model)
+				}
 				document.request_form.profile[i].value = devices[i].target + "/" + devices[i].subtarget + "/" + devices[i].profile
 			}
 		}
@@ -145,7 +149,6 @@ function set_device_info() {
     target = profile_split[0]
     subtarget = profile_split[1]
     profile = profile_split[2]
-	document.getElementById("info_device").innerHTML = "<b>Target:</b> " + target + " - <b>Subtarget</b>: " + subtarget + " - <b>Profile</b>: " + profile
 }
 
 function load_packages_image() {
@@ -209,25 +212,6 @@ function diff_packages(packages_diff) {
 		}
 	}
 	return(packages_install)
-
-	packages = packages_image.slice()
-	for (var j = packages.length -1; j > 0; j--) {
-		if (packages[j].startsWith("-")) {
-			packages.splice(j, 1);
-		}
-	}
-
-	for (var i in packages_flavor) {
-		if(packages_flavor[i].startsWith("-")) {
-			package_index = packages.indexOf(packages_flavor[i].substring(1))
-			if(package_index != -1) {
-				packages.splice(package_index, 1);
-			}
-		} else if(!packages.includes(packages_flavor[i])) {
-			packages.push(packages_flavor[i])
-		}
-	}
-	document.request_form.edit_packages.value = packages.join("\n");
 }
 
 function distro_changed() {
@@ -267,6 +251,7 @@ function create() {
 }
 
 function toggle_advanced_view() {
+	search(); // run search to redraw target/subtarget/profile combi or hide it
 	if (document.request_form.advanced_view.checked) {
 		action = "block"
 	} else {
@@ -276,7 +261,6 @@ function toggle_advanced_view() {
 	for(var i = 0; i < advanced_elements.length; i++) {
 		advanced_elements[i].style.display = action;
 	}
-
 }
 
 function bootstrap() {
