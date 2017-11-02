@@ -51,8 +51,8 @@ def api_upgrade_request():
     ir = ImageRequest(request_json, 1)
     return(ir.get_image(sysupgrade=1))
 
-@app.route("/files-request", methods=['POST'])
-@app.route("/api/files-request", methods=['POST'])
+@app.route("/build-request", methods=['POST'])
+@app.route("/api/build-request", methods=['POST'])
 def api_files_request():
     try:
         request_json = json.loads(request.get_data().decode('utf-8'))
