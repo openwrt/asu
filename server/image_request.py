@@ -14,6 +14,7 @@ class ImageRequest(Request):
         self.config = Config()
         self.last_build_id = last_build_id
         self.needed_values = ["target", "subtarget"]
+        self.profile = ""
 
     def get_image(self, sysupgrade=False):
         bad_request = self.check_bad_request()
@@ -24,7 +25,6 @@ class ImageRequest(Request):
         if bad_target:
             return bad_target
 
-        profile_request = None
         if "board" in self.request_json:
             self.log.debug("board in request, search for %s", self.request_json["board"])
             self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
@@ -32,10 +32,8 @@ class ImageRequest(Request):
         if not self.profile:
             if "model" in self.request_json:
                 self.log.debug("model in request, search for %s", self.request_json["model"])
-                profile_request = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
+                self.profile = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
                 self.log.debug("model search found profile %s", profile_request)
-                if profile_request:
-                    self.profile = profile_request
 
         if not self.profile:
             if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
