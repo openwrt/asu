@@ -33,7 +33,7 @@ function search() {
 			document.request_form.profile[0] = new Option("Not found")
 		} else {
 			for(var i = 0; i < devices.length; i++) {
-				if(document.request_form.advanced_view.checked) {
+				if(document.request_form.advanced_view.checked || devices[i].model == "Generic") {
 					document.request_form.profile[i] = new Option(devices[i].model + " (" + devices[i].target + "/" +devices[i].subtarget + "/" + devices[i].profile + ")")
 				} else {
 					document.request_form.profile[i] = new Option(devices[i].model)
