@@ -1,10 +1,10 @@
-# sends a request to the demo update server
+# sends a request to the demo upgrade server
 UPDATESERVER="localhost:5000"
 UPDATESERVER="https://betaupdate.libremesh.org"
 JSON_FILE=$1
 
 function image_request () {
-	response=$(curl -s -w "\n%{http_code}" -X POST "$UPDATESERVER"/image-request -d @$JSON_FILE --header "Content-Type: application/json")
+	response=$(curl -s -w "\n%{http_code}" -X POST "$UPDATESERVER"/api/build-request -d @$JSON_FILE --header "Content-Type: application/json")
 	export statuscode=$(echo "$response" | tail -n 1)
 	export content=$(echo "$response" | head -n 1)
 }
