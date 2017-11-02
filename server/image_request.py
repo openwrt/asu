@@ -13,7 +13,7 @@ class ImageRequest(Request):
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.last_build_id = last_build_id
-        self.needed_values = ["distro", "version", "target", "subtarget"]
+        self.needed_values = ["target", "subtarget"]
 
     def get_image(self, sysupgrade=False):
         bad_request = self.check_bad_request()
@@ -27,26 +27,22 @@ class ImageRequest(Request):
         profile_request = None
         if "board" in self.request_json:
             self.log.debug("board in request, search for %s", self.request_json["board"])
-            profile_request = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
+            self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
 
-        if profile_request:
-            self.profile = profile_request
-        else:
+        if not self.profile:
             if "model" in self.request_json:
                 self.log.debug("model in request, search for %s", self.request_json["model"])
                 profile_request = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
                 self.log.debug("model search found profile %s", profile_request)
                 if profile_request:
                     self.profile = profile_request
-                else:
-                    self.response_dict["error"] = "unknown device, please check model and board params"
-                    return self.respond(), HTTPStatus.BAD_REQUEST
+
+        if not self.profile:
+            if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
+                self.profile = "Generic"
             else:
-                if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
-                    self.profile = "Generic"
-                else:
-                    self.response_dict["error"] = "unknown device, please check model and board params"
-                    return self.respond(), HTTPStatus.BAD_REQUEST
+                self.response_dict["error"] = "unknown device, please check model and board params"
+                return self.respond(), HTTPStatus.BAD_REQUEST
 
         self.packages = None
         if "packages" in self.request_json:
