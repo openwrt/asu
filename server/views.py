@@ -20,13 +20,16 @@ from utils.common import get_dir, create_folder, init_usign
 database = Database()
 config = Config()
 
+
 @app.route("/update-request", methods=['POST'])
-def update_request():
-    if request.method == 'POST':
-        request_json = request.get_json()
-        ur = UpdateRequest(request_json)
-        return ur.run()
-    return 400
+@app.route("/api/upgrade-check", methods=['POST'])
+def api_upgrade_check():
+    try:
+        request_json = json.loads(request.get_data().decode('utf-8'))
+    except:
+        return "[]", HTTPStatus.BAD_REQUEST
+    ur = UpdateRequest(request_json)
+    return(ur.run())
 
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
@@ -39,14 +42,22 @@ def download_image(image_path, image_name):
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
 @app.route("/image-request", methods=['POST'])
-def requst_image():
-    request_json = request.get_json()
+@app.route("/api/upgrade-request", methods=['POST'])
+def api_upgrade_request():
+    try:
+        request_json = json.loads(request.get_data().decode('utf-8'))
+    except:
+        return "[]", HTTPStatus.BAD_REQUEST
     ir = ImageRequest(request_json, 1)
-    return ir.get_image(sysupgrade=1)
+    return(ir.get_image(sysupgrade=1))
 
 @app.route("/files-request", methods=['POST'])
-def files_request():
-    request_json = request.get_json()
+@app.route("/api/files-request", methods=['POST'])
+def api_files_request():
+    try:
+        request_json = json.loads(request.get_data().decode('utf-8'))
+    except:
+        return "[]", HTTPStatus.BAD_REQUEST
     ir = ImageRequest(request_json, 1)
     return ir.get_image()
 
