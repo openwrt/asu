@@ -41,11 +41,11 @@ All requests are stored in a queue and build by workers.
 
 ## API
 
-To communicate with the update server one have to distinguish between *update request*, *update response*, *image request* and *image response*. The different types are explained below.
+To communicate with the update server one have to distinguish between *upgrade check* and *upgrade request*. Both are explained below.
 
-### Update request
+### Upgrade check `/api/upgrade-check`
 
-Sends information about the device to the server to see if a new distribution release or package updates are available. An *update request* could look like this:
+Sends information about the device to the server to see if a new distribution release or package upgrades are available. An *upgrade check* could look like this:
 
 | key 	| value | information 	|
 | --- 	| --- 	| --- 		|
@@ -56,9 +56,11 @@ Sends information about the device to the server to see if a new distribution re
 | `packages` | `{libuci-lua: 2017-04-12-c4df32b3-1, cgi-io: 3, ...}` | all user installed packages |
 
 Most information can be retrieved via `ubus call system board`. Missing information can be gathered via the `rpcd-mod-packagelist` package.
-`packages` contains all user installed packages. Packages installed as an dependence are excluded.
+`packages` contains all user installed packages. Packages installed as an dependence are excluded. 
 
-### Update response
+It's also possible to check for a new release without sending packages by removing `packages` from the request.
+
+### Check response
 
 The server validates the request. Below is a possible response for a new release:
 
@@ -67,7 +69,6 @@ The server validates the request. Below is a possible response for a new release
 | `version` 	| `17.01.2` 	| newest release |
 | `updates` 	| `{luci-lib-jsonc: [git-17.230.25723-2163284-1, git-17.228.56579-209deb5-1], ...}` | Package updates `[new_version, current_version]` |
 | `packages` 	| `[libuci-lua, cgi-io: 3, ...]` | All packages for the new image |
-
 
 The client should check the status code:
 
@@ -79,11 +80,11 @@ The client should check the status code:
 | 201 		| imagebuilder not ready		| setting up imagebuilder, retry soon | 
 | 200		| new release / new package updates	| see `version` and `updates` in response |
 
-An release update does not ignore package updates for the following reason. Between releases packages names may change, packages are dropped or merged. The *update reponse* contains all packages included changed ones.
+An release upgrade does not ignore package upgrades for the following reason. Between releases it possible that package names may change, packages are dropped or merged. The *reponse* contains all packages included changed ones.
 
-### Image request
+### Upgrade request `/api/upgrade-request`
 
-The *update reponse* should be shown to the user in a readable way. Once the user decides to perform the sysupgrade a new request is send to the server called *image request*
+The *upgrade check response* should be shown to the user in a readable way. Once the user decides to perform the sysupgrade a new request is send to the server called *upgrade request*
 
 | key 		| value 				| information 	|
 | --- 		| --- 					| --- 		|
@@ -92,25 +93,35 @@ The *update reponse* should be shown to the user in a readable way. Once the use
 | `target` 	| `ar71xx` 				| |
 | `subtarget` 	| `generic` 				| |
 | `board` 	| `tl-wdr4300-v1` 			| `board_name` of `ubus call system board` |
-| `model` 	| `TP-Link TL-WDR4300 v1` 		| `model` of `ubus call system board` |
+| `[model]` 	| `TP-Link TL-WDR4300 v1` 		| `model` of `ubus call system board`. This is optional and a fallback |
 | `packages` 	| `[libuci-lua, cgi-io: 3, ...]` 	| All packages for the new image |
 
-The *image request* is nearly the same as the *update request* before, except only containing package names without version and adding `board` and `model`. While the update server builds the requested image the clients keeps polling the server, sending *exacly* the same *image request*. The client _does not_ receive a ticket ID or anything similar. This is due to the situation when same devices poll in parallel only one build job is triggered, resulting in the same image for all devices.
+The *upgrade request* is nearly the same as the *upgrade check* before, except only containing package names without version and adding `board` and possibly `model`. While the server builds the requested image the clients keeps polling the server, sending *exacly* the same *image request*. The client _does not_ receive a ticket ID or anything similar. This is due to the situation when same devices poll in parallel only one build job is triggered, resulting in the same image for all devices.
 
-### Image response
+### Response
 
 | key 	| value | information 	|
 | --- 	| --- 	| --- 		|
 | `checksum` | `8b32f569dca8dcd780414f7850ed11e8` | md5 |
 | `filesize` | `5570113` |  |
-| `url` | `https://betaupdate.libremesh.o…x86-64-Generic-sysupgrade.bin` | download link |
+| `sysupgrade` | `https://betaupdate.libremesh.o…x86-64-Generic-sysupgrade.bin` | download link |
 
 The `status` code has again different meanings.
 
 | status 	| meaning 				| information 	|
 | --- 		| --- 					| --- 			|
 | 500		| build faild				| see `error`	|
-| 503 		| server overload   			|  | 
+| 503 		| server overload   			| please wait ~5 minutes | 
 | 201		| queued				| requests wait to build |
 | 206		| building				| building right now |
 | 200		| ready					| build finished successful |
+
+### Build request `/api/build-request`
+
+It's also possible to request an imagebuild. The request is exaclty the same as for `upgrade-request`. The response only contains a link to the created `files`:
+
+| key 		| value 	| information 	|
+| --- 		| --- 		| --- 		|
+| `files` 	| `https://betaupdate.libremesh.o...neric/af937867acd2951/` 	| files in json format |
+
+This can be used to create a service like the *[Online Imagebuilder](https://ledeupdate.planetexpress.cc/imagebuilder)*
