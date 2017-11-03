@@ -189,7 +189,7 @@ function edit_packages_update() {
 	document.request_form.edit_packages.value = packages.join("\n");
 }
 
-function edit_packages() {
+function packages_input() {
 	edit_packages_bool = true;
 	load_packages_image();
 	document.getElementById("edit_packages_div").style.display = "block";
