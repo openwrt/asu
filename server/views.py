@@ -123,7 +123,7 @@ def api_packages_image():
 
 @app.route("/imagebuilder")
 def imagebuilder():
-    return render_template("imagebuilder.html", update_server=config.get("update_server"))
+    return render_template("chef.html", update_server=config.get("update_server"))
 
 @app.route("/supported")
 def supported():
