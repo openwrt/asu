@@ -1,0 +1,74 @@
+{% include 'header.html' %}
+			<style> .advanced_view { display: none; } input[type=text], button, select, textarea { width: 100%; } </style>
+			<div style="display: none" id="info_box" class="alert alert-success"></div>
+			<div style="display: none" id="error_box" class="alert alert-danger"></div>
+			<div id="files_box" class="alert alert-info advanced_view">Advanced view</div>
+
+			<form name="request_form" id="request_form" action="#" method="get" class="col-md-12">
+				<div class="form-group row">
+					<label for="distro" class="col-sm-2 col-form-label">Distribution:</label>
+					<div class="col-sm-4">
+						<select class="custom-select" id="distro" name="distro" onchange="distro_changed();"></select>
+					</div>
+					<label for="release" class="col-sm-2 col-form-label">Release:</label>
+					<div class="form-group col-md-4">
+						<select class="custom-select" id="release" name="release"></select>
+					</div>
+				</div>
+				<div class="form-group row">
+					<label for="release" class="col-sm-3 col-form-label">Router Model:</label>
+					<div class="form-group col-md-3">
+						<input class="form-control" type="text" id="search_device" onkeyup="search_delayed()" placeholder="Search for device...">
+					</div>
+					<div class="form-group col-md-6">
+						<select class="custom-select" id="profile" name="profile" onchange="profile_changed();">
+							<option value="" selected>Start typing</option>
+						</select>
+					</div>
+				</div>
+				<div id="lime_config">
+					<div class="form-group row">
+						<label for="network_profile" class="col-sm-2 col-form-label"><a href="https://github.com/libremesh/network-profiles/" target="_blank">Network Profile:</a></label>
+						<div class="form-group col-md-4">
+							<select class="custom-select" name="network_profile">
+								<option value="" selected>None</option>
+							</select>
+						</div>
+						<label for="flavor" class="col-sm-2 col-form-label">Libremesh Flavor:</a></label>
+						<div class="form-group col-md-4">
+							<select class="custom-select" id="flavor" name="flavor" onchange="set_packages_flavor();"></select>
+						</div>
+					</div>
+				</div>
+				<div class="form-group row advanced_view">
+					<div class="form-group col-md-3">
+						<button onclick="packages_input(); this.parentElement.style.display='none'" type="button" class="btn btn-primary">Edit packages</button>
+					</div>
+				</div>
+				<div class="form-group row advanced_view">
+					<div id="edit_packages_div" style="display: none">
+						<label for="edit_packages" class="col-sm-6 col-form-label">Packages:</label>
+						<div class="form-group col-md-6">
+							<textarea id="edit_packages" name="edit_packages" rows=20></textarea>
+						</div>
+					</div>
+				</div>
+				<div class="form-group row">
+					<div class="form-group col-md-3">
+						<button onclick="create()" type="button" class="btn btn-success">Create Image</button>
+					</div>
+					<div class="form-check col-md-3">
+						<label class="form-check-label">
+							<input onclick="toggle_advanced_view()" type="checkbox" name="advanced_view" class="form-check-input">Advanced
+						</label>
+					</div>
+				</div>
+			</form>
+			<script src="static/flavors.js"></script>
+			<script src="static/chef.js"></script>
+			<script>
+				data = {};
+data.update_server = "{{ update_server }}";
+window.onload = bootstrap;
+			</script>
+{% include 'footer.html' %}
