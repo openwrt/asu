@@ -1,4 +1,4 @@
-# Attended Sysupgrade (GSoC 2017)
+# Attendedsysupgrade Server (GSoC 2017)
 
 This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new release or package updates, without the need of `opkg` installed. 
 
