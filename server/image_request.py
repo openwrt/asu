@@ -33,7 +33,7 @@ class ImageRequest(Request):
             if "model" in self.request_json:
                 self.log.debug("model in request, search for %s", self.request_json["model"])
                 self.profile = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
-                self.log.debug("model search found profile %s", profile_request)
+                self.log.debug("model search found profile %s", self.profile)
 
         if not self.profile:
             if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
