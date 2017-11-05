@@ -113,7 +113,7 @@ class Worker(threading.Thread):
 
 class Image(ImageMeta):
     def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
-        super().__init__(distro, release, target, subtarget, profile, packages, network_profile)
+        super().__init__(distro, release, target, subtarget, profile, packages.split(" "), network_profile)
 
     def build(self):
         imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
@@ -124,7 +124,12 @@ class Image(ImageMeta):
 
         with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
             already_created = False
-            extra_image_name = self.request_hash
+
+            # only add manifest hash if special packages
+            extra_image_name = ""
+            if not self.vanilla:
+                extra_image_name = self.request_hash
+
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
             if self.network_profile:
@@ -134,7 +139,8 @@ class Image(ImageMeta):
                 cmdline.append('FILES=%s' % self.network_profile_path)
             self.log.warning(extra_image_name)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % extra_image_name)
-            self.diff_packages()
+            if not self.vanilla:
+                self.diff_packages()
             cmdline.append('PACKAGES=%s' % ' '.join(self.packages))
             cmdline.append('BIN_DIR=%s' % self.build_path)
 
@@ -157,26 +163,9 @@ class Image(ImageMeta):
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
 
-                name_array = [self.distro]
-
-                # snapshot build are no release
-                if self.release != "snapshot":
-                    name_array.append(self.release)
-
-                name_array.append(self.manifest_hash)
-
-                # add network_profile to name if set
-                if self.network_profile:
-                    name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
-
-                name_array.extend([self.target, self.subtarget])
-
-                # x86 as target has no profile in name as it's generic
-                if self.target != "x86":
-                    name_array.append(self.profile)
-                self.name = "-".join(name_array)
-
-                path_array = [get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile, self.manifest_hash]
+                path_array = [get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile]
+                if not self.vanilla:
+                    path_array.append(self.manifest_hash)
 
                 store_path = os.path.join(*path_array)
                 create_folder(store_path)
@@ -206,8 +195,6 @@ class Image(ImageMeta):
                         else:
                             break
 
-                    self.log.debug(glob.glob(os.path.join(self.build_path, '*')))
-
                     if not sysupgrade:
                         self.log.error("created image was to big")
                         self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
@@ -215,6 +202,33 @@ class Image(ImageMeta):
                         return False
 
                     self.path = sysupgrade[0]
+                    sysupgrade_image = os.path.basename(self.path)
+
+                    self.subtarget_in_name = self.subtarget in sysupgrade_image
+                    self.profile_in_name = self.profile in sysupgrade_image
+
+                    name_array = [self.distro]
+
+                    # snapshot build are no release
+                    if self.release != "snapshot":
+                        name_array.append(self.release)
+
+                    if not self.vanilla:
+                        name_array.append(self.manifest_hash)
+
+                    # add network_profile to name if set
+                    if self.network_profile:
+                        name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+
+                    name_array.append(self.target)
+
+                    if self.subtarget_in_name:
+                        name_array.append(self.subtarget)
+
+                    if self.profile_in_name:
+                        name_array.append(self.profile)
+
+                    self.name = "-".join(name_array)
 
                     if self.config.get("sign_images"):
                         if sign_image(self.path):
@@ -222,11 +236,28 @@ class Image(ImageMeta):
                         else:
                             self.database.set_image_requests_status(self.request_hash, 'signing_fail')
                             return False
+
                     self.gen_checksum()
                     self.gen_filesize()
                     self.store_log(self.path)
-                    self.log.warning(sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
-                    self.database.add_image(self.image_hash, self.as_array_build(), self.checksum, self.filesize, sysupgrade[0].split("/")[-1].replace(self.name + "-", ""))
+                    self.log.debug("image: {} {} {} {} {} {} {} {}".format(
+                            self.image_hash,
+                            self.as_array_build(),
+                            self.checksum,
+                            self.filesize,
+                            sysupgrade_image.replace(self.name + "-", ""),
+                            self.subtarget_in_name,
+                            self.profile_in_name,
+                            self.vanilla))
+                    self.database.add_image(
+                            self.image_hash,
+                            self.as_array_build(),
+                            self.checksum,
+                            self.filesize,
+                            sysupgrade_image.replace(self.name + "-", ""),
+                            self.subtarget_in_name,
+                            self.profile_in_name,
+                            self.vanilla)
                 self.database.done_build_job(self.request_hash, self.image_hash)
                 return True
             else:
@@ -256,7 +287,7 @@ class Image(ImageMeta):
                 self.packages.extend(extra_packages_file.read().split())
 
     def diff_packages(self):
-        profile_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
+        profile_packages = self.vanilla_packages
         for package in self.packages:
             if package in profile_packages:
                 profile_packages.remove(package)

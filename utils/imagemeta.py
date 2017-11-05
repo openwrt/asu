@@ -6,7 +6,7 @@ from utils.config import Config
 from utils.database import Database
 
 class ImageMeta():
-    def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
+    def __init__(self, distro, release, target, subtarget, profile, packages=set(), network_profile=""):
         self.log = logging.getLogger(__name__)
         self.database = Database()
         self.config = Config()
@@ -15,11 +15,22 @@ class ImageMeta():
         self.target = target
         self.subtarget = subtarget
         self.profile = profile
+        self.vanilla = False
+        self.vanilla_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
+
+        if packages:
+            self.log.warning(set(packages))
+        self.log.warning(self.vanilla_packages)
+
 
         if not packages: # install default packages
-            self.packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
-        elif type(packages) is str:
-            self.packages = packages.split(" ")
+            self.log.debug("using vanilla packages")
+            self.vanilla = True
+            self.packages = self.vanilla_packages
+        elif set(packages) == self.vanilla_packages: # install default packages
+            self.log.debug("using vanilla packages")
+            self.vanilla = True
+            self.packages = self.vanilla_packages
         else:
             self.packages = packages
 

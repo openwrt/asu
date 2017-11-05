@@ -444,23 +444,26 @@ create table if not exists images_table (
 	filesize integer,
 	build_date timestamp,
 	sysupgrade_suffix_id integer references sysupgrade_suffixes(id) ON DELETE CASCADE,
-	status varchar(20) DEFAULT 'untested'
+	status varchar(20) DEFAULT 'untested',
+	subtarget_in_name boolean,
+	profile_in_name boolean,
+	vanilla boolean
 );
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, checksum, filesize, build_date, sysupgrade_suffix, status
+images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, checksum, filesize, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla
 from profiles, images_table, manifest_table, sysupgrade_suffixes
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_suffix_id = sysupgrade_suffixes.id;
 
-create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, network_profile varchar, checksum varchar, filesize integer, sysupgrade_suffix varchar, build_date timestamp) returns void as
+create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, network_profile varchar, checksum varchar, filesize integer, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean) returns void as
 $$
 begin
 	insert into sysupgrade_suffixes (sysupgrade_suffix) values (add_image.sysupgrade_suffix) on conflict do nothing;
-	insert into images_table (image_hash, profile_id, manifest_id, network_profile, checksum, filesize, sysupgrade_suffix_id, build_date) values (
+	insert into images_table (image_hash, profile_id, manifest_id, network_profile, checksum, filesize, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla) values (
 		add_image.image_hash,
 		(select profiles.id from profiles where
 			profiles.distro = add_image.distro and
@@ -475,7 +478,10 @@ begin
 		add_image.filesize,
 		(select sysupgrade_suffixes.id from sysupgrade_suffixes where
 			sysupgrade_suffixes.sysupgrade_suffix = add_image.sysupgrade_suffix),
-		add_image.build_date)
+		add_image.build_date,
+		add_image.subtarget_in_name,
+		add_image.profile_in_name,
+		add_image.vanilla)
 	on conflict do nothing;
 end
 $$ language 'plpgsql';
@@ -494,7 +500,10 @@ SELECT add_image(
 	NEW.checksum,
 	NEW.filesize,
 	NEW.sysupgrade_suffix,
-	NEW.build_date
+	NEW.build_date,
+	NEW.subtarget_in_name,
+	NEW.profile_in_name,
+	NEW.vanilla
 );
 
 create or replace rule update_images AS
@@ -521,15 +530,15 @@ id, image_hash,
 	|| target || '/'
 	|| subtarget || '/'
 	|| profile || '/'
-	|| manifest_hash || '/'
+	|| (CASE vanilla WHEN true THEN '' ELSE  manifest_hash || '/'  END)
 	as file_path,
-    distro || '-' ||
-	(CASE release WHEN 'snapshot' THEN '' ELSE  release || '-'  END)
-	|| manifest_hash || '-' ||
-	(CASE network_profile WHEN '' THEN '' ELSE replace(replace(network_profile, '/', '-'), '.', '_') || '-' END)
+    distro || '-'
+	|| (CASE release WHEN 'snapshot' THEN '' ELSE release || '-'  END)
+	|| (CASE vanilla WHEN true THEN '' ELSE  manifest_hash || '-'  END)
+	|| (CASE network_profile WHEN '' THEN '' ELSE replace(replace(network_profile, '/', '-'), '.', '_') || '-' END)
 	|| target || '-'
-	|| subtarget || '-' ||
-	(CASE target WHEN 'x86' THEN '' ELSE profile || '-'  END)
+	|| (CASE subtarget_in_name WHEN false THEN '' ELSE  subtarget || '-'  END)
+	|| (CASE profile_in_name WHEN false THEN '' ELSE profile || '-'  END)
 	|| sysupgrade_suffix
 	as file_name,
 	checksum, filesize

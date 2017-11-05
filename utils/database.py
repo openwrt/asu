@@ -125,7 +125,7 @@ class Database():
             if as_json:
                 return json.dumps({"packages": packages})
             else:
-                return packages
+                return set(packages)
         else:
             return response
 
@@ -231,12 +231,12 @@ class Database():
         else:
             return False
 
-    def add_image(self, image_hash, image_array, checksum, filesize, sysupgrade_suffix):
+    def add_image(self, image_hash, image_array, checksum, filesize, sysupgrade_suffix, subtarget_in_name, profile_in_name, vanilla):
         self.log.debug("add image %s", image_array)
         sql = """INSERT INTO images
-            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"""
-        self.c.execute(sql, image_hash, *image_array, checksum, filesize, sysupgrade_suffix)
+            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date, subtarget_in_name, profile_in_name, vanilla)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)"""
+        self.c.execute(sql, image_hash, *image_array, checksum, filesize, sysupgrade_suffix, subtarget_in_name, profile_in_name, vanilla)
         self.commit()
         sql = """select id from images where image_hash = ?"""
         self.c.execute(sql, image_hash)
