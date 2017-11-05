@@ -2,14 +2,18 @@
 
 This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new release or package updates, without the need of `opkg` installed. 
 
-## Active update server
+## Active server
 
-* [planetexpress](https://ledeupdate.planetexpress.cc)
+* [planetexpress](https://ledeupdate.planetexpress.cc) - thanks @egon0
 * [libremesh](https://betaupdate.libremesh.org) - snapshots enabled
 
-* [online imagebuilder](https://imagebuilder.libremesh.org)
+![luci-app-attendedsysupgrade-screenshot](https://camo.githubusercontent.com/d21d3c2e43993325c0371866b28f09a67ea21902/687474703a2f2f692e696d6775722e636f6d2f653443716841502e706e67)
 
-![luci-app-attendedsysupgrade-screenshot](https://screenshots.firefoxusercontent.com/images/72b35ace-4fe2-4bba-9996-786e753d34b2.png)
+## Online Imagebuilder
+
+Initially thought of as a demonstration to use the server API is an easy way to create custom images via a web interface. The imagebuilder is currently part of the server.
+
+![online-imagebuilder-screenshot](https://screenshots.firefoxusercontent.com/images/8309418e-aa8e-4cf7-a738-0a6afdf9d56a.png)
 
 ### Created LEDE packages
 
