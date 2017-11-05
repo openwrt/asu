@@ -4,6 +4,7 @@ import json
 
 from utils.config import Config
 from utils.database import Database
+from utils.common import get_latest_release
 
 class Request():
     def __init__(self, request_json):
@@ -24,18 +25,24 @@ class Request():
             self.response_dict["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
             return self.respond(), HTTPStatus.BAD_REQUEST
 
-        self.distro = self.request_json["distro"].lower()
+        if not "distro" in self.request_json:
+            self.distro = "lede"
+        else:
+            self.distro = self.request_json["distro"].lower()
 
-        if not self.distro in self.config.get("distributions").keys():
-            self.log.info("update request unknown distro")
-            self.response_dict["error"] = "unknown distribution %s" % self.distro
-            return self.respond(), HTTPStatus.BAD_REQUEST
+            if not self.distro in self.config.get("distributions").keys():
+                self.log.info("update request unknown distro")
+                self.response_dict["error"] = "unknown distribution %s" % self.distro
+                return self.respond(), HTTPStatus.BAD_REQUEST
 
-        self.release = self.request_json["version"].lower()
+        if not "version" in self.request_json:
+            self.release = get_latest_release(self.distro)
+        else:
+            self.release = self.request_json["version"].lower()
 
-        if not self.release in self.database.get_releases(self.distro):
-            self.response_dict["error"] = "unknown release %s" % self.release
-            return self.respond(), HTTPStatus.BAD_REQUEST
+            if not self.release in self.database.get_releases(self.distro):
+                self.response_dict["error"] = "unknown release %s" % self.release
+                return self.respond(), HTTPStatus.BAD_REQUEST
 
     def check_bad_target(self):
         self.target = self.request_json["target"]
