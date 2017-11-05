@@ -163,6 +163,12 @@ class Image(ImageMeta):
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
 
+                # changeing the database but keep files leads to an error
+                entry_missing = False
+                self.database.c.execute("select 1 from images where image_hash = ?", self.image_hash)
+                if self.database.c.rowcount == 0:
+                    entry_missing = True
+
                 path_array = [get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile]
                 if not self.vanilla:
                     path_array.append(self.manifest_hash)
@@ -174,7 +180,7 @@ class Image(ImageMeta):
                     filename_output = filename.replace("lede", self.distro)
                     filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
                     filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
-                    if not os.path.exists(os.path.join(store_path, filename_output)):
+                    if not os.path.exists(os.path.join(store_path, filename_output)) or entry_missing:
                         self.log.info("move file %s", filename_output)
                         shutil.move(os.path.join(self.build_path, filename), os.path.join(store_path, filename_output))
                     else:
@@ -182,7 +188,7 @@ class Image(ImageMeta):
                         already_created = True
                         break
 
-                if not already_created:
+                if not already_created or entry_missing:
                     sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
                         "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
                         "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]

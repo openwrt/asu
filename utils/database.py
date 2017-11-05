@@ -242,16 +242,10 @@ class Database():
                 checksum,
                 filesize,
                 sysupgrade_suffix,
-                'true' if subtarget_in_name else 'false',
+                'true' if subtarget_in_name else 'false', # dirty, outdated pyodbc?
                 'true' if profile_in_name else 'false',
                 'true' if vanilla else 'false')
         self.commit()
-        sql = """select id from images where image_hash = ?"""
-        self.c.execute(sql, image_hash)
-        if self.c.rowcount > 0:
-            return self.c.fetchone()[0]
-        else:
-            return False
 
     def add_manifest(self, manifest_hash):
         sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
