@@ -207,6 +207,11 @@ class Image(ImageMeta):
                     self.subtarget_in_name = self.subtarget in sysupgrade_image
                     self.profile_in_name = self.profile in sysupgrade_image
 
+                    # ath25/generic/generic results in lede-17.01.4-ath25-generic-squashfs-sysupgrade...
+                    if (self.profile == self.subtarget and
+                            "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
+                        self.subtarget_in_name = False
+
                     name_array = [self.distro]
 
                     # snapshot build are no release
