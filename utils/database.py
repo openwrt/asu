@@ -236,7 +236,15 @@ class Database():
         sql = """INSERT INTO images
             (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date, subtarget_in_name, profile_in_name, vanilla)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)"""
-        self.c.execute(sql, image_hash, *image_array, checksum, filesize, sysupgrade_suffix, subtarget_in_name, profile_in_name, vanilla)
+        self.c.execute(sql,
+                image_hash,
+                *image_array,
+                checksum,
+                filesize,
+                sysupgrade_suffix,
+                'true' if subtarget_in_name else 'false',
+                'true' if profile_in_name else 'false',
+                'true' if vanilla else 'false')
         self.commit()
         sql = """select id from images where image_hash = ?"""
         self.c.execute(sql, image_hash)
