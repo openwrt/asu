@@ -2,6 +2,7 @@
 
 import re
 import yaml
+import json
 from shutil import rmtree
 import urllib.request
 import logging
@@ -21,6 +22,7 @@ class ServerCli():
     def init_args(self):
         parser = argparse.ArgumentParser(description="CLI for update-server")
         parser.add_argument("-a", "--init-all-imagebuilders", action="store_true")
+        parser.add_argument("-v", "--build-vanilla", action="store_true")
         parser.add_argument("-r", "--download-releases", action="store_true")
         parser.add_argument("-u", "--update-packages", action="store_true")
         parser.add_argument("-c", "--update-repositories", action="store_true")
@@ -29,6 +31,8 @@ class ServerCli():
         parser.add_argument("--ignore-not-supported", action="store_true")
         parser.add_argument("-t", "--parse-transformations", action="store_true")
         self.args = vars(parser.parse_args())
+        if self.args["build_vanilla"]:
+            self.build_vanilla()
         if self.args["init_all_imagebuilders"]:
             self.init_all_imagebuilders()
         if self.args["download_releases"]:
@@ -48,6 +52,39 @@ class ServerCli():
                     if supported:
                         self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
                         self.database.imagebuilder_status(distro, release, target, subtarget)
+
+    def build_vanilla(self):
+        for distro, release in self.database.get_releases():
+            if release == get_latest_release(distro):
+                subtargets = self.database.get_subtargets(distro, release)
+                for target, subtarget, supported in subtargets:
+                    if supported:
+                        sql = """select profile from profiles
+                            where distro = ? and
+                            release = ? and
+                            target = ? and
+                            subtarget = ?
+                            order by profile desc
+                            limit 1;"""
+                        profile_request = self.database.c.execute(sql, distro, release, target, subtarget)
+                        if self.database.c.rowcount > 0:
+                            profile = profile_request.fetchone()[0]
+
+                            conditions = {"distro": distro, "version": release, "target": target, "subtarget": subtarget, "board": profile}
+                            self.log.info("request %s", conditions)
+                            params = json.dumps(conditions).encode('utf-8')
+                            req = urllib.request.Request(
+                                    self.config.get("update_server") + '/api/upgrade-request',
+                                    data=params,
+                                    headers={'content-type': 'application/json'})
+                            try:
+                                response = urllib.request.urlopen(req)
+                                self.log.info(response.read())
+                            except:
+                                self.log.warning("bad request")
+                        else:
+                            self.log.warning("no profile found")
+
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
