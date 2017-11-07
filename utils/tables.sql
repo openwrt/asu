@@ -653,8 +653,11 @@ begin
 	-- evil hack to not insert Null names
 	insert into packages_names (name) values (add_transformations.package), (coalesce(add_transformations.replacement, 'busybox')), (coalesce(add_transformations.context, 'busybox')) on conflict do nothing;
 	insert into transformations_table (distro_id, release_id, package_id, replacement_id, context_id) values (
-		(select id from distributions where distributions.name = add_transformations.distro),
-		(select id from releases where releases.release = add_transformations.release),
+		(select id from distributions where
+			distributions.name = add_transformations.distro),
+		(select id from releases where
+			releases.distro = add_transformations.distro and
+			releases.release = add_transformations.release),
 		(select id from packages_names where packages_names.name = add_transformations.package),
 		(select id from packages_names where packages_names.name = add_transformations.replacement),
 		(select id from packages_names where packages_names.name = add_transformations.context)
@@ -710,9 +713,14 @@ create or replace function transform(distro varchar, origrelease varchar, target
 begin
 	return query select name
 		from unnest(transform_function(
-			(select id from distributions where distributions.name = transform.distro),
-			(select id from releases where releases.release = transform.origrelease),
-			(select id from releases where releases.release = transform.targetrelease),
+			(select id from distributions where
+				distributions.name = transform.distro),
+			(select id from releases where
+				releases.distro = transform.distro and
+				releases.release = transform.origrelease),
+			(select id from releases where
+				releases.distro = transform.distro and
+				releases.release = transform.targetrelease),
 			(select array_agg(id) from packages_names, unnest(string_to_array(transform.origpackages, ' ')) as origpackages_rec where packages_names.name = origpackages_rec))) as result_ids
 			join packages_names on packages_names.id = result_ids;
 end
