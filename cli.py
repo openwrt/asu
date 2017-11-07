@@ -49,7 +49,7 @@ class ServerCli():
             if release == 'snapshot' or release == get_latest_release(distro):
                 subtargets = self.database.get_subtargets(distro, release)
                 for target, subtarget, supported in subtargets:
-                    if supported:
+                    if int(supported): # 0 and 1 are returned as strings
                         self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
                         self.database.imagebuilder_status(distro, release, target, subtarget)
 
