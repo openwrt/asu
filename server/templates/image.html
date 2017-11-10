@@ -1,0 +1,68 @@
+{% include 'header.html' %}
+<h2>{{ file_name }}</h2>
+<div class="row">
+	<div class="col">
+		<h3>Information</h3>
+		<table class="table">
+			<tr>
+				<td><b>Distribution</b></td>
+				<td>{{ alias }}</td>
+			</tr>
+			<tr>
+				<td><b>Release</b></td>
+				<td>{{ release }}</td>
+			</tr>
+			<tr>
+				<td><b>Model</b></td>
+				<td>{{ model }}</td>
+			</tr>
+			<tr>
+				<td><b>Target/Subtarget</b></td>
+				<td>{{ target }}/{{ subtarget }}</td>
+			</tr>
+			<tr>
+				<td><b>Build date</b></td>
+				<td>{{ build_date.strftime('%Y-%m-%d') }}</td>
+			</tr>
+			<tr>
+				<td><b>Size</b></td>
+				<td>{{ filesize | filesizeformat }}</td>
+			</tr>
+			<tr>
+				<td><b>Checksum (MD5)</b></td>
+				<td>{{ checksum }}</td>
+			</tr>
+			<tr>
+				<td>
+					<a href="static/{{ file_path }}{{ file_name }}" title="sysupgrade image"><span class="octicon octicon-desktop-download"></span> Sysupgrade</a>
+				</td>
+				<td>
+					<a href="static/{{ file_path }}{{ file_name }}.sig" title="signature"><span class="octicon octicon-verified"></span> Signatur</a>
+				</td>
+			<tr>
+				<td>
+					<a href="static/{{ file_path }}{{ file_name }}.log" title="build log"><span class="octicon octicon-file-text"></span> Build Log</a>
+				</td>
+				<td>
+					<a href="static/{{ file_path }}" title="created files"><span class="octicon octicon-list-unordered"></span> Created Files</a>
+				</td>
+			</tr>
+			</tr>
+		</table>
+	</div>
+	<div class="col">
+		<h3>Packages</h3>
+		<table class="table table-hover table-sm" >
+			<tr>
+				<th>Name</th>
+				<th>Version</th>
+			</tr>
+			{% for name, version in manifest %}
+			<tr>
+				<td>{{ name }}</td>
+				<td>{{ version }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+		{% include 'footer.html' %}
