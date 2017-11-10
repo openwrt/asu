@@ -38,6 +38,8 @@ class ImageRequest(Request):
         if not self.profile:
             if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
                 self.profile = "Generic"
+            elif self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "generic"):
+                self.profile = "generic"
             else:
                 self.response_dict["error"] = "unknown device, please check model and board params"
                 return self.respond(), HTTPStatus.BAD_REQUEST
