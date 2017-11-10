@@ -138,12 +138,11 @@ def supported():
         supported = database.get_subtargets_supported()
         return render_template("supported.html", supported=supported)
 
-@app.route("/images")
-def images():
-    images = database.get_images_list()
-    return render_template("images.html",
-            snapshots_enabled=config.get("snapshots"),
-            images=images)
+@app.route("/image/<image_hash>")
+def image(image_hash):
+    image = database.get_image_info(image_hash)
+    manifest = database.get_manifest_info(image["manifest_hash"])
+    return render_template("image.html", **image, manifest=manifest)
 
 @app.route("/fails")
 def fails():

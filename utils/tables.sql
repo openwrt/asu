@@ -726,8 +726,8 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
-create or replace view images_list as
-select distinct images.id, images.image_hash, distributions.alias, images.release, model, manifest_hash, network_profile, build_date, file_path, file_name, images.filesize
+create or replace view images_info as
+select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, images.target, images.subtarget, manifest_hash, network_profile, build_date, images.checksum, file_path, file_name,  images.filesize
             from images
 				join images_download on
 					images.image_hash = images_download.image_hash

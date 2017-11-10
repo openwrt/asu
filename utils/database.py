@@ -463,10 +463,9 @@ class Database():
 
     def get_image_info(self, image_hash):
         self.log.debug("get image info %s", image_hash)
-        sql = """select * from images"""
+        sql = """select * from images_info where image_hash = ?"""
         self.c.execute(sql, image_hash)
-        result = self.c.fetchone()
-        return result
+        return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
 
     def get_manifest_info(self, manifest_hash):
         self.log.debug("get manifest info %s", manifest_hash)
