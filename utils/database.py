@@ -129,30 +129,31 @@ class Database():
         else:
             return response
 
-    def outdated_package_index(self, distro, release, target, subtarget):
-        self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
+    def subtarget_outdated(self, distro, release, target, subtarget):
+        outdated_interval = 1
+        outdated_unit = 'day'
         sql = """select 1 from subtargets
             where distro = ? and
             release = ? and
             target = ? and
             subtarget = ? and
-            package_sync < NOW() - INTERVAL '1 day';"""
+            last_sync < NOW() - INTERVAL '1 day';"""
         self.c.execute(sql, distro, release, target, subtarget)
         if self.c.rowcount == 1:
             return True
         else:
             return False
 
-
-    def insert_packages_available(self, distro, release, target, subtarget, packages):
-        self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
-        sql = """update subtargets set package_sync = NOW()
+    def subtarget_synced(self, distro, release, target, subtarget):
+        sql = """update subtargets set last_sync = NOW()
             where distro = ? and
             release = ? and
             target = ? and
             subtarget = ?;"""
         self.c.execute(sql, distro, release, target, subtarget)
 
+    def insert_packages_available(self, distro, release, target, subtarget, packages):
+        self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
         sql = """INSERT INTO packages_available VALUES (?, ?, ?, ?, ?, ?);"""
         for package in packages:
             name, version = package

@@ -147,7 +147,11 @@ class ImageBuilder(threading.Thread):
         self.add_custom_repositories()
         self.pkg_arch = self.parse_packages_arch()
         self.parse_info()
-        self.parse_packages()
+
+        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
+            self.log.info("subtargets outdated, run sync")
+            self.parse_packages()
+
         self.log.info("initialized imagebuilder %s", self.path)
         self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'ready')
         return True
@@ -222,8 +226,8 @@ class ImageBuilder(threading.Thread):
 
     def parse_packages(self):
         self.log.info("receive packages for %s/%s", self.target, self.subtarget)
-        if self.database.outdated_package_index(self.distro, self.release, self.target, self.subtarget):
-            self.log.info("packages outdated, run sync")
+        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
+            self.log.info("subtargets outdated, run sync")
             cmdline = ['make', 'package_list']
             proc = subprocess.Popen(
                 cmdline,

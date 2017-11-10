@@ -56,9 +56,11 @@ class Request():
             self.response_dict["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
             return self.respond(), HTTPStatus.BAD_REQUEST
 
-        if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
-            self.log.debug("imagebuilder not ready")
-            return self.respond(), HTTPStatus.CREATED
+        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
+            self.log.debug("subtarget %s/%s not outdated - no need to setup imagebuilder", self.target, self.subtarget)
+            if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
+                self.log.debug("imagebuilder not ready")
+                return self.respond(), HTTPStatus.CREATED
 
         return False
 
