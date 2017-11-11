@@ -48,22 +48,12 @@ class ImageBuilder(threading.Thread):
                     return re.match(r'.*"(.+)"', line).group(1)
 
     def patch_makefile(self):
-        self.log.debug("patch makefile")
-        cmdline = ["patch", "-p4", "--dry-run", "-i", os.getcwd() + "/worker/imagebuilder-add-package_list-function.patch"]
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=self.path,
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT
-        )
-
-        output, erros = proc.communicate()
-        return_code = proc.returncode
-
-        if return_code == 0:
-            self.log.debug("apply makefile patch")
-            cmdline.pop(2)
+        patches = [
+                "imagebuilder-add-package_list-function.patch",
+                "imagebuilder-add-NO_UPDATE-env.patch"
+                ]
+        for patch in patches:
+            cmdline = ["patch", "-p4", "--dry-run", "-i", os.path.join(os.getcwd(), "worker", patch)]
             proc = subprocess.Popen(
                 cmdline,
                 cwd=self.path,
@@ -71,10 +61,25 @@ class ImageBuilder(threading.Thread):
                 shell=False,
                 stderr=subprocess.STDOUT
             )
-        else:
-            if not output.decode('utf-8').startswith("checking file Makefile\nReversed"):
-                self.log.error("could not patch imagebuilder makefile")
-                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, "patch_fail")
+
+            output, erros = proc.communicate()
+            return_code = proc.returncode
+
+            if return_code == 0:
+                self.log.info("patch makefile with %s", patch)
+                cmdline.pop(2)
+                proc = subprocess.Popen(
+                    cmdline,
+                    cwd=self.path,
+                    stdout=subprocess.PIPE,
+                    shell=False,
+                    stderr=subprocess.STDOUT
+                )
+                output, erros = proc.communicate()
+            else:
+                if not output.decode('utf-8').startswith("checking file Makefile\nReversed"):
+                    self.log.error("could not patch imagebuilder makefile with %s", patch)
+                    self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, "patch_fail")
 
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()

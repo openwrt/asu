@@ -1,0 +1,13 @@
+diff --git a/target/imagebuilder/files/Makefile b/target/imagebuilder/files/Makefile
+index 95f405b8fd..23a8d0f864 100644
+--- a/target/imagebuilder/files/Makefile
++++ b/target/imagebuilder/files/Makefile
+@@ -135,7 +135,7 @@ package_reload:
+ 		$(MAKE) package_index; \
+ 	else \
+ 		mkdir -p $(TARGET_DIR)/tmp; \
+-		$(OPKG) update >&2 || true; \
++		[ -z "$(NO_UPDATE)" ] && $(OPKG) update >&2 || true; \
+ 	fi
+ 
+ package_list: FORCE

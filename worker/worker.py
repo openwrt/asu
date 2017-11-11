@@ -146,12 +146,17 @@ class Image(ImageMeta):
 
             self.log.info("start build: %s", " ".join(cmdline))
 
+            env = {}
+            if not self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
+                env = { "NO_UPDATE": 1 }
+
             proc = subprocess.Popen(
                 cmdline,
                 cwd=self.imagebuilder.path,
                 stdout=subprocess.PIPE,
                 shell=False,
-                stderr=subprocess.STDOUT
+                stderr=subprocess.STDOUT,
+                env=env
             )
 
             self.log_output, erros = proc.communicate()
