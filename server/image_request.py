@@ -25,6 +25,10 @@ class ImageRequest(Request):
         if bad_target:
             return bad_target
 
+        bad_packages = self.check_bad_packages()
+        if bad_packages:
+            return bad_bad_packages
+
         if "board" in self.request_json:
             self.log.debug("board in request, search for %s", self.request_json["board"])
             self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])

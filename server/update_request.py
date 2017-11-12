@@ -22,12 +22,26 @@ class UpdateRequest(Request):
         if bad_request:
             return bad_request
 
-        self.installed_release = self.release
-        self.release = get_latest_release(self.distro)
-
+        # check target for old version
         bad_target = self.check_bad_target()
         if bad_target:
             return bad_target
+
+        bad_packages = self.check_bad_packages()
+        if bad_packages:
+            return bad_bad_packages
+
+        self.installed_release = self.release
+        self.release = get_latest_release(self.distro)
+
+        # check target for new version
+        bad_target = self.check_bad_target()
+        if bad_target:
+            return bad_target
+
+        bad_packages = self.check_bad_packages()
+        if bad_packages:
+            return bad_bad_packages
 
         if self.installed_release  == "snapshot":
             self.response_dict["version"] = "SNAPSHOT"
