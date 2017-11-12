@@ -29,7 +29,7 @@ class UpdateRequest(Request):
 
         bad_packages = self.check_bad_packages()
         if bad_packages:
-            return bad_bad_packages
+            return bad_packages
 
         self.installed_release = self.release
         self.release = get_latest_release(self.distro)

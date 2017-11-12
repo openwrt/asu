@@ -82,12 +82,13 @@ class Request():
     def check_bad_packages(self):
         self.packages = None
         if "packages" in self.request_json:
+            self.packages = self.response_dict["packages"]
             available_packages = self.database.get_packages_available(self.distro, self.release, self.target, self.subtarget).keys()
             for package in self.packages:
                 if package in ["kernel", "libc", "base-files"]: # these tend to cause problems, even tho always installed
                     pass # kernel is not an installable package, but installed...
                 elif package not in available_packages:
                     logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
-                    self.response_dict["error"] = "could not find package '{}' for requested target".format(missing_package)
+                    self.response_dict["error"] = "could not find package '{}' for requested target".format(package)
                     return self.respond(), HTTPStatus.BAD_REQUEST
         return False

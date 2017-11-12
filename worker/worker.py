@@ -19,7 +19,7 @@ import yaml
 
 from worker.imagebuilder import ImageBuilder
 from utils.imagemeta import ImageMeta
-from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_image
+from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_file
 from utils.config import Config
 from utils.database import Database
 
@@ -146,9 +146,9 @@ class Image(ImageMeta):
 
             self.log.info("start build: %s", " ".join(cmdline))
 
-            env = {}
+            env = os.environ.copy()
             if not self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
-                env = { "NO_UPDATE": 1 }
+                env = dict(os.environ, NO_UPDATE="1")
 
             proc = subprocess.Popen(
                 cmdline,
@@ -247,7 +247,7 @@ class Image(ImageMeta):
                     self.name = "-".join(name_array)
 
                     if self.config.get("sign_images"):
-                        if sign_image(self.path):
+                        if sign_file(self.path):
                             self.log.info("signed %s", self.path)
                         else:
                             self.database.set_image_requests_status(self.request_hash, 'signing_fail')

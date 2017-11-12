@@ -129,7 +129,12 @@ def init_usign():
         print("found keys, ready to sign")
     return True
 
-def sign_image(image_path):
+def get_pubkey():
+    key_folder = get_folder("key_folder")
+    with open("public", "r") as pubkey_file:
+        return pubkey_file.readlines()[1]
+
+def sign_file(image_path):
     key_folder = get_folder("key_folder")
     cmdline = ['usign', '-S', '-s', 'secret', '-m', image_path]
     proc = subprocess.Popen(
