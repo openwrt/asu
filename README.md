@@ -9,12 +9,6 @@ This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The pr
 
 ![luci-app-attendedsysupgrade-screenshot](https://camo.githubusercontent.com/d21d3c2e43993325c0371866b28f09a67ea21902/687474703a2f2f692e696d6775722e636f6d2f653443716841502e706e67)
 
-## Online Imagebuilder
-
-Initially thought of as a demonstration to use the server API is an easy way to create custom images via a web interface. The imagebuilder is currently part of the server.
-
-![online-imagebuilder-screenshot](https://screenshots.firefoxusercontent.com/images/8309418e-aa8e-4cf7-a738-0a6afdf9d56a.png)
-
 ### Created LEDE packages
 
 * [`rpcd-mod-attendedsysupgrade`](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-attendedsysupgrade)
