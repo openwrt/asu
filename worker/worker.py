@@ -19,7 +19,7 @@ import yaml
 
 from worker.imagebuilder import ImageBuilder
 from utils.imagemeta import ImageMeta
-from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_file
+from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_file, get_pubkey
 from utils.config import Config
 from utils.database import Database
 
@@ -38,7 +38,11 @@ class Worker(threading.Thread):
         self.imagebuilders = []
 
     def worker_register(self):
-        self.worker_id = str(self.database.worker_register(gethostname()))
+        worker_name = gethostname()
+        worker_address = ""
+        worker_pubkey = get_pubkey()
+        self.log.info("register worker '%s' '%s' '%s'", worker_name, worker_address, worker_pubkey)
+        self.worker_id = str(self.database.worker_register(worker_name, worker_address, worker_pubkey))
 
     def worker_add_skill(self, imagebuilder):
         self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')

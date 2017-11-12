@@ -371,12 +371,12 @@ class Database():
         self.log.debug("need worker for %s", result)
         return result
 
-    def worker_register(self, name=datetime.datetime.now(), address=""):
+    def worker_register(self, name, address, pubkey):
         self.log.info("register worker %s %s", name, address)
-        sql = """INSERT INTO worker (name, address, heartbeat)
-            VALUES (?, ?, ?)
+        sql = """INSERT INTO worker (name, address, heartbeat, public_key)
+            VALUES (?, ?, ?, ?)
             RETURNING id;"""
-        self.c.execute(sql, name, address, datetime.datetime.now())
+        self.c.execute(sql, name, address, datetime.datetime.now(), pubkey)
         self.commit()
         return self.c.fetchone()[0]
 

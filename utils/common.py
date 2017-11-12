@@ -131,8 +131,8 @@ def init_usign():
 
 def get_pubkey():
     key_folder = get_folder("key_folder")
-    with open("public", "r") as pubkey_file:
-        return pubkey_file.readlines()[1]
+    with open(os.path.join(key_folder, "public"), "r") as pubkey_file:
+        return pubkey_file.readlines()[1].strip()
 
 def sign_file(image_path):
     key_folder = get_folder("key_folder")
