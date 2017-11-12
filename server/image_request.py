@@ -44,14 +44,6 @@ class ImageRequest(Request):
                 self.response_dict["error"] = "unknown device, please check model and board params"
                 return self.respond(), HTTPStatus.BAD_REQUEST
 
-        self.packages = None
-        if "packages" in self.request_json:
-            self.packages = self.request_json["packages"]
-            all_found, missing_package = self.check_packages()
-            if not all_found:
-                self.response_dict["error"] = "could not find package '{}' for requested target".format(missing_package)
-                return self.respond(), HTTPStatus.BAD_REQUEST
-
         if "network_profile" in self.request_json:
             if not self.check_network_profile():
                 self.response_dict["error"] = 'network profile "{}" not found'.format(self.request_json["network_profile"])
@@ -107,12 +99,3 @@ class ImageRequest(Request):
         self.log.debug("could not find network_profile %s", network_profile)
         return False
 
-    def check_packages(self):
-        available_packages = self.database.get_packages_available(self.distro, self.release, self.target, self.subtarget).keys()
-        for package in self.packages:
-            if package in ["kernel", "libc", "base-files"]: # these tend to cause problems, even tho always installed
-                pass # kernel is not an installable package, but installed...
-            elif package not in available_packages:
-                logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
-                return False, package
-        return True, None
