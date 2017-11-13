@@ -27,7 +27,7 @@ class ImageRequest(Request):
 
         bad_packages = self.check_bad_packages()
         if bad_packages:
-            return bad_bad_packages
+            return bad_packages
 
         if "board" in self.request_json:
             self.log.debug("board in request, search for %s", self.request_json["board"])

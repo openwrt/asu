@@ -361,7 +361,7 @@ class Database():
         return result
 
     def worker_needed(self):
-        self.log.info("get needed worker")
+        self.log.debug("get needed worker")
         sql = """(select * from imagebuilder_requests union
             select distro, release, target, subtarget
                 from worker_needed, subtargets

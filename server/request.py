@@ -82,7 +82,7 @@ class Request():
     def check_bad_packages(self):
         self.packages = None
         if "packages" in self.request_json:
-            self.packages = self.response_dict["packages"]
+            self.packages = self.request_json["packages"]
             available_packages = self.database.get_packages_available(self.distro, self.release, self.target, self.subtarget).keys()
             for package in self.packages:
                 if package in ["kernel", "libc", "base-files"]: # these tend to cause problems, even tho always installed
