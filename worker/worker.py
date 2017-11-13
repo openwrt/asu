@@ -130,18 +130,19 @@ class Image(ImageMeta):
             already_created = False
 
             # only add manifest hash if special packages
-            extra_image_name = ""
+            extra_image_name_array = []
             if not self.vanilla:
-                extra_image_name = self.request_hash
+                extra_image_name_array.append(self.request_hash)
 
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
             if self.network_profile:
                 self.log.debug("add network_profile %s", self.network_profile)
-                extra_image_name = "{}-{}".format(extra_image_name, self.network_profile.replace("/", "-").replace(".", "_"))
+                extra_image_name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
                 self.network_profile_packages()
                 cmdline.append('FILES=%s' % self.network_profile_path)
-            self.log.warning(extra_image_name)
+            extra_image_name = "-".join(extra_image_name_array)
+            self.log.debug("extra_image_name %s", extra_image_name)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % extra_image_name)
             if not self.vanilla:
                 self.diff_packages()
@@ -213,7 +214,7 @@ class Image(ImageMeta):
                     if not sysupgrade:
                         self.log.error("created image was to big")
                         self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
-                        self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
+                        self.database.set_image_requests_status(self.request_hash, 'sysupgrade_fail')
                         return False
 
                     self.path = sysupgrade[0]
