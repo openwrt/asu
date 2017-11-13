@@ -1,8 +1,0 @@
-{
-    "distro": "lede",
-    "target": "ar71xx",
-    "subtarget": "generic",
-    "version": "snapshot",
-    "board": "loco-m-xw",
-	"model": "Ubiquiti Loco M XW"
-}

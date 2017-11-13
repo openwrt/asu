@@ -35,6 +35,8 @@
     dest: "{{ server_folder }}"
     clone: yes
     update: yes
+  notify:
+    - restart server
 
 - name: ensure database is created
   become_user: postgres

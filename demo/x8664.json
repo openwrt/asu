@@ -1,7 +1,0 @@
-{
-    "distro": "lede",
-    "target": "x86",
-    "subtarget": "64",
-    "version": "17.01.4",
-    "board": "foobar"
-}
