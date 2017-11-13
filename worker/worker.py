@@ -182,6 +182,8 @@ class Image(ImageMeta):
                 path_array = [get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile]
                 if not self.vanilla:
                     path_array.append(self.manifest_hash)
+                else:
+                    path_array.append("vanilla")
 
                 store_path = os.path.join(*path_array)
                 create_folder(store_path)
@@ -239,6 +241,7 @@ class Image(ImageMeta):
 
                     # add network_profile to name if set
                     if self.network_profile:
+                        self.log.debug("containing network profile")
                         name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
 
                     name_array.append(self.target)

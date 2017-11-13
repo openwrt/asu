@@ -530,7 +530,7 @@ id, image_hash,
 	|| target || '/'
 	|| subtarget || '/'
 	|| profile || '/'
-	|| (CASE vanilla WHEN true THEN '' ELSE  manifest_hash || '/'  END)
+	|| (CASE vanilla WHEN true THEN 'vanilla/' ELSE  manifest_hash || '/'  END)
 	as file_path,
     distro || '-'
 	|| (CASE release WHEN 'snapshot' THEN '' ELSE release || '-'  END)
