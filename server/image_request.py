@@ -82,13 +82,13 @@ class ImageRequest(Request):
                 self.response_dict["error"] = "imagebuilder faild to create image"
                 self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
-            elif request_status == "imagesize_fail":
-                self.response_dict["error"] = "requested image is too big for requested target. retry with less packages"
+            elif request_status == "sysupgrade_fail":
+                self.response_dict["error"] = "No sysupgrade file produced. To many packages or not supported by modell"
                 self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
                 return self.respond(), HTTPStatus.BAD_REQUEST # 400
 
         self.response_dict["error"] = request_status
-        return self.respond(), 503
+        return self.respond(), 500
 
     def check_network_profile(self):
         network_profile = self.request_json["network_profile"]
