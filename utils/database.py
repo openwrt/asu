@@ -189,7 +189,7 @@ class Database():
         self.log.debug("check_request")
         request_array = request.as_array()
         request_hash = get_hash(" ".join(request_array), 12)
-        sql = """select id, request_hash, status from image_requests
+        sql = """select image_hash, status from image_requests
             where request_hash = ?"""
         self.c.execute(sql, request_hash)
         if self.c.rowcount > 0:
@@ -201,7 +201,7 @@ class Database():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
             self.c.execute(sql, request_hash, *request_array)
             self.commit()
-            return(0, '', 'requested')
+            return('', 'requested')
 
     def request_imagebuilder(self, distro, release, target, subtarget):
         sql = """INSERT INTO image_requests
@@ -210,29 +210,29 @@ class Database():
         self.c.execute(sql, distro, release, target, subtarget, "imagebuilder")
         self.commit()
 
-    def get_image_path(self, image_id):
-        self.log.debug("get sysupgrade image for %s", image_id)
+    def get_image_path(self, image_hash):
+        self.log.debug("get sysupgrade image for %s", image_hash)
         sql = """select file_path
-            from images_download join image_requests using (image_hash)
-            where image_requests.id = ?"""
-        self.c.execute(sql, image_id)
-        if self.c.rowcount > 0:
+            from images_download
+            where image_hash = ?"""
+        self.c.execute(sql, image_hash)
+        if self.c.rowcount == 1:
             return self.c.fetchone()[0]
         else:
             return False
 
-    def get_sysupgrade(self, image_id):
-        self.log.debug("get image %s", image_id)
+    def get_sysupgrade(self, image_hash):
+        self.log.debug("get image %s", image_hash)
         sql = """select file_path, file_name, checksum, filesize
-            from images_download join image_requests using (image_hash)
-            where image_requests.id = ?"""
-        self.c.execute(sql, image_id)
-        if self.c.rowcount > 0:
+            from images_download 
+            where image_hash = ?"""
+        self.c.execute(sql, image_hash)
+        if self.c.rowcount == 1:
             return self.c.fetchone()
         else:
             return False
 
-    def add_image(self, image_hash, image_array, checksum, filesize, sysupgrade_suffix, subtarget_in_name, profile_in_name, vanilla):
+    def add_image(self, image_hash, image_array, checksum="", filesize="", sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False):
         self.log.debug("add image %s", image_array)
         sql = """INSERT INTO images
             (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date, subtarget_in_name, profile_in_name, vanilla)
@@ -300,13 +300,13 @@ class Database():
         self.c.execute(sql, status, image_request_hash)
         self.commit()
 
-    def done_build_job(self, request_hash, image_hash):
-        self.log.info("done build job: rqst %s img %s", request_hash, image_hash)
+    def done_build_job(self, request_hash, image_hash, status="created"):
+        self.log.info("done build job: rqst %s img %s status %s", request_hash, image_hash, status)
         sql = """UPDATE image_requests SET
-            status = 'created',
+            status = ?,
             image_hash = ?
             WHERE request_hash = ?;"""
-        self.c.execute(sql, image_hash, request_hash)
+        self.c.execute(sql, status, image_hash, request_hash)
         self.commit()
 
     def imagebuilder_status(self, distro, release, target, subtarget):

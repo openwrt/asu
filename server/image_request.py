@@ -56,17 +56,16 @@ class ImageRequest(Request):
             self.network_profile = ''
 
         self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
+        image_hash, request_status = self.database.check_request(self.imagemeta)
         self.log.debug("found image in database: %s", request_status)
         if  request_status == "created":
             if not sysupgrade:
-                file_path = self.database.get_image_path(request_id)
+                file_path = self.database.get_image_path(image_hash)
             else:
-                file_path, file_name, checksum, filesize = self.database.get_sysupgrade(request_id)
+                file_path, file_name, checksum, filesize = self.database.get_sysupgrade(image_hash)
                 sysupgrade_url = "{}/static/{}{}".format(self.config.get("update_server"), file_path, file_name)
                 self.response_dict["sysupgrade"] = sysupgrade_url
-                # this is somewhat outdated
-                self.response_dict["url"] = sysupgrade_url
+                self.response_dict["url"] = sysupgrade_url # this is somewhat outdated
                 self.response_dict["checksum"] = checksum
                 self.response_dict["filesize"] = filesize
 
@@ -74,7 +73,7 @@ class ImageRequest(Request):
             return self.respond(), HTTPStatus.OK # 200
         else:
             if request_status == "requested":
-                self.response_dict["queue"] = 1 # currently not implemented
+                self.response_dict["queue"] = 1 # TODO: currently not implemented
                 return self.respond(), HTTPStatus.CREATED # 201
             elif request_status == "building":
                 return "", HTTPStatus.PARTIAL_CONTENT # 206

@@ -431,7 +431,7 @@ old.*;
 
 create table if not exists sysupgrade_suffixes (
 	id SERIAL PRIMARY KEY,
-	sysupgrade_suffix varchar(30) not null unique
+	sysupgrade_suffix varchar(30) unique
 );
 
 create table if not exists images_table (

@@ -164,7 +164,8 @@ class Image(ImageMeta):
                 env=env
             )
 
-            self.log_output, erros = proc.communicate()
+            output, erros = proc.communicate()
+            self.build_log = output.decode("utf-8")
             returnCode = proc.returncode
             if returnCode == 0:
                 self.log.info("build successfull")
@@ -185,16 +186,16 @@ class Image(ImageMeta):
                 else:
                     path_array.append("vanilla")
 
-                store_path = os.path.join(*path_array)
-                create_folder(store_path)
+                self.store_path = os.path.join(*path_array)
+                create_folder(self.store_path)
 
                 for filename in os.listdir(self.build_path):
                     filename_output = filename.replace("lede", self.distro)
                     filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
                     filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
-                    if not os.path.exists(os.path.join(store_path, filename_output)) or entry_missing:
+                    if not os.path.exists(os.path.join(self.store_path, filename_output)) or entry_missing:
                         self.log.info("move file %s", filename_output)
-                        shutil.move(os.path.join(self.build_path, filename), os.path.join(store_path, filename_output))
+                        shutil.move(os.path.join(self.build_path, filename), os.path.join(self.store_path, filename_output))
                     else:
                         self.log.info("file %s exists so image was created before", filename_output)
                         already_created = True
@@ -209,67 +210,79 @@ class Image(ImageMeta):
 
                     for sysupgrade_file in sysupgrade_files:
                         if not sysupgrade:
-                            sysupgrade = glob.glob(os.path.join(store_path, sysupgrade_file))
+                            sysupgrade = glob.glob(os.path.join(self.store_path, sysupgrade_file))
                         else:
                             break
 
                     if not sysupgrade:
-                        self.log.error("created image was to big")
-                        self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
-                        self.database.set_image_requests_status(self.request_hash, 'sysupgrade_fail')
-                        return False
-
-                    self.path = sysupgrade[0]
-                    sysupgrade_image = os.path.basename(self.path)
-
-                    self.subtarget_in_name = self.subtarget in sysupgrade_image
-                    self.profile_in_name = self.profile in sysupgrade_image
-
-                    # ath25/generic/generic results in lede-17.01.4-ath25-generic-squashfs-sysupgrade...
-                    if (self.profile == self.subtarget and
-                            "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
-                        self.subtarget_in_name = False
-
-                    name_array = [self.distro]
-
-                    # snapshot build are no release
-                    if self.release != "snapshot":
-                        name_array.append(self.release)
-
-                    if not self.vanilla:
-                        name_array.append(self.manifest_hash)
-
-                    # add network_profile to name if set
-                    if self.network_profile:
-                        self.log.debug("containing network profile")
-                        name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
-
-                    name_array.append(self.target)
-
-                    if self.subtarget_in_name:
-                        name_array.append(self.subtarget)
-
-                    if self.profile_in_name:
-                        name_array.append(self.profile)
-
-                    self.name = "-".join(name_array)
-
-                    if self.config.get("sign_images"):
-                        if sign_file(self.path):
-                            self.log.info("signed %s", self.path)
-                        else:
-                            self.database.set_image_requests_status(self.request_hash, 'signing_fail')
+                        self.log.debug("sysupgrade not found")
+                        if self.build_log.find("too big") != -1:
+                            self.log.warning("created image was to big")
+                            self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
+                            self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                             return False
+                        else:
+                            self.checksum = None
+                            self.filesize = None
+                            self.profile_in_name = None
+                            self.subtarget_in_name = None
+                            self.sysupgrade_suffix = ""
+                            self.build_status = "no_sysupgrade"
+                    else:
+                        self.path = sysupgrade[0]
+                        sysupgrade_image = os.path.basename(self.path)
 
-                    self.gen_checksum()
-                    self.gen_filesize()
-                    self.store_log(self.path)
+                        self.subtarget_in_name = self.subtarget in sysupgrade_image
+                        self.profile_in_name = self.profile in sysupgrade_image
+
+                        # ath25/generic/generic results in lede-17.01.4-ath25-generic-squashfs-sysupgrade...
+                        if (self.profile == self.subtarget and
+                                "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
+                            self.subtarget_in_name = False
+
+                        name_array = [self.distro]
+
+                        # snapshot build are no release
+                        if self.release != "snapshot":
+                            name_array.append(self.release)
+
+                        if not self.vanilla:
+                            name_array.append(self.manifest_hash)
+
+                        # add network_profile to name if set
+                        if self.network_profile:
+                            self.log.debug("containing network profile")
+                            name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+
+                        name_array.append(self.target)
+
+                        if self.subtarget_in_name:
+                            name_array.append(self.subtarget)
+
+                        if self.profile_in_name:
+                            name_array.append(self.profile)
+
+                        self.name = "-".join(name_array)
+
+                        if self.config.get("sign_images"):
+                            if sign_file(self.path):
+                                self.log.info("signed %s", self.path)
+                            else:
+                                self.database.set_image_requests_status(self.request_hash, 'signing_fail')
+                                return False
+
+                        self.gen_checksum()
+                        self.gen_filesize()
+                        self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
+                        self.build_status = "created"
+
+                    self.store_log(os.path.join(self.store_path, "build.log"))
                     self.log.debug("image: {} {} {} {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
                             self.checksum,
                             self.filesize,
-                            sysupgrade_image.replace(self.name + "-", ""),
+                            self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
                             self.vanilla))
@@ -278,11 +291,11 @@ class Image(ImageMeta):
                             self.as_array_build(),
                             self.checksum,
                             self.filesize,
-                            sysupgrade_image.replace(self.name + "-", ""),
+                            self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
                             self.vanilla)
-                self.database.done_build_job(self.request_hash, self.image_hash)
+                self.database.done_build_job(self.request_hash, self.image_hash, self.build_status)
                 return True
             else:
                 self.log.info("build failed")
@@ -295,7 +308,7 @@ class Image(ImageMeta):
         log_file = open(path + ".log", "a")
         log_file.writelines(json.dumps(self.as_array(), indent=4, sort_keys=True))
         log_file.write("\n\n")
-        log_file.writelines(self.log_output.decode('utf-8'))
+        log_file.writelines(self.build_log)
 
     def gen_checksum(self):
         self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
