@@ -114,4 +114,4 @@ It's also possible to request an imagebuild. The request is exaclty the same as 
 | --- 		| --- 		| --- 		|
 | `files` 	| `https://betaupdate.libremesh.o...neric/af937867acd2951/` 	| files in json format |
 
-This can be used to create a service like the *[Online Imagebuilder](https://ledeupdate.planetexpress.cc/imagebuilder)*
+This can be used to create a service like the *[Online Imagebuilder](https://chef.libremesh.org)*
