@@ -56,35 +56,51 @@ class ImageRequest(Request):
             self.network_profile = ''
 
         self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        image_hash, request_status = self.database.check_request(self.imagemeta)
+        image_hash, request_id, request_status = self.database.check_request(self.imagemeta)
         self.log.debug("found image in database: %s", request_status)
-        if  request_status == "created":
-            if not sysupgrade:
-                file_path = self.database.get_image_path(image_hash)
-            else:
-                file_path, file_name, checksum, filesize = self.database.get_sysupgrade(image_hash)
-                sysupgrade_url = "{}/static/{}{}".format(self.config.get("update_server"), file_path, file_name)
-                self.response_dict["sysupgrade"] = sysupgrade_url
-                self.response_dict["url"] = sysupgrade_url # this is somewhat outdated
-                self.response_dict["checksum"] = checksum
-                self.response_dict["filesize"] = filesize
 
+        # the sysupgrade should be stored in a different way but works for now
+        if request_status == "created" and sysupgrade:
+            file_path, file_name, checksum, filesize = self.database.get_sysupgrade(image_hash)
+            self.response_dict["sysupgrade"] = "{}/static/{}{}".format(self.config.get("update_server"), file_path, file_name)
+            self.response_dict["log"] = "{}/static/{}{}".format(self.config.get("update_server"), file_path, "build.log")
+            self.response_dict["checksum"] = checksum
+            self.response_dict["filesize"] = filesize
             self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
             return self.respond(), HTTPStatus.OK # 200
-        else:
-            if request_status == "requested":
-                self.response_dict["queue"] = 1 # TODO: currently not implemented
-                return self.respond(), HTTPStatus.CREATED # 201
-            elif request_status == "building":
-                return "", HTTPStatus.PARTIAL_CONTENT # 206
-            elif request_status == "build_fail":
-                self.response_dict["error"] = "imagebuilder faild to create image"
-                self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
-                return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
-            elif request_status == "sysupgrade_fail":
-                self.response_dict["error"] = "No sysupgrade file produced. To many packages or not supported by modell"
-                self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
-                return self.respond(), HTTPStatus.BAD_REQUEST # 400
+
+        elif request_status == "created" and not sysupgrade:
+            file_path = self.database.get_image_path(image_hash)
+            self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
+            self.response_dict["log"] = "{}/static/{}{}".format(self.config.get("update_server"), file_path, "build.log")
+            return self.respond(), HTTPStatus.OK # 200
+
+        elif request_status == "no_sysupgrade" and sysupgrade:
+            self.response_dict["error"] = "No sysupgrade file produced, may not supported by modell."
+            return self.respond(), HTTPStatus.BAD_REQUEST # 400
+
+        elif request_status == "no_sysupgrade" and not sysupgrade:
+            file_path = self.database.get_image_path(image_hash)
+            self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
+            self.response_dict["log"] = "{}/static/{}{}".format(self.config.get("update_server"), file_path, "build.log")
+            return self.respond(), HTTPStatus.OK # 200
+
+        elif request_status == "requested":
+            self.response_dict["queue"] = 1 # TODO: currently not implemented
+            return self.respond(), HTTPStatus.CREATED # 201
+
+        elif request_status == "building":
+            return "", HTTPStatus.PARTIAL_CONTENT # 206
+
+        elif request_status == "build_fail":
+            self.response_dict["error"] = "imagebuilder faild to create image"
+            self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
+            return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
+
+        elif request_status == "imagesize_fail":
+            self.response_dict["error"] = "No firmware created due to image size. Try again with less packages selected."
+            self.response_dict["log"] = "{}/static/faillogs/{}.log".format(self.config.get("update_server"), request_hash)
+            return self.respond(), HTTPStatus.BAD_REQUEST # 400
 
         self.response_dict["error"] = request_status
         return self.respond(), 500

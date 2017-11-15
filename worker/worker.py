@@ -276,7 +276,7 @@ class Image(ImageMeta):
                         self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
                         self.build_status = "created"
 
-                    self.store_log(os.path.join(self.store_path, "build.log"))
+                    self.store_log(os.path.join(self.store_path, "build-{}".format(self.request_hash)))
                     self.log.debug("image: {} {} {} {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
