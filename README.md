@@ -11,21 +11,13 @@ This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The pr
 
 ### Created LEDE packages
 
-* [`rpcd-mod-attendedsysupgrade`](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-attendedsysupgrade)
-
-Offers a function to perform a sysupgrade via ubus. 
-
-* [`rpcd-mod-packagelist`](https://github.com/openwrt/packages/tree/master/utils/rpcd-mod-packagelist)
-
-Has the function `list` to show all user installed packages without the need of `opkg` installed. 
-
 * [`luci-app-attendedsysupgrade`](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
 
 Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server. 
 
 **Dependencies:**
-* `rpcd`
-	Used by both `rpcd-*` packages
+* `rpcd-mod-rpcsys`
+	Used to read list of installed packages and trigger sysupgrade on the target.
 * `uhttpd-mod-ubus`
 	Communication between the Browser and the Router
 * `cgi-io`
