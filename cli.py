@@ -58,32 +58,32 @@ class ServerCli():
             if release == get_latest_release(distro):
                 subtargets = self.database.get_subtargets(distro, release)
                 for target, subtarget, supported in subtargets:
-                    if supported:
-                        sql = """select profile from profiles
-                            where distro = ? and
-                            release = ? and
-                            target = ? and
-                            subtarget = ?
-                            order by profile desc
-                            limit 1;"""
-                        profile_request = self.database.c.execute(sql, distro, release, target, subtarget)
-                        if self.database.c.rowcount > 0:
-                            profile = profile_request.fetchone()[0]
+                    sql = """select profile from profiles
+                        where distro = ? and
+                        release = ? and
+                        target = ? and
+                        subtarget = ?
+                        order by profile desc
+                        limit 1;"""
+                    profile_request = self.database.c.execute(sql, distro, release, target, subtarget)
+                    if self.database.c.rowcount > 0:
+                        profile = profile_request.fetchone()[0]
 
-                            conditions = {"distro": distro, "version": release, "target": target, "subtarget": subtarget, "board": profile}
-                            self.log.info("request %s", conditions)
-                            params = json.dumps(conditions).encode('utf-8')
-                            req = urllib.request.Request(
-                                    self.config.get("update_server") + '/api/upgrade-request',
-                                    data=params,
-                                    headers={'content-type': 'application/json'})
-                            try:
-                                response = urllib.request.urlopen(req)
-                                self.log.info(response.read())
-                            except:
-                                self.log.warning("bad request")
-                        else:
-                            self.log.warning("no profile found")
+                        conditions = {"distro": distro, "version": release, "target": target, "subtarget": subtarget, "board": profile}
+                        self.log.info("request %s", conditions)
+                        params = json.dumps(conditions).encode('utf-8')
+                        req = urllib.request.Request(
+                                self.config.get("update_server") + '/api/build-request',
+                                data=params,
+                                headers={'content-type': 'application/json'})
+                        try:
+                            response = urllib.request.urlopen(req)
+                            self.log.info(response.read())
+                            self.log.info("blaa %s", conditions)
+                        except:
+                            self.log.warning("bad request")
+                    else:
+                        self.log.warning("no profile found")
 
 
     def flush_snapshots(self):

@@ -138,7 +138,7 @@ class Image(ImageMeta):
             cmdline.append('PROFILE=%s' % self.profile)
             if self.network_profile:
                 self.log.debug("add network_profile %s", self.network_profile)
-                extra_image_name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+                extra_image_name_array.append(self.network_profile.lower().replace("/", "-").replace(".", "-"))
                 self.network_profile_packages()
                 cmdline.append('FILES=%s' % self.network_profile_path)
             extra_image_name = "-".join(extra_image_name_array)
@@ -186,6 +186,9 @@ class Image(ImageMeta):
                 else:
                     path_array.append("vanilla")
 
+                if self.network_profile:
+                    path_array.append(self.network_profile)
+
                 self.store_path = os.path.join(*path_array)
                 create_folder(self.store_path)
 
@@ -218,7 +221,7 @@ class Image(ImageMeta):
                         self.log.debug("sysupgrade not found")
                         if self.build_log.find("too big") != -1:
                             self.log.warning("created image was to big")
-                            self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
+                            self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
                             self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                             return False
                         else:
@@ -252,7 +255,7 @@ class Image(ImageMeta):
                         # add network_profile to name if set
                         if self.network_profile:
                             self.log.debug("containing network profile")
-                            name_array.append(self.network_profile.replace("/", "-").replace(".", "_"))
+                            name_array.append(self.network_profile.lower().replace("/", "-").replace(".", "-"))
 
                         name_array.append(self.target)
 
@@ -276,7 +279,10 @@ class Image(ImageMeta):
                         self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
                         self.build_status = "created"
 
-                    self.store_log(os.path.join(self.store_path, "build-{}".format(self.request_hash)))
+                    self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
+                    self.log.debug("sysupgrade_imae %s", sysupgrade[0])
+                    self.log.debug("self.name %s", self.name)
+                    self.log.debug("sysupgrade_suffix %s", self.sysupgrade_suffix)
                     self.log.debug("image: {} {} {} {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
@@ -300,7 +306,7 @@ class Image(ImageMeta):
             else:
                 self.log.info("build failed")
                 self.database.set_image_requests_status(self.request_hash, 'build_fail')
-                self.store_log(os.path.join(get_folder("downloaddir"), "faillogs", self.request_hash))
+                self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
                 return False
 
     def store_log(self, path):

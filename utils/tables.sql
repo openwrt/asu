@@ -531,11 +531,12 @@ id, image_hash,
 	|| subtarget || '/'
 	|| profile || '/'
 	|| (CASE vanilla WHEN true THEN 'vanilla/' ELSE  manifest_hash || '/'  END)
+	|| (CASE network_profile WHEN '' THEN '' ELSE  network_profile || '/'  END)
 	as file_path,
     distro || '-'
 	|| (CASE release WHEN 'snapshot' THEN '' ELSE release || '-'  END)
 	|| (CASE vanilla WHEN true THEN '' ELSE  manifest_hash || '-'  END)
-	|| (CASE network_profile WHEN '' THEN '' ELSE replace(replace(network_profile, '/', '-'), '.', '_') || '-' END)
+	|| (CASE network_profile WHEN '' THEN '' ELSE replace(replace(network_profile, '/', '-'), '.', '-') || '-' END)
 	|| target || '-'
 	|| (CASE subtarget_in_name WHEN false THEN '' ELSE  subtarget || '-'  END)
 	|| (CASE profile_in_name WHEN false THEN '' ELSE profile || '-'  END)

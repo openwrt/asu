@@ -185,10 +185,8 @@ class Database():
             WHERE distro = ? and release = ? and target LIKE ? and subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def check_request(self, request):
+    def check_request(self, request_hash):
         self.log.debug("check_request")
-        request_array = request.as_array()
-        request_hash = get_hash(" ".join(request_array), 12)
         sql = """select image_hash, id, status from image_requests
             where request_hash = ?"""
         self.c.execute(sql, request_hash)
