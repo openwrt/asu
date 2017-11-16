@@ -457,7 +457,7 @@ class Database():
         self.log.debug("get fails list")
         sql = """select distro, release, target, subtarget, profile, request_hash, hash packages_hash, status
             from image_requests_table join profiles on image_requests_table.profile_id = profiles.id join packages_hashes on image_requests_table.packages_hash_id = packages_hashes.id
-            where status like '%_fail'"""
+            where status != 'created' """
         self.c.execute(sql)
         result = self.c.fetchall()
         return result
