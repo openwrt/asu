@@ -1,6 +1,7 @@
 ---
 distro_alias: LEDE
 releases:
+  - "snapshot"
   - "17.01.0"
   - "17.01.1"
   - "17.01.2"
