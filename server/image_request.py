@@ -17,6 +17,7 @@ class ImageRequest(Request):
         self.profile = ""
 
     def get_image(self, sysupgrade=False):
+        self.sysupgrade = sysupgrade
         bad_request = self.check_bad_request()
         if bad_request:
             return bad_request
@@ -46,7 +47,7 @@ class ImageRequest(Request):
                 self.profile = "generic"
             else:
                 self.response_dict["error"] = "unknown device, please check model and board params"
-                return self.respond(), HTTPStatus.BAD_REQUEST
+                return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
 
         if "network_profile" in self.request_json:
             if not self.check_network_profile():
@@ -69,22 +70,22 @@ class ImageRequest(Request):
             self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
             return self.respond(), HTTPStatus.OK # 200
 
-        elif request_status == "no_sysupgrade" and sysupgrade:
+        elif request_status == "no_sysupgrade" and self.sysupgrade:
             self.response_dict["error"] = "No sysupgrade file produced, may not supported by modell."
-            return self.respond(), HTTPStatus.BAD_REQUEST # 400
+            return self.respond(), HTTPStatus.NOT_IMPLEMENTED # 501
 
-        elif request_status == "no_sysupgrade" and not sysupgrade:
+        elif request_status == "no_sysupgrade" and not self.sysupgrade:
             file_path = self.database.get_image_path(image_hash)
             self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
             self.response_dict["log"] = "{}/static/{}build-{}.log".format(self.config.get("update_server"), file_path, image_hash)
             return self.respond(), HTTPStatus.OK # 200
 
         elif request_status == "requested":
-            self.response_dict["queue"] = 1 # TODO: currently not implemented
-            return self.respond(), HTTPStatus.CREATED # 201
+            self.response_dict["queue"] = 1337 # TODO: currently not implemented
+            return self.respond(), HTTPStatus.TEMPORARY_REDIRECT # 307
 
         elif request_status == "building":
-            return "", HTTPStatus.PARTIAL_CONTENT # 206
+            return "", HTTPStatus.PROCESSING # 102
 
         elif request_status == "build_fail":
             self.response_dict["error"] = "imagebuilder faild to create image"
@@ -94,10 +95,10 @@ class ImageRequest(Request):
         elif request_status == "imagesize_fail":
             self.response_dict["error"] = "No firmware created due to image size. Try again with less packages selected."
             self.response_dict["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("update_server"), request_hash)
-            return self.respond(), HTTPStatus.BAD_REQUEST # 400
+            return self.respond(), 413 # PAYLOAD_TO_LARGE RCF 7231
 
         self.response_dict["error"] = request_status
-        return self.respond(), 500
+        return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR
 
     def check_network_profile(self):
         network_profile = self.request_json["network_profile"]

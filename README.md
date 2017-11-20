@@ -64,11 +64,11 @@ The client should check the status code:
 
 | status 	| meaning 				| information 	|
 | --- 		| --- 					| --- 			|
+| 102 		| imagebuilder not ready		| setting up imagebuilder, retry soon | 
+| 200		| new release / new package updates	| see `version` and `updates` in response |
+| 204 		| no updates				| | 
 | 500 		| error					| see `error` in response | 
 | 503 		| server overload	   		|  | 
-| 204 		| no updates				| | 
-| 201 		| imagebuilder not ready		| setting up imagebuilder, retry soon | 
-| 200		| new release / new package updates	| see `version` and `updates` in response |
 
 An release upgrade does not ignore package upgrades for the following reason. Between releases it possible that package names may change, packages are dropped or merged. The *reponse* contains all packages included changed ones.
 
@@ -100,11 +100,15 @@ The `status` code has again different meanings.
 
 | status 	| meaning 				| information 	|
 | --- 		| --- 					| --- 			|
-| 500		| build faild				| see `error`	|
-| 503 		| server overload   			| please wait ~5 minutes | 
-| 201		| queued				| requests wait to build |
-| 206		| building				| building right now |
+| 102		| building				| building right now |
 | 200		| ready					| build finished successful |
+| 307		| queued				| requests wait to build |
+| 412		| unsupported/unknown	| unknown/unsupported {distro, release, target, subtarget, board} |
+| 413		| imagesize fail		| produced image to big for device |
+| 422		| unknown package		| unknown package in request |
+| 500		| build failed			| see `log` for build log	|
+| 501		| no sysupgrade			| image build correctly but no sysupgrade image created |
+| 503 		| server overload   	| please wait ~5 minutes |
 
 ### Build request `/api/build-request`
 

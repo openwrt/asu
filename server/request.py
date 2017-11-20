@@ -13,6 +13,7 @@ class Request():
         self.request_json = request_json
         self.response_dict = {}
         self.database = Database()
+        self.sysupgrade = False
 
     def run(self):
         bad_request = self.check_bad_request()
@@ -33,7 +34,7 @@ class Request():
             if not self.distro in self.config.get("distributions").keys():
                 self.log.info("update request unknown distro")
                 self.response_dict["error"] = "unknown distribution %s" % self.distro
-                return self.respond(), HTTPStatus.BAD_REQUEST
+                return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
 
         if not "version" in self.request_json:
             self.release = get_latest_release(self.distro)
@@ -42,7 +43,7 @@ class Request():
 
             if not self.release in self.database.get_releases(self.distro):
                 self.response_dict["error"] = "unknown release %s" % self.release
-                return self.respond(), HTTPStatus.BAD_REQUEST
+                return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
 
     def check_bad_target(self):
         self.target = self.request_json["target"]
@@ -51,16 +52,16 @@ class Request():
         subtarget_check =  self.database.get_subtargets(self.distro, self.release, self.target, self.subtarget)
         if not len(subtarget_check) == 1:
             self.response_dict["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
-            return self.respond(), HTTPStatus.BAD_REQUEST
-        elif not subtarget_check[0][2] == "1": # [2] is supported flag
+            return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
+        elif not subtarget_check[0][2] == "1" and self.sysupgrade: # [2] is supported flag
             self.response_dict["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
-            return self.respond(), HTTPStatus.BAD_REQUEST
+            return self.respond(), HTTPStatus.UNPROCESSABLE_ENTITY # 412
 
         if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
             self.log.debug("subtarget %s/%s not outdated - no need to setup imagebuilder", self.target, self.subtarget)
             if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
                 self.log.debug("imagebuilder not ready")
-                return self.respond(), HTTPStatus.CREATED
+                return self.respond(), HTTPStatus.PROCESSING # 102
 
         return False
 
@@ -90,5 +91,5 @@ class Request():
                 elif package not in available_packages:
                     logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
                     self.response_dict["error"] = "could not find package '{}' for requested target".format(package)
-                    return self.respond(), HTTPStatus.BAD_REQUEST
+                    return self.respond(), HTTPStatus.UNPROCESSABLE_ENTITY # 422
         return False
