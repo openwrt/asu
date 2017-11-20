@@ -181,20 +181,17 @@ class ServerCli():
                             self.database.insert_transformation(distro, release, package, choice, dependencie)
 
     def load_tables(self):
-        distros = {}
-        for distro in self.config.get("distributions").keys():
-            distros[distro] = {}
-            releases = yaml.load(open(os.path.join("distributions", distro, "releases.yml")).read())
-            for release in releases:
-                release = str(release)
-                release_replacements_path = os.path.join("distributions", distro, (release + ".yml"))
-                if os.path.exists(release_replacements_path):
-                    with open(release_replacements_path, "r") as release_replacements_file:
-                        replacements = yaml.load(release_replacements_file.read())
-                        if replacements:
-                            if "transformations" in replacements:
-                                self.insert_replacements(distro, release, replacements["transformations"])
+        for distro, release in self.database.get_releases():
+            release = str(release)
+            release_replacements_path = os.path.join("distributions", distro, (release + ".yml"))
+            if os.path.exists(release_replacements_path):
+                with open(release_replacements_path, "r") as release_replacements_file:
+                    replacements = yaml.load(release_replacements_file.read())
+                    if replacements:
+                        if "transformations" in replacements:
+                            self.insert_replacements(distro, release, replacements["transformations"])
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
 
+sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")
