@@ -49,11 +49,11 @@ class UpdateRequest(Request):
             self.response_dict["version"] = self.release
 
         if "packages" in self.request_json:
+            self.log.debug(self.response_dict["packages"])
             self.packages_installed = self.request_json["packages"]
             if "version" in self.response_dict:
                 self.packages_transformed = self.package_transformation(self.distro, self.installed_release, self.packages_installed)
                 self.response_dict["packages"] = self.packages_transformed
-                self.log.warning(self.response_dict["packages"])
 
             elif "update_packages" in self.request_json:
                 packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
@@ -63,7 +63,6 @@ class UpdateRequest(Request):
                         self.response_dict["updates"][name] = [version, version_installed]
 
                 self.response_dict["packages"] = self.packages_installed
-                self.log.warning(self.response_dict["packages"])
 
         if "version" in self.response_dict or "packages" in self.response_dict:
             return(self.respond(), HTTPStatus.OK)

@@ -280,9 +280,6 @@ class Image(ImageMeta):
                         self.build_status = "created"
 
                     self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
-                    self.log.debug("sysupgrade_imae %s", sysupgrade[0])
-                    self.log.debug("self.name %s", self.name)
-                    self.log.debug("sysupgrade_suffix %s", self.sysupgrade_suffix)
                     self.log.debug("image: {} {} {} {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
