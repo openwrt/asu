@@ -56,9 +56,7 @@ class ImageRequest(Request):
             self.network_profile = ''
 
         self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        request_array = request.as_array()
-        request_hash = get_hash(" ".join(request_array), 12)
-        image_hash, request_id, request_status = self.database.check_request(request_hash)
+        image_hash, request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
         self.log.debug("found image in database: %s", request_status)
 
         # the sysupgrade should be stored in a different way but works for now
