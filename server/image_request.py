@@ -85,12 +85,13 @@ class ImageRequest(Request):
 
         elif request_status == "requested":
             self.response_json["queue"] = 1337 # TODO: currently not implemented
+            self.response_header["X-Imagebuilder-Status"] = "queue"
             self.response_header['X-Build-Quene-Position'] = '1337'
-            self.response_status = HTTPStatus.PROCESSING # 102
+            self.response_status = HTTPStatus.ACCEPTED # 202
 
         elif request_status == "building":
             self.response_header["X-Imagebuilder-Status"] = "building"
-            self.response_status = HTTPStatus.PROCESSING # 102
+            self.response_status = HTTPStatus.ACCEPTED # 202
 
         elif request_status == "build_fail":
             self.response_json["error"] = "imagebuilder faild to create image"

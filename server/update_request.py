@@ -55,16 +55,17 @@ class UpdateRequest(Request):
                 self.packages_transformed = self.package_transformation(self.distro, self.installed_release, self.packages_installed)
                 self.response_json["packages"] = self.packages_transformed
 
-            elif "update_packages" in self.request_json:
-                packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
-                if packages_updates:
-                    self.response_json["updates"] = {}
-                    for name, version, version_installed in packages_updates:
-                        self.response_json["updates"][name] = [version, version_installed]
+            if "update_packages" in self.request_json:
+                if self.request_json["update_packages"] is 1 or "version" in self.response_json:
+                    packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
+                    if packages_updates:
+                        self.response_json["updates"] = {}
+                        for name, version, version_installed in packages_updates:
+                            self.response_json["updates"][name] = [version, version_installed]
 
-                self.response_json["packages"] = self.packages_installed
+                    self.response_json["packages"] = self.packages_installed
 
-        if "version" in self.response_json or "packages" in self.response_json:
+        if "version" in self.response_json or "updates" in self.response_json:
             self.response_status = HTTPStatus.OK # 200
         else:
             self.response_status = HTTPStatus.NO_CONTENT # 204

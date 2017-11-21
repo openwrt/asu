@@ -70,7 +70,7 @@ class Request():
             if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
                 self.log.debug("imagebuilder not ready")
                 self.response_header["X-Imagebuilder-Status"] = "initialize"
-                self.response_header = HTTPStatus.PROCESSING # 102
+                self.response_header = HTTPStatus.ACCEPTED # 202
                 return self.respond()
 
         return False
