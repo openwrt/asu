@@ -44,27 +44,29 @@ class UpdateRequest(Request):
             return bad_bad_packages
 
         if self.installed_release  == "snapshot":
-            self.response_dict["version"] = "SNAPSHOT"
+            self.response_json["version"] = "SNAPSHOT"
         elif not self.release == self.installed_release:
-            self.response_dict["version"] = self.release
+            self.response_json["version"] = self.release
 
         if "packages" in self.request_json:
-            self.log.debug(self.response_dict["packages"])
+            self.log.debug(self.response_json["packages"])
             self.packages_installed = self.request_json["packages"]
-            if "version" in self.response_dict:
+            if "version" in self.response_json:
                 self.packages_transformed = self.package_transformation(self.distro, self.installed_release, self.packages_installed)
-                self.response_dict["packages"] = self.packages_transformed
+                self.response_json["packages"] = self.packages_transformed
 
             elif "update_packages" in self.request_json:
                 packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
                 if packages_updates:
-                    self.response_dict["updates"] = {}
+                    self.response_json["updates"] = {}
                     for name, version, version_installed in packages_updates:
-                        self.response_dict["updates"][name] = [version, version_installed]
+                        self.response_json["updates"][name] = [version, version_installed]
 
-                self.response_dict["packages"] = self.packages_installed
+                self.response_json["packages"] = self.packages_installed
 
-        if "version" in self.response_dict or "packages" in self.response_dict:
-            return(self.respond(), HTTPStatus.OK)
+        if "version" in self.response_json or "packages" in self.response_json:
+            self.response_status = HTTPStatus.OK # 200
         else:
-            return("", HTTPStatus.NO_CONTENT)
+            self.response_status = HTTPStatus.NO_CONTENT # 204
+
+        return self.respond()

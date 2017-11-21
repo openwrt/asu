@@ -1,6 +1,7 @@
 from http import HTTPStatus
 import logging
 import json
+from flask import Response
 
 from utils.config import Config
 from utils.database import Database
@@ -11,7 +12,9 @@ class Request():
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.request_json = request_json
-        self.response_dict = {}
+        self.response_json = {}
+        self.response_header = {}
+        self.response_status = 0
         self.database = Database()
         self.sysupgrade = False
 
@@ -23,8 +26,9 @@ class Request():
     def check_bad_request(self):
         if not self.vaild_request():
             self.log.info("received invaild request")
-            self.response_dict["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
-            return self.respond(), HTTPStatus.BAD_REQUEST
+            self.response_json["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
+            self.response_header = HTTPStatus.BAD_REQUEST
+            return self.respond()
 
         if not "distro" in self.request_json:
             self.distro = "lede"
@@ -33,8 +37,9 @@ class Request():
 
             if not self.distro in self.config.get("distributions").keys():
                 self.log.info("update request unknown distro")
-                self.response_dict["error"] = "unknown distribution %s" % self.distro
-                return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
+                self.response_json["error"] = "unknown distribution %s" % self.distro
+                self.response_header = HTTPStatus.PRECONDITION_FAILED # 412
+                return self.respond()
 
         if not "version" in self.request_json:
             self.release = get_latest_release(self.distro)
@@ -42,8 +47,9 @@ class Request():
             self.release = self.request_json["version"].lower()
 
             if not self.release in self.database.get_releases(self.distro):
-                self.response_dict["error"] = "unknown release %s" % self.release
-                return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
+                self.response_json["error"] = "unknown release %s" % self.release
+                self.response_header = HTTPStatus.PRECONDITION_FAILED # 412
+                return self.respond()
 
     def check_bad_target(self):
         self.target = self.request_json["target"]
@@ -51,17 +57,21 @@ class Request():
 
         subtarget_check =  self.database.get_subtargets(self.distro, self.release, self.target, self.subtarget)
         if not len(subtarget_check) == 1:
-            self.response_dict["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
-            return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
+            self.response_json["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
+            self.response_header = HTTPStatus.PRECONDITION_FAILED # 412
+            return self.respond()
         elif not subtarget_check[0][2] == "1" and self.sysupgrade: # [2] is supported flag
-            self.response_dict["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
-            return self.respond(), HTTPStatus.UNPROCESSABLE_ENTITY # 412
+            self.response_json["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
+            self.response_header = HTTPStatus.UNPROCESSABLE_ENTITY # 412
+            return self.respond()
 
         if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
             self.log.debug("subtarget %s/%s not outdated - no need to setup imagebuilder", self.target, self.subtarget)
             if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
                 self.log.debug("imagebuilder not ready")
-                return self.respond(), HTTPStatus.PROCESSING # 102
+                self.response_header["X-Imagebuilder-Status"] = "initialize"
+                self.response_header = HTTPStatus.PROCESSING # 102
+                return self.respond()
 
         return False
 
@@ -73,8 +83,11 @@ class Request():
         return True
 
     def respond(self):
-        self.log.debug(self.response_dict)
-        return json.dumps(self.response_dict)
+        response = Response(
+                response=json.dumps(self.response_json),
+                status=self.response_header,
+                headers=self.response_header)
+        return response
 
     # if local version is newer than received returns true
     def release_latest(self, latest, external):
@@ -90,6 +103,7 @@ class Request():
                     pass # kernel is not an installable package, but installed...
                 elif package not in available_packages:
                     logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
-                    self.response_dict["error"] = "could not find package '{}' for requested target".format(package)
-                    return self.respond(), HTTPStatus.UNPROCESSABLE_ENTITY # 422
+                    self.response_json["error"] = "could not find package '{}' for requested target".format(package)
+                    self.response_header = HTTPStatus.UNPROCESSABLE_ENTITY # 422
+                    return self.respond()
         return False

@@ -2,6 +2,7 @@ import os
 import logging
 import glob
 from http import HTTPStatus
+from flask import Response
 
 from utils.imagemeta import ImageMeta
 from server.request import Request
@@ -46,13 +47,15 @@ class ImageRequest(Request):
             elif self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "generic"):
                 self.profile = "generic"
             else:
-                self.response_dict["error"] = "unknown device, please check model and board params"
-                return self.respond(), HTTPStatus.PRECONDITION_FAILED # 412
+                self.response_json["error"] = "unknown device, please check model and board params"
+                self.response_header = HTTPStatus.PRECONDITION_FAILED # 412
+                return self.respond()
 
         if "network_profile" in self.request_json:
             if not self.check_network_profile():
-                self.response_dict["error"] = 'network profile "{}" not found'.format(self.request_json["network_profile"])
-                return self.respond(), HTTPStatus.BAD_REQUEST
+                self.response_json["error"] = 'network profile "{}" not found'.format(self.request_json["network_profile"])
+                self.response_header = HTTPStatus.BAD_REQUEST
+                return self.respond()
         else:
             self.network_profile = ''
 
@@ -63,42 +66,46 @@ class ImageRequest(Request):
         # the sysupgrade should be stored in a different way but works for now
         if request_status == "created":
             file_path, file_name, checksum, filesize = self.database.get_sysupgrade(image_hash)
-            self.response_dict["sysupgrade"] = "{}/static/{}{}".format(self.config.get("update_server"), file_path, file_name)
-            self.response_dict["log"] = "{}/static/{}build-{}.log".format(self.config.get("update_server"), file_path, image_hash)
-            self.response_dict["checksum"] = checksum
-            self.response_dict["filesize"] = filesize
-            self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
-            return self.respond(), HTTPStatus.OK # 200
+            self.response_json["sysupgrade"] = "{}/static/{}{}".format(self.config.get("update_server"), file_path, file_name)
+            self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("update_server"), file_path, image_hash)
+            self.response_json["checksum"] = checksum
+            self.response_json["filesize"] = filesize
+            self.response_json["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
+            self.response_header = HTTPStatus.OK # 200
 
         elif request_status == "no_sysupgrade" and self.sysupgrade:
-            self.response_dict["error"] = "No sysupgrade file produced, may not supported by modell."
-            return self.respond(), HTTPStatus.NOT_IMPLEMENTED # 501
+            self.response_json["error"] = "No sysupgrade file produced, may not supported by modell."
+            self.response_header = HTTPStatus.NOT_IMPLEMENTED # 501
 
         elif request_status == "no_sysupgrade" and not self.sysupgrade:
             file_path = self.database.get_image_path(image_hash)
-            self.response_dict["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
-            self.response_dict["log"] = "{}/static/{}build-{}.log".format(self.config.get("update_server"), file_path, image_hash)
-            return self.respond(), HTTPStatus.OK # 200
+            self.response_json["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
+            self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("update_server"), file_path, image_hash)
+            self.response_status = HTTPStatus.OK # 200
 
         elif request_status == "requested":
-            self.response_dict["queue"] = 1337 # TODO: currently not implemented
-            return self.respond(), HTTPStatus.TEMPORARY_REDIRECT # 307
+            self.response_json["queue"] = 1337 # TODO: currently not implemented
+            self.response_header['X-Build-Quene-Position'] = '1337'
+            self.response_status = HTTPStatus.PROCESSING # 102
 
         elif request_status == "building":
-            return "", HTTPStatus.PROCESSING # 102
+            self.response_header["X-Imagebuilder-Status"] = "building"
+            self.response_status = HTTPStatus.PROCESSING # 102
 
         elif request_status == "build_fail":
-            self.response_dict["error"] = "imagebuilder faild to create image"
-            self.response_dict["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("update_server"), request_hash)
-            return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR # 500
+            self.response_json["error"] = "imagebuilder faild to create image"
+            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("update_server"), request_hash)
+            self.response_header = HTTPStatus.INTERNAL_SERVER_ERROR # 500
 
         elif request_status == "imagesize_fail":
-            self.response_dict["error"] = "No firmware created due to image size. Try again with less packages selected."
-            self.response_dict["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("update_server"), request_hash)
-            return self.respond(), 413 # PAYLOAD_TO_LARGE RCF 7231
+            self.response_json["error"] = "No firmware created due to image size. Try again with less packages selected."
+            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("update_server"), request_hash)
+            self.response_header = 413 # PAYLOAD_TO_LARGE RCF 7231
+        else:
+            self.response_json["error"] = request_status
+            self.response_header = HTTPStatus.INTERNAL_SERVER_ERROR
 
-        self.response_dict["error"] = request_status
-        return self.respond(), HTTPStatus.INTERNAL_SERVER_ERROR
+        return self.respond()
 
     def check_network_profile(self):
         network_profile = self.request_json["network_profile"]
