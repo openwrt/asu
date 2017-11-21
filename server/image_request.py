@@ -86,7 +86,7 @@ class ImageRequest(Request):
         elif request_status == "requested":
             self.response_json["queue"] = 1337 # TODO: currently not implemented
             self.response_header["X-Imagebuilder-Status"] = "queue"
-            self.response_header['X-Build-Quene-Position'] = '1337'
+            self.response_header['X-Build-Queue-Position'] = '1337'
             self.response_status = HTTPStatus.ACCEPTED # 202
 
         elif request_status == "building":
