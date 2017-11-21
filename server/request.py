@@ -27,7 +27,7 @@ class Request():
         if not self.vaild_request():
             self.log.info("received invaild request")
             self.response_json["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
-            self.response_header = HTTPStatus.BAD_REQUEST
+            self.response_status = HTTPStatus.BAD_REQUEST
             return self.respond()
 
         if not "distro" in self.request_json:
@@ -38,7 +38,7 @@ class Request():
             if not self.distro in self.config.get("distributions").keys():
                 self.log.info("update request unknown distro")
                 self.response_json["error"] = "unknown distribution %s" % self.distro
-                self.response_header = HTTPStatus.PRECONDITION_FAILED # 412
+                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
 
         if not "version" in self.request_json:
@@ -48,7 +48,7 @@ class Request():
 
             if not self.release in self.database.get_releases(self.distro):
                 self.response_json["error"] = "unknown release %s" % self.release
-                self.response_header = HTTPStatus.PRECONDITION_FAILED # 412
+                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
 
     def check_bad_target(self):
@@ -58,11 +58,11 @@ class Request():
         subtarget_check =  self.database.get_subtargets(self.distro, self.release, self.target, self.subtarget)
         if not len(subtarget_check) == 1:
             self.response_json["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
-            self.response_header = HTTPStatus.PRECONDITION_FAILED # 412
+            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
         elif not subtarget_check[0][2] == "1" and self.sysupgrade: # [2] is supported flag
             self.response_json["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
-            self.response_header = HTTPStatus.UNPROCESSABLE_ENTITY # 412
+            self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 412
             return self.respond()
 
         if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
@@ -70,7 +70,7 @@ class Request():
             if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
                 self.log.debug("imagebuilder not ready")
                 self.response_header["X-Imagebuilder-Status"] = "initialize"
-                self.response_header = HTTPStatus.ACCEPTED # 202
+                self.response_status = HTTPStatus.ACCEPTED # 202
                 return self.respond()
 
         return False
@@ -85,8 +85,8 @@ class Request():
     def respond(self):
         response = Response(
                 response=json.dumps(self.response_json),
-                status=self.response_header,
-                headers=self.response_header)
+                status=self.response_status)
+        response.headers = self.response_header
         return response
 
     # if local version is newer than received returns true
@@ -104,6 +104,6 @@ class Request():
                 elif package not in available_packages:
                     logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
                     self.response_json["error"] = "could not find package '{}' for requested target".format(package)
-                    self.response_header = HTTPStatus.UNPROCESSABLE_ENTITY # 422
+                    self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 422
                     return self.respond()
         return False
