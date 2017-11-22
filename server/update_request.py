@@ -36,7 +36,12 @@ class UpdateRequest(Request):
             return bad_packages
 
         self.installed_release = self.release
-        self.release = get_latest_release(self.distro)
+        if self.installed_release  == "snapshot":
+            self.release = "snapshot"
+            self.response_json["version"] = "SNAPSHOT"
+        elif not self.release == self.installed_release:
+            self.release = get_latest_release(self.distro)
+            self.response_json["version"] = self.release
 
         # check target for new version
         bad_target = self.check_bad_target()
@@ -45,31 +50,27 @@ class UpdateRequest(Request):
 
         bad_packages = self.check_bad_packages()
         if bad_packages:
-            return bad_bad_packages
+            return bad_packages
 
-        if self.installed_release  == "snapshot":
-            self.response_json["version"] = "SNAPSHOT"
-        elif not self.release == self.installed_release:
-            self.response_json["version"] = self.release
 
         if "packages" in self.request_json:
-            self.log.debug(self.response_json["packages"])
+            self.log.debug(self.request_json["packages"])
             self.packages_installed = self.request_json["packages"]
+            self.response_json["packages"] = self.packages_installed.keys()
             if "version" in self.response_json:
                 self.packages_transformed = self.package_transformation(self.distro, self.installed_release, self.packages_installed)
                 self.response_json["packages"] = self.packages_transformed
 
-            if "update_packages" in self.request_json:
-                if self.request_json["update_packages"] is 1 or "version" in self.response_json:
+            if "upgrade_packages" in self.request_json or "version" in self.response_json:
+                if self.request_json["upgrade_packages"] is 1 or "version" in self.response_json:
                     packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
                     if packages_updates:
-                        self.response_json["updates"] = {}
+                        self.response_json["upgrades"] = {}
                         for name, version, version_installed in packages_updates:
-                            self.response_json["updates"][name] = [version, version_installed]
+                            if name in self.response_json["packages"]:
+                                self.response_json["upgrades"][name] = [version, version_installed]
 
-                    self.response_json["packages"] = self.packages_installed
-
-        if "version" in self.response_json or "updates" in self.response_json:
+        if "version" in self.response_json or "upgrades" in self.response_json:
             self.response_status = HTTPStatus.OK # 200
         else:
             self.response_status = HTTPStatus.NO_CONTENT # 204
