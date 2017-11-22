@@ -9,7 +9,7 @@ from server.request import Request
 from utils.config import Config
 
 class ImageRequest(Request):
-    def __init__(self, request_json, last_build_id):
+    def __init__(self, request_json, last_build_id=""):
         super().__init__(request_json)
         self.log = logging.getLogger(__name__)
         self.config = Config()

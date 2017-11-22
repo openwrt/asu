@@ -48,13 +48,13 @@ def api_upgrade_request(request_hash=""):
     if request.method == 'POST':
         try:
             request_json = json.loads(request.get_data().decode('utf-8'))
-            ir = ImageRequest(request_json, 1)
+            ir = ImageRequest(request_json)
         except:
             return "[]", HTTPStatus.BAD_REQUEST
     else:
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
-        ir = ImageRequest({ "request_hash": request_hash }, 1)
+        ir = ImageRequest({ "request_hash": request_hash })
     return(ir.get_image(sysupgrade=1))
 
 @app.route("/build-request", methods=['POST'])
