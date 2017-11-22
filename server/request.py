@@ -73,7 +73,7 @@ class Request():
         response = Response(
                 response=json.dumps(self.response_json),
                 status=self.response_status)
-        response.headers = self.response_header
+        response.headers.extend(self.response_header)
         return response
 
     # if local version is newer than received returns true
