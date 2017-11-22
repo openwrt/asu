@@ -9,7 +9,6 @@ class UpdateRequest(Request):
     def __init__(self, request_json):
         super().__init__(request_json)
         self.log = logging.getLogger(__name__)
-        self.needed_values = ["distro", "version", "target", "subtarget"]
 
     def package_transformation(self, distro, release, packages):
         # perform package transformation
@@ -18,6 +17,11 @@ class UpdateRequest(Request):
         return packages_transformed
 
     def run(self):
+        for needed_value in ["distro", "version", "target", "subtarget"]:
+            if not needed_value in self.request_json:
+                self.response_status = HTTPStatus.BAD_REQUEST
+                return self.respond()
+
         bad_request = self.check_bad_request()
         if bad_request:
             return bad_request

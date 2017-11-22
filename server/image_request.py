@@ -19,49 +19,61 @@ class ImageRequest(Request):
 
     def get_image(self, sysupgrade=False):
         self.sysupgrade = sysupgrade
-        bad_request = self.check_bad_request()
-        if bad_request:
-            return bad_request
+        if not "request_hash" in self.request_json or ("target" in self.request_json and self.request_json):
+            self.response_status = HTTPStatus.BAD_REQUEST
+            return self.respond()
 
-        bad_target = self.check_bad_target()
-        if bad_target:
-            return bad_target
-
-        bad_packages = self.check_bad_packages()
-        if bad_packages:
-            return bad_packages
-
-        if "board" in self.request_json:
-            self.log.debug("board in request, search for %s", self.request_json["board"])
-            self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
-
-        if not self.profile:
-            if "model" in self.request_json:
-                self.log.debug("model in request, search for %s", self.request_json["model"])
-                self.profile = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
-                self.log.debug("model search found profile %s", self.profile)
-
-        if not self.profile:
-            if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
-                self.profile = "Generic"
-            elif self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "generic"):
-                self.profile = "generic"
+        if "request_hash" in self.request_json:
+            check_result = self.database.check_request_hash(self.request_json["request_hash"])
+            if check_result:
+                image_hash, request_id, request_hash, request_status = check_result
             else:
-                self.response_json["error"] = "unknown device, please check model and board params"
-                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
-                return self.respond()
-
-        if "network_profile" in self.request_json:
-            if not self.check_network_profile():
-                self.response_json["error"] = 'network profile "{}" not found'.format(self.request_json["network_profile"])
-                self.response_status = HTTPStatus.BAD_REQUEST
+                self.response_status = HTTPStatus.NOT_FOUND
                 return self.respond()
         else:
-            self.network_profile = ''
+            bad_request = self.check_bad_request()
+            if bad_request:
+                return bad_request
 
-        self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
-        image_hash, request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
-        self.log.debug("found image in database: %s", request_status)
+            bad_target = self.check_bad_target()
+            if bad_target:
+                return bad_target
+
+            bad_packages = self.check_bad_packages()
+            if bad_packages:
+                return bad_packages
+
+            if "board" in self.request_json:
+                self.log.debug("board in request, search for %s", self.request_json["board"])
+                self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
+
+            if not self.profile:
+                if "model" in self.request_json:
+                    self.log.debug("model in request, search for %s", self.request_json["model"])
+                    self.profile = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
+                    self.log.debug("model search found profile %s", self.profile)
+
+            if not self.profile:
+                if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
+                    self.profile = "Generic"
+                elif self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "generic"):
+                    self.profile = "generic"
+                else:
+                    self.response_json["error"] = "unknown device, please check model and board params"
+                    self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+                    return self.respond()
+
+            if "network_profile" in self.request_json:
+                if not self.check_network_profile():
+                    self.response_json["error"] = 'network profile "{}" not found'.format(self.request_json["network_profile"])
+                    self.response_status = HTTPStatus.BAD_REQUEST
+                    return self.respond()
+            else:
+                self.network_profile = ''
+
+            self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
+            image_hash, request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
+            self.log.debug("found image in database: %s", request_status)
 
         # the sysupgrade should be stored in a different way but works for now
         if request_status == "created":

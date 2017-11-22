@@ -24,12 +24,6 @@ class Request():
             return bad_request
 
     def check_bad_request(self):
-        if not self.vaild_request():
-            self.log.info("received invaild request")
-            self.response_json["error"] = "missing parameters - need %s" % " ".join(self.needed_values)
-            self.response_status = HTTPStatus.BAD_REQUEST
-            return self.respond()
-
         if not "distro" in self.request_json:
             self.distro = "lede"
         else:
@@ -74,13 +68,6 @@ class Request():
                 return self.respond()
 
         return False
-
-    def vaild_request(self):
-        # needed params to check sysupgrade
-        for value in self.needed_values:
-            if not value in self.request_json:
-                return False
-        return True
 
     def respond(self):
         response = Response(
