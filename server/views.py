@@ -42,24 +42,36 @@ def download_image(image_path, image_name):
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
 @app.route("/image-request", methods=['POST'])
-@app.route("/api/upgrade-request", methods=['POST'])
-def api_upgrade_request():
-    try:
-        request_json = json.loads(request.get_data().decode('utf-8'))
-    except:
-        return "[]", HTTPStatus.BAD_REQUEST
-    ir = ImageRequest(request_json, 1)
+@app.route("/api/upgrade-request", methods=['POST', 'GET'])
+@app.route("/api/upgrade-request/<request_hash>", methods=['GET'])
+def api_upgrade_request(request_hash=""):
+    if request.method == 'POST':
+        try:
+            request_json = json.loads(request.get_data().decode('utf-8'))
+            ir = ImageRequest(request_json, 1)
+        except:
+            return "[]", HTTPStatus.BAD_REQUEST
+    else:
+        if not request_hash:
+            return "[]", HTTPStatus.BAD_REQUEST
+        ir = ImageRequest({ "request_hash": request_hash }, 1)
     return(ir.get_image(sysupgrade=1))
 
 @app.route("/build-request", methods=['POST'])
 @app.route("/api/build-request", methods=['POST'])
-def api_files_request():
-    try:
-        request_json = json.loads(request.get_data().decode('utf-8'))
-    except:
-        return "[]", HTTPStatus.BAD_REQUEST
-    ir = ImageRequest(request_json, 1)
-    return ir.get_image()
+@app.route("/api/build-request/<request_hash>", methods=['GET'])
+def api_files_request(request_hash=""):
+    if request.method == 'POST':
+        try:
+            request_json = json.loads(request.get_data().decode('utf-8'))
+            ir = ImageRequest(request_json)
+        except:
+            return "[]", HTTPStatus.BAD_REQUEST
+    else:
+        if not request_hash:
+            return "[]", HTTPStatus.BAD_REQUEST
+        ir = ImageRequest({ "request_hash": request_hash })
+    return(ir.get_image(sysupgrade=1))
 
 @app.route("/")
 def root_path():

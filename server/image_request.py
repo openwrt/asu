@@ -19,7 +19,7 @@ class ImageRequest(Request):
 
     def get_image(self, sysupgrade=False):
         self.sysupgrade = sysupgrade
-        if not "request_hash" in self.request_json or ("target" in self.request_json and self.request_json):
+        if not "request_hash" in self.request_json and not ("target" in self.request_json and "subtarget" in self.request_json):
             self.response_status = HTTPStatus.BAD_REQUEST
             return self.respond()
 
