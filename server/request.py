@@ -56,7 +56,7 @@ class Request():
             return self.respond()
         elif not subtarget_check[0][2] == "1" and self.sysupgrade: # [2] is supported flag
             self.response_json["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
-            self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 412
+            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
 
         if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):

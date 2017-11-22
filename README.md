@@ -118,13 +118,14 @@ The client should check the status code:
 
 | status	| meaning												| information	|
 | ---		| ---								| ---			|
-| 102		| building							| building right now |
 | 200		| build finish / upgrade available	| see parameters of `upgrade-check`, `upgrade-request` or `build-request` |
+| 202		| building, queued, imagebuilder setup	| building right now, in build queue, imagebuilder not ready. Details are in header `X-Imagebuilder-Status` and `X-Build-Queue-Position` |
 | 204		| no updates						| device is up to date |
-| 307		| queued							| requests wait to build |
-| 412		| unsupported/unknown				| unknown/unsupported {distro, release, target, subtarget, board} |
+| 400		| bad request 						| see `error` parameter |
+| 413		| imagesize fail					| produced image to big for device |
 | 413		| imagesize fail					| produced image to big for device |
 | 422		| unknown package					| unknown package in request |
 | 500		| build failed						| see `log` for build log	|
-| 501		| no sysupgrade						| image build correctly but no sysupgrade image created |
+| 501		| no sysupgrade						| image build successful but no sysupgrade image created |
+| 502		| proxy backend down				| nginx runs but python part is down, likely maintenance |
 | 503		| server overload					| please wait ~5 minutes |
