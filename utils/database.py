@@ -479,7 +479,7 @@ class Database():
         else:
             sql = "select coalesce(array_to_json(array_agg(row_to_json(images))), '[]') from images where image_hash = ?"
             self.c.execute(sql, image_hash)
-            return(self.c.fetchone())
+            return(self.c.fetchone()[0])
 
     def get_manifest_info(self, manifest_hash, json=False):
         self.log.debug("get manifest info %s", manifest_hash)
@@ -492,7 +492,7 @@ class Database():
         else:
             sql = """select coalesce(array_to_json(array_agg(row_to_json(manifest_packages))), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as manifest_packages;"""
             self.c.execute(sql, manifest_hash)
-            return(self.c.fetchone())
+            return(self.c.fetchone()[0])
 
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)

@@ -41,8 +41,8 @@ def download_image(image_path, image_name):
 
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
-@app.route("/image-request", methods=['POST'])
-@app.route("/api/upgrade-request", methods=['POST', 'GET'])
+@app.route("/image-request", methods=['POST']) # legacy
+@app.route("/api/upgrade-request", methods=['POST'])
 @app.route("/api/upgrade-request/<request_hash>", methods=['GET'])
 def api_upgrade_request(request_hash=""):
     if request.method == 'POST':
@@ -57,7 +57,7 @@ def api_upgrade_request(request_hash=""):
         ir = ImageRequest({ "request_hash": request_hash })
     return(ir.get_image(sysupgrade=1))
 
-@app.route("/build-request", methods=['POST'])
+@app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
 @app.route("/api/build-request/<request_hash>", methods=['GET'])
 def api_files_request(request_hash=""):
@@ -86,7 +86,6 @@ def root_path():
 def api_distros():
     return app.response_class(
             response=database.get_supported_distros(),
-            status=HTTPStatus.OK,
             mimetype='application/json')
 
 @app.route("/api/releases")
@@ -94,7 +93,6 @@ def api_releases():
     distro = request.args.get("distro", "")
     return app.response_class(
             response=database.get_supported_releases(distro),
-            status=HTTPStatus.OK,
             mimetype='application/json')
 
 @app.route("/api/models")
@@ -105,7 +103,6 @@ def api_models():
     if distro != "" and release != "" and model_search != "":
         return app.response_class(
                 response=database.get_supported_models(model_search, distro, release),
-                status=HTTPStatus.OK,
                 mimetype='application/json')
     else:
         return "[]", HTTPStatus.BAD_REQUEST
@@ -114,7 +111,6 @@ def api_models():
 def api_network_profiles():
     return app.response_class(
             response=utils.common.get_network_profiles(),
-            status=HTTPStatus.OK,
             mimetype='application/json')
 
 @app.route("/api/packages_image")
@@ -128,14 +124,21 @@ def api_packages_image():
     if distro != "" and release != "" and target != "" and subtarget != "" and profile != "":
         return app.response_class(
                 response=database.get_image_packages(distro, release, target, subtarget, profile, as_json=True),
-                status=HTTPStatus.OK,
                 mimetype='application/json')
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
-@app.route("/imagebuilder")
-def imagebuilder():
-    return render_template("chef.html", update_server=config.get("update_server"))
+@app.route("/api/image/<image_hash>")
+def api_image(image_hash):
+    return app.response_class(
+            response=database.get_image_info(image_hash, json=True) ,
+            mimetype='application/json')
+
+@app.route("/api/manifest/<manifest_hash>")
+def api_manifest(manifest_hash):
+    return app.response_class(
+            response=database.get_manifest_info(manifest_hash, json=True),
+            mimetype='application/json')
 
 @app.route("/supported")
 def supported():
