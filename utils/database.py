@@ -187,8 +187,8 @@ class Database():
 
     def check_request_hash(self, request_hash):
         self.log.debug("check_request_hash")
-        sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ?"
-        self.c.execute(sql, request_hash)
+        sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ? or image_hash = ?"
+        self.c.execute(sql, request_hash, request_hash)
         if self.c.rowcount == 1:
             return self.c.fetchone()
         else:
@@ -470,19 +470,29 @@ class Database():
         result = self.c.fetchall()
         return result
 
-    def get_image_info(self, image_hash):
+    def get_image_info(self, image_hash, json=False):
         self.log.debug("get image info %s", image_hash)
-        sql = """select * from images_info where image_hash = ?"""
-        self.c.execute(sql, image_hash)
-        return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
+        if not json:
+            sql = """select * from images_info where image_hash = ?"""
+            self.c.execute(sql, image_hash)
+            return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
+        else:
+            sql = "select coalesce(array_to_json(array_agg(row_to_json(images))), '[]') from images where image_hash = ?"
+            self.c.execute(sql, image_hash)
+            return(self.c.fetchone())
 
-    def get_manifest_info(self, manifest_hash):
+    def get_manifest_info(self, manifest_hash, json=False):
         self.log.debug("get manifest info %s", manifest_hash)
-        sql = """select name, version from manifest_packages
-            where manifest_hash = ?"""
-        self.c.execute(sql, manifest_hash)
-        result = self.c.fetchall()
-        return result
+        if not json:
+            sql = """select name, version from manifest_packages
+                where manifest_hash = ?"""
+            self.c.execute(sql, manifest_hash)
+            result = self.c.fetchall()
+            return result
+        else:
+            sql = """select coalesce(array_to_json(array_agg(row_to_json(manifest_packages))), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as manifest_packages;"""
+            self.c.execute(sql, manifest_hash)
+            return(self.c.fetchone())
 
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)
