@@ -209,7 +209,7 @@ class Database():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
             self.c.execute(sql, request_hash, *request_array)
             self.commit()
-            return('', 0, '', 'requested')
+            return('', 0, request_hash, 'requested')
 
     def request_imagebuilder(self, distro, release, target, subtarget):
         sql = """INSERT INTO image_requests
