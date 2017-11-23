@@ -56,7 +56,7 @@ class UpdateRequest(Request):
         if "packages" in self.request_json:
             self.log.debug(self.request_json["packages"])
             self.packages_installed = self.request_json["packages"]
-            self.response_json["packages"] = self.packages_installed.keys()
+            self.response_json["packages"] = list(self.packages_installed.keys())
             if "version" in self.response_json:
                 self.packages_transformed = self.package_transformation(self.distro, self.installed_release, self.packages_installed)
                 self.response_json["packages"] = self.packages_transformed
