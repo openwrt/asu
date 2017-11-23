@@ -240,11 +240,11 @@ class Database():
         else:
             return False
 
-    def add_image(self, image_hash, image_array, checksum="", filesize="", sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False):
+    def add_image(self, image_hash, image_array, checksum="", filesize="", sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds):
         self.log.debug("add image %s", image_array)
         sql = """INSERT INTO images
-            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date, subtarget_in_name, profile_in_name, vanilla)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)"""
+            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
         self.c.execute(sql,
                 image_hash,
                 *image_array,
@@ -253,7 +253,8 @@ class Database():
                 sysupgrade_suffix,
                 'true' if subtarget_in_name else 'false', # dirty, outdated pyodbc?
                 'true' if profile_in_name else 'false',
-                'true' if vanilla else 'false')
+                'true' if vanilla else 'false',
+                build_seconds)
         self.commit()
 
     def add_manifest(self, manifest_hash):

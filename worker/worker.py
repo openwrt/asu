@@ -6,6 +6,7 @@ import shutil
 import json
 import urllib.request
 import tempfile
+from datetime import datetime
 import hashlib
 import os
 import os.path
@@ -155,6 +156,7 @@ class Image(ImageMeta):
             if not self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
                 env = dict(os.environ, NO_UPDATE="1")
 
+            build_start = datetime.now()
             proc = subprocess.Popen(
                 cmdline,
                 cwd=self.imagebuilder.path,
@@ -165,6 +167,8 @@ class Image(ImageMeta):
             )
 
             output, erros = proc.communicate()
+            build_end = datetime.now()
+            self.build_seconds = int((build_end - build_start).total_seconds())
             self.build_log = output.decode("utf-8")
             returnCode = proc.returncode
             if returnCode == 0:
@@ -288,7 +292,8 @@ class Image(ImageMeta):
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
-                            self.vanilla))
+                            self.vanilla,
+                            self.build_seconds))
                     self.database.add_image(
                             self.image_hash,
                             self.as_array_build(),
@@ -297,7 +302,8 @@ class Image(ImageMeta):
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
-                            self.vanilla)
+                            self.vanilla,
+                            self.build_seconds)
                 self.database.done_build_job(self.request_hash, self.image_hash, self.build_status)
                 return True
             else:
