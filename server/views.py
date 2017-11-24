@@ -71,7 +71,7 @@ def api_files_request(request_hash=""):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         ir = ImageRequest({ "request_hash": request_hash })
-    return(ir.get_image(sysupgrade=1))
+    return(ir.get_image())
 
 @app.route("/")
 def root_path():
