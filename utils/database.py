@@ -220,9 +220,7 @@ class Database():
 
     def get_image_path(self, image_hash):
         self.log.debug("get sysupgrade image for %s", image_hash)
-        sql = """select file_path
-            from images_download
-            where image_hash = ?"""
+        sql = "select file_path from images_download where image_hash = ?"
         self.c.execute(sql, image_hash)
         if self.c.rowcount == 1:
             return self.c.fetchone()[0]
@@ -231,23 +229,36 @@ class Database():
 
     def get_sysupgrade(self, image_hash):
         self.log.debug("get image %s", image_hash)
-        sql = """select file_path, file_name, checksum, filesize
-            from images_download 
-            where image_hash = ?"""
+        sql = "select file_path, file_name, checksum, filesize from images_download where image_hash = ?"
         self.c.execute(sql, image_hash)
         if self.c.rowcount == 1:
             return self.c.fetchone()
         else:
             return False
 
-    def add_image(self, image_hash, image_array, checksum="", filesize="", sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds):
+    def add_image(self, image_hash, image_array, checksum="", filesize="", sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds=0):
         self.log.debug("add image %s", image_array)
         sql = """INSERT INTO images
-            (image_hash, distro, release, target, subtarget, profile, manifest_hash, network_profile, checksum, filesize, sysupgrade_suffix, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds)
+            (image_hash,
+            distro,
+            release,
+            target,
+            subtarget,
+            profile,
+            manifest_hash,
+            network_profile,
+            checksum,
+            filesize,
+            sysupgrade_suffix,
+            build_date,
+            subtarget_in_name,
+            profile_in_name,
+            vanilla,
+            build_seconds)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
         self.c.execute(sql,
                 image_hash,
-                *image_array,
+                *image_array, # contains distro, release, target, subtarget, profile, manifest_hash, network_profile
                 checksum,
                 filesize,
                 sysupgrade_suffix,
