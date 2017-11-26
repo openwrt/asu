@@ -39,11 +39,11 @@ class Worker(threading.Thread):
         self.imagebuilders = []
 
     def worker_register(self):
-        worker_name = gethostname()
-        worker_address = ""
-        worker_pubkey = get_pubkey()
-        self.log.info("register worker '%s' '%s' '%s'", worker_name, worker_address, worker_pubkey)
-        self.worker_id = str(self.database.worker_register(worker_name, worker_address, worker_pubkey))
+        self.worker_name = gethostname()
+        self.worker_address = ""
+        self.worker_pubkey = get_pubkey()
+        self.log.info("register worker '%s' '%s' '%s'", self.worker_name, self.worker_address, self.worker_pubkey)
+        self.worker_id = str(self.database.worker_register(self.worker_name, self.worker_address, self.worker_pubkey))
 
     def worker_add_skill(self, imagebuilder):
         self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
@@ -315,8 +315,6 @@ class Image(ImageMeta):
     def store_log(self, path):
         self.log.debug("write log to %s", path)
         log_file = open(path + ".log", "a")
-        log_file.writelines(json.dumps(self.as_array(), indent=4, sort_keys=True))
-        log_file.write("\n\n")
         log_file.writelines(self.build_log)
 
     def gen_checksum(self):
