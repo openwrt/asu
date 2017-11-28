@@ -125,8 +125,7 @@ The client should check the status code:
 | 202		| building, queued, imagebuilder setup	| building right now, in build queue, imagebuilder not ready. Details are in header `X-Imagebuilder-Status` and `X-Build-Queue-Position` |
 | 204		| no updates						| device is up to date. Contains `request_hash` |
 | 400		| bad request 						| see `error` parameter |
-| 413		| imagesize fail					| produced image to big for device |
-| 413		| imagesize fail					| produced image to big for device |
+| 413		| imagesize fail					| produced image too big for device |
 | 422		| unknown package					| unknown package in request |
 | 500		| build failed						| see `log` for build log	|
 | 501		| no sysupgrade						| image build successful but no sysupgrade image created |
