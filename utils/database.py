@@ -90,21 +90,14 @@ class Database():
     def check_profile(self, distro, release, target, subtarget, profile):
         self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
         self.c.execute("""SELECT profile FROM profiles
-            WHERE distro=? and release=? and target=? and subtarget = ? and profile = ?
+            WHERE distro=? and release=? and target=? and subtarget = ? and profile = coalesce(
+                (select newname from board_rename where distro = ? and release = ? and target = ? and subtarget = ? and origname = ?), ?)
             LIMIT 1;""",
-            distro, release, target, subtarget, profile)
+            distro, release, target, subtarget, distro, release, target, subtarget, profile, profile)
         if self.c.rowcount == 1:
             return self.c.fetchone()[0]
         else:
-            self.log.debug("use wildcard profile search")
-            profile = '%' + profile
-            self.c.execute("""SELECT profile FROM profiles
-                WHERE distro=? and release=? and target=? and subtarget = ? and profile LIKE ?
-                LIMIT 1;""",
-                distro, release, target, subtarget, profile)
-            if self.c.rowcount == 1:
-                return self.c.fetchone()[0]
-        return False
+            return False
 
     def check_model(self, distro, release, target, subtarget, model):
         self.log.debug("check_model %s/%s/%s/%s/%s", distro, release, target, subtarget, model)
@@ -566,8 +559,12 @@ class Database():
         self.c.execute(sql)
         self.commit()
 
+    def insert_board_rename(self, distro, release, origname, newname):
+        sql = "INSERT INTO board_rename (distro, release, origname, newname) VALUES (?, ?, ?, ?);"
+        self.c.execute(sql, distro, release, origname, newname)
+        self.commit()
+
     def insert_transformation(self, distro, release, package, replacement, context):
-        print("insert transformation {} {} {}".format(package, replacement, context))
         self.log.info("insert %s/%s ", distro, release)
         sql = "INSERT INTO transformations (distro, release, package, replacement, context) VALUES (?, ?, ?, ?, ?);"
         self.c.execute(sql, distro, release, package, replacement, context)

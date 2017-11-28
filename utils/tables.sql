@@ -632,8 +632,44 @@ on worker_skills_subtargets.subtarget_id = image_requests_subtargets.subtarget_i
 order by worker, requests desc
 limit 1;
 
+
+CREATE TABLE IF NOT EXISTS board_rename_table (
+	release_id INTEGER NOT NULL,
+	origname varchar not null,
+	newname varchar not null,
+	FOREIGN KEY (release_id) REFERENCES releases_table(id),
+	unique(release_id, origname)
+);
+
+create or replace view board_rename as
+select distro, release, origname, newname
+from board_rename_table
+join releases on releases.id = board_rename_table.release_id;
+
+create or replace function add_board_rename(distro varchar, release varchar, origname varchar, newname varchar) returns void as
+$$
+begin
+	insert into board_rename_table (release_id, origname, newname) values (
+		(select id from releases where
+			releases.distro = add_board_rename.distro and
+			releases.release = add_board_rename.release),
+		add_board_rename.origname,
+		add_board_rename.newname
+	) on conflict do nothing;
+end
+$$ language 'plpgsql';
+
+create or replace rule insert_board_rename AS
+ON insert TO board_rename DO INSTEAD
+SELECT add_board_rename(
+	NEW.distro,
+	NEW.release,
+	NEW.origname,
+	NEW.newname
+);
+
 CREATE TABLE IF NOT EXISTS transformations_table (
-	distro_id INTEGER NOT NULL,
+	distro_id INTEGER NOT NULL, -- unused?
 	release_id INTEGER NOT NULL,
 	package_id INTEGER NOT NULL,
 	replacement_id INTEGER,

@@ -27,3 +27,6 @@ supported:
   - ar71xx
   - octeon
   - sunxi
+board_rename:
+  ubnt-nanostation-m: ubnt-nano-m
+  ubnt-nanostation-m-xw: ubnt-nano-m-xw

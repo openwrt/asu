@@ -8,7 +8,7 @@ import urllib.request
 import logging
 import argparse
 import os
-from utils.common import get_supported_targets, get_dir, get_statuscode, get_releases, get_latest_release, get_distro_alias
+from utils.common import *
 from utils.database import Database
 from utils.config import Config
 
@@ -29,7 +29,7 @@ class ServerCli():
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
         parser.add_argument("--ignore-not-supported", action="store_true")
-        parser.add_argument("-t", "--parse-transformations", action="store_true")
+        parser.add_argument("-p", "--parse-configs", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["build_vanilla"]:
             self.build_vanilla()
@@ -41,7 +41,8 @@ class ServerCli():
             self.init_server()
         if self.args["flush_snapshots"]:
             self.flush_snapshots()
-        if self.args["parse_transformations"]:
+        if self.args["parse_configs"]:
+            self.insert_board_rename()
             self.load_tables()
 
     def init_all_imagebuilders(self):
@@ -154,6 +155,14 @@ class ServerCli():
                 else:
                     print("release {} offline".format(release))
 
+    def insert_board_rename(self):
+        for distro, release in self.database.get_releases():
+            release_config = get_release_config(distro, release)
+            if "board_rename" in release_config:
+                for origname, newname in release_config["board_rename"].items():
+                    self.log.info("insert board_rename {} {} {} {}".format(distro, release, origname, newname))
+                    self.database.insert_board_rename(distro, release, origname, newname)
+
     def insert_replacements(self, distro, release, transformations):
         for package, action in transformations.items():
             if not action:
@@ -193,5 +202,4 @@ class ServerCli():
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
-
-sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")
+#sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")
