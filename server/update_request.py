@@ -39,9 +39,10 @@ class UpdateRequest(Request):
         if self.installed_release  == "snapshot":
             self.release = "snapshot"
             self.response_json["version"] = "SNAPSHOT"
-        elif not self.release == self.installed_release:
+        else:
             self.release = get_latest_release(self.distro)
-            self.response_json["version"] = self.release
+            if not self.release == self.installed_release:
+                self.response_json["version"] = self.release
 
         # check target for new version
         bad_target = self.check_bad_target()
@@ -51,7 +52,6 @@ class UpdateRequest(Request):
         bad_packages = self.check_bad_packages()
         if bad_packages:
             return bad_packages
-
 
         if "packages" in self.request_json:
             self.log.debug(self.request_json["packages"])
