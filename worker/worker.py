@@ -197,6 +197,8 @@ class Image(ImageMeta):
                 create_folder(self.store_path)
 
                 for filename in os.listdir(self.build_path):
+                    if filename == "sha265sums":
+                        continue
                     filename_output = filename.replace("lede", self.distro)
                     filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
                     filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
