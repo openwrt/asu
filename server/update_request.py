@@ -38,7 +38,7 @@ class UpdateRequest(Request):
         self.installed_release = self.release
         if self.installed_release  == "snapshot":
             self.release = "snapshot"
-            self.response_json["version"] = "SNAPSHOT"
+            self.response_json["version"] = "snapshot"
         else:
             self.release = get_latest_release(self.distro)
             if not self.release == self.installed_release:
