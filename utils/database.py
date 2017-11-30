@@ -542,6 +542,19 @@ class Database():
         result = self.c.fetchone()
         return result[0]
 
+    def packages_versions(self, distro, release, target, subtarget, packages):
+        self.log.debug("packages versions")
+        sql = """
+        select name, version from
+            unnest(string_to_array(?, ' ')) packages_installed left join
+            (select name, version from packages_available where
+            distro = ? and release = ? and target = ? and subtarget = ?) as packages_available
+            on packages_available.name = packages_installed;
+        """
+        self.c.execute(sql, packages, distro, release, target, subtarget)
+        result = self.c.fetchall()
+        return result
+
     def packages_updates(self, distro, release, target, subtarget, packages):
         self.log.debug("packages updates")
         sql = """select name, version, installed_version from packages_available join (
