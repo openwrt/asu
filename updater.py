@@ -1,6 +1,7 @@
 import threading
 import signal
 import logging
+import time
 
 from worker.imagebuilder import ImageBuilder
 from utils.config import Config
@@ -22,6 +23,7 @@ class Updater(threading.Thread):
             outdated_subtarget = self.db.get_subtarget_outdated()
 
             if not outdated_subtarget:
+                self.log.debug("updater sleeping")
                 time.sleep(60)
             else:
                 self.log.info("found outdated_subtarget %s", outdated_subtarget)

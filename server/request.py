@@ -69,9 +69,9 @@ class Request():
 
         return False
 
-    def respond(self, json=False):
+    def respond(self, json_content=False):
         response = Response(
-                response=(self.response_json if json else json.dumps(self.response_json)),
+                response=(self.response_json if json_content else json.dumps(self.response_json)),
                 status=self.response_status)
         response.headers.extend(self.response_header)
         return response
