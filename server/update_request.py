@@ -1,8 +1,9 @@
 from http import HTTPStatus
 import logging
+from collections import OrderedDict
 
 from server.request import Request
-from utils.common import get_latest_release
+from utils.common import get_latest_release, get_hash
 
 
 class UpdateRequest(Request):
@@ -55,7 +56,8 @@ class UpdateRequest(Request):
 
         if "packages" in self.request_json:
             self.log.debug(self.request_json["packages"])
-            self.packages_installed = self.request_json["packages"]
+            self.packages_installed = OrderedDict(sorted(self.request_json["packages"].items()))
+            print(self.packages_installed)
             package_versions = {}
             self.response_json["packages"] = {}
             if "version" in self.response_json:
@@ -73,19 +75,28 @@ class UpdateRequest(Request):
                             self.response_json["upgrades"] = {}
                         self.response_json["upgrades"][package] = [version, self.packages_installed[package]]
 
-#            if "upgrade_packages" in self.request_json or "version" in self.response_json:
-#                if self.request_json["upgrade_packages"] is 1 or "version" in self.response_json:
-#                    packages_updates = self.database.packages_updates(self.distro, self.release, self.target, self.subtarget, self.packages_installed)
-#                    if packages_updates:
-#                        self.response_json["upgrades"] = {}
-#                        for name, version, version_installed in packages_updates:
-#                            if name in self.response_json["packages"]:
-#                                self.response_json["upgrades"][name] = [version, version_installed]
-
-        print(self.response_json["packages"])
         if "version" in self.response_json or "upgrades" in self.response_json:
             self.response_status = HTTPStatus.OK # 200
         else:
             self.response_status = HTTPStatus.NO_CONTENT # 204
+
+        self.request_manifest_hash = get_hash(str(self.packages_installed), 15)
+        self.database.add_manifest_packages(self.request_manifest_hash, self.packages_installed)
+        print(self.request_manifest_hash)
+
+        request_hash = get_hash(" ".join([self.distro, self.release, self.target, self.subtarget, self.request_manifest_hash]), 16)
+        print("request_hash:", request_hash)
+
+        if "upgrades" in self.request_json:
+            self.response_manifest_hash = get_hash(str(self.response_json["packages"]), 15)
+            self.database.add_manifest_packages(self.response_manifest_hash, self.response_json["packages"])
+            self.database.insert_upgrade_check(request_hash, self.distro, self.installed_release, self.target, self.subtarget, self.request_manifest_hash, self.release, self.response_manifest_hash)
+            print(self.response_manifest_hash)
+        else:
+            self.database.insert_upgrade_check(request_hash, self.distro, self.installed_release, self.target, self.subtarget, self.request_manifest_hash, self.release, self.request_manifest_hash)
+
+
+
+
 
         return self.respond()

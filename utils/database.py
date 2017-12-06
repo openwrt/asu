@@ -50,6 +50,14 @@ class Database():
         self.c.execute(sql, distro, release, target, subtarget)
         self.commit()
 
+    def insert_upgrade_check(self, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest):
+        sql = """insert into upgrade_requests
+            (request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
+            values (?, ?, ?, ?, ?, ?, ?, ?) 
+        """
+        self.c.execute(sql, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
+        self.commit()
+
     def get_releases(self, distro=None):
         if not distro:
             return self.c.execute("select distro, release from releases").fetchall()
@@ -272,18 +280,13 @@ class Database():
                 build_seconds)
         self.commit()
 
-    def add_manifest(self, manifest_hash):
-        sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
-        self.c.execute(sql, manifest_hash)
-        self.commit()
-        sql = """select id from manifest_table where hash = ?;"""
-        self.c.execute(sql, manifest_hash)
-        return self.c.fetchone()[0]
-
     def add_manifest_packages(self, manifest_hash, packages):
         self.log.debug("add manifest packages")
-        for package in packages:
-            name, version = package
+        sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
+        self.c.execute(sql, manifest_hash)
+        print("XXXXXXXXXXXXXXX")
+        print(packages)
+        for name, version in packages.items():
             sql = """INSERT INTO manifest_packages (manifest_hash, name, version) VALUES (?, ?, ?);"""
             self.c.execute(sql, manifest_hash, name, version)
         self.commit()
@@ -599,3 +602,4 @@ class Database():
         sql = "select transform(?, ?, ?, ?)"
         self.c.execute(sql, distro, orig_release, dest_release, packages)
         return self.c.fetchall()
+
