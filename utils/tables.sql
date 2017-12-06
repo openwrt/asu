@@ -592,6 +592,11 @@ where image_requests_table.request_hash = NEW.request_hash
 returning
 old.*;
 
+create or replace rule delete_image_requests as
+on delete to image_requests do instead
+delete from image_requests_table
+where old.id = image_requests_table.id;
+
 create or replace view image_requests_subtargets as
 select count(*) as requests, subtarget_id
 from image_requests_table, profiles_table
