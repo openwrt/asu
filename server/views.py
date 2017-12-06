@@ -23,12 +23,18 @@ config = Config()
 
 @app.route("/update-request", methods=['POST'])
 @app.route("/api/upgrade-check", methods=['POST'])
-def api_upgrade_check():
-    try:
-        request_json = json.loads(request.get_data().decode('utf-8'))
-    except:
-        return "[]", HTTPStatus.BAD_REQUEST
-    ur = UpdateRequest(request_json)
+@app.route("/api/upgrade-check/<request_hash>", methods=['GET'])
+def api_upgrade_check(request_hash=None):
+    if request.method == 'POST':
+        try:
+            request_json = json.loads(request.get_data().decode('utf-8'))
+            ur = UpdateRequest(request_json)
+        except:
+            return "[]", HTTPStatus.BAD_REQUEST
+    else:
+        if not request_hash:
+            return "[]", HTTPStatus.BAD_REQUEST
+        ur = UpdateRequest({ "request_hash": request_hash })
     return(ur.run())
 
 # direct link to download a specific image based on hash
@@ -44,7 +50,7 @@ def download_image(image_path, image_name):
 @app.route("/image-request", methods=['POST']) # legacy
 @app.route("/api/upgrade-request", methods=['POST'])
 @app.route("/api/upgrade-request/<request_hash>", methods=['GET'])
-def api_upgrade_request(request_hash=""):
+def api_upgrade_request(request_hash=None):
     if request.method == 'POST':
         try:
             request_json = json.loads(request.get_data().decode('utf-8'))
@@ -60,7 +66,7 @@ def api_upgrade_request(request_hash=""):
 @app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
 @app.route("/api/build-request/<request_hash>", methods=['GET'])
-def api_files_request(request_hash=""):
+def api_files_request(request_hash=None):
     if request.method == 'POST':
         try:
             request_json = json.loads(request.get_data().decode('utf-8'))

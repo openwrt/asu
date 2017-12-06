@@ -813,7 +813,7 @@ insert into upgrade_requests_table (request_hash, subtarget_id, request_manifest
 		manifest_table.hash = NEW.request_manifest),
 	(select id from releases where
 		releases.distro = NEW.distro and
-		releases.release = NEW.release),
+		releases.release = NEW.response_release),
 	(select manifest_table.id from manifest_table where
 		manifest_table.hash = NEW.response_manifest)
 	)

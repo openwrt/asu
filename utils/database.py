@@ -197,12 +197,30 @@ class Database():
             WHERE distro = ? and release = ? and target LIKE ? and subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def check_request_hash(self, request_hash):
+    def check_image_request_hash(self, request_hash):
         self.log.debug("check_request_hash")
         sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ? or image_hash = ?"
         self.c.execute(sql, request_hash, request_hash)
         if self.c.rowcount == 1:
             return self.c.fetchone()
+        else:
+            return None
+
+    def check_upgrade_request_hash(self, request_hash):
+        self.log.debug("check_upgrade_hash")
+        # postgresql is my new crossword puzzle
+        sql = """SELECT to_json(sub) AS response
+            FROM  (
+               SELECT response_release, json_agg(json_build_object(name, version)) AS "packages"
+               FROM  upgrade_requests ur
+               LEFT JOIN manifest_packages mp ON  mp.manifest_hash = ur.response_manifest
+               WHERE ur.request_hash = ?
+               GROUP BY ur. response_release, ur.response_manifest
+               ) sub;
+            """
+        self.c.execute(sql, request_hash)
+        if self.c.rowcount == 1:
+            return self.c.fetchone()[0]
         else:
             return None
 
@@ -284,8 +302,6 @@ class Database():
         self.log.debug("add manifest packages")
         sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
         self.c.execute(sql, manifest_hash)
-        print("XXXXXXXXXXXXXXX")
-        print(packages)
         for name, version in packages.items():
             sql = """INSERT INTO manifest_packages (manifest_hash, name, version) VALUES (?, ?, ?);"""
             self.c.execute(sql, manifest_hash, name, version)
