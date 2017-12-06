@@ -11,14 +11,14 @@ import threading
 import subprocess
 
 from utils.common import create_folder, get_statuscode, get_latest_release, get_folder, check_signature
-from utils.database import Database
+#from utils.database import Database
 from utils.config import Config
 
 class ImageBuilder(threading.Thread):
     def __init__(self, distro, version, target, subtarget):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
-        self.database = Database()
+        #self.database = Database()
         self.config = Config()
         self.distro = distro
         self.version = version
@@ -79,7 +79,7 @@ class ImageBuilder(threading.Thread):
             else:
                 if not output.decode('utf-8').startswith("checking file Makefile\nReversed"):
                     self.log.error("could not patch imagebuilder makefile with %s", patch)
-                    self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, "patch_fail")
+                    #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, "patch_fail")
 
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()
@@ -146,19 +146,19 @@ class ImageBuilder(threading.Thread):
                     if not self.download(special_tar_url):
                         return False
                 else:
-                    self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
+                    #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
                     return False
-        self.patch_makefile()
-        self.add_custom_repositories()
-        self.pkg_arch = self.parse_packages_arch()
-        self.parse_info()
-
-        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
-            self.log.info("subtargets outdated, run sync")
-            self.parse_packages()
+            self.patch_makefile()
+            self.add_custom_repositories()
+            self.pkg_arch = self.parse_packages_arch()
+        #self.parse_info()
+#
+#        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
+#            self.log.info("subtargets outdated, run sync")
+#            self.parse_packages()
 
         self.log.info("initialized imagebuilder %s", self.path)
-        self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'ready')
+#        self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'ready')
         return True
 
     def download(self, url):
@@ -168,7 +168,7 @@ class ImageBuilder(threading.Thread):
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
             if not check_signature(tempdir):
                 self.log.warn("bad signature")
-                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'signature_fail')
+                #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'signature_fail')
                 return False
             self.log.debug("good signature")
             tar_name = url.split("/")[-1]
@@ -190,7 +190,7 @@ class ImageBuilder(threading.Thread):
             sha256_output = sha256_output.decode('utf-8')
             if not sha256_output == "{}: OK\n".format(tar_name):
                 self.log.warn("bad sha256sum")
-                self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'sha256sum_fail')
+                #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'sha256sum_fail')
                 return False
             self.log.debug("good sha256sum")
 
@@ -225,34 +225,30 @@ class ImageBuilder(threading.Thread):
             profiles = re.findall(profiles_pattern, output)
             if not profiles:
                 profiles = []
-            self.database.insert_profiles(self.distro, self.release, self.target, self.subtarget, default_packages, profiles)
+            return(default_packages, profiles)
         else:
             logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
+            return False
 
     def parse_packages(self):
         self.log.info("receive packages for %s/%s", self.target, self.subtarget)
-        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
-            self.log.info("subtargets outdated, run sync")
-            cmdline = ['make', 'package_list']
-            proc = subprocess.Popen(
-                cmdline,
-                cwd=self.path,
-                stdout=subprocess.PIPE,
-                shell=False,
-                stderr=subprocess.STDOUT
-            )
+        #if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
+        cmdline = ['make', 'package_list']
+        proc = subprocess.Popen(
+            cmdline,
+            cwd=self.path,
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT
+        )
 
-            output, erros = proc.communicate()
-            returnCode = proc.returncode
-            output = output.decode('utf-8')
-            if returnCode == 0:
-                packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
-                self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
-                self.database.insert_packages_available(self.distro, self.release, self.target, self.subtarget, packages)
-            else:
-                print(output)
-                self.log.warning("could not receive packages of %s/%s", self.target, self.subtarget)
+        output, erros = proc.communicate()
+        returnCode = proc.returncode
+        output = output.decode('utf-8')
+        if returnCode == 0:
+            packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
+            self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
+            return(packages)
         else:
-            self.log.info("packages up to date")
-
-
+            print(output)
+            self.log.warning("could not receive packages of %s/%s", self.target, self.subtarget)

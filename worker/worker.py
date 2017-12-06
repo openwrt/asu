@@ -153,8 +153,6 @@ class Image(ImageMeta):
             self.log.info("start build: %s", " ".join(cmdline))
 
             env = os.environ.copy()
-            if not self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
-                env = dict(os.environ, NO_UPDATE="1")
 
             build_start = datetime.now()
             proc = subprocess.Popen(
