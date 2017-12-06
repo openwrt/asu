@@ -59,7 +59,7 @@ class Request():
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
 
-        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
+        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget) and False:
             self.log.debug("subtarget %s/%s not outdated - no need to setup imagebuilder", self.target, self.subtarget)
             if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
                 self.log.debug("imagebuilder not ready")
@@ -69,9 +69,9 @@ class Request():
 
         return False
 
-    def respond(self):
+    def respond(self, json=False):
         response = Response(
-                response=json.dumps(self.response_json),
+                response=(self.response_json if json else json.dumps(self.response_json)),
                 status=self.response_status)
         response.headers.extend(self.response_header)
         return response

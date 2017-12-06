@@ -24,7 +24,7 @@ class ImageRequest(Request):
             return self.respond()
 
         if "request_hash" in self.request_json:
-            check_result = self.database.check_request_hash(self.request_json["request_hash"])
+            check_result = self.database.check_image_request_hash(self.request_json["request_hash"])
             if check_result:
                 image_hash, request_id, request_hash, request_status = check_result
             else:

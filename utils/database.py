@@ -50,6 +50,14 @@ class Database():
         self.c.execute(sql, distro, release, target, subtarget)
         self.commit()
 
+    def insert_upgrade_check(self, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest):
+        sql = """insert into upgrade_requests
+            (request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
+            values (?, ?, ?, ?, ?, ?, ?, ?) 
+        """
+        self.c.execute(sql, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
+        self.commit()
+
     def get_releases(self, distro=None):
         if not distro:
             return self.c.execute("select distro, release from releases").fetchall()
@@ -189,12 +197,30 @@ class Database():
             WHERE distro = ? and release = ? and target LIKE ? and subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def check_request_hash(self, request_hash):
+    def check_image_request_hash(self, request_hash):
         self.log.debug("check_request_hash")
         sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ? or image_hash = ?"
         self.c.execute(sql, request_hash, request_hash)
         if self.c.rowcount == 1:
             return self.c.fetchone()
+        else:
+            return None
+
+    def check_upgrade_request_hash(self, request_hash):
+        self.log.debug("check_upgrade_hash")
+        # postgresql is my new crossword puzzle
+        sql = """SELECT to_json(sub) AS response
+            FROM  (
+               SELECT response_release, json_agg(json_build_object(name, version)) AS "packages"
+               FROM  upgrade_requests ur
+               LEFT JOIN manifest_packages mp ON  mp.manifest_hash = ur.response_manifest
+               WHERE ur.request_hash = ?
+               GROUP BY ur. response_release, ur.response_manifest
+               ) sub;
+            """
+        self.c.execute(sql, request_hash)
+        if self.c.rowcount == 1:
+            return self.c.fetchone()[0]
         else:
             return None
 
@@ -272,18 +298,11 @@ class Database():
                 build_seconds)
         self.commit()
 
-    def add_manifest(self, manifest_hash):
-        sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
-        self.c.execute(sql, manifest_hash)
-        self.commit()
-        sql = """select id from manifest_table where hash = ?;"""
-        self.c.execute(sql, manifest_hash)
-        return self.c.fetchone()[0]
-
     def add_manifest_packages(self, manifest_hash, packages):
         self.log.debug("add manifest packages")
-        for package in packages:
-            name, version = package
+        sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
+        self.c.execute(sql, manifest_hash)
+        for name, version in packages.items():
             sql = """INSERT INTO manifest_packages (manifest_hash, name, version) VALUES (?, ?, ?);"""
             self.c.execute(sql, manifest_hash, name, version)
         self.commit()
@@ -507,6 +526,7 @@ class Database():
             return result
         else:
             sql = """select coalesce(array_to_json(array_agg(row_to_json(manifest_packages))), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as manifest_packages;"""
+#            sql = """select coalesce(json_build_object(packages.name, packages.version), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as packages;"""
             self.c.execute(sql, manifest_hash)
             return(self.c.fetchone()[0])
 
@@ -599,3 +619,4 @@ class Database():
         sql = "select transform(?, ?, ?, ?)"
         self.c.execute(sql, distro, orig_release, dest_release, packages)
         return self.c.fetchall()
+

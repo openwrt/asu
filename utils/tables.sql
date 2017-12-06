@@ -292,7 +292,7 @@ create table if not exists manifest_packages_link (
 );
 
 create or replace view manifest_packages as
-select manifest_table.hash as manifest_hash, name, version
+select manifest_table.id, as manifest_id, manifest_table.hash as manifest_hash, name, version
 from manifest_table, manifest_packages_link, packages_names, packages_versions
 where
 manifest_table.id = manifest_packages_link.manifest_id and
@@ -785,3 +785,58 @@ select distinct images.id, images.image_hash, distributions.alias, images.distro
 				join distributions on
 					distributions.name = profiles.distro
         order by id desc;
+
+
+create table if not exists upgrade_requests_table (
+	id SERIAL PRIMARY KEY,
+	request_hash varchar(30) UNIQUE,
+	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
+	request_manifest_id integer references manifest_table(id) ON DELETE CASCADE,
+	response_release_id integer references releases_table(id),
+	response_manifest_id integer references manifest_table(id)
+);
+
+create or replace view upgrade_requests as
+select
+upgrade_requests_table.id, request_hash, subtargets.distro, subtargets.release, target, subtarget, reqm.hash request_manifest, releases.release response_release, resm.hash response_manifest
+from upgrade_requests_table, subtargets, manifest_table reqm, manifest_table resm, releases where
+subtargets.id = upgrade_requests_table.subtarget_id and
+reqm.id = request_manifest_id and
+resm.id = response_manifest_id and
+releases.id = response_release_id;
+
+create or replace rule insert_upgrade_requests AS
+ON insert TO upgrade_requests DO INSTEAD
+insert into upgrade_requests_table (request_hash, subtarget_id, request_manifest_id, response_release_id, response_manifest_id) values (
+	NEW.request_hash,
+	(select subtargets.id from subtargets where
+		subtargets.distro = NEW.distro and
+		subtargets.release = NEW.release and
+		subtargets.target = NEW.target and
+		subtargets.subtarget = NEW.subtarget),
+	(select manifest_table.id from manifest_table where
+		manifest_table.hash = NEW.request_manifest),
+	(select id from releases where
+		releases.distro = NEW.distro and
+		releases.release = NEW.response_release),
+	(select manifest_table.id from manifest_table where
+		manifest_table.hash = NEW.response_manifest)
+	)
+on conflict do nothing;
+
+create or replace rule update_upgrade_requests AS
+ON update TO upgrade_requests DO INSTEAD
+update upgrade_requests_table set
+response_release_id = coalesce(
+	(select id from releases where
+		releases.distro = NEW.distro and
+		releases.release = NEW.response_release),
+	response_release_id),
+response_manifest_id = coalesce(
+	(select manifest_table.id from manifest_table where
+		manifest_table.hash = NEW.response_manifest),
+	response_manifest_id)
+where upgrade_requests_table.request_hash = NEW.request_hash
+returning
+old.*; 
+
