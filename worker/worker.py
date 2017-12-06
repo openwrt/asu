@@ -172,7 +172,6 @@ class Image(ImageMeta):
             if returnCode == 0:
                 self.log.info("build successfull")
                 self.manifest_hash = hashlib.sha256(open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0],'rb').read()).hexdigest()[0:15]
-                self.manifest_id = self.database.add_manifest(self.manifest_hash)
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
 
