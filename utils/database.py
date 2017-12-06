@@ -526,6 +526,7 @@ class Database():
             return result
         else:
             sql = """select coalesce(array_to_json(array_agg(row_to_json(manifest_packages))), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as manifest_packages;"""
+#            sql = """select coalesce(json_build_object(packages.name, packages.version), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as packages;"""
             self.c.execute(sql, manifest_hash)
             return(self.c.fetchone()[0])
 
