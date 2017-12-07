@@ -292,7 +292,7 @@ create table if not exists manifest_packages_link (
 );
 
 create or replace view manifest_packages as
-select manifest_table.id, as manifest_id, manifest_table.hash as manifest_hash, name, version
+select manifest_table.id as manifest_id, manifest_table.hash as manifest_hash, name, version
 from manifest_table, manifest_packages_link, packages_names, packages_versions
 where
 manifest_table.id = manifest_packages_link.manifest_id and

@@ -211,11 +211,11 @@ class Database():
         # postgresql is my new crossword puzzle
         sql = """SELECT to_json(sub) AS response
             FROM  (
-               SELECT response_release, json_agg(json_build_object(name, version)) AS "packages"
+               SELECT response_release, json_object_agg(name, version)) AS "packages"
                FROM  upgrade_requests ur
                LEFT JOIN manifest_packages mp ON  mp.manifest_hash = ur.response_manifest
                WHERE ur.request_hash = ?
-               GROUP BY ur. response_release, ur.response_manifest
+               GROUP BY ur.response_release, ur.response_manifest
                ) sub;
             """
         self.c.execute(sql, request_hash)
