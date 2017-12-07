@@ -72,7 +72,8 @@ class Request():
     def respond(self, json_content=False):
         response = Response(
                 response=(self.response_json if json_content else json.dumps(self.response_json)),
-                status=self.response_status)
+                status=self.response_status,
+                mimetype='application/json')
         response.headers.extend(self.response_header)
         return response
 
