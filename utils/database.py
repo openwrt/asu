@@ -138,6 +138,7 @@ class Database():
             release = ? and
             target = ? and
             subtarget = ? and
+            release != 'snapshot' and
             last_sync < NOW() - INTERVAL '1 day';"""
         self.c.execute(sql, distro, release, target, subtarget)
         if self.c.rowcount == 1:
