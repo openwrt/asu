@@ -36,7 +36,7 @@ class Updater(threading.Thread):
                     self.log.info("parse profiles/default packages")
                     info = imagebuilder.parse_info()
                     if info:
-                        self.db.insert_profiles(self.distro, self.release, self.target, self.subtarget, *info)
+                        self.db.insert_profiles(distro, release, target, subtarget, *info)
                     else:
                         logging.error("could not receive profiles of %s/%s", target, subtarget)
                         exit(1)
