@@ -9,16 +9,11 @@ from server.request import Request
 from utils.config import Config
 
 class ImageRequest(Request):
-    def __init__(self, request_json, last_build_id=""):
-        super().__init__(request_json)
-        self.log = logging.getLogger(__name__)
-        self.config = Config()
-        self.last_build_id = last_build_id
-        self.needed_values = ["target", "subtarget"]
-        self.profile = ""
+    def __init__(self, db):
+        super().__init__(db)
 
-    def get_image(self, sysupgrade=False):
-        self.sysupgrade = sysupgrade
+    def _request(self):
+        self.profile = ""
         if not "request_hash" in self.request_json and not ("target" in self.request_json and "subtarget" in self.request_json):
             self.response_status = HTTPStatus.BAD_REQUEST
             return self.respond()

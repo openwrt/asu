@@ -7,8 +7,8 @@ from utils.common import get_latest_release, get_hash
 
 
 class UpdateRequest(Request):
-    def __init__(self, request_json):
-        super().__init__(request_json)
+    def __init__(self, db):
+        super().__init__(db)
         self.log = logging.getLogger(__name__)
 
     def package_transformation(self, distro, release, packages):
@@ -17,7 +17,7 @@ class UpdateRequest(Request):
         self.log.debug("transformed packages {}".format(self.packages_transformed))
         return packages_transformed
 
-    def run(self):
+    def _request(self):
         if "request_hash" in self.request_json:
             check_result = self.database.check_upgrade_request_hash(self.request_json["request_hash"])
             if check_result:

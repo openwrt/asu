@@ -340,7 +340,7 @@ class Image(ImageMeta):
     def parse_manifest(self):
         manifest_pattern = r"(.+) - (.+)\n"
         with open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0], "r") as manifest_file:
-            manifest_packages = re.findall(manifest_pattern, manifest_file.read())
+            manifest_packages = dict(re.findall(manifest_pattern, manifest_file.read()))
             self.database.add_manifest_packages(self.manifest_hash, manifest_packages)
 
     # check if image exists

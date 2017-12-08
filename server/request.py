@@ -8,20 +8,22 @@ from utils.database import Database
 from utils.common import get_latest_release
 
 class Request():
-    def __init__(self, request_json):
+    def __init__(self, db):
+        self.database = db
         self.log = logging.getLogger(__name__)
         self.config = Config()
+
+    def request(self, request_json, sysupgrade=False):
         self.request_json = request_json
         self.response_json = {}
         self.response_header = {}
         self.response_status = 0
         self.database = Database()
-        self.sysupgrade = False
+        self.sysupgrade = sysupgrade
+        return self._request()
 
-    def run(self):
-        bad_request = self.check_bad_request()
-        if bad_request:
-            return bad_request
+    def _request(self):
+        pass
 
     def check_bad_request(self):
         if not "distro" in self.request_json:

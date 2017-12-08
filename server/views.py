@@ -20,6 +20,8 @@ from utils.common import get_dir, create_folder, init_usign
 database = Database()
 config = Config()
 
+ur = UpdateRequest(database)
+ir = ImageRequest(database)
 
 @app.route("/update-request", methods=['POST'])
 @app.route("/api/upgrade-check", methods=['POST'])
@@ -28,14 +30,13 @@ def api_upgrade_check(request_hash=None):
     if request.method == 'POST':
         try:
             request_json = json.loads(request.get_data().decode('utf-8'))
-            ur = UpdateRequest(request_json)
         except:
             return "[]", HTTPStatus.BAD_REQUEST
     else:
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
-        ur = UpdateRequest({ "request_hash": request_hash })
-    return(ur.run())
+        request_json = { "request_hash": request_hash }
+    ur.request(request_json)
 
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
@@ -54,14 +55,14 @@ def api_upgrade_request(request_hash=None):
     if request.method == 'POST':
         try:
             request_json = json.loads(request.get_data().decode('utf-8'))
-            ir = ImageRequest(request_json)
         except:
             return "[]", HTTPStatus.BAD_REQUEST
     else:
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
-        ir = ImageRequest({ "request_hash": request_hash })
-    return(ir.get_image(sysupgrade=1))
+        request_json = { "request_hash": request_hash }
+
+    return ir.request(request_json, sysupgrade=1)
 
 @app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
@@ -70,14 +71,13 @@ def api_files_request(request_hash=None):
     if request.method == 'POST':
         try:
             request_json = json.loads(request.get_data().decode('utf-8'))
-            ir = ImageRequest(request_json)
         except:
             return "[]", HTTPStatus.BAD_REQUEST
     else:
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
-        ir = ImageRequest({ "request_hash": request_hash })
-    return(ir.get_image())
+        request_json = { "request_hash": request_hash }
+    return ir.request(request_json)
 
 @app.route("/")
 def root_path():
