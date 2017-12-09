@@ -138,7 +138,6 @@ class Database():
             release = ? and
             target = ? and
             subtarget = ? and
-            release != 'snapshot' and
             last_sync < NOW() - INTERVAL '1 day';"""
         self.c.execute(sql, distro, release, target, subtarget)
         if self.c.rowcount == 1:
@@ -149,7 +148,8 @@ class Database():
     def get_subtarget_outdated(self):
         sql = """select distro, release, target, subtarget
             from subtargets
-            where last_sync < NOW() - INTERVAL '1 day'
+            where release != 'snapshot' and
+            last_sync < NOW() - INTERVAL '1 day'
             order by (last_sync) asc limit 1;"""
         self.c.execute(sql)
         if self.c.rowcount == 1:

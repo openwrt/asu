@@ -634,9 +634,7 @@ create or replace view worker_needed as
 select image_requests_subtargets.subtarget_id, coalesce(worker, 0) as worker, requests
 from image_requests_subtargets left outer join worker_skills_subtargets
 on worker_skills_subtargets.subtarget_id = image_requests_subtargets.subtarget_id
-order by worker, requests desc
-limit 1;
-
+order by worker, requests desc;
 
 CREATE TABLE IF NOT EXISTS board_rename_table (
 	release_id INTEGER NOT NULL,
