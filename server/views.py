@@ -36,7 +36,7 @@ def api_upgrade_check(request_hash=None):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
-    ur.request(request_json)
+    return ur.request(request_json)
 
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
