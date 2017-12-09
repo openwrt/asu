@@ -120,6 +120,12 @@ class Image(ImageMeta):
     def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
         super().__init__(distro, release, target, subtarget, profile, packages.split(" "), network_profile)
 
+    def filename_rename(self, content):
+        content_output = content.replace("lede", self.distro)
+        content_output = content_output.replace(self.imagebuilder.imagebuilder_release, self.release)
+        content_output = content_output.replace(self.request_hash, self.manifest_hash)
+        return content_output
+
     def build(self):
         imagebuilder_path = os.path.abspath(os.path.join("imagebuilder", self.distro, self.target, self.subtarget))
         self.imagebuilder = ImageBuilder(self.distro, self.release, self.target, self.subtarget)
@@ -194,11 +200,16 @@ class Image(ImageMeta):
                 create_folder(self.store_path)
 
                 for filename in os.listdir(self.build_path):
-                    if filename == "sha265sums":
-                        continue
-                    filename_output = filename.replace("lede", self.distro)
-                    filename_output = filename_output.replace(self.imagebuilder.imagebuilder_release, self.release)
-                    filename_output = filename_output.replace(self.request_hash, self.manifest_hash)
+                    if filename == "sha256sums":
+                        with open(os.path.join(self.build_path, filename), 'r+') as sums:
+                            content = sums.read()
+                            sums.seek(0)
+                            sums.write(self.filename_rename(content))
+                            sums.truncate()
+                        filename_output = filename
+                    else:
+                        filename_output = self.filename_rename(filename)
+
                     if not os.path.exists(os.path.join(self.store_path, filename_output)) or entry_missing:
                         self.log.info("move file %s", filename_output)
                         shutil.move(os.path.join(self.build_path, filename), os.path.join(self.store_path, filename_output))
