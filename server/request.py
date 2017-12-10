@@ -93,6 +93,7 @@ class Request():
                     pass # kernel is not an installable package, but installed...
                 elif package not in available_packages:
                     logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
+                    self.response_header["X-Unknown-Package"] = package
                     self.response_json["error"] = "could not find package '{}' for requested target".format(package)
                     self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 422
                     return self.respond()
