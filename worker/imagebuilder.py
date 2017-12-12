@@ -1,5 +1,6 @@
 import logging
 import tarfile
+import glob
 import re
 import shutil
 import urllib.request
@@ -48,10 +49,8 @@ class ImageBuilder(threading.Thread):
                     return re.match(r'.*"(.+)"', line).group(1)
 
     def patch_makefile(self):
-        patches = [
-                "imagebuilder-add-package_list-function.patch",
-                "imagebuilder-add-NO_UPDATE-env.patch"
-                ]
+        patches = glob.glob(os.path.join(os.getcwd(), "worker/*.patch"))
+
         for patch in patches:
             cmdline = ["patch", "-p4", "--dry-run", "-i", os.path.join(os.getcwd(), "worker", patch)]
             proc = subprocess.Popen(
