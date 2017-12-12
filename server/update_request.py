@@ -5,10 +5,9 @@ from collections import OrderedDict
 from server.request import Request
 from utils.common import get_latest_release, get_hash
 
-
 class UpdateRequest(Request):
-    def __init__(self, db):
-        super().__init__(db)
+    def __init__(self, config, db):
+        super().__init__(config, db)
         self.log = logging.getLogger(__name__)
 
     def package_transformation(self, distro, release, packages):

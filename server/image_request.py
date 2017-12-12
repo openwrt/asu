@@ -6,11 +6,10 @@ from flask import Response
 
 from utils.imagemeta import ImageMeta
 from server.request import Request
-from utils.config import Config
 
 class ImageRequest(Request):
-    def __init__(self, db):
-        super().__init__(db)
+    def __init__(self, config, db):
+        super().__init__(config, db)
 
     def _request(self):
         self.profile = ""

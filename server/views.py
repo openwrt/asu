@@ -18,10 +18,10 @@ from utils.database import Database
 from utils.common import get_dir, create_folder, init_usign
 
 database = Database()
-config = Config()
+config = Config().load()
 
-ur = UpdateRequest(database)
-ir = ImageRequest(database)
+ur = UpdateRequest(config, database)
+ir = ImageRequest(config, database)
 
 @app.route("/update-request", methods=['POST'])
 @app.route("/api/upgrade-check", methods=['POST'])

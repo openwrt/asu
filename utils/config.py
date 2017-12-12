@@ -12,11 +12,6 @@ class Config():
         with open(config_file, 'r') as ymlfile:
             self.config = yaml.load(ymlfile)
 
-    def get_all(self):
+    def load(self):
         return self.config
 
-    def get(self, option):
-        if option in self.config:
-            return self.config[option]
-        else:
-            return None

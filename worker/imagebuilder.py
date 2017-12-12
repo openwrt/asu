@@ -20,7 +20,7 @@ class ImageBuilder(threading.Thread):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         #self.database = Database()
-        self.config = Config()
+        self.config = Config().load()
         self.distro = distro
         self.version = version
         self.release = version

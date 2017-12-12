@@ -12,7 +12,7 @@ class Database():
         #self.cnxn = pyodbc.connect("DRIVER={SQLite3};SERVER=localhost;DATABASE=test.db;Trusted_connection=yes")
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
-        self.config = Config()
+        self.config = Config().load()
         self.log.info("config initialized")
         connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
                 self.config.get("database_type"), self.config.get("database_address"), self.config.get("database_name"), self.config.get("database_user"),

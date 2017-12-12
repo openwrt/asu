@@ -3,15 +3,14 @@ import logging
 import json
 from flask import Response
 
-from utils.config import Config
 from utils.database import Database
 from utils.common import get_latest_release
 
 class Request():
-    def __init__(self, db):
-        self.database = db
+    def __init__(self, config, database):
+        self.config = config
+        self.database = database
         self.log = logging.getLogger(__name__)
-        self.config = Config()
 
     def request(self, request_json, sysupgrade=False):
         self.request_json = request_json

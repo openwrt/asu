@@ -15,7 +15,7 @@ import subprocess
 
 from utils.config import Config
 
-config = Config()
+config = Config().load()
 
 def create_folder(folder):
     try:

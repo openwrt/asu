@@ -9,7 +9,7 @@ class ImageMeta():
     def __init__(self, distro, release, target, subtarget, profile, packages=set(), network_profile=""):
         self.log = logging.getLogger(__name__)
         self.database = Database()
-        self.config = Config()
+        self.config = Config().load()
         self.distro = distro.lower()
         self.release = release
         self.target = target
