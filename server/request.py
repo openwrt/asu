@@ -14,7 +14,6 @@ class Request():
         self.response_json = {}
         self.response_header = {}
         self.response_status = 0
-        self.database = Database()
         self.sysupgrade = sysupgrade
         return self._request()
 
