@@ -33,7 +33,7 @@ class Worker(threading.Thread):
         self.log.info("log initialized")
         self.config = Config().load()
         self.log.info("config initialized")
-        self.database = Database()
+        self.database = Database(self.config)
         self.log.info("database initialized")
         self.worker_id = None
         self.imagebuilders = []

@@ -14,7 +14,7 @@ class Updater(threading.Thread):
         self.log.info("log initialized")
         self.config = Config()
         self.log.info("config initialized")
-        self.db = Database()
+        self.db = Database(config)
         self.log.info("db initialized")
 
     def run(self):

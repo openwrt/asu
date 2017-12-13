@@ -1,5 +1,6 @@
 ---
 distro_alias: LibreMesh
+imagebuilder_release: "17.01.2"
 releases:
   - "17.06"
 

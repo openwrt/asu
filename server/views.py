@@ -15,10 +15,10 @@ from server import app
 import utils
 from utils.config import Config
 from utils.database import Database
-from utils.common import get_dir, create_folder, init_usign
+from utils.common import get_folder, create_folder, init_usign
 
-database = Database()
 config = Config().load()
+database = Database(config)
 
 ur = UpdateRequest(config, database)
 ir = ImageRequest(config, database)
@@ -41,7 +41,7 @@ def api_upgrade_check(request_hash=None):
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
-    return send_from_directory(directory=os.path.join(get_dir("downloaddir"), image_path), filename=image_name)
+    return send_from_directory(directory=os.path.join(get_folder("downloaddir"), image_path), filename=image_name)
 
 # request methos for individual image
 # uses post methos to receive build information

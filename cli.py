@@ -15,8 +15,8 @@ from utils.config import Config
 class ServerCli():
     def __init__(self):
         self.log = logging.getLogger(__name__)
-        self.database = Database()
-        self.config = Config()
+        self.config = Config().load()
+        self.database = Database(self.config)
         self.init_args()
 
     def init_args(self):
@@ -47,7 +47,7 @@ class ServerCli():
 
     def init_all_imagebuilders(self):
         for distro, release in self.database.get_releases():
-            if release == 'snapshot' or release == get_latest_release(distro):
+            if release == 'snapshot' or release == self.config.get(distro).get("latest"):
                 subtargets = self.database.get_subtargets(distro, release)
                 for target, subtarget, supported in subtargets:
                     if int(supported): # 0 and 1 are returned as strings
@@ -56,7 +56,7 @@ class ServerCli():
 
     def build_vanilla(self):
         for distro, release in self.database.get_releases():
-            if release == get_latest_release(distro):
+            if release == self.config.get(distro).get("latest"):
                 subtargets = self.database.get_subtargets(distro, release)
                 for target, subtarget, supported in subtargets:
                     sql = """select profile from profiles
@@ -136,7 +136,7 @@ class ServerCli():
             #releases_website = urllib.request.urlopen(distro_url).read().decode('utf-8')
             #releases_pattern = r'href="(.+?)/?">.+/?</a>/?</td>'
             #releases = re.findall(releases_pattern, releases_website)
-            for release in get_releases(distro):
+            for release in self.config.get("distributions"):
                 release = str(release)
                 print("{} {}".format(distro, release))
                 self.database.insert_release(distro, release)
@@ -157,7 +157,7 @@ class ServerCli():
 
     def insert_board_rename(self):
         for distro, release in self.database.get_releases():
-            release_config = get_release_config(distro, release)
+            release_config = self.config.release(distro, release)
             if "board_rename" in release_config:
                 for origname, newname in release_config["board_rename"].items():
                     self.log.info("insert board_rename {} {} {} {}".format(distro, release, origname, newname))

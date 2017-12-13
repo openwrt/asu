@@ -3,7 +3,7 @@ import logging
 from collections import OrderedDict
 
 from server.request import Request
-from utils.common import get_latest_release, get_hash
+from utils.common import get_hash
 
 class UpdateRequest(Request):
     def __init__(self, config, db):
@@ -49,7 +49,7 @@ class UpdateRequest(Request):
                 self.release = "snapshot"
                 self.response_json["version"] = "snapshot"
             else:
-                self.release = get_latest_release(self.distro)
+                self.release = self.config.get(distro).get("latest")
                 if not self.release == self.installed_release:
                     self.response_json["version"] = self.release
 

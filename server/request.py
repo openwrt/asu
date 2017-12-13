@@ -3,9 +3,6 @@ import logging
 import json
 from flask import Response
 
-from utils.database import Database
-from utils.common import get_latest_release
-
 class Request():
     def __init__(self, config, database):
         self.config = config
@@ -37,7 +34,7 @@ class Request():
                 return self.respond()
 
         if not "version" in self.request_json:
-            self.release = get_latest_release(self.distro)
+            self.release = self.config.get(distro).get("latest")
         else:
             self.release = self.request_json["version"].lower()
 

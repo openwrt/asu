@@ -1,27 +1,22 @@
 import logging
 import os.path
 
-from utils.common import create_folder,get_hash,get_dir
+from utils.common import create_folder, get_hash, get_folder
 from utils.config import Config
 from utils.database import Database
 
 class ImageMeta():
     def __init__(self, distro, release, target, subtarget, profile, packages=set(), network_profile=""):
         self.log = logging.getLogger(__name__)
-        self.database = Database()
         self.config = Config().load()
+        self.database = Database(self.config)
         self.distro = distro.lower()
         self.release = release
         self.target = target
         self.subtarget = subtarget
         self.profile = profile
         self.vanilla = False
-        self.vanilla_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
-
-        if packages:
-            self.log.warning(set(packages))
-        self.log.warning(self.vanilla_packages)
-
+        self.vanilla_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile).extend(self.config[distro].get("vanilla"))
 
         if not packages: # install default packages
             self.log.debug("using vanilla packages")

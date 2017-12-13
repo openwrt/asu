@@ -4,15 +4,14 @@ import logging
 import json
 
 from utils.common import get_hash
-from utils.config import Config
 
 class Database():
-    def __init__(self):
+    def __init__(self, config):
         # python3 immport pyodbc; pyodbc.drivers()
         #self.cnxn = pyodbc.connect("DRIVER={SQLite3};SERVER=localhost;DATABASE=test.db;Trusted_connection=yes")
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
-        self.config = Config().load()
+        self.config = config
         self.log.info("config initialized")
         connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
                 self.config.get("database_type"), self.config.get("database_address"), self.config.get("database_name"), self.config.get("database_user"),

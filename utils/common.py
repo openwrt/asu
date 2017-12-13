@@ -42,29 +42,6 @@ def get_statuscode(url):
     conn.request("HEAD", path)
     return conn.getresponse().status
 
-def get_distro_alias(distro):
-    with open(os.path.join("distributions", distro, "distro_config.yml"), "r") as releases:
-        return yaml.load(releases.read())['distro_alias']
-    return None
-
-def get_releases(distro):
-    with open(os.path.join("distributions", distro, "distro_config.yml"), "r") as releases:
-        return yaml.load(releases.read())['releases']
-    return None
-
-def get_latest_release(distro):
-    with open(os.path.join("distributions", distro, "distro_config.yml"), "r") as releases:
-        return yaml.load(releases.read())['releases'][-1]
-    return None
-
-def get_release_config(distro, release):
-    config_path = os.path.join("distributions", distro, (release + ".yml"))
-    if os.path.exists(config_path):
-        with open(config_path, "r") as release_config:
-            return yaml.load(release_config.read())
-
-    return None
-
 def get_folder(requested_folder):
     folder = config.get(requested_folder)
     if folder:
@@ -76,25 +53,6 @@ def get_folder(requested_folder):
         return os.path.abspath(default_folder)
     else:
         quit()
-
-# shortly removed
-def get_dir(requested_folder):
-    return get_folder(requested_folder)
-
-def get_supported_targets(distro, release):
-    response = {}
-    targets = get_release_config(distro, release)
-    if targets:
-        for target in targets["supported"]:
-            subtarget = None
-            if "/" in target:
-                target, subtarget = target.split("/")
-            if not target in response:
-                response[target] = []
-            if subtarget:
-                response[target].append(subtarget)
-        return response
-    return None
 
 def setup_gnupg():
     gpg_folder = get_folder("key_folder")

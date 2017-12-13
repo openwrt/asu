@@ -11,7 +11,7 @@ import os.path
 import threading
 import subprocess
 
-from utils.common import create_folder, get_statuscode, get_latest_release, get_folder, check_signature
+from utils.common import create_folder, get_statuscode, get_folder, check_signature
 #from utils.database import Database
 from utils.config import Config
 
@@ -30,7 +30,7 @@ class ImageBuilder(threading.Thread):
             self.imagebuilder_release = "snapshots"
         elif distro != "lede":
             self.log.debug("using latest lede imagebuilder")
-            self.imagebuilder_release = get_latest_release("lede")
+            self.imagebuilder_release = self.config[distro].get("imagebuilder_release", self.config["lede"]["latest"])
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
