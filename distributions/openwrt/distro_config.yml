@@ -1,0 +1,6 @@
+---
+distro_alias: OpenWrt
+releases:
+  - "snapshot"
+vanilla:
+  - luci

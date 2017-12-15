@@ -31,7 +31,7 @@ class Worker(threading.Thread):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
-        self.config = Config().load()
+        self.config = Config()
         self.log.info("config initialized")
         self.database = Database(self.config)
         self.log.info("database initialized")

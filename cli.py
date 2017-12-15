@@ -15,7 +15,7 @@ from utils.config import Config
 class ServerCli():
     def __init__(self):
         self.log = logging.getLogger(__name__)
-        self.config = Config().load()
+        self.config = Config()
         self.database = Database(self.config)
         self.init_args()
 
@@ -90,11 +90,11 @@ class ServerCli():
     def flush_snapshots(self):
         self.log.info("flush snapshots")
         self.database.flush_snapshots()
-        imagebuilder_folder = os.path.join(get_dir("imagebuilder_folder"), "lede", "snapshot")
+        imagebuilder_folder = os.path.join(get_dir("imagebuilder_folder"), "openwrt", "snapshot")
         if os.path.exists(imagebuilder_folder):
             self.log.info("remove snapshots imagebuidler")
             rmtree(imagebuilder_folder)
-        downloaddir = os.path.join(get_dir("downloaddir"), "lede", "snapshot")
+        downloaddir = os.path.join(get_dir("downloaddir"), "openwrt", "snapshot")
 
         if os.path.exists(downloaddir):
             self.log.info("remove snapshots images")
@@ -102,23 +102,22 @@ class ServerCli():
 
     def init_server(self):
         self.download_releases()
-        for distro, release in self.database.get_releases():
-            alias = get_distro_alias(distro)
-            self.log.info("set alias %s for %s", distro, alias)
-            self.database.set_distro_alias(distro, alias)
-            supported = get_supported_targets(distro, release)
-            if supported:
-                for target, subtargets in supported.items():
-                    if not subtargets:
-                        self.database.insert_supported(distro, release, target)
-                    else:
-                        for subtarget in subtargets:
-                            self.database.insert_supported(distro, release, target, subtarget)
+        for distro in self.config.get("distributions"):
+            for release in self.config.get(distro).get("releases"):
+                alias = self.config.get(distro).get("distro_alias")
+                self.log.info("set alias %s for %s", distro, alias)
+                self.database.set_distro_alias(distro, alias)
+                print("fo", distro, release)
+                supported = self.config.release(distro, release).get("supported")
+                print(supported)
+                if supported:
+                    for target in [x.split("/") for x in supported]:
+                        self.database.insert_supported(distro, release, *target)
 
     def download_releases(self):
         if self.config.get("snapshots"):
-            print("adding lede snapshots")
-            self.database.insert_release("lede", "snapshot")
+            print("adding openwrt snapshots")
+            self.database.insert_release("openwrt", "snapshot")
             snapshots_url = "http://downloads.lede-project.org/snapshots/targets/"
             target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
             target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
@@ -129,15 +128,10 @@ class ServerCli():
                 subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
                 subtargets = re.findall(subtarget_pattern, subtarget_website)
                 print("snapshots {} {}".format("snapshots", target, subtargets))
-                self.database.insert_subtargets("lede", "snapshot", target, subtargets)
+                self.database.insert_subtargets("openwrt", "snapshot", target, subtargets)
 
         for distro, distro_url in self.config.get("distributions").items():
-            #print("searching {} releases".format(distro))
-            #releases_website = urllib.request.urlopen(distro_url).read().decode('utf-8')
-            #releases_pattern = r'href="(.+?)/?">.+/?</a>/?</td>'
-            #releases = re.findall(releases_pattern, releases_website)
-            for release in self.config.get("distributions"):
-                release = str(release)
+            for release in self.config.get(distro).get("releases"):
                 print("{} {}".format(distro, release))
                 self.database.insert_release(distro, release)
                 release_url = "{}/{}/targets/".format(distro_url, release)

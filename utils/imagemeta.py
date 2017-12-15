@@ -8,7 +8,7 @@ from utils.database import Database
 class ImageMeta():
     def __init__(self, distro, release, target, subtarget, profile, packages=set(), network_profile=""):
         self.log = logging.getLogger(__name__)
-        self.config = Config().load()
+        self.config = Config()
         self.database = Database(self.config)
         self.distro = distro.lower()
         self.release = release
@@ -16,7 +16,7 @@ class ImageMeta():
         self.subtarget = subtarget
         self.profile = profile
         self.vanilla = False
-        self.vanilla_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile).extend(self.config[distro].get("vanilla"))
+        self.vanilla_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
 
         if not packages: # install default packages
             self.log.debug("using vanilla packages")
@@ -28,6 +28,9 @@ class ImageMeta():
             self.packages = self.vanilla_packages
         else:
             self.packages = packages
+
+        self.log.debug("packages\t %s", self.packages)
+        self.log.debug("vanilla\t %s", self.vanilla_packages)
 
         self.check_network_profile(network_profile)
         self.set_request_hash()

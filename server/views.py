@@ -17,7 +17,7 @@ from utils.config import Config
 from utils.database import Database
 from utils.common import get_folder, create_folder, init_usign
 
-config = Config().load()
+config = Config()
 database = Database(config)
 
 ur = UpdateRequest(config, database)

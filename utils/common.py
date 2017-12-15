@@ -2,7 +2,6 @@ import urllib.request
 import gnupg
 import json
 import yaml
-import http.client
 import tarfile
 import re
 import shutil
@@ -15,7 +14,7 @@ import subprocess
 
 from utils.config import Config
 
-config = Config().load()
+config = Config()
 
 def create_folder(folder):
     try:
@@ -35,12 +34,12 @@ def get_hash(string, length):
     return response_hash
 
 def get_statuscode(url):
-    url_split = url.split("/")
-    host = url_split[2]
-    path = "/" +"/".join(url_split[3:])
-    conn = http.client.HTTPConnection(host)
-    conn.request("HEAD", path)
-    return conn.getresponse().status
+    try:
+        urllib.request.urlopen(url)
+    except urllib.error.HTTPError as e:
+        return e.code
+    else:
+        return 200
 
 def get_folder(requested_folder):
     folder = config.get(requested_folder)

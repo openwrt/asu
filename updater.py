@@ -14,7 +14,7 @@ class Updater(threading.Thread):
         self.log.info("log initialized")
         self.config = Config()
         self.log.info("config initialized")
-        self.db = Database(config)
+        self.db = Database(self.config)
         self.log.info("db initialized")
 
     def run(self):
@@ -34,12 +34,15 @@ class Updater(threading.Thread):
                     self.log.info("setup imagebuilder")
                     imagebuilder.run()
                     self.log.info("parse profiles/default packages")
-                    info = imagebuilder.parse_info()
-                    if info:
-                        self.db.insert_profiles(distro, release, target, subtarget, *info)
-                    else:
-                        logging.error("could not receive profiles of %s/%s", target, subtarget)
-                        exit(1)
+
+                info = imagebuilder.parse_info()
+                if info:
+                    self.db.insert_profiles(distro, release, target, subtarget, *info)
+                else:
+                    logging.error("could not receive profiles of %s/%s", target, subtarget)
+                    self.db.subtarget_synced(distro, release, target, subtarget)
+                    continue
+                    #exit(1)
 
                 self.log.info("parse packages")
                 packages = imagebuilder.parse_packages()

@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 import server.views
 
-config = Config().load()
+config = Config()
 create_folder("{}/{}".format(get_folder("downloaddir"), "faillogs"))
 if config.get("sign_images"):
     print("sign images")

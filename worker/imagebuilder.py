@@ -12,15 +12,13 @@ import threading
 import subprocess
 
 from utils.common import create_folder, get_statuscode, get_folder, check_signature
-#from utils.database import Database
 from utils.config import Config
 
 class ImageBuilder(threading.Thread):
     def __init__(self, distro, version, target, subtarget):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
-        #self.database = Database()
-        self.config = Config().load()
+        self.config = Config()
         self.distro = distro
         self.version = version
         self.release = version
@@ -30,7 +28,7 @@ class ImageBuilder(threading.Thread):
             self.imagebuilder_release = "snapshots"
         elif distro != "lede":
             self.log.debug("using latest lede imagebuilder")
-            self.imagebuilder_release = self.config[distro].get("imagebuilder_release", self.config["lede"]["latest"])
+            self.imagebuilder_release = self.config.get(distro).get("imagebuilder_release", self.config.get("lede").get("latest"))
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
@@ -115,7 +113,7 @@ class ImageBuilder(threading.Thread):
         return imagebuilder_download_url
 
     def tar_name(self, remove_subtarget=False):
-        name_array = ["lede-imagebuilder"]
+        name_array = ["openwrt-imagebuilder"]
         if not self.imagebuilder_release is "snapshots":
             name_array.append(self.imagebuilder_release)
         name_array.append(self.target)
@@ -136,6 +134,7 @@ class ImageBuilder(threading.Thread):
                 if not self.download(regular_tar_url):
                     return False
             else:
+                self.log.info("did not find regular imagebuilder name")
                 # this is only due to arm64 missing -generic in filename
                 # this is very ugly, can this just be deleted?
                 special_tar_url = os.path.join(self.download_url(), self.tar_name(True))
@@ -165,7 +164,7 @@ class ImageBuilder(threading.Thread):
             self.log.info("downloading signature")
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums"), (tempdir + "/sha256sums"))
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
-            if not check_signature(tempdir):
+            if not check_signature(tempdir) and not self.release == 'snapshot':
                 self.log.warn("bad signature")
                 #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'signature_fail')
                 return False
@@ -187,7 +186,7 @@ class ImageBuilder(threading.Thread):
             sha256_output, erros = proc.communicate()
             return_code = proc.returncode
             sha256_output = sha256_output.decode('utf-8')
-            if not sha256_output == "{}: OK\n".format(tar_name):
+            if not sha256_output == "{}: OK\n".format(tar_name) and not self.release == 'snapshot':
                 self.log.warn("bad sha256sum")
                 #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'sha256sum_fail')
                 return False

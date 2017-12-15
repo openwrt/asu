@@ -10,7 +10,6 @@ class Config():
         if not os.path.exists(self.config_file):
             copyfile(("config.yml.default"), self.config_file)
 
-    def load(self):
         with open(self.config_file, 'r') as ymlfile:
             self.config = yaml.load(ymlfile)
 
@@ -20,11 +19,13 @@ class Config():
 
             self.config[distro]["latest"] = self.config[distro]["releases"][-1]
 
-        print(self.config)
-        return self.config
-
     def release(self, distro, release):
         if release not in self.config[distro]:
             with open(os.path.join("distributions", distro, release + ".yml"), 'r') as ymlfile:
                self.config[distro][release] = yaml.load(ymlfile)
         return self.config.get(distro).get(release)
+
+    def get(self, opt):
+        if opt in self.config:
+            return self.config[opt]
+        return None
