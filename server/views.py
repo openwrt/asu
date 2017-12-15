@@ -113,12 +113,6 @@ def api_models():
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
-@app.route("/api/network_profiles")
-def api_network_profiles():
-    return app.response_class(
-            response=utils.common.get_network_profiles(),
-            mimetype='application/json')
-
 @app.route("/api/packages_image")
 def api_packages_image():
     data = []

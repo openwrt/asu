@@ -235,8 +235,8 @@ class Database():
         else:
             self.log.debug("add build job")
             sql = """INSERT INTO image_requests
-                (request_hash, distro, release, target, subtarget, profile, packages_hash, network_profile)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+                (request_hash, distro, release, target, subtarget, profile, packages_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?)"""
             self.c.execute(sql, request_hash, *request_array)
             self.commit()
             return('', 0, request_hash, 'requested')
@@ -276,17 +276,16 @@ class Database():
             subtarget,
             profile,
             manifest_hash,
-            network_profile,
             sysupgrade_suffix,
             build_date,
             subtarget_in_name,
             profile_in_name,
             vanilla,
             build_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
         self.c.execute(sql,
                 image_hash,
-                *image_array, # contains distro, release, target, subtarget, profile, manifest_hash, network_profile
+                *image_array, # contains distro, release, target, subtarget, profile, manifest_hash
                 sysupgrade_suffix,
                 'true' if subtarget_in_name else 'false', # dirty, outdated pyodbc?
                 'true' if profile_in_name else 'false',
@@ -322,7 +321,7 @@ class Database():
                     target LIKE ? and
                     subtarget LIKE ?
                 )
-            RETURNING image_requests.id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages, network_profile;"""
+            RETURNING image_requests.id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages;"""
         self.c.execute(sql, distro, release, target, subtarget, distro, release, target, subtarget)
         if self.c.description:
             self.log.debug("found image request")

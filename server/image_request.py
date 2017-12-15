@@ -57,15 +57,7 @@ class ImageRequest(Request):
                     self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                     return self.respond()
 
-            if "network_profile" in self.request_json:
-                if not self.check_network_profile():
-                    self.response_json["error"] = 'network profile "{}" not found'.format(self.request_json["network_profile"])
-                    self.response_status = HTTPStatus.BAD_REQUEST
-                    return self.respond()
-            else:
-                self.network_profile = ''
-
-            self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages, self.network_profile)
+            self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages)
             image_hash, request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
             self.log.debug("found image in database: %s", request_status)
 
@@ -128,17 +120,3 @@ class ImageRequest(Request):
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR
 
         return self.respond()
-
-    def check_network_profile(self):
-        network_profile = self.request_json["network_profile"]
-        network_profile_path = os.path.join(self.config.get("network_profile_folder"), network_profile)
-        self.log.debug("network_profile_path: %s", network_profile_path)
-        self.log.debug("network_profile_folder: %s", self.config.get("network_profile_folder"))
-
-        if os.path.isdir(network_profile_path):
-            self.log.debug("found network_profile %s", network_profile)
-            self.network_profile = network_profile
-            return True
-        self.log.debug("could not find network_profile %s", network_profile)
-        return False
-

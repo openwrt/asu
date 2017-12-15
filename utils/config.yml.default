@@ -1,6 +1,5 @@
 dev: True
 sign_images: False
-network_profile_folder:
 imagebuilder_url: "http://downloads.lede-project.org/releases/"
 snapshots: Flase
 imagebuilder_snapshots_url: "https://downloads.lede-project.org/snapshots/"

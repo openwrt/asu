@@ -149,8 +149,5 @@ It's also possible to receive information about build images or package versions
 * `/api/models?distro=&release=&model_search=<search string>`
 	Get all supported devices of distro/release that contain the `model_search` string
 
-* `/api/network_profiles`
-	This is a special function used by [LibreMesh](http://libremesh.org) and is may removed soon
-
 * `/api/packages_image?distro=&release=&target=&subtarget=&profile=`
 	Get all default packages installed on an image

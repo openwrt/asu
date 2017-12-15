@@ -117,8 +117,8 @@ class Worker(threading.Thread):
         self.database.worker_heartbeat(self.worker_id)
 
 class Image(ImageMeta):
-    def __init__(self, distro, release, target, subtarget, profile, packages=None, network_profile=""):
-        super().__init__(distro, release, target, subtarget, profile, packages.split(" "), network_profile)
+    def __init__(self, distro, release, target, subtarget, profile, packages=None):
+        super().__init__(distro, release, target, subtarget, profile, packages.split(" "))
 
     def filename_rename(self, content):
         content_output = content.replace("lede", self.distro)
@@ -143,11 +143,8 @@ class Image(ImageMeta):
 
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
-            if self.network_profile:
-                self.log.debug("add network_profile %s", self.network_profile)
-                extra_image_name_array.append(self.network_profile.lower().replace("/", "-").replace(".", "-"))
-                self.network_profile_packages()
-                cmdline.append('FILES=%s' % self.network_profile_path)
+#            if self.network_profile:
+#                cmdline.append('FILES=%s' % self.network_profile_path)
             extra_image_name = "-".join(extra_image_name_array)
             self.log.debug("extra_image_name %s", extra_image_name)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % extra_image_name)
@@ -186,9 +183,6 @@ class Image(ImageMeta):
                     path_array.append(self.manifest_hash)
                 else:
                     path_array.append("vanilla")
-
-                if self.network_profile:
-                    path_array.append(self.network_profile)
 
                 self.store_path = os.path.join(*path_array)
                 create_folder(self.store_path)
@@ -254,11 +248,6 @@ class Image(ImageMeta):
                         if not self.vanilla:
                             name_array.append(self.manifest_hash)
 
-                        # add network_profile to name if set
-                        if self.network_profile:
-                            self.log.debug("containing network profile")
-                            name_array.append(self.network_profile.lower().replace("/", "-").replace(".", "-"))
-
                         name_array.append(self.target)
 
                         if self.subtarget_in_name:
@@ -274,7 +263,7 @@ class Image(ImageMeta):
 
                     self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
 
-                    self.log.debug("image: {} {} {} {} {} {}".format(
+                    self.log.debug("add image: {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
                             self.sysupgrade_suffix,
@@ -302,12 +291,6 @@ class Image(ImageMeta):
         self.log.debug("write log to %s", path)
         log_file = open(path + ".log", "a")
         log_file.writelines(self.build_log)
-
-    def network_profile_packages(self):
-        extra_packages = os.path.join(self.network_profile_path, 'PACKAGES')
-        if os.path.exists(extra_packages):
-            with open(extra_packages, "r") as extra_packages_file:
-                self.packages.extend(extra_packages_file.read().split())
 
     def diff_packages(self):
         profile_packages = self.vanilla_packages
