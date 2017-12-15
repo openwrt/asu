@@ -181,12 +181,6 @@ class Image(ImageMeta):
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
 
-                # changeing the database but keep files leads to an error
-                entry_missing = False
-                self.database.c.execute("select 1 from images where image_hash = ?", self.image_hash)
-                if self.database.c.rowcount == 0:
-                    entry_missing = True
-
                 path_array = [get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile]
                 if not self.vanilla:
                     path_array.append(self.manifest_hash)
@@ -206,17 +200,13 @@ class Image(ImageMeta):
                             sums.seek(0)
                             sums.write(self.filename_rename(content))
                             sums.truncate()
-                        filename_output = filename
-                    else:
-                        filename_output = self.filename_rename(filename)
+                    filename_output = os.path.join(self.store_path, self.filename_rename(filename))
 
-                    if not os.path.exists(os.path.join(self.store_path, filename_output)) or entry_missing:
-                        self.log.info("move file %s", filename_output)
-                        shutil.move(os.path.join(self.build_path, filename), os.path.join(self.store_path, filename_output))
-                    else:
-                        self.log.info("file %s exists so image was created before", filename_output)
-                        already_created = True
-                        break
+                    self.log.info("move file %s", filename_output)
+                    shutil.move(os.path.join(self.build_path, filename), filename_output)
+
+                if sign_file(os.path.join(self.store_path, "sha256sums")):
+                    self.log.info("signed sha256sums")
 
                 if not already_created or entry_missing:
                     sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
@@ -239,8 +229,6 @@ class Image(ImageMeta):
                             self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                             return False
                         else:
-                            self.checksum = None
-                            self.filesize = None
                             self.profile_in_name = None
                             self.subtarget_in_name = None
                             self.sysupgrade_suffix = ""
@@ -281,24 +269,14 @@ class Image(ImageMeta):
 
                         self.name = "-".join(name_array)
 
-                        if self.config.get("sign_images"):
-                            if sign_file(self.path):
-                                self.log.info("signed %s", self.path)
-                            else:
-                                self.database.set_image_requests_status(self.request_hash, 'signing_fail')
-                                return False
-
-                        self.gen_checksum()
-                        self.gen_filesize()
                         self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
                         self.build_status = "created"
 
                     self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
-                    self.log.debug("image: {} {} {} {} {} {} {} {}".format(
+
+                    self.log.debug("image: {} {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
-                            self.checksum,
-                            self.filesize,
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
@@ -307,8 +285,6 @@ class Image(ImageMeta):
                     self.database.add_image(
                             self.image_hash,
                             self.as_array_build(),
-                            self.checksum,
-                            self.filesize,
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
@@ -326,13 +302,6 @@ class Image(ImageMeta):
         self.log.debug("write log to %s", path)
         log_file = open(path + ".log", "a")
         log_file.writelines(self.build_log)
-
-    def gen_checksum(self):
-        self.checksum = hashlib.md5(open(self.path,'rb').read()).hexdigest()
-        self.log.debug("got md5sum %s for %s", self.checksum, self.path)
-
-    def gen_filesize(self):
-        self.filesize = os.stat(self.path).st_size
 
     def network_profile_packages(self):
         extra_packages = os.path.join(self.network_profile_path, 'PACKAGES')

@@ -33,7 +33,7 @@ class Request():
                 return self.respond()
 
         if not "version" in self.request_json:
-            self.release = self.config.get(distro).get("latest")
+            self.release = self.config.get(self.distro).get("latest")
         else:
             self.release = self.request_json["version"].lower()
 

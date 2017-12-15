@@ -440,8 +440,6 @@ create table if not exists images_table (
 	profile_id integer references profiles_table(id) ON DELETE CASCADE,
 	manifest_id integer references manifest_table(id) ON DELETE CASCADE,
 	network_profile varchar(30),
-	checksum varchar(32),
-	filesize integer,
 	build_date timestamp,
 	sysupgrade_suffix_id integer references sysupgrade_suffixes(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'untested',
@@ -453,18 +451,18 @@ create table if not exists images_table (
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, checksum, filesize, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla, build_seconds
+images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, network_profile, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla, build_seconds
 from profiles, images_table, manifest_table, sysupgrade_suffixes
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_suffix_id = sysupgrade_suffixes.id;
 
-create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, network_profile varchar, checksum varchar, filesize integer, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean, build_seconds decimal) returns void as
+create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, network_profile varchar, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean, build_seconds decimal) returns void as
 $$
 begin
 	insert into sysupgrade_suffixes (sysupgrade_suffix) values (add_image.sysupgrade_suffix) on conflict do nothing;
-	insert into images_table (image_hash, profile_id, manifest_id, network_profile, checksum, filesize, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds) values (
+	insert into images_table (image_hash, profile_id, manifest_id, network_profile, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds) values (
 		add_image.image_hash,
 		(select profiles.id from profiles where
 			profiles.distro = add_image.distro and
@@ -475,8 +473,6 @@ begin
 		(select manifest_table.id from manifest_table where
 			manifest_table.hash = add_image.manifest_hash),
 		add_image.network_profile,
-		add_image.checksum,
-		add_image.filesize,
 		(select sysupgrade_suffixes.id from sysupgrade_suffixes where
 			sysupgrade_suffixes.sysupgrade_suffix = add_image.sysupgrade_suffix),
 		add_image.build_date,
@@ -499,8 +495,6 @@ SELECT add_image(
 	NEW.profile,
 	NEW.manifest_hash,
 	NEW.network_profile,
-	NEW.checksum,
-	NEW.filesize,
 	NEW.sysupgrade_suffix,
 	NEW.build_date,
 	NEW.subtarget_in_name,
@@ -512,8 +506,6 @@ SELECT add_image(
 create or replace rule update_images AS
 ON update TO images DO INSTEAD
 update images_table set
-checksum = coalesce(new.checksum, checksum),
-filesize = coalesce(new.filesize, filesize),
 build_date = coalesce(new.build_date, build_date),
 status = coalesce(NEW.status, status)
 where images_table.image_hash = NEW.image_hash
@@ -544,8 +536,7 @@ id, image_hash,
 	|| (CASE subtarget_in_name WHEN false THEN '' ELSE  subtarget || '-'  END)
 	|| (CASE profile_in_name WHEN false THEN '' ELSE profile || '-'  END)
 	|| sysupgrade_suffix
-	as file_name,
-	checksum, filesize
+	as file_name
 from images;
 
 create table if not exists image_requests_table (
@@ -770,7 +761,7 @@ end
 $$ LANGUAGE 'plpgsql';
 
 create or replace view images_info as
-select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, images.target, images.subtarget, manifest_hash, network_profile, build_date, images.checksum, file_path, file_name,  images.filesize
+select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, images.target, images.subtarget, manifest_hash, network_profile, build_date, file_path, file_name
             from images
 				join images_download on
 					images.image_hash = images_download.image_hash

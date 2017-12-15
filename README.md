@@ -102,8 +102,6 @@ If the `request_hash` was retrieved the client should switch to `GET` requests w
 
 | key	| value | information	|
 | ---	| ---	| ---		|
-| `checksum` | `8b32f569dca8dcd780414f7850ed11e8` | md5 |
-| `filesize` | `5570113` |  |
 | `sysupgrade` | `https://betaupdate.libremesh.o…x86-64-Generic-sysupgrade.bin` | download link |
 | `image_hash` | `27439cbc07fae59` | Hash of image parameters, like distribution, profile, packages and versions |
 
