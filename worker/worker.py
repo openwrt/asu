@@ -32,10 +32,11 @@ class Worker(threading.Thread):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
-        self.config = Config()
+        self.config = Config("worker.yml")
         self.log.info("config initialized")
         self.worker_id = None
         self.imagebuilders = set()
+        self.auth = (self.config.get("worker"), self.config.get("password"))
 
     def worker_register(self):
         params = {}
@@ -44,7 +45,7 @@ class Worker(threading.Thread):
         params["worker_pubkey"] = get_pubkey()
         self.log.info("register worker '%s' '%s' '%s'", *params)
 
-        self.worker_id = requests.post(self.config.get("server") + "/worker/register", json=params).json()
+        self.worker_id = requests.post(self.config.get("server") + "/worker/register", json=params, auth=self.auth).json()
 
     def worker_add_skill(self, imagebuilder):
         params = {}
