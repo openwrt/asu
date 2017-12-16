@@ -211,21 +211,23 @@ class Image(ImageMeta):
 
                     log_name = "build-{}".format(self.image_hash)
                     self.store_log(os.path.join(self.build_path, log_name ))
-                    archive.write(os.path.join(self.build_path, log_name), arcname=log_name)
+                    archive.write(os.path.join(self.build_path, log_name + ".log"), arcname=log_name + ".log")
 
                 sign_file(os.path.join(self.store_path, self.request_hash + ".zip"))
 
                 sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
                     "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
-                    "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
+                    "*-squashfs-sdcard.img.gz"]
+
+
 
                 sysupgrade = None
-
 
                 for sysupgrade_file in sysupgrade_files:
                     if not sysupgrade:
                         sysupgrade = glob.glob(os.path.join(self.build_path, sysupgrade_file))
                     else:
+                        self.sysupgrade_suffix = sysupgrade_file.replace("*", "")
                         break
 
                 params = {}
@@ -233,8 +235,8 @@ class Image(ImageMeta):
                 params["distro"], params["release"], params["target"], params["subtarget"], params["profile"], params["manifest_hash"] = self.as_array_build()
                 params["vanilla"] = self.vanilla
                 params["build_seconds"] = self.build_seconds
-                params["sysupgrade_suffix"] = ""
                 params["subtarget_in_name"] = ""
+                params["sysupgrade_suffix"] = ""
                 params["profile_in_name"] = ""
 
                 if not sysupgrade:
@@ -261,40 +263,21 @@ class Image(ImageMeta):
                             "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
                         self.subtarget_in_name = False
 
-                    name_array = [self.distro]
-
-                    # snapshot build are no release
-                    if self.release != "snapshot":
-                        name_array.append(self.release)
-
-                    if not self.vanilla:
-                        name_array.append(self.manifest_hash)
-
-                    name_array.append(self.target)
-
-                    if self.subtarget_in_name:
-                        name_array.append(self.subtarget)
-
-                    if self.profile_in_name:
-                        name_array.append(self.profile)
-
-                    self.name = "-".join(name_array)
-
-                    self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
                     self.build_status = "created"
 
-                    self.log.debug("add image: {} {} {} {} {}".format(
-                        self.image_hash,
-                        self.as_array_build(),
-                        self.sysupgrade_suffix,
-                        self.subtarget_in_name,
-                        self.profile_in_name,
-                        self.vanilla,
-                        self.build_seconds))
 
                     params["sysupgrade_suffix"] = self.sysupgrade_suffix
                     params["subtarget_in_name"] = self.subtarget_in_name
                     params["profile_in_name"] = self.profile_in_name
+
+                self.log.debug("add image: {} {} {} {} {}".format(
+                    self.image_hash,
+                    self.as_array_build(),
+                    self.sysupgrade_suffix,
+                    self.subtarget_in_name,
+                    self.profile_in_name,
+                    self.vanilla,
+                    self.build_seconds))
 
                 requests.post(self.config.get("server") + "/worker/add_image", json=params)
                 requests.post(self.config.get("server") + "/worker/build_done", json={"image_hash": self.image_hash, "request_hash": self.request_hash, "status": self.build_status})
