@@ -16,17 +16,19 @@ class ImageMeta():
         self.subtarget = subtarget
         self.profile = profile
         self.vanilla = False
-        self.vanilla_packages = self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile)
+        self.vanilla_packages = set(self.database.get_image_packages(self.distro, self.release, self.target, self.subtarget, self.profile))
+        self.vanilla_packages.update(self.config.get(self.distro).get("vanilla", ""))
 
         if not packages: # install default packages
-            self.log.debug("using vanilla packages")
+            self.log.debug("using vanilla packages as packages are empty")
             self.vanilla = True
             self.packages = self.vanilla_packages
         elif set(packages) == self.vanilla_packages: # install default packages
-            self.log.debug("using vanilla packages")
+            self.log.debug("packages are like vanilla packages")
             self.vanilla = True
             self.packages = self.vanilla_packages
         else:
+            self.log.debug("use custom packages")
             self.packages = packages
 
         self.log.debug("packages\t %s", self.packages)

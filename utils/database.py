@@ -126,7 +126,7 @@ class Database():
             if as_json:
                 return json.dumps({"packages": packages})
             else:
-                return set(packages)
+                return packages
         else:
             return response
 
