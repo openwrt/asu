@@ -177,3 +177,87 @@ def image_info(manifest_hash):
 @app.route("/contact")
 def contact():
     return render_template("contact.html")
+
+@app.route("/worker/register", methods=['POST'])
+def worker_register():
+    request_json = request.json
+    print(request_json)
+    return str(database.worker_register(
+        request_json["worker_name"],
+        request_json["worker_address"],
+        request_json["worker_pubkey"]))
+
+@app.route("/worker/add_skill", methods=['POST'])
+def worker_add_skill():
+    request_json = request.json
+    return app.response_class(response=database.worker_add_skill(
+        request_json["worker_id"],
+        request_json["distro"],
+        request_json["release"],
+        request_json["target"],
+        request_json["subtarget"],
+        request_json["status"]),
+        mimetype='application/json')
+
+@app.route("/worker/needed", methods=['POST'])
+def worker_needed():
+    return app.response_class(response=database.worker_needed(worker=True), 
+        mimetype='application/json')
+
+@app.route("/worker/destroy", methods=['POST'])
+def worker_destroy():
+    request_json = request.json
+    return database.worker_destroy(request_json["worker_id"])
+
+@app.route("/worker/add_manifest", methods=['POST'])
+def worker_add_manifest():
+    rj = request.json
+    database.add_manifest_packages(rj["manifest_hash"], rj["manifest_packages"])
+    return "", 200
+
+@app.route("/worker/build_job", methods=['POST'])
+def worker_build_job():
+    request_json = request.json
+    result = database.get_build_job(
+        request_json["distro"],
+        request_json["release"],
+        request_json["target"],
+        request_json["subtarget"])
+    print(result)
+    return jsonify(result)
+
+@app.route("/worker/hearbeat", methods=['POST'])
+def worker_heartbeat():
+    request_json = request.json
+    database.worker_heartbeat(request_json["worker_id"])
+    return "", 200
+
+@app.route("/worker/build_done", methods=['POST'])
+def worker_build_done():
+    request_json = request.json
+    database.worker_done_build(request_json["request_hash"], request_json["image_hash"], request_json["build_status"])
+    return "", 200
+
+@app.route("/worker/request_status", methods=['POST'])
+def worker_request_status():
+    request_json = request.json
+    database.set_image_requests_status(request_json["request_hash"], request_json["status"])
+    return "", 200
+
+@app.route("/worker/add_image", methods=['POST'])
+def worker_add_image():
+    request_json = request.json
+    database.add_image(
+        request_json["image_hash"],
+        request_json["distro"],
+        request_json["release"],
+        request_json["target"],
+        request_json["subtarget"],
+        request_json["profile"],
+        request_json["manifest_hash"],
+        request_json["sysupgrade_suffix"],
+        request_json["subtarget_in_name"],
+        request_json["profile_in_name"],
+        request_json["vanilla"],
+        request_json["build_seconds"])
+    return "", 200

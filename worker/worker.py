@@ -7,6 +7,7 @@ import json
 import urllib.request
 import tempfile
 from datetime import datetime
+import requests
 import hashlib
 import os
 import os.path
@@ -22,7 +23,6 @@ from worker.imagebuilder import ImageBuilder
 from utils.imagemeta import ImageMeta
 from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_file, get_pubkey
 from utils.config import Config
-from utils.database import Database
 
 MAX_TARGETS=0
 
@@ -33,70 +33,76 @@ class Worker(threading.Thread):
         self.log.info("log initialized")
         self.config = Config()
         self.log.info("config initialized")
-        self.database = Database(self.config)
-        self.log.info("database initialized")
         self.worker_id = None
-        self.imagebuilders = []
+        self.imagebuilders = set()
 
     def worker_register(self):
-        self.worker_name = gethostname()
-        self.worker_address = ""
-        self.worker_pubkey = get_pubkey()
-        self.log.info("register worker '%s' '%s' '%s'", self.worker_name, self.worker_address, self.worker_pubkey)
-        self.worker_id = str(self.database.worker_register(self.worker_name, self.worker_address, self.worker_pubkey))
+        params = {}
+        params["worker_name"] = gethostname()
+        params["worker_address"] = ""
+        params["worker_pubkey"] = get_pubkey()
+        self.log.info("register worker '%s' '%s' '%s'", *params)
+
+        self.worker_id = requests.post(self.config.get("server") + "/worker/register", json=params).json()
 
     def worker_add_skill(self, imagebuilder):
-        self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
+        params = {}
+        params["worker_id"] = self.worker_id
+        params["status"] = "building"
+        params["distro"], params["release"], params["target"], params["subtarget"] = imagebuilder
+        requests.post(self.config.get("server") + "/worker/add_skill", json=params)
 
     def add_imagebuilder(self):
         self.log.info("adding imagebuilder")
-        imagebuilder_request = None
+        ir = requests.post(self.config.get("server") + "/worker/needed").text
+        print("ir", ir)
 
-        while not imagebuilder_request:
-            imagebuilder_request = self.database.worker_needed()
-            if not imagebuilder_request:
-                self.heartbeat()
-                time.sleep(5)
-                continue
+        self.log.info("found worker_needed %s", ir)
+        if ir in self.imagebuilders:
+            self.log.info("already handels imagebuilder")
+            return
 
-            self.log.info("found worker_needed %s", imagebuilder_request)
-            for imagebuilder_setup in self.imagebuilders:
-                if len(set(imagebuilder_setup).intersection(imagebuilder_request)) == 4:
-                    self.log.info("already handels imagebuilder")
-                    return
+        if ir != "":
+            self.distro, self.release, self.target, self.subtarget = ir.split("/")
 
-            self.distro, self.release, self.target, self.subtarget = imagebuilder_request
             self.log.info("worker serves %s %s %s %s", self.distro, self.release, self.target, self.subtarget)
             imagebuilder = ImageBuilder(self.distro, str(self.release), self.target, self.subtarget)
             self.log.info("initializing imagebuilder")
             if imagebuilder.run():
                 self.log.info("register imagebuilder")
                 self.worker_add_skill(imagebuilder.as_array())
-                self.imagebuilders.append(imagebuilder.as_array())
+                self.imagebuilders.add(ir)
                 self.log.info("imagebuilder initialzed")
             else:
                 # manage failures
                 # add in skill status
                 pass
-        self.log.info("added imagebuilder")
+            print("yyy", self.imagebuilders)
+            self.log.info("added imagebuilder")
 
     def destroy(self, signal=None, frame=None):
         self.log.info("destroy worker %s", self.worker_id)
-        self.database.worker_destroy(self.worker_id)
-        sys.exit(0)
+        requests.post(self.config.get("server") + "/worker/destroy", json={"worker_id": self.worker_id})
+        exit(0)
 
     def run(self):
         self.log.info("register worker")
         self.worker_register()
         self.log.debug("setting up gnupg")
-        setup_gnupg()
+        #setup_gnupg()
         while True:
             self.log.debug("severing %s", self.imagebuilders)
             build_job_request = None
+            print(self.imagebuilders)
+            print("build request")
             for imagebuilder in self.imagebuilders:
-                build_job_request = self.database.get_build_job(*imagebuilder)
+                params = {}
+                params["distro"], params["release"], params["target"], params["subtarget"] = imagebuilder.split("/")
+
+                build_job_request = requests.post(self.config.get("server") + "/worker/build_job", json=params).json()
                 if build_job_request:
                     break
+
 
             if build_job_request:
                 self.log.debug("found build job")
@@ -113,8 +119,7 @@ class Worker(threading.Thread):
                 time.sleep(5)
 
     def heartbeat(self):
-        self.log.debug("heartbeat %s", self.worker_id)
-        self.database.worker_heartbeat(self.worker_id)
+        requests.post(self.config.get("server") + "/worker/hearbeat", json={"worker_id": self.worker_id})
 
 class Image(ImageMeta):
     def __init__(self, distro, release, target, subtarget, profile, packages=None):
@@ -194,15 +199,20 @@ class Image(ImageMeta):
                             sums.seek(0)
                             sums.write(self.filename_rename(content))
                             sums.truncate()
+
                     filename_output = os.path.join(self.store_path, self.filename_rename(filename))
+                    if os.path.exists(filename_output):
+                        already_created = True
+                        break
 
                     self.log.info("move file %s", filename_output)
                     shutil.move(os.path.join(self.build_path, filename), filename_output)
 
-                if sign_file(os.path.join(self.store_path, "sha256sums")):
-                    self.log.info("signed sha256sums")
+                #if not already_created:
+                if True:
+                    if sign_file(os.path.join(self.store_path, "sha256sums")):
+                        self.log.info("signed sha256sums")
 
-                if not already_created or entry_missing:
                     sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
                         "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
                         "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
@@ -220,7 +230,7 @@ class Image(ImageMeta):
                         if self.build_log.find("too big") != -1:
                             self.log.warning("created image was to big")
                             self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
-                            self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
+                            requests.post(self.config.get("server") + "/worker/request_status", json={"request_hash": self.request_hash, "status": "imagesize_fail"})
                             return False
                         else:
                             self.profile_in_name = None
@@ -264,26 +274,33 @@ class Image(ImageMeta):
                     self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
 
                     self.log.debug("add image: {} {} {} {} {}".format(
-                            self.image_hash,
-                            self.as_array_build(),
-                            self.sysupgrade_suffix,
-                            self.subtarget_in_name,
-                            self.profile_in_name,
-                            self.vanilla,
-                            self.build_seconds))
-                    self.database.add_image(
-                            self.image_hash,
-                            self.as_array_build(),
-                            self.sysupgrade_suffix,
-                            self.subtarget_in_name,
-                            self.profile_in_name,
-                            self.vanilla,
-                            self.build_seconds)
-                self.database.done_build_job(self.request_hash, self.image_hash, self.build_status)
+                        self.image_hash,
+                        self.as_array_build(),
+                        self.sysupgrade_suffix,
+                        self.subtarget_in_name,
+                        self.profile_in_name,
+                        self.vanilla,
+                        self.build_seconds))
+
+                    params = {}
+                    params["image_hash"] = self.image_hash
+                    params["distro"], params["release"], params["target"], params["subtarget"], params["profile"], params["manifest_hash"] = self.as_array_build()
+                    params["sysupgrade_suffix"] = self.sysupgrade_suffix
+                    params["subtarget_in_name"] = self.subtarget_in_name
+                    params["profile_in_name"] = self.profile_in_name
+                    params["vanilla"] = self.vanilla
+                    params["build_seconds"] = self.build_seconds
+                    requests.post(self.config.get("server") + "/worker/add_image", json=params)
+
+                params = {}
+                params["request_hash"] = self.request_hash
+                params["image_hash"] = self.image_hash
+                params["build_status"] = self.build_status
+                requests.post(self.config.get("server") + "/worker/build_done", json=params)
                 return True
             else:
                 self.log.info("build failed")
-                self.database.set_image_requests_status(self.request_hash, 'build_fail')
+                requests.post(self.config.get("server") + "/worker/request_status", json={"request_hash": self.request_hash, "status": "build_fail"})
                 self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
                 return False
 
@@ -304,7 +321,7 @@ class Image(ImageMeta):
         manifest_pattern = r"(.+) - (.+)\n"
         with open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0], "r") as manifest_file:
             manifest_packages = dict(re.findall(manifest_pattern, manifest_file.read()))
-            self.database.add_manifest_packages(self.manifest_hash, manifest_packages)
+            requests.post(self.config.get("server") + "/worker/add_manifest", json={"manifest_hash": self.manifest_hash, "manifest_packages": manifest_packages})
 
     # check if image exists
     def created(self):
