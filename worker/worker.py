@@ -190,11 +190,11 @@ class Image(ImageMeta):
                 else:
                     path_array.append("vanilla")
 
-                self.store_path = os.path.join(*path_array)
-                self.store_path = "/tmp/store_path"
+                self.store_path = "/tmp/worker/"
                 create_folder(self.store_path)
 
                 with ZipFile(os.path.join(self.store_path, self.request_hash + ".zip"), 'w') as archive:
+
                     for filename in os.listdir(self.build_path):
                         if filename == "sha256sums":
                             with open(os.path.join(self.build_path, filename), 'r+') as sums:
@@ -206,9 +206,12 @@ class Image(ImageMeta):
                                 self.log.info("sha265sums sign successfull")
                                 archive.write(os.path.join(self.build_path, "sha256sums.sig"), arcname="sha256sums.sig")
 
-#                        filename_output = os.path.join(self.store_path, self.filename_rename(filename))
                         self.log.info("add file %s", filename)
                         archive.write(os.path.join(self.build_path, filename), arcname=self.filename_rename(filename))
+
+                    log_name = "build-{}".format(self.image_hash)
+                    self.store_log(os.path.join(self.build_path, log_name ))
+                    archive.write(os.path.join(self.build_path, log_name), arcname=log_name)
 
                 sign_file(os.path.join(self.store_path, self.request_hash + ".zip"))
 
@@ -221,7 +224,7 @@ class Image(ImageMeta):
 
                 for sysupgrade_file in sysupgrade_files:
                     if not sysupgrade:
-                        sysupgrade = glob.glob(os.path.join(self.store_path, sysupgrade_file))
+                        sysupgrade = glob.glob(os.path.join(self.build_path, sysupgrade_file))
                     else:
                         break
 
@@ -238,7 +241,7 @@ class Image(ImageMeta):
                     self.log.debug("sysupgrade not found")
                     if self.build_log.find("too big") != -1:
                         self.log.warning("created image was to big")
-                        self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
+                        #self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash))) TODO
                         requests.post(self.config.get("server") + "/worker/request_status", json={"request_hash": self.request_hash, "status": "imagesize_fail"})
                         return False
                     else:
@@ -279,8 +282,6 @@ class Image(ImageMeta):
 
                     self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
                     self.build_status = "created"
-
-                    self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
 
                     self.log.debug("add image: {} {} {} {} {}".format(
                         self.image_hash,
