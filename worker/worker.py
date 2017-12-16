@@ -1,4 +1,5 @@
 import threading
+from zipfile import ZipFile
 import glob
 import re
 from socket import gethostname
@@ -107,7 +108,7 @@ class Worker(threading.Thread):
             if build_job_request:
                 self.log.debug("found build job")
                 self.last_build_id = build_job_request[0]
-                image = Image(*build_job_request[2:9])
+                image = Image(self.worker_id, *build_job_request[2:9])
                 self.log.debug(image.as_array())
                 if not image.build():
                     self.log.warn("build failed for %s", image.as_array())
@@ -122,8 +123,9 @@ class Worker(threading.Thread):
         requests.post(self.config.get("server") + "/worker/hearbeat", json={"worker_id": self.worker_id})
 
 class Image(ImageMeta):
-    def __init__(self, distro, release, target, subtarget, profile, packages=None):
+    def __init__(self, worker_id, distro, release, target, subtarget, profile, packages=None):
         super().__init__(distro, release, target, subtarget, profile, packages.split(" "))
+        self.worker_id = worker_id
 
     def filename_rename(self, content):
         content_output = content.replace("lede", self.distro)
@@ -139,8 +141,6 @@ class Image(ImageMeta):
 
 
         with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
-            already_created = False
-
             # only add manifest hash if special packages
             extra_image_name_array = []
             if not self.vanilla:
@@ -190,86 +190,94 @@ class Image(ImageMeta):
                     path_array.append("vanilla")
 
                 self.store_path = os.path.join(*path_array)
+                self.store_path = "/tmp/store_path"
                 create_folder(self.store_path)
 
-                for filename in os.listdir(self.build_path):
-                    if filename == "sha256sums":
-                        with open(os.path.join(self.build_path, filename), 'r+') as sums:
-                            content = sums.read()
-                            sums.seek(0)
-                            sums.write(self.filename_rename(content))
-                            sums.truncate()
+                with ZipFile(os.path.join(self.store_path, self.request_hash + ".zip"), 'w') as archive:
+                    for filename in os.listdir(self.build_path):
+                        if filename == "sha256sums":
+                            with open(os.path.join(self.build_path, filename), 'r+') as sums:
+                                content = sums.read()
+                                sums.seek(0)
+                                sums.write(self.filename_rename(content))
+                                sums.truncate()
+                            if sign_file(os.path.join(self.build_path, "sha256sums")):
+                                self.log.info("sha265sums sign successfull")
+                                archive.write(os.path.join(self.build_path, "sha256sums.sig"), arcname="sha256sums.sig")
 
-                    filename_output = os.path.join(self.store_path, self.filename_rename(filename))
-                    if os.path.exists(filename_output):
-                        already_created = True
+#                        filename_output = os.path.join(self.store_path, self.filename_rename(filename))
+                        self.log.info("add file %s", filename)
+                        archive.write(os.path.join(self.build_path, filename), arcname=self.filename_rename(filename))
+
+                sign_file(os.path.join(self.store_path, self.request_hash + ".zip"))
+
+                sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
+                    "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
+                    "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
+
+                sysupgrade = None
+
+
+                for sysupgrade_file in sysupgrade_files:
+                    if not sysupgrade:
+                        sysupgrade = glob.glob(os.path.join(self.store_path, sysupgrade_file))
+                    else:
                         break
 
-                    self.log.info("move file %s", filename_output)
-                    shutil.move(os.path.join(self.build_path, filename), filename_output)
+                params = {}
+                params["image_hash"] = self.image_hash
+                params["distro"], params["release"], params["target"], params["subtarget"], params["profile"], params["manifest_hash"] = self.as_array_build()
+                params["vanilla"] = self.vanilla
+                params["build_seconds"] = self.build_seconds
+                params["sysupgrade_suffix"] = ""
+                params["subtarget_in_name"] = ""
+                params["profile_in_name"] = ""
 
-                #if not already_created:
-                if True:
-                    if sign_file(os.path.join(self.store_path, "sha256sums")):
-                        self.log.info("signed sha256sums")
-
-                    sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
-                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
-                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
-
-                    sysupgrade = None
-
-                    for sysupgrade_file in sysupgrade_files:
-                        if not sysupgrade:
-                            sysupgrade = glob.glob(os.path.join(self.store_path, sysupgrade_file))
-                        else:
-                            break
-
-                    if not sysupgrade:
-                        self.log.debug("sysupgrade not found")
-                        if self.build_log.find("too big") != -1:
-                            self.log.warning("created image was to big")
-                            self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
-                            requests.post(self.config.get("server") + "/worker/request_status", json={"request_hash": self.request_hash, "status": "imagesize_fail"})
-                            return False
-                        else:
-                            self.profile_in_name = None
-                            self.subtarget_in_name = None
-                            self.sysupgrade_suffix = ""
-                            self.build_status = "no_sysupgrade"
+                if not sysupgrade:
+                    self.log.debug("sysupgrade not found")
+                    if self.build_log.find("too big") != -1:
+                        self.log.warning("created image was to big")
+                        self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
+                        requests.post(self.config.get("server") + "/worker/request_status", json={"request_hash": self.request_hash, "status": "imagesize_fail"})
+                        return False
                     else:
-                        self.path = sysupgrade[0]
-                        sysupgrade_image = os.path.basename(self.path)
+                        self.profile_in_name = None
+                        self.subtarget_in_name = None
+                        self.sysupgrade_suffix = ""
+                        self.build_status = "no_sysupgrade"
+                else:
+                    self.path = sysupgrade[0]
+                    sysupgrade_image = os.path.basename(self.path)
 
-                        self.subtarget_in_name = self.subtarget in sysupgrade_image
-                        self.profile_in_name = self.profile in sysupgrade_image
+                    self.subtarget_in_name = self.subtarget in sysupgrade_image
+                    self.profile_in_name = self.profile in sysupgrade_image
 
-                        # ath25/generic/generic results in lede-17.01.4-ath25-generic-squashfs-sysupgrade...
-                        if (self.profile == self.subtarget and
-                                "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
-                            self.subtarget_in_name = False
+                    # ath25/generic/generic results in lede-17.01.4-ath25-generic-squashfs-sysupgrade...
+                    if (self.profile == self.subtarget and
+                            "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
+                        self.subtarget_in_name = False
 
-                        name_array = [self.distro]
+                    name_array = [self.distro]
 
-                        # snapshot build are no release
-                        if self.release != "snapshot":
-                            name_array.append(self.release)
+                    # snapshot build are no release
+                    if self.release != "snapshot":
+                        name_array.append(self.release)
 
-                        if not self.vanilla:
-                            name_array.append(self.manifest_hash)
+                    if not self.vanilla:
+                        name_array.append(self.manifest_hash)
 
-                        name_array.append(self.target)
+                    name_array.append(self.target)
 
-                        if self.subtarget_in_name:
-                            name_array.append(self.subtarget)
+                    if self.subtarget_in_name:
+                        name_array.append(self.subtarget)
 
-                        if self.profile_in_name:
-                            name_array.append(self.profile)
+                    if self.profile_in_name:
+                        name_array.append(self.profile)
 
-                        self.name = "-".join(name_array)
+                    self.name = "-".join(name_array)
 
-                        self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
-                        self.build_status = "created"
+                    self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
+                    self.build_status = "created"
 
                     self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
 
@@ -282,21 +290,13 @@ class Image(ImageMeta):
                         self.vanilla,
                         self.build_seconds))
 
-                    params = {}
-                    params["image_hash"] = self.image_hash
-                    params["distro"], params["release"], params["target"], params["subtarget"], params["profile"], params["manifest_hash"] = self.as_array_build()
                     params["sysupgrade_suffix"] = self.sysupgrade_suffix
                     params["subtarget_in_name"] = self.subtarget_in_name
                     params["profile_in_name"] = self.profile_in_name
-                    params["vanilla"] = self.vanilla
-                    params["build_seconds"] = self.build_seconds
-                    requests.post(self.config.get("server") + "/worker/add_image", json=params)
 
-                params = {}
-                params["request_hash"] = self.request_hash
-                params["image_hash"] = self.image_hash
-                params["build_status"] = self.build_status
-                requests.post(self.config.get("server") + "/worker/build_done", json=params)
+                requests.post(self.config.get("server") + "/worker/add_image", json=params)
+                requests.post(self.config.get("server") + "/worker/build_done", json={"image_hash": self.image_hash, "request_hash": self.request_hash, "status": self.build_status})
+                self.upload_image()
                 return True
             else:
                 self.log.info("build failed")
@@ -322,6 +322,20 @@ class Image(ImageMeta):
         with open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0], "r") as manifest_file:
             manifest_packages = dict(re.findall(manifest_pattern, manifest_file.read()))
             requests.post(self.config.get("server") + "/worker/add_manifest", json={"manifest_hash": self.manifest_hash, "manifest_packages": manifest_packages})
+
+    def upload_image(self):
+        url = os.path.join(self.config.get("update_server"), "upload-image")
+        archive_file = os.path.join(self.store_path, self.request_hash + ".zip")
+        data = {
+                "request_hash": self.request_hash,
+                "worker_id": self.worker_id,
+                "image_hash": self.image_hash,
+                }
+        files = {
+                'archive': open(archive_file, 'rb'),
+                'signature': open(archive_file + ".sig", 'rb')
+                }
+        requests.post(self.config.get("server") + "/worker/upload", data=data, files=files)
 
     # check if image exists
     def created(self):

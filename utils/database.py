@@ -197,12 +197,15 @@ class Database():
             WHERE distro = ? and release = ? and target LIKE ? and subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def check_image_request_hash(self, request_hash):
+    def check_image_request_hash(self, request_hash, status=False):
         self.log.debug("check_request_hash")
         sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ? or image_hash = ?"
         self.c.execute(sql, request_hash, request_hash)
         if self.c.rowcount == 1:
-            return self.c.fetchone()
+            if not status:
+                return self.c.fetchone()
+            else:
+                return self.c.fetchone()[3]
         else:
             return None
 
@@ -655,3 +658,12 @@ class Database():
             return self.c.fetchone()
         self.log.debug("no image request")
         return None
+
+    def get_worker(self, worker_id):
+        sql = "select * from worker where id = ?"
+        result = self.c.execute(sql, worker_id)
+        if self.c.rowcount == 1:
+            return self.c.fetchone()
+        else:
+            return False
+
