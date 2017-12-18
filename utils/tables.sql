@@ -755,18 +755,16 @@ end
 $$ LANGUAGE 'plpgsql';
 
 create or replace view images_info as
-select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, images.target, images.subtarget, manifest_hash, build_date, file_path, file_name
+select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, build_date, build_seconds
             from images
-				join images_download on
-					images.image_hash = images_download.image_hash
-				join profiles on
-					images.distro = profiles.distro and
-					images.release = profiles.release and
-					images.target = profiles.target and
-					images.subtarget = profiles.subtarget and
-					images.profile = profiles.profile
-				join distributions on
-					distributions.name = profiles.distro
+		join profiles on
+			images.distro = profiles.distro and
+			images.release = profiles.release and
+			images.target = profiles.target and
+			images.subtarget = profiles.subtarget and
+			images.profile = profiles.profile
+		join distributions on
+			distributions.name = profiles.distro
         order by id desc;
 
 

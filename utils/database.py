@@ -211,7 +211,7 @@ class Database():
         # postgresql is my new crossword puzzle
         sql = """SELECT to_json(sub) AS response
             FROM  (
-               SELECT response_release, json_object_agg(name, version) AS "packages"
+               SELECT response_release as version, json_object_agg(name, version) AS "packages"
                FROM  upgrade_requests ur
                LEFT JOIN manifest_packages mp ON  mp.manifest_hash = ur.response_manifest
                WHERE ur.request_hash = ?
@@ -507,7 +507,7 @@ class Database():
             self.c.execute(sql, image_hash)
             return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
         else:
-            sql = "select coalesce(array_to_json(array_agg(row_to_json(images))), '[]') from images where image_hash = ?"
+            sql = "select row_to_json(images_info) from images_info where image_hash = ?"
             self.c.execute(sql, image_hash)
             return(self.c.fetchone()[0])
 
@@ -520,8 +520,7 @@ class Database():
             result = self.c.fetchall()
             return result
         else:
-            sql = """select coalesce(array_to_json(array_agg(row_to_json(manifest_packages))), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as manifest_packages;"""
-#            sql = """select coalesce(json_build_object(packages.name, packages.version), '[]') from (select name, version from manifest_packages where manifest_hash = ?) as packages;"""
+            sql = """select json_object_agg(manifest_packages.name, manifest_packages.version) from manifest_packages where manifest_hash = ?;"""
             self.c.execute(sql, manifest_hash)
             return(self.c.fetchone()[0])
 
@@ -594,7 +593,8 @@ class Database():
 
     def flush_snapshots(self):
         self.log.debug("flush snapshots")
-        sql = "delete from images where release = 'snapshot';"
+        sql = """delete from images where release = 'snapshot';
+        update subtargets set last_sync = date('1970-01-01') where release = 'snapshot';"""
         self.c.execute(sql)
         self.commit()
 
