@@ -89,16 +89,17 @@ class ServerCli():
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
-        self.database.flush_snapshots()
-        imagebuilder_folder = os.path.join(get_dir("imagebuilder_folder"), "openwrt", "snapshot")
+        imagebuilder_folder = os.path.join(get_folder("imagebuilder_folder"), "openwrt", "snapshot")
         if os.path.exists(imagebuilder_folder):
             self.log.info("remove snapshots imagebuidler")
             rmtree(imagebuilder_folder)
-        downloaddir = os.path.join(get_dir("downloaddir"), "openwrt", "snapshot")
+        downloaddir = os.path.join(get_folder("downloaddir"), "openwrt", "snapshot")
 
         if os.path.exists(downloaddir):
             self.log.info("remove snapshots images")
             rmtree(downloaddir)
+
+        self.database.flush_snapshots()
 
     def init_server(self):
         self.download_releases()
