@@ -76,7 +76,6 @@ class ImageBuilder(threading.Thread):
             else:
                 if not output.decode('utf-8').startswith("checking file Makefile\nReversed"):
                     self.log.error("could not patch imagebuilder makefile with %s", patch)
-                    #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, "patch_fail")
 
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()
@@ -144,19 +143,12 @@ class ImageBuilder(threading.Thread):
                     if not self.download(special_tar_url):
                         return False
                 else:
-                    #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'download_fail')
                     return False
             self.patch_makefile()
             self.add_custom_repositories()
             self.pkg_arch = self.parse_packages_arch()
-        #self.parse_info()
-#
-#        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
-#            self.log.info("subtargets outdated, run sync")
-#            self.parse_packages()
 
         self.log.info("initialized imagebuilder %s", self.path)
-#        self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'ready')
         return True
 
     def download(self, url):
@@ -166,7 +158,6 @@ class ImageBuilder(threading.Thread):
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
             if not check_signature(tempdir) and not self.release == 'snapshot':
                 self.log.warn("bad signature")
-                #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'signature_fail')
                 return False
             self.log.debug("good signature")
             tar_name = url.split("/")[-1]
@@ -188,7 +179,6 @@ class ImageBuilder(threading.Thread):
             sha256_output = sha256_output.decode('utf-8')
             if not sha256_output == "{}: OK\n".format(tar_name) and not self.release == 'snapshot':
                 self.log.warn("bad sha256sum")
-                #self.database.set_imagebuilder_status(self.distro, self.release, self.target, self.subtarget, 'sha256sum_fail')
                 return False
             self.log.debug("good sha256sum")
 
@@ -230,7 +220,6 @@ class ImageBuilder(threading.Thread):
 
     def parse_packages(self):
         self.log.info("receive packages for %s/%s", self.target, self.subtarget)
-        #if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget):
         cmdline = ['make', 'package_list']
         proc = subprocess.Popen(
             cmdline,
