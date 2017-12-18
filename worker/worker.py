@@ -121,7 +121,11 @@ class Image(ImageMeta):
         super().__init__(distro, release, target, subtarget, profile, packages.split(" "))
 
     def filename_rename(self, content):
-        content_output = content.replace("lede", self.distro)
+        if self.release == "snapshot":
+            content_output = content.replace("openwrt", self.distro)
+        else:
+            content_output = content.replace(self.config.get(self.distro).get("parent_distro", self.distro), self.distro)
+
         content_output = content_output.replace(self.imagebuilder.imagebuilder_release, self.release)
         content_output = content_output.replace(self.request_hash, self.manifest_hash)
         return content_output
@@ -187,6 +191,7 @@ class Image(ImageMeta):
                 self.store_path = os.path.join(*path_array)
                 create_folder(self.store_path)
 
+                self.log.debug(os.listdir(self.build_path))
                 for filename in os.listdir(self.build_path):
                     if filename == "sha256sums":
                         with open(os.path.join(self.build_path, filename), 'r+') as sums:

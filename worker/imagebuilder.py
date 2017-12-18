@@ -22,13 +22,12 @@ class ImageBuilder(threading.Thread):
         self.distro = distro
         self.version = version
         self.release = version
-        self.imagebuilder_release = version
-        if self.config.get("snapshots") and version == "snapshot":
-            self.log.debug("using snapshot imagebuilder")
-            self.imagebuilder_release = "snapshots"
-        elif distro != "lede":
-            self.log.debug("using latest lede imagebuilder")
-            self.imagebuilder_release = self.config.get(distro).get("imagebuilder_release", self.config.get("lede").get("latest"))
+        if self.release != 'snapshot':
+            self.imagebuilder_distro = self.config.get(self.distro).get("parent_distro", self.distro)
+            self.imagebuilder_release = self.config.get(self.distro).get("parent_release", self.release)
+        else:
+            self.imagebuilder_distro = "openwrt"
+            self.imagebuilder_release = "snapshot"
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
@@ -79,18 +78,17 @@ class ImageBuilder(threading.Thread):
 
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()
-        self.log.info("adding custom repositories")
-        custom_repositories = None
-        custom_repositories_path = os.path.join(get_folder("distro_folder"), self.distro, "repositories.conf")
-        if os.path.exists(custom_repositories_path):
-            with open(custom_repositories_path, "r") as custom_repositories_distro:
-                custom_repositories = self.fill_repositories_template(custom_repositories_distro.read())
-        elif os.path.exists("repositories.conf.default"):
-            with open("repositories.conf.default", "r") as custom_repositories_default:
-                custom_repositories = self.fill_repositories_template(custom_repositories_default.read())
+        self.log.info("check custom repositories of release")
+        custom_repositories = self.config.release(self.distro, self.release).get("repositories")
+        if not custom_repositories:
+            self.log.info("check custom repositories of distro")
+            custom_repositories = self.config.get(self.distro).get("repositories")
         if custom_repositories:
+            self.log.info("add custom repositories")
             with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
-                repositories.write(custom_repositories)
+                repositories.write(self.fill_repositories_template(custom_repositories))
+        else:
+            self.log.info("no custom repositories of distro")
 
     def fill_repositories_template(self, custom_repositories):
         custom_repositories = re.sub(r"{{ distro }}", self.distro, custom_repositories)
@@ -99,21 +97,20 @@ class ImageBuilder(threading.Thread):
         custom_repositories = re.sub(r"{{ target }}", self.target, custom_repositories)
         custom_repositories = re.sub(r"{{ subtarget }}", self.subtarget, custom_repositories)
         custom_repositories = re.sub(r"{{ pkg_arch }}", self.pkg_arch, custom_repositories)
-        if self.imagebuilder_release == "snapshots":
-            custom_repositories = re.sub(r"/releases/snapshots", "/snapshots", custom_repositories)
         return custom_repositories
 
     def download_url(self):
-        if self.imagebuilder_release == "snapshots":
-            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_snapshots_url"), "targets", self.target, self.subtarget)
+        print(self.imagebuilder_release)
+        if self.imagebuilder_release == "snapshot":
+            imagebuilder_download_url = os.path.join(self.config.get(self.imagebuilder_distro).get("snapshots_url"), "targets", self.target, self.subtarget)
         else:
-            imagebuilder_download_url = os.path.join(self.config.get("imagebuilder_url"), self.imagebuilder_release, "targets", self.target, self.subtarget)
+            imagebuilder_download_url = os.path.join(self.config.get(self.imagebuilder_distro).get("releases_url"), self.imagebuilder_release, "targets", self.target, self.subtarget)
         self.log.debug(imagebuilder_download_url)
         return imagebuilder_download_url
 
     def tar_name(self, remove_subtarget=False):
-        name_array = ["openwrt-imagebuilder"]
-        if not self.imagebuilder_release is "snapshots":
+        name_array = [self.imagebuilder_distro, "imagebuilder"]
+        if not self.imagebuilder_release is "snapshot":
             name_array.append(self.imagebuilder_release)
         name_array.append(self.target)
         # some imagebuilders have -generic removed

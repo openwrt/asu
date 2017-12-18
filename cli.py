@@ -116,39 +116,42 @@ class ServerCli():
                         self.database.insert_supported(distro, release, *target)
 
     def download_releases(self):
-        if self.config.get("snapshots"):
-            print("adding openwrt snapshots")
-            self.database.insert_release("openwrt", "snapshot")
-            snapshots_url = "http://downloads.lede-project.org/snapshots/targets/"
-            target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
-            target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-            targets = re.findall(target_pattern, target_website)
+        for distro in get_distros():
+            snapshots_url = self.config.get(distro).get("snapshots_url", False)
+            if snapshots_url:
+                snapshots_url = snapshots_url + "/targets/"
+                print("adding snapshots")
+                self.database.insert_release(distro, "snapshot")
+                target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
+                target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                targets = re.findall(target_pattern, target_website)
 
-            for target in targets:
-                subtarget_website = urllib.request.urlopen("{}/{}".format(snapshots_url, target)).read().decode('utf-8')
-                subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                subtargets = re.findall(subtarget_pattern, subtarget_website)
-                print("snapshots {} {}".format("snapshots", target, subtargets))
-                self.database.insert_subtargets("openwrt", "snapshot", target, subtargets)
+                for target in targets:
+                    subtarget_website = urllib.request.urlopen("{}/{}".format(snapshots_url, target)).read().decode('utf-8')
+                    subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                    subtargets = re.findall(subtarget_pattern, subtarget_website)
+                    print("snapshots {} {}".format("snapshot", target, subtargets))
+                    self.database.insert_subtargets(distro, "snapshot", target, subtargets)
 
-        for distro, distro_url in self.config.get("distributions").items():
-            for release in self.config.get(distro).get("releases"):
-                print("{} {}".format(distro, release))
-                self.database.insert_release(distro, release)
-                release_url = "{}/{}/targets/".format(distro_url, release)
-                if get_statuscode(release_url) != 404:
-                    print("release {} online".format(release))
-                    targets_website = urllib.request.urlopen(release_url).read().decode('utf-8')
-                    targets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                    targets = re.findall(targets_pattern, targets_website)
-                    for target in targets:
-                        subtargets_website = urllib.request.urlopen("{}/{}/targets/{}".format(distro_url, release, target)).read().decode('utf-8')
-                        subtargets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                        subtargets = re.findall(subtargets_pattern, subtargets_website)
-                        print("{} {} {}".format(release, target, subtargets))
-                        self.database.insert_subtargets(distro, release, target, subtargets)
-                else:
-                    print("release {} offline".format(release))
+            releases_url = self.config.get(distro).get("releases_url", False)
+            if releases_url:
+                for release in self.config.get(distro).get("releases"):
+                    print("{} {}".format(distro, release))
+                    self.database.insert_release(distro, release)
+                    release_url = "{}/{}/targets/".format(releases_url, release)
+                    if get_statuscode(release_url) != 404:
+                        print("release {} online".format(release))
+                        targets_website = urllib.request.urlopen(release_url).read().decode('utf-8')
+                        targets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                        targets = re.findall(targets_pattern, targets_website)
+                        for target in targets:
+                            subtargets_website = urllib.request.urlopen("{}/{}/targets/{}".format(releases_url, release, target)).read().decode('utf-8')
+                            subtargets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
+                            subtargets = re.findall(subtargets_pattern, subtargets_website)
+                            print("{} {} {}".format(release, target, subtargets))
+                            self.database.insert_subtargets(distro, release, target, subtargets)
+                    else:
+                        print("release {} offline".format(release))
 
     def insert_board_rename(self):
         for distro, release in self.database.get_releases():
@@ -197,4 +200,5 @@ class ServerCli():
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
+sc.download_releases()
 #sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")

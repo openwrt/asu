@@ -116,3 +116,7 @@ def pkg_hash(packages):
 def request_hash(distro, release, target, subtarget, profile, packages):
     request_array = [distro, release, target, subtarget, profile, pkg_hash]
     return(get_hash(" ".join(request_array), 12))
+
+def get_distros():
+    return(os.listdir(config.get("distro_folder")))
+

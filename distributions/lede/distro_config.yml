@@ -8,3 +8,4 @@ releases:
   - "17.01.4"
 vanilla:
   - luci
+releases_url: https://downloads.lede-project.org/releases/

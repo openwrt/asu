@@ -1,6 +1,5 @@
 ---
 distro_alias: OpenWrt
-releases:
-  - "snapshot"
 vanilla:
   - luci
+snapshots_url: "https://downloads.lede-project.org/snapshots/"

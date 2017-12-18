@@ -17,7 +17,10 @@ class Config():
             with open(os.path.join("distributions", distro, "distro_config.yml"), 'r') as ymlfile:
                 self.config[distro] = yaml.load(ymlfile)
 
-            self.config[distro]["latest"] = self.config[distro]["releases"][-1]
+            if self.config.get(distro).get("releases"):
+                self.config[distro]["latest"] = self.config.get(distro).get("releases")[-1]
+            else:
+                self.config[distro]["latest"] = None
 
     def release(self, distro, release):
         if release not in self.config[distro]:
