@@ -49,7 +49,7 @@ class UpdateRequest(Request):
                 self.release = "snapshot"
                 self.response_json["version"] = "snapshot"
             else:
-                self.release = self.config.get(distro).get("latest")
+                self.release = self.config.get(self.distro).get("latest")
                 if not self.release == self.installed_release:
                     self.response_json["version"] = self.release
 
@@ -82,7 +82,8 @@ class UpdateRequest(Request):
                                     if not "upgrades" in self.response_json:
                                         self.response_json["upgrades"] = {}
                                     self.response_json["upgrades"][package] = [version, self.packages_installed[package]]
-                self.response_json["packages"] = OrderedDict(sorted(self.response_json["packages"]))
+
+                self.response_json["packages"] = OrderedDict(sorted(self.response_json["packages"].items()))
 
             if "version" in self.response_json or "upgrades" in self.response_json:
                 self.response_status = HTTPStatus.OK # 200
