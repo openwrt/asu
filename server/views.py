@@ -114,7 +114,8 @@ def api_models():
         return "[]", HTTPStatus.BAD_REQUEST
 
 @app.route("/api/packages_image")
-def api_packages_image():
+@app.route("/api/default_packages")
+def api_default_packages():
     data = []
     distro = request.args.get("distro", "")
     release = request.args.get("release", "")
