@@ -107,6 +107,24 @@ def sign_file(image_path):
         return False
     return True
 
+def usign_verify(file_path, pubkey):
+    key_folder = get_folder("key_folder")
+    # better way then using echo?
+    cmdline = ['echo', pubkey, '|', 'usign', '-V', '-p', '-', '-m', file_path]
+    proc = subprocess.Popen(
+        cmdline,
+        cwd=key_folder,
+        stdout=subprocess.PIPE,
+        shell=False,
+        stderr=subprocess.STDOUT
+    )
+    output, _ = proc.communicate()
+    return_code = proc.returncode
+    if not return_code == 0:
+        return False
+    else:
+        return True
+
 def pkg_hash(packages):
     packages = sorted(list(set(packages)))
     package_hash = get_hash(" ".join(packages), 12)

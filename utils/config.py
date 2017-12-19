@@ -28,7 +28,7 @@ class Config():
                self.config[distro][release] = yaml.load(ymlfile)
         return self.config.get(distro).get(release)
 
-    def get(self, opt):
+    def get(self, opt, alt=None):
         if opt in self.config:
             return self.config[opt]
-        return None
+        return alt

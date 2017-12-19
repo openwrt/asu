@@ -1,4 +1,5 @@
 import threading
+from zipfile import ZipFile
 import glob
 import re
 from socket import gethostname
@@ -7,6 +8,7 @@ import json
 import urllib.request
 import tempfile
 from datetime import datetime
+import requests
 import hashlib
 import os
 import os.path
@@ -22,7 +24,6 @@ from worker.imagebuilder import ImageBuilder
 from utils.imagemeta import ImageMeta
 from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_file, get_pubkey
 from utils.config import Config
-from utils.database import Database
 
 MAX_TARGETS=0
 
@@ -31,25 +32,31 @@ class Worker(threading.Thread):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
-        self.config = Config()
+        self.config = Config("worker.yml")
         self.log.info("config initialized")
-        self.database = Database(self.config)
-        self.log.info("database initialized")
         self.worker_id = None
-        self.imagebuilders = []
+        self.imagebuilders = set()
+        self.auth = (self.config.get("worker"), self.config.get("password"))
 
     def worker_register(self):
-        self.worker_name = gethostname()
-        self.worker_address = ""
-        self.worker_pubkey = get_pubkey()
-        self.log.info("register worker '%s' '%s' '%s'", self.worker_name, self.worker_address, self.worker_pubkey)
-        self.worker_id = str(self.database.worker_register(self.worker_name, self.worker_address, self.worker_pubkey))
+        params = {}
+        params["worker_name"] = gethostname()
+        params["worker_address"] = ""
+        params["worker_pubkey"] = get_pubkey()
+        self.log.info("register worker '%s' '%s' '%s'", *params)
+
+        self.worker_id = requests.post(self.config.get("server") + "/worker/register", json=params, auth=self.auth).json()
 
     def worker_add_skill(self, imagebuilder):
-        self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
+        params = {}
+        params["worker_id"] = self.worker_id
+        params["status"] = "building"
+        params["distro"], params["release"], params["target"], params["subtarget"] = imagebuilder
+        requests.post(self.config.get("server") + "/worker/add_skill", json=params)
 
     def add_imagebuilder(self, distro, release, target, subtarget):
         self.log.info("adding imagebuilder")
+<<<<<<< HEAD
         self.log.info("worker serves %s %s %s %s", distro, release, target, subtarget)
         imagebuilder = ImageBuilder(distro, str(release), target, subtarget)
         self.log.info("initializing imagebuilder")
@@ -63,32 +70,71 @@ class Worker(threading.Thread):
             # add in skill status
             pass
         self.log.info("added imagebuilder")
+=======
+        ir = requests.post(self.config.get("server") + "/worker/needed").text
+        print("ir", ir)
+
+        self.log.info("found worker_needed %s", ir)
+        if ir in self.imagebuilders:
+            self.log.info("already handels imagebuilder")
+            return
+
+        if ir != "":
+            self.distro, self.release, self.target, self.subtarget = ir.split("/")
+
+            self.log.info("worker serves %s %s %s %s", self.distro, self.release, self.target, self.subtarget)
+            imagebuilder = ImageBuilder(self.distro, str(self.release), self.target, self.subtarget)
+            self.log.info("initializing imagebuilder")
+            if imagebuilder.run():
+                self.log.info("register imagebuilder")
+                self.worker_add_skill(imagebuilder.as_array())
+                self.imagebuilders.add(ir)
+                self.log.info("imagebuilder initialzed")
+            else:
+                # manage failures
+                # add in skill status
+                pass
+            print("yyy", self.imagebuilders)
+            self.log.info("added imagebuilder")
+>>>>>>> http-api
 
     def destroy(self, signal=None, frame=None):
         self.log.info("destroy worker %s", self.worker_id)
-        self.database.worker_destroy(self.worker_id)
-        sys.exit(0)
+        requests.post(self.config.get("server") + "/worker/destroy", json={"worker_id": self.worker_id})
+        exit(0)
 
     def run(self):
         self.log.info("register worker")
         self.worker_register()
         self.log.debug("setting up gnupg")
-        setup_gnupg()
+        #setup_gnupg()
         while True:
             self.log.debug("severing %s", self.imagebuilders)
             build_job_request = None
+            print(self.imagebuilders)
+            print("build request")
             for imagebuilder in self.imagebuilders:
+<<<<<<< HEAD
                 if ImageBuilder(*imagebuilder).created():
                     build_job_request = self.database.get_build_job(*imagebuilder)
                     if build_job_request:
                         break
                 else:
                     self.add_imagebuilder(*imagebuilder)
+=======
+                params = {}
+                params["distro"], params["release"], params["target"], params["subtarget"] = imagebuilder.split("/")
+
+                build_job_request = requests.post(self.config.get("server") + "/worker/build_job", json=params).json()
+                if build_job_request:
+                    break
+>>>>>>> http-api
+
 
             if build_job_request:
                 self.log.debug("found build job")
                 self.last_build_id = build_job_request[0]
-                image = Image(*build_job_request[2:9])
+                image = Image(self.worker_id, *build_job_request[2:9])
                 self.log.debug(image.as_array())
                 if not image.build():
                     self.log.warn("build failed for %s", image.as_array())
@@ -111,12 +157,12 @@ class Worker(threading.Thread):
                 time.sleep(5)
 
     def heartbeat(self):
-        self.log.debug("heartbeat %s", self.worker_id)
-        self.database.worker_heartbeat(self.worker_id)
+        requests.post(self.config.get("server") + "/worker/hearbeat", json={"worker_id": self.worker_id})
 
 class Image(ImageMeta):
-    def __init__(self, distro, release, target, subtarget, profile, packages=None):
+    def __init__(self, worker_id, distro, release, target, subtarget, profile, packages=None):
         super().__init__(distro, release, target, subtarget, profile, packages.split(" "))
+        self.worker_id = worker_id
 
     def filename_rename(self, content):
         if self.release == "snapshot":
@@ -136,8 +182,6 @@ class Image(ImageMeta):
 
 
         with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
-            already_created = False
-
             # only add manifest hash if special packages
             extra_image_name_array = []
             if not self.vanilla:
@@ -186,9 +230,10 @@ class Image(ImageMeta):
                 else:
                     path_array.append("vanilla")
 
-                self.store_path = os.path.join(*path_array)
+                self.store_path = "/tmp/worker/"
                 create_folder(self.store_path)
 
+<<<<<<< HEAD
                 self.log.debug(os.listdir(self.build_path))
                 for filename in os.listdir(self.build_path):
                     if filename == "sha256sums":
@@ -198,20 +243,37 @@ class Image(ImageMeta):
                             sums.write(self.filename_rename(content))
                             sums.truncate()
                     filename_output = os.path.join(self.store_path, self.filename_rename(filename))
+=======
+                with ZipFile(os.path.join(self.store_path, self.request_hash + ".zip"), 'w') as archive:
 
-                    self.log.info("move file %s", filename_output)
-                    shutil.move(os.path.join(self.build_path, filename), filename_output)
+                    for filename in os.listdir(self.build_path):
+                        if filename == "sha256sums":
+                            with open(os.path.join(self.build_path, filename), 'r+') as sums:
+                                content = sums.read()
+                                sums.seek(0)
+                                sums.write(self.filename_rename(content))
+                                sums.truncate()
+                            if sign_file(os.path.join(self.build_path, "sha256sums")):
+                                self.log.info("sha265sums sign successfull")
+                                archive.write(os.path.join(self.build_path, "sha256sums.sig"), arcname="sha256sums.sig")
 
-                if sign_file(os.path.join(self.store_path, "sha256sums")):
-                    self.log.info("signed sha256sums")
+                        self.log.info("add file %s", filename)
+                        archive.write(os.path.join(self.build_path, filename), arcname=self.filename_rename(filename))
 
-                if not already_created or entry_missing:
-                    sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
-                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
-                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
+                    log_name = "build-{}".format(self.image_hash)
+                    self.store_log(os.path.join(self.build_path, log_name ))
+                    archive.write(os.path.join(self.build_path, log_name + ".log"), arcname=log_name + ".log")
+>>>>>>> http-api
 
-                    sysupgrade = None
+                sign_file(os.path.join(self.store_path, self.request_hash + ".zip"))
 
+                sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
+                    "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
+                    "*-squashfs-sdcard.img.gz"]
+
+
+
+<<<<<<< HEAD
                     profile_in_sysupgrade = ""
                     if self.profile.lower() != "generic":
                         profile_in_sysupgrade = "*" + self.profile
@@ -221,76 +283,73 @@ class Image(ImageMeta):
                             sysupgrade = glob.glob(os.path.join(self.store_path, profile_in_sysupgrade + sysupgrade_file))
                         else:
                             break
+=======
+                sysupgrade = None
+>>>>>>> http-api
 
+                for sysupgrade_file in sysupgrade_files:
                     if not sysupgrade:
-                        self.log.debug("sysupgrade not found")
-                        if self.build_log.find("too big") != -1:
-                            self.log.warning("created image was to big")
-                            self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
-                            self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
-                            return False
-                        else:
-                            self.profile_in_name = None
-                            self.subtarget_in_name = None
-                            self.sysupgrade_suffix = ""
-                            self.build_status = "no_sysupgrade"
+                        sysupgrade = glob.glob(os.path.join(self.build_path, sysupgrade_file))
                     else:
-                        self.path = sysupgrade[0]
-                        sysupgrade_image = os.path.basename(self.path)
+                        self.sysupgrade_suffix = sysupgrade_file.replace("*", "")
+                        break
 
-                        self.subtarget_in_name = self.subtarget in sysupgrade_image
-                        self.profile_in_name = self.profile in sysupgrade_image
+                params = {}
+                params["image_hash"] = self.image_hash
+                params["distro"], params["release"], params["target"], params["subtarget"], params["profile"], params["manifest_hash"] = self.as_array_build()
+                params["vanilla"] = self.vanilla
+                params["build_seconds"] = self.build_seconds
+                params["subtarget_in_name"] = ""
+                params["sysupgrade_suffix"] = ""
+                params["profile_in_name"] = ""
 
-                        # ath25/generic/generic results in lede-17.01.4-ath25-generic-squashfs-sysupgrade...
-                        if (self.profile == self.subtarget and
-                                "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
-                            self.subtarget_in_name = False
+                if not sysupgrade:
+                    self.log.debug("sysupgrade not found")
+                    if self.build_log.find("too big") != -1:
+                        self.log.warning("created image was to big")
+                        #self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash))) TODO
+                        requests.post(self.config.get("server") + "/worker/request_status", json={"request_hash": self.request_hash, "status": "imagesize_fail"})
+                        return False
+                    else:
+                        self.profile_in_name = None
+                        self.subtarget_in_name = None
+                        self.sysupgrade_suffix = ""
+                        self.build_status = "no_sysupgrade"
+                else:
+                    self.path = sysupgrade[0]
+                    sysupgrade_image = os.path.basename(self.path)
 
-                        name_array = [self.distro]
+                    self.subtarget_in_name = self.subtarget in sysupgrade_image
+                    self.profile_in_name = self.profile in sysupgrade_image
 
-                        # snapshot build are no release
-                        if self.release != "snapshot":
-                            name_array.append(self.release)
+                    # ath25/generic/generic results in lede-17.01.4-ath25-generic-squashfs-sysupgrade...
+                    if (self.profile == self.subtarget and
+                            "{}-{}".format(self.subtarget, self.profile) not in sysupgrade_image):
+                        self.subtarget_in_name = False
 
-                        if not self.vanilla:
-                            name_array.append(self.manifest_hash)
+                    self.build_status = "created"
 
-                        name_array.append(self.target)
 
-                        if self.subtarget_in_name:
-                            name_array.append(self.subtarget)
+                    params["sysupgrade_suffix"] = self.sysupgrade_suffix
+                    params["subtarget_in_name"] = self.subtarget_in_name
+                    params["profile_in_name"] = self.profile_in_name
 
-                        if self.profile_in_name:
-                            name_array.append(self.profile)
+                self.log.debug("add image: {} {} {} {} {}".format(
+                    self.image_hash,
+                    self.as_array_build(),
+                    self.sysupgrade_suffix,
+                    self.subtarget_in_name,
+                    self.profile_in_name,
+                    self.vanilla,
+                    self.build_seconds))
 
-                        self.name = "-".join(name_array)
-
-                        self.sysupgrade_suffix = sysupgrade_image.replace(self.name + "-", "")
-                        self.build_status = "created"
-
-                    self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
-
-                    self.log.debug("add image: {} {} {} {} {}".format(
-                            self.image_hash,
-                            self.as_array_build(),
-                            self.sysupgrade_suffix,
-                            self.subtarget_in_name,
-                            self.profile_in_name,
-                            self.vanilla,
-                            self.build_seconds))
-                    self.database.add_image(
-                            self.image_hash,
-                            self.as_array_build(),
-                            self.sysupgrade_suffix,
-                            self.subtarget_in_name,
-                            self.profile_in_name,
-                            self.vanilla,
-                            self.build_seconds)
-                self.database.done_build_job(self.request_hash, self.image_hash, self.build_status)
+                requests.post(self.config.get("server") + "/worker/add_image", json=params)
+                requests.post(self.config.get("server") + "/worker/build_done", json={"image_hash": self.image_hash, "request_hash": self.request_hash, "status": self.build_status})
+                self.upload_image()
                 return True
             else:
                 self.log.info("build failed")
-                self.database.set_image_requests_status(self.request_hash, 'build_fail')
+                requests.post(self.config.get("server") + "/worker/request_status", json={"request_hash": self.request_hash, "status": "build_fail"})
                 self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
                 return False
 
@@ -311,7 +370,21 @@ class Image(ImageMeta):
         manifest_pattern = r"(.+) - (.+)\n"
         with open(glob.glob(os.path.join(self.build_path, '*.manifest'))[0], "r") as manifest_file:
             manifest_packages = dict(re.findall(manifest_pattern, manifest_file.read()))
-            self.database.add_manifest_packages(self.manifest_hash, manifest_packages)
+            requests.post(self.config.get("server") + "/worker/add_manifest", json={"manifest_hash": self.manifest_hash, "manifest_packages": manifest_packages})
+
+    def upload_image(self):
+        url = os.path.join(self.config.get("update_server"), "upload-image")
+        archive_file = os.path.join(self.store_path, self.request_hash + ".zip")
+        data = {
+                "request_hash": self.request_hash,
+                "worker_id": self.worker_id,
+                "image_hash": self.image_hash,
+                }
+        files = {
+                'archive': open(archive_file, 'rb'),
+                'signature': open(archive_file + ".sig", 'rb')
+                }
+        requests.post(self.config.get("server") + "/worker/upload", data=data, files=files)
 
     # check if image exists
     def created(self):

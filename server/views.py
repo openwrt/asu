@@ -5,6 +5,7 @@ from flask import render_template, request, send_from_directory, redirect, jsoni
 from shutil import rmtree
 import json
 import time
+from zipfile import ZipFile
 import socket
 import os
 import logging
@@ -17,7 +18,7 @@ from server import app
 import utils
 from utils.config import Config
 from utils.database import Database
-from utils.common import get_folder, create_folder, init_usign
+from utils.common import get_folder, create_folder, init_usign, usign_verify
 
 config = Config()
 database = Database(config)
@@ -202,3 +203,161 @@ def flush():
             database.flush_snapshots(distro, target, subtarget)
             return "", 200
     return "", 304
+
+@app.route("/worker/register", methods=['POST'])
+def worker_register():
+    request_json = request.json
+    print(request_json)
+    return str(database.worker_register(
+        request_json["worker_name"],
+        request_json["worker_address"],
+        request_json["worker_pubkey"]))
+
+@app.route("/worker/add_skill", methods=['POST'])
+def worker_add_skill():
+    request_json = request.json
+    return app.response_class(response=database.worker_add_skill(
+        request_json["worker_id"],
+        request_json["distro"],
+        request_json["release"],
+        request_json["target"],
+        request_json["subtarget"],
+        request_json["status"]),
+        mimetype='application/json')
+
+@app.route("/worker/needed", methods=['POST'])
+def worker_needed():
+    return app.response_class(response=database.worker_needed(worker=True),
+        mimetype='application/json')
+
+@app.route("/worker/destroy", methods=['POST'])
+def worker_destroy():
+    request_json = request.json
+    database.worker_destroy(request_json["worker_id"])
+    return "", 200
+
+@app.route("/worker/add_manifest", methods=['POST'])
+def worker_add_manifest():
+    rj = request.json
+    database.add_manifest_packages(rj["manifest_hash"], rj["manifest_packages"])
+    return "", 200
+
+@app.route("/worker/build_job", methods=['POST'])
+def worker_build_job():
+    request_json = request.json
+    result = database.get_build_job(
+        request_json["distro"],
+        request_json["release"],
+        request_json["target"],
+        request_json["subtarget"])
+    print(result)
+    return jsonify(result)
+
+@app.route("/worker/hearbeat", methods=['POST'])
+def worker_heartbeat():
+    request_json = request.json
+    database.worker_heartbeat(request_json["worker_id"])
+    return "", 200
+
+@app.route("/worker/build_done", methods=['POST'])
+def worker_build_done():
+    request_json = request.json
+    database.worker_done_build(request_json["request_hash"], request_json["image_hash"], request_json["status"])
+    return "", 200
+
+@app.route("/worker/request_status", methods=['POST'])
+def worker_request_status():
+    request_json = request.json
+    database.set_image_requests_status(request_json["request_hash"], request_json["status"])
+    return "", 200
+
+@app.route("/worker/add_image", methods=['POST'])
+def worker_add_image():
+    request_json = request.json
+    print("add image", request_json)
+    database.add_image(
+        request_json["image_hash"],
+        request_json["distro"],
+        request_json["release"],
+        request_json["target"],
+        request_json["subtarget"],
+        request_json["profile"],
+        request_json["manifest_hash"],
+        request_json["sysupgrade_suffix"],
+        request_json["subtarget_in_name"],
+        request_json["profile_in_name"],
+        request_json["vanilla"],
+        request_json["build_seconds"])
+    return "", 200
+
+@app.route("/worker/upload", methods=['POST'])
+def upload_image():
+    print(request.form)
+
+    if 'image_hash' not in request.form:
+        print('no image_hash')
+        return "no image_hash", HTTPStatus.BAD_REQUEST
+
+    if 'request_hash' not in request.form:
+        print('no request_hash')
+        return "no request_hash", HTTPStatus.BAD_REQUEST
+
+    request_hash = request.form["request_hash"]
+    status = database.check_image_request_hash(request_hash, status=True)
+    print(status)
+    if not (status == "created" or status == "no_sysupgrade"):
+        print("bad request id")
+        return "bad request id", HTTPStatus.BAD_REQUEST
+
+    archive_name = request_hash + ".zip"
+    signature_name = archive_name + ".sig"
+
+    if 'worker_id' not in request.form:
+        print("no worker id")
+        return "no worker_id", HTTPStatus.BAD_REQUEST
+
+    worker_id = request.form["worker_id"]
+
+    if 'signature' not in request.files:
+        print("no signature")
+        return "no signature", HTTPStatus.BAD_REQUEST
+
+    signature = request.files["signature"]
+    if signature.filename != signature_name:
+        print('bad signature')
+        return "bad signature", HTTPStatus.BAD_REQUEST
+    signature.save(os.path.join(get_folder("tempdir"), signature_name))
+
+    if 'archive' not in request.files:
+        print("no archive")
+        return "no archive", HTTPStatus.BAD_REQUEST
+
+    archive = request.files["archive"]
+    if archive.filename != archive_name:
+        print('bad archive')
+        return "bad archive", HTTPStatus.BAD_REQUEST
+
+    print("archive name", archive_name)
+    archive.save(os.path.join(get_folder("tempdir"), archive_name))
+
+    worker = database.get_worker(worker_id)
+    if not  worker:
+        print("bad worker id")
+        return "bad worker id", HTTPStatus.BAD_REQUEST
+
+    worker_pubkey = worker[3]
+
+    archive_path = os.path.join(get_folder("tempdir"), archive_name)
+
+    if usign_verify(archive_path, worker_pubkey):
+        image_path = database.get_image_path(request.form["image_hash"])
+        image_path_abs = os.path.join(get_folder("downloaddir"), image_path)
+        create_folder(image_path_abs)
+        zip_ref = ZipFile(archive_path, 'r')
+        zip_ref.extractall(image_path_abs)
+        zip_ref.close()
+        print("file extracted")
+        return "all done", HTTPStatus.OK
+    else:
+        print("bad signature")
+        return "bad signature", HTTPStatus.BAD_REQUEST
