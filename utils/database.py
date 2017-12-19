@@ -157,7 +157,8 @@ class Database():
     def get_subtarget_outdated(self):
         sql = """select distro, release, target, subtarget
             from subtargets
-            where last_sync < NOW() - INTERVAL '1 day'
+            where last_sync < NOW() - INTERVAL '1 day' and
+            release != 'snapshot'
             order by (last_sync) asc limit 1;"""
         self.c.execute(sql)
         if self.c.rowcount == 1:
@@ -603,6 +604,13 @@ class Database():
     def flush_snapshots(self, distro="%", target="%", subtarget="%"):
         self.log.debug("flush snapshots")
         sql = """delete from images where
+            distro LIKE ? and
+            target LIKE ? and
+            subtarget LIKE ? and
+            release = 'snapshot';"""
+        self.c.execute(sql, distro, target, subtarget)
+
+        sql = """delete from image_requests where
             distro LIKE ? and
             target LIKE ? and
             subtarget LIKE ? and
