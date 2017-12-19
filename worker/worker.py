@@ -207,13 +207,18 @@ class Image(ImageMeta):
 
                 if not already_created or entry_missing:
                     sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
-                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin", "*-squashfs-sdcard.img.gz"]
+                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
+                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
 
                     sysupgrade = None
 
+                    profile_in_sysupgrade = ""
+                    if self.profile.lower() != "generic":
+                        profile_in_sysupgrade = "*" + self.profile
+
                     for sysupgrade_file in sysupgrade_files:
                         if not sysupgrade:
-                            sysupgrade = glob.glob(os.path.join(self.store_path, sysupgrade_file))
+                            sysupgrade = glob.glob(os.path.join(self.store_path, profile_in_sysupgrade + sysupgrade_file))
                         else:
                             break
 
