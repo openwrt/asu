@@ -2,7 +2,9 @@
 
 from flask import Flask
 from flask import render_template, request, send_from_directory, redirect, jsonify
+from shutil import rmtree
 import json
+import time
 import socket
 import os
 import logging
@@ -178,3 +180,25 @@ def image_info(manifest_hash):
 @app.route("/contact")
 def contact():
     return render_template("contact.html")
+
+@app.route("/api/flush")
+def flush():
+    distro = request.args.get('distro', "openwrt")
+    target = request.args.get('target')
+    subtarget = request.args.get('subtarget')
+    if not database.check_subtarget(distro, "snapshot", target, subtarget):
+        return "", 400
+
+    imagebuilder_folder = os.path.join(get_folder("imagebuilder_folder"), distro, "snapshot", target, subtarget)
+    if os.path.exists(imagebuilder_folder):
+        ib_age = time.time() - os.stat(imagebuilder_folder).st_mtime
+        if ib_age > (60*60*24): # 1 day
+            rmtree(imagebuilder_folder)
+
+            downloaddir = os.path.join(get_folder("downloaddir"), distro, "snapshot", target, subtarget)
+            if os.path.exists(downloaddir):
+                rmtree(downloaddir)
+
+            database.flush_snapshots(distro, target, subtarget)
+            return "", 200
+    return "", 304

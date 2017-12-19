@@ -95,6 +95,15 @@ class Database():
             self.c.execute(sql, distro, release, target, subtarget, profile_name, profile_model, profile_packages)
         self.commit()
 
+    def check_subtarget(self, distro, release, target, subtarget):
+        self.c.execute("""SELECT 1 from subtargets
+            WHERE distro=? and release=? and target=? and subtarget = ? LIMIT 1;""",
+            distro, release, target, subtarget)
+        if self.c.rowcount == 1:
+            return True
+        else:
+            return False
+
     def check_profile(self, distro, release, target, subtarget, profile):
         self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
         self.c.execute("""SELECT profile FROM profiles
@@ -591,11 +600,21 @@ class Database():
         result = self.c.fetchall()
         return result
 
-    def flush_snapshots(self):
+    def flush_snapshots(self, distro="%", target="%", subtarget="%"):
         self.log.debug("flush snapshots")
-        sql = """delete from images where release = 'snapshot';
-        update subtargets set last_sync = date('1970-01-01') where release = 'snapshot';"""
-        self.c.execute(sql)
+        sql = """delete from images where
+            distro LIKE ? and
+            target LIKE ? and
+            subtarget LIKE ? and
+            release = 'snapshot';"""
+        self.c.execute(sql, distro, target, subtarget)
+
+        sql = """update subtargets set last_sync = date('1970-01-01') where
+            distro LIKE ? and
+            target LIKE ? and
+            subtarget LIKE ? and
+            release = 'snapshot';"""
+        self.c.execute(sql, distro, target, subtarget)
         self.commit()
 
     def insert_board_rename(self, distro, release, origname, newname):

@@ -48,36 +48,20 @@ class Worker(threading.Thread):
     def worker_add_skill(self, imagebuilder):
         self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
 
-    def add_imagebuilder(self):
+    def add_imagebuilder(self, distro, release, target, subtarget):
         self.log.info("adding imagebuilder")
-        imagebuilder_request = None
-
-        while not imagebuilder_request:
-            imagebuilder_request = self.database.worker_needed()
-            if not imagebuilder_request:
-                self.heartbeat()
-                time.sleep(5)
-                continue
-
-            self.log.info("found worker_needed %s", imagebuilder_request)
-            for imagebuilder_setup in self.imagebuilders:
-                if len(set(imagebuilder_setup).intersection(imagebuilder_request)) == 4:
-                    self.log.info("already handels imagebuilder")
-                    return
-
-            self.distro, self.release, self.target, self.subtarget = imagebuilder_request
-            self.log.info("worker serves %s %s %s %s", self.distro, self.release, self.target, self.subtarget)
-            imagebuilder = ImageBuilder(self.distro, str(self.release), self.target, self.subtarget)
-            self.log.info("initializing imagebuilder")
-            if imagebuilder.run():
-                self.log.info("register imagebuilder")
-                self.worker_add_skill(imagebuilder.as_array())
-                self.imagebuilders.append(imagebuilder.as_array())
-                self.log.info("imagebuilder initialzed")
-            else:
-                # manage failures
-                # add in skill status
-                pass
+        self.log.info("worker serves %s %s %s %s", distro, release, target, subtarget)
+        imagebuilder = ImageBuilder(distro, str(release), target, subtarget)
+        self.log.info("initializing imagebuilder")
+        if imagebuilder.run():
+            self.log.info("register imagebuilder")
+            self.worker_add_skill(imagebuilder.as_array())
+            self.imagebuilders.append(imagebuilder.as_array())
+            self.log.info("imagebuilder initialzed")
+        else:
+            # manage failures
+            # add in skill status
+            pass
         self.log.info("added imagebuilder")
 
     def destroy(self, signal=None, frame=None):
@@ -94,9 +78,12 @@ class Worker(threading.Thread):
             self.log.debug("severing %s", self.imagebuilders)
             build_job_request = None
             for imagebuilder in self.imagebuilders:
-                build_job_request = self.database.get_build_job(*imagebuilder)
-                if build_job_request:
-                    break
+                if ImageBuilder(*imagebuilder).created():
+                    build_job_request = self.database.get_build_job(*imagebuilder)
+                    if build_job_request:
+                        break
+                else:
+                    self.add_imagebuilder(*imagebuilder)
 
             if build_job_request:
                 self.log.debug("found build job")
@@ -108,7 +95,18 @@ class Worker(threading.Thread):
             else:
                 # heartbeat should be more less than 5 seconds
                 if len(self.imagebuilders) < MAX_TARGETS or MAX_TARGETS == 0:
-                    self.add_imagebuilder()
+                    imagebuilder_request = None
+                    while not imagebuilder_request:
+                        imagebuilder_request = self.database.worker_needed()
+                        if not imagebuilder_request:
+                            self.heartbeat()
+                            time.sleep(5)
+                            continue
+
+                        self.log.info("found worker_needed %s", imagebuilder_request)
+                        if not imagebuilder_request in self.imagebuilders:
+                            self.add_imagebuilder(*imagebuilder_request)
+
                 self.heartbeat()
                 time.sleep(5)
 
@@ -209,8 +207,7 @@ class Image(ImageMeta):
 
                 if not already_created or entry_missing:
                     sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
-                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
-                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
+                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin", "*-squashfs-sdcard.img.gz"]
 
                     sysupgrade = None
 
