@@ -5,7 +5,7 @@ from collections import OrderedDict
 from server.request import Request
 from utils.common import get_hash
 
-class UpdateRequest(Request):
+class UpgradeCheck(Request):
     def __init__(self, config, db):
         super().__init__(config, db)
         self.log = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class UpdateRequest(Request):
 
     def _request(self):
         if "request_hash" in self.request_json:
-            check_result = self.database.check_upgrade_request_hash(self.request_json["request_hash"])
+            check_result = self.database.check_upgrade_check_hash(self.request_json["request_hash"])
             if check_result:
                 self.response_json = check_result
             else:
