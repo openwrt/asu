@@ -225,7 +225,7 @@ def worker_add_skill():
         request_json["status"]),
         mimetype='application/json')
 
-@app.route("/worker/needed", methods=['POST'])
+@app.route("/worker/needed")
 def worker_needed():
     return app.response_class(response=database.worker_needed(worker=True),
         mimetype='application/json')
