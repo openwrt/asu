@@ -11,8 +11,8 @@ import os
 import logging
 from http import HTTPStatus
 
-from server.update_request import UpdateRequest
-from server.image_request import ImageRequest
+from server.build_request import BuildRequest
+from server.upgrade_check import UpgradeCheck
 from server import app
 
 import utils
@@ -23,8 +23,8 @@ from utils.common import get_folder, create_folder, init_usign, usign_verify
 config = Config()
 database = Database(config)
 
-ur = UpdateRequest(config, database)
-ir = ImageRequest(config, database)
+uc = UpgradeCheck(config, database)
+br = BuildRequest(config, database)
 
 @app.route("/update-request", methods=['POST'])
 @app.route("/api/upgrade-check", methods=['POST'])
@@ -39,7 +39,7 @@ def api_upgrade_check(request_hash=None):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
-    return ur.request(request_json)
+    return uc.request(request_json)
 
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
@@ -65,7 +65,7 @@ def api_upgrade_request(request_hash=None):
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
 
-    return ir.request(request_json, sysupgrade=1)
+    return br.request(request_json, sysupgrade=1)
 
 @app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
@@ -80,7 +80,7 @@ def api_files_request(request_hash=None):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
-    return ir.request(request_json)
+    return br.request(request_json)
 
 @app.route("/")
 def root_path():

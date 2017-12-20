@@ -219,14 +219,14 @@ class Database():
         else:
             return None
 
-    def check_upgrade_request_hash(self, request_hash):
+    def check_upgrade_check_hash(self, request_hash):
         self.log.debug("check_upgrade_hash")
         # postgresql is my new crossword puzzle
         sql = """SELECT to_json(sub) AS response
             FROM  (
                SELECT response_release as version, json_object_agg(name, version) AS "packages"
                FROM  upgrade_requests ur
-               LEFT JOIN manifest_packages mp ON  mp.manifest_hash = ur.response_manifest
+               LEFT JOIN manifest_packages mp ON mp.manifest_hash = ur.response_manifest
                WHERE ur.request_hash = ?
                GROUP BY ur.response_release, ur.response_manifest
                ) sub;
@@ -237,7 +237,7 @@ class Database():
         else:
             return None
 
-    def check_request(self, request):
+    def check_build_request(self, request):
         request_array = request.as_array()
         request_hash = get_hash(" ".join(request_array), 12)
         self.log.debug("check_request")

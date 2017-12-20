@@ -7,7 +7,7 @@ from flask import Response
 from utils.imagemeta import ImageMeta
 from server.request import Request
 
-class ImageRequest(Request):
+class BuildRequest(Request):
     def __init__(self, config, db):
         super().__init__(config, db)
 
@@ -18,7 +18,7 @@ class ImageRequest(Request):
             return self.respond()
 
         if "request_hash" in self.request_json:
-            check_result = self.database.check_image_request_hash(self.request_json["request_hash"])
+            check_result = self.database.check_build_request_hash(self.request_json["request_hash"])
             if check_result:
                 image_hash, request_id, request_hash, request_status = check_result
             else:
@@ -58,7 +58,7 @@ class ImageRequest(Request):
                     return self.respond()
 
             self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages)
-            image_hash, request_id, request_hash, request_status = self.database.check_request(self.imagemeta)
+            image_hash, request_id, request_hash, request_status = self.database.check_build_request(self.imagemeta)
             self.log.debug("found image in database: %s", request_status)
 
         # the sysupgrade should be stored in a different way but works for now
