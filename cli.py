@@ -63,7 +63,8 @@ class ServerCli():
                         where distro = ? and
                         release = ? and
                         target = ? and
-                        subtarget = ?
+                        subtarget = ? and
+                        profile != 'Default'
                         order by profile desc
                         limit 1;"""
                     profile_request = self.database.c.execute(sql, distro, release, target, subtarget)
