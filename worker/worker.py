@@ -280,7 +280,7 @@ class Image(ImageMeta):
                             self.build_seconds))
                     self.database.add_image(
                             self.image_hash,
-                            self.as_array_build(),
+                            *self.as_array_build(),
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
