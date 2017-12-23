@@ -12,7 +12,6 @@ class Database():
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
         self.config = config
-        print("db config", config)
         self.log.info("config initialized")
         connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
                 self.config.get("database_type"), self.config.get("database_address"), self.config.get("database_name"), self.config.get("database_user"),
@@ -57,6 +56,13 @@ class Database():
         """
         self.c.execute(sql, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
         self.commit()
+
+    def check_distro(self, distro):
+        self.c.execute("select 1 from distributions where name = ?", distro)
+        if self.c.rowcount == 1:
+            return True
+        else:
+            return False
 
     def get_releases(self, distro=None):
         if not distro:
@@ -157,8 +163,11 @@ class Database():
     def get_subtarget_outdated(self):
         sql = """select distro, release, target, subtarget
             from subtargets
-            where last_sync < NOW() - INTERVAL '1 day' and
-            release != 'snapshot'
+            where 
+            (last_sync < NOW() - INTERVAL '1 day' and
+            release != 'snapshot') 
+            or
+            last_sync < '1970-01-02'
             order by (last_sync) asc limit 1;"""
         self.c.execute(sql)
         if self.c.rowcount == 1:

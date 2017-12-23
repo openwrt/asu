@@ -26,7 +26,7 @@ class Request():
         else:
             self.distro = self.request_json["distro"].lower()
 
-            if not self.distro in self.config.get("distributions").keys():
+            if not self.database.check_distro(self.distro):
                 self.log.info("update request unknown distro")
                 self.response_json["error"] = "unknown distribution %s" % self.distro
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412

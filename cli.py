@@ -104,17 +104,17 @@ class ServerCli():
 
     def init_server(self):
         self.download_releases()
-        for distro in self.config.get("distributions"):
-            for release in self.config.get(distro).get("releases"):
-                alias = self.config.get(distro).get("distro_alias")
-                self.log.info("set alias %s for %s", distro, alias)
-                self.database.set_distro_alias(distro, alias)
-                print("fo", distro, release)
-                supported = self.config.release(distro, release).get("supported")
-                print(supported)
-                if supported:
-                    for target in [x.split("/") for x in supported]:
-                        self.database.insert_supported(distro, release, *target)
+        for distro in get_distros():
+            alias = self.config.get(distro).get("distro_alias")
+            self.log.info("set alias %s for %s", distro, alias)
+            self.database.set_distro_alias(distro, alias)
+            releases = self.config.get(distro).get("releases", False)
+            if releases:
+                for release in releases:
+                    supported = self.config.release(distro, release).get("supported")
+                    if supported:
+                        for target in [x.split("/") for x in supported]:
+                            self.database.insert_supported(distro, release, *target)
 
     def download_releases(self):
         for distro in get_distros():
@@ -201,5 +201,5 @@ class ServerCli():
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
-sc.download_releases()
+#sc.download_releases()
 #sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")
