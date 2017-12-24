@@ -44,7 +44,7 @@ def api_upgrade_check(request_hash=None):
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
-    return send_from_directory(directory=os.path.join(config.get_folder("downloaddir"), image_path), filename=image_name)
+    return send_from_directory(directory=os.path.join(config.get_folder("download_folder"), image_path), filename=image_name)
 
 # request methos for individual image
 # uses post methos to receive build information
@@ -196,7 +196,7 @@ def flush():
         if ib_age > (60*60*24): # 1 day
             rmtree(imagebuilder_folder)
 
-            downloaddir = os.path.join(config.get_folder("downloaddir"), distro, "snapshot", target, subtarget)
+            downloaddir = os.path.join(config.get_folder("download_folder"), distro, "snapshot", target, subtarget)
             if os.path.exists(downloaddir):
                 rmtree(downloaddir)
 
@@ -355,7 +355,7 @@ def upload_image():
 
     if usign_verify(archive_path, worker_pubkey):
         image_path = database.get_image_path(request.form["image_hash"])
-        image_path_abs = os.path.join(config.get_folder("downloaddir"), image_path)
+        image_path_abs = os.path.join(config.get_folder("download_folder"), image_path)
         os.makedirs(image_path_abs)
         zip_ref = ZipFile(archive_path, 'r')
         zip_ref.extractall(image_path_abs)

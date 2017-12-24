@@ -17,7 +17,7 @@ distro_folder: distributions
 download_folder: download
 tempdir: /tmp
 key_folder: keys
-worker_keys: server/static/keys/
+worker_keys: server/static/keys
 
 # worker
 worker: <worker_name>

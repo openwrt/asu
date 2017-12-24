@@ -13,7 +13,7 @@ import server.views
 
 config = Config()
 
-makedirs("{}/{}".format(config.get_folder("downloaddir"), "faillogs"), exist_ok=True)
+makedirs("{}/{}".format(config.get_folder("download_folder"), "faillogs"), exist_ok=True)
 if config.get("sign_images"):
     print("sign workers")
     init_usign()
