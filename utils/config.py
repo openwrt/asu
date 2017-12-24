@@ -15,8 +15,8 @@ class Config():
         with open(self.config_file, 'r') as ymlfile:
             self.config = yaml.load(ymlfile)
 
-        for distro in os.listdir("distributions"):
-            with open(os.path.join("distributions", distro, "distro_config.yml"), 'r') as ymlfile:
+        for distro in self.get_distros():
+            with open(os.path.join(self.get_folder("distro_folder"), distro, "distro_config.yml"), 'r') as ymlfile:
                 self.config[distro] = yaml.load(ymlfile)
 
             if self.config.get(distro).get("releases"):
