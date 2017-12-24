@@ -18,7 +18,7 @@ from server import app
 import utils
 from utils.config import Config
 from utils.database import Database
-from utils.common import init_usign, usign_verify
+from utils.common import init_usign, usign_verify, usign_sign
 
 config = Config()
 database = Database(config)
@@ -211,9 +211,10 @@ def worker_register():
         request_json["worker_name"],
         request_json["worker_address"],
         request_json["worker_pubkey"]))
-    with open(config.get("worker_keys") + "/worker-" + worker_id, "w") as worker_key:
-        worker_key.writelines(request_json["worker_pubkey"])
-
+    worker_pubkey_path = config.get("worker_keys") + "/worker-" + worker_id, "w"
+    with open(worker_pubkey_path, "w") as worker_pubkey:
+        worker_pubkey.writelines(request_json["worker_pubkey"])
+    usign_sign(worker_pubkey)
 
 @app.route("/worker/add_skill", methods=['POST'])
 def worker_add_skill():

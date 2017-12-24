@@ -69,7 +69,11 @@ def get_pubkey():
     with open(os.path.join(key_folder, "public"), "r") as pubkey_file:
         return pubkey_file.readlines()[1].strip()
 
+# to be removed
 def sign_file(image_path):
+    usign_sign(image_path)
+
+def usign_sign(image_path):
     key_folder = config.get_folder("key_folder")
     cmdline = ['usign', '-S', '-s', 'secret', '-m', image_path]
     proc = subprocess.Popen(

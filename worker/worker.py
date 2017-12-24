@@ -1,5 +1,6 @@
 import threading
 import glob
+import requests
 import re
 from socket import gethostname
 import shutil
@@ -20,7 +21,7 @@ import yaml
 
 from worker.imagebuilder import ImageBuilder
 from utils.imagemeta import ImageMeta
-from utils.common import get_hash, setup_gnupg, sign_file, get_pubkey, init_usign
+from utils.common import get_hash, setup_gnupg, usign_sign, get_pubkey, init_usign
 from utils.config import Config
 from utils.database import Database
 
@@ -37,14 +38,19 @@ class Worker(threading.Thread):
         self.log.info("database initialized")
         self.worker_id = None
         self.imagebuilders = []
+        self.auth = (self.config.get("worker"), self.config.get("password"))
         init_usign()
+
+    def api(self, path, data=None, json=None, files=None):
+        return requests.post(self.config.get("server") + path, json=json, data=data, files=files, auth=self.auth).json()
 
     def worker_register(self):
         self.worker_name = gethostname()
         self.worker_address = ""
         self.worker_pubkey = get_pubkey()
         self.log.info("register worker '%s' '%s' '%s'", self.worker_name, self.worker_address, self.worker_pubkey)
-        self.worker_id = str(self.database.worker_register(self.worker_name, self.worker_address, self.worker_pubkey))
+        json = {"worker_name": gethostname(), "worker_address": "", "worker_pubkey": get_pubkey()}
+        self.worker_id = self.api("/worker/register", json=json)
 
     def worker_add_skill(self, imagebuilder):
         self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
@@ -203,8 +209,8 @@ class Image(ImageMeta):
                     self.log.info("move file %s", filename_output)
                     shutil.move(os.path.join(self.build_path, filename), filename_output)
 
-                if sign_file(os.path.join(self.store_path, "sha256sums")):
-                    self.log.info("signed sha256sums")
+                usign_sign(os.path.join(self.store_path, "sha256sums"))
+                self.log.info("signed sha256sums")
 
                 if not already_created or entry_missing:
                     sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",

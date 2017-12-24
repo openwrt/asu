@@ -52,7 +52,7 @@ class Database():
     def insert_upgrade_check(self, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest):
         sql = """insert into upgrade_requests
             (request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
-            values (?, ?, ?, ?, ?, ?, ?, ?) 
+            values (?, ?, ?, ?, ?, ?, ?, ?)
         """
         self.c.execute(sql, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
         self.commit()
