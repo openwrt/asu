@@ -287,6 +287,7 @@ def worker_add_image():
         request_json["subtarget"],
         request_json["profile"],
         request_json["manifest_hash"],
+        request_json["worker_id"],
         request_json["sysupgrade_suffix"],
         request_json["subtarget_in_name"],
         request_json["profile_in_name"],

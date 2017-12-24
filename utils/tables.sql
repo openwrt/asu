@@ -439,6 +439,7 @@ create table if not exists images_table (
 	image_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id) ON DELETE CASCADE,
 	manifest_id integer references manifest_table(id) ON DELETE CASCADE,
+	worker_id integer references worker(id) ON DELETE CASCADE,
 	build_date timestamp,
 	sysupgrade_suffix_id integer references sysupgrade_suffixes(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'untested',
@@ -450,18 +451,18 @@ create table if not exists images_table (
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla, build_seconds
+images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, worker_id, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla, build_seconds
 from profiles, images_table, manifest_table, sysupgrade_suffixes
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_suffix_id = sysupgrade_suffixes.id;
 
-create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean, build_seconds decimal) returns void as
+create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, worker_id integer, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean, build_seconds decimal) returns void as
 $$
 begin
 	insert into sysupgrade_suffixes (sysupgrade_suffix) values (add_image.sysupgrade_suffix) on conflict do nothing;
-	insert into images_table (image_hash, profile_id, manifest_id, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds) values (
+	insert into images_table (image_hash, profile_id, manifest_id, worker_id, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds) values (
 		add_image.image_hash,
 		(select profiles.id from profiles where
 			profiles.distro = add_image.distro and
@@ -471,6 +472,7 @@ begin
 			profiles.profile = add_image.profile),
 		(select manifest_table.id from manifest_table where
 			manifest_table.hash = add_image.manifest_hash),
+		add_image.worker_id,
 		(select sysupgrade_suffixes.id from sysupgrade_suffixes where
 			sysupgrade_suffixes.sysupgrade_suffix = add_image.sysupgrade_suffix),
 		add_image.build_date,
@@ -492,6 +494,7 @@ SELECT add_image(
 	NEW.subtarget,
 	NEW.profile,
 	NEW.manifest_hash,
+	NEW.worker_id,
 	NEW.sysupgrade_suffix,
 	NEW.build_date,
 	NEW.subtarget_in_name,

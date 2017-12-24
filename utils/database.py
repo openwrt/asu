@@ -288,7 +288,7 @@ class Database():
         else:
             return False
 
-    def add_image(self, image_hash, distro, release, target, subtarget, profile, manifest_hash, sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds=0):
+    def add_image(self, image_hash, distro, release, target, subtarget, profile, manifest_hash, worker_id, sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds=0):
         sql = """INSERT INTO images
             (image_hash,
             distro,
@@ -297,16 +297,18 @@ class Database():
             subtarget,
             profile,
             manifest_hash,
+            worker_id,
             sysupgrade_suffix,
             build_date,
             subtarget_in_name,
             profile_in_name,
             vanilla,
             build_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
         self.c.execute(sql,
                 image_hash,
                 distro, release, target, subtarget, profile, manifest_hash,
+                worker_id,
                 sysupgrade_suffix,
                 'true' if subtarget_in_name else 'false', # dirty, outdated pyodbc?
                 'true' if profile_in_name else 'false',

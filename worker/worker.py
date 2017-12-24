@@ -51,7 +51,6 @@ class Worker(threading.Thread):
         self.log.info("register worker '%s' '%s' '%s'", self.worker_name, self.worker_address, self.worker_pubkey)
         json = {'worker_name': gethostname(), 'worker_address': '', 'worker_pubkey': get_pubkey()}
         self.worker_id = str(self.api("/worker/register", json=json))
-        print(self.worker_id)
 
     def worker_add_skill(self, imagebuilder):
         self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
@@ -96,7 +95,7 @@ class Worker(threading.Thread):
             if build_job_request:
                 self.log.debug("found build job")
                 self.last_build_id = build_job_request[0]
-                image = Image(*build_job_request[2:9])
+                image = Image(self.worker_id, *build_job_request[2:9])
                 self.log.debug(image.as_array())
                 if not image.build():
                     self.log.warn("build failed for %s", image.as_array())
@@ -123,7 +122,8 @@ class Worker(threading.Thread):
         self.database.worker_heartbeat(self.worker_id)
 
 class Image(ImageMeta):
-    def __init__(self, distro, release, target, subtarget, profile, packages=None):
+    def __init__(self, worker_id, distro, release, target, subtarget, profile, packages=None):
+        self.worker_id = worker_id
         super().__init__(distro, release, target, subtarget, profile, packages.split(" "))
 
     def filename_rename(self, content):
@@ -188,7 +188,7 @@ class Image(ImageMeta):
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
 
-                path_array = [self.config.get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile]
+                path_array = [self.config.get_folder("download_folder"), self.distro, self.release, self.target, self.subtarget, self.profile]
                 if not self.vanilla:
                     path_array.append(self.manifest_hash)
                 else:
@@ -234,7 +234,7 @@ class Image(ImageMeta):
                         self.log.debug("sysupgrade not found")
                         if self.build_log.find("too big") != -1:
                             self.log.warning("created image was to big")
-                            self.store_log(os.path.join(self.config.get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
+                            self.store_log(os.path.join(self.config.get_folder("download_folder"), "faillogs/request-{}".format(self.request_hash)))
                             self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                             return False
                         else:
@@ -278,9 +278,10 @@ class Image(ImageMeta):
 
                     self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
 
-                    self.log.debug("add image: {} {} {} {} {}".format(
+                    self.log.debug("add image: {} {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
+                            self.worker_id,
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
@@ -289,6 +290,7 @@ class Image(ImageMeta):
                     self.database.add_image(
                             self.image_hash,
                             *self.as_array_build(),
+                            self.worker_id,
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
@@ -299,7 +301,7 @@ class Image(ImageMeta):
             else:
                 self.log.info("build failed")
                 self.database.set_image_requests_status(self.request_hash, 'build_fail')
-                self.store_log(os.path.join(self.config.get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
+                self.store_log(os.path.join(self.config.get_folder("download_folder"), "faillogs/request-{}".format(self.request_hash)))
                 return False
 
     def store_log(self, path):
