@@ -211,10 +211,11 @@ def worker_register():
         request_json["worker_name"],
         request_json["worker_address"],
         request_json["worker_pubkey"]))
-    worker_pubkey_path = config.get("worker_keys") + "/worker-" + worker_id, "w"
+    worker_pubkey_path = config.get("worker_keys") + "/worker-" + worker_id
     with open(worker_pubkey_path, "w") as worker_pubkey:
         worker_pubkey.writelines(request_json["worker_pubkey"])
-    usign_sign(worker_pubkey)
+    usign_sign(worker_pubkey_path)
+    return worker_id
 
 @app.route("/worker/add_skill", methods=['POST'])
 def worker_add_skill():

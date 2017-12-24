@@ -31,7 +31,7 @@ class ImageBuilder(threading.Thread):
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
-        self.path = os.path.join(config.get_folder("imagebuilder_folder"), self.distro, self.version, self.target, self.subtarget)
+        self.path = os.path.join(self.config.get_folder("imagebuilder_folder"), self.distro, self.version, self.target, self.subtarget)
         self.log.debug("imagebuilder path %s", self.path)
 
     def created(self):
@@ -149,7 +149,7 @@ class ImageBuilder(threading.Thread):
         return True
 
     def download(self, url):
-        with tempfile.TemporaryDirectory(dir=config.get_folder("tempdir")) as tempdir:
+        with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as tempdir:
             self.log.info("downloading signature")
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums"), (tempdir + "/sha256sums"))
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
