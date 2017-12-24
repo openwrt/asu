@@ -1,11 +1,13 @@
 import yaml
 import os.path
+import os
+from os import listdir, makedirs
 from shutil import copyfile
 
 class Config():
-    def __init__(self, config_file="config.yml"):
+    def __init__(self):
         self.config = {}
-        self.config_file = config_file
+        self.config_file = "config.yml"
 
         if not os.path.exists(self.config_file):
             copyfile(("config.yml.default"), self.config_file)
@@ -32,3 +34,17 @@ class Config():
         if opt in self.config:
             return self.config[opt]
         return alt
+
+    def get_folder(self, requested_folder):
+        folder = self.config.get(requested_folder)
+        if folder:
+            if not os.path.exists(folder): os.makedirs(folder)
+            return os.path.abspath(folder)
+
+        # if unset use $PWD/<requested_folder>
+        default_folder = os.path.join(os.getcwdb(), requested_folder)
+        if not os.path.exists(default_folder): makedirs(default_folder)
+        return os.path.abspath(default_folder)
+
+    def get_distros(self):
+        return(listdir(self.config.get("distro_folder")))

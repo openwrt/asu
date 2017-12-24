@@ -18,7 +18,7 @@ from server import app
 import utils
 from utils.config import Config
 from utils.database import Database
-from utils.common import get_folder, create_folder, init_usign, usign_verify
+from utils.common import init_usign, usign_verify
 
 config = Config()
 database = Database(config)
@@ -44,7 +44,7 @@ def api_upgrade_check(request_hash=None):
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
 def download_image(image_path, image_name):
-    return send_from_directory(directory=os.path.join(get_folder("downloaddir"), image_path), filename=image_name)
+    return send_from_directory(directory=os.path.join(config.get_folder("downloaddir"), image_path), filename=image_name)
 
 # request methos for individual image
 # uses post methos to receive build information
@@ -190,13 +190,13 @@ def flush():
     if not database.check_subtarget(distro, "snapshot", target, subtarget):
         return "", 400
 
-    imagebuilder_folder = os.path.join(get_folder("imagebuilder_folder"), distro, "snapshot", target, subtarget)
+    imagebuilder_folder = os.path.join(config.get_folder("imagebuilder_folder"), distro, "snapshot", target, subtarget)
     if os.path.exists(imagebuilder_folder):
         ib_age = time.time() - os.stat(imagebuilder_folder).st_mtime
         if ib_age > (60*60*24): # 1 day
             rmtree(imagebuilder_folder)
 
-            downloaddir = os.path.join(get_folder("downloaddir"), distro, "snapshot", target, subtarget)
+            downloaddir = os.path.join(config.get_folder("downloaddir"), distro, "snapshot", target, subtarget)
             if os.path.exists(downloaddir):
                 rmtree(downloaddir)
 
@@ -207,11 +207,13 @@ def flush():
 @app.route("/worker/register", methods=['POST'])
 def worker_register():
     request_json = request.json
-    print(request_json)
-    return str(database.worker_register(
+    worker_id = str(database.worker_register(
         request_json["worker_name"],
         request_json["worker_address"],
         request_json["worker_pubkey"]))
+    with open(config.get("worker_keys") + "/worker-" + worker_id, "w") as worker_key:
+        worker_key.writelines(request_json["worker_pubkey"])
+
 
 @app.route("/worker/add_skill", methods=['POST'])
 def worker_add_skill():
@@ -326,7 +328,7 @@ def upload_image():
     if signature.filename != signature_name:
         print('bad signature')
         return "bad signature", HTTPStatus.BAD_REQUEST
-    signature.save(os.path.join(get_folder("tempdir"), signature_name))
+    signature.save(os.path.join(config.get_folder("tempdir"), signature_name))
 
     if 'archive' not in request.files:
         print("no archive")
@@ -338,7 +340,7 @@ def upload_image():
         return "bad archive", HTTPStatus.BAD_REQUEST
 
     print("archive name", archive_name)
-    archive.save(os.path.join(get_folder("tempdir"), archive_name))
+    archive.save(os.path.join(config.get_folder("tempdir"), archive_name))
 
     worker = database.get_worker(worker_id)
     if not  worker:
@@ -347,12 +349,12 @@ def upload_image():
 
     worker_pubkey = worker[3]
 
-    archive_path = os.path.join(get_folder("tempdir"), archive_name)
+    archive_path = os.path.join(config.get_folder("tempdir"), archive_name)
 
     if usign_verify(archive_path, worker_pubkey):
         image_path = database.get_image_path(request.form["image_hash"])
-        image_path_abs = os.path.join(get_folder("downloaddir"), image_path)
-        create_folder(image_path_abs)
+        image_path_abs = os.path.join(config.get_folder("downloaddir"), image_path)
+        os.makedirs(image_path_abs)
         zip_ref = ZipFile(archive_path, 'r')
         zip_ref.extractall(image_path_abs)
         zip_ref.close()
