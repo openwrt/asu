@@ -16,8 +16,8 @@ imagebuilder_folder: imagebuilder
 distro_folder: distributions
 download_folder: download
 tempdir: /tmp
-key_folder: keys
-worker_keys: server/static/keys
+keys_private: keys
+keys_public: server/static/keys
 
 # worker
 worker: <worker_name>

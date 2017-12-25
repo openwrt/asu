@@ -31,27 +31,44 @@ def get_statuscode(url):
     else:
         return 200
 
-def setup_gnupg():
-    gpg_folder = config.get_folder("key_folder")
+def gpg_init():
+    gpg_folder = config.get_folder("keys_private")
     os.chmod(gpg_folder, 0o700)
+    gpg = gnupg.GPG(gnupghome=gpg_folder)
+
+def gpg_gen_key(email):
+    gpg_folder = config.get_folder("keys_private")
+    gpg = gnupg.GPG(gnupghome=gpg_folder)
+    if os.listdir(gpg_folder + "/private-keys-v1.d") == []:
+        input_data = gpg.gen_key_input(name_email=email, passphrase=config.get("gpg_pass"))
+        key = gpg.gen_key(input_data)
+    pubkey = gpg.export_keys(gpg.list_keys()[0]["keyid"])
+    with open(config.get("keys_private") + "/public.gpg", "w") as f:
+        f.write(pubkey)
+
+def gpg_recv_keys():
+    gpg_folder = config.get_folder("keys_private")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
     key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B"]
     gpg.recv_keys('pool.sks-keyservers.net', *key_array)
 
-def check_signature(path):
-    gpg_folder = config.get_folder("key_folder")
+def gpg_verify(path):
+    gpg_folder = config.get_folder("keys_public")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
     verified = gpg.verify_file(open(os.path.join(path, "sha256sums.gpg"), "rb"), os.path.join(path, "sha256sums"))
     return verified.valid
 
-def init_usign():
-    key_folder = config.get_folder("key_folder")
-    if not os.path.exists(key_folder + "/secret"):
+
+def usign_init(comment=None):
+    keys_private = config.get_folder("keys_private")
+    if not os.path.exists(keys_private + "/secret"):
         print("create keypair")
         cmdline = ['usign', '-G', '-s', 'secret', '-p', 'public']
+        if comment:
+            cmdline.extend(["-c", comment])
         proc = subprocess.Popen(
             cmdline,
-            cwd=key_folder,
+            cwd=keys_private,
             stdout=subprocess.PIPE,
             shell=False,
             stderr=subprocess.STDOUT
@@ -64,21 +81,16 @@ def init_usign():
         print("found keys, ready to sign")
     return True
 
-def get_pubkey():
-    key_folder = config.get_folder("key_folder")
-    with open(os.path.join(key_folder, "public"), "r") as pubkey_file:
+def usign_pubkey():
+    keys_private = config.get_folder("keys_private")
+    with open(os.path.join(keys_private, "public"), "r") as pubkey_file:
         return pubkey_file.readlines()[1].strip()
 
-# to be removed
-def sign_file(image_path):
-    usign_sign(image_path)
-
 def usign_sign(image_path):
-    key_folder = config.get_folder("key_folder")
     cmdline = ['usign', '-S', '-s', 'secret', '-m', image_path]
     proc = subprocess.Popen(
         cmdline,
-        cwd=key_folder,
+        cwd=config.get_folder("keys_private"),
         stdout=subprocess.PIPE,
         shell=False,
         stderr=subprocess.STDOUT
@@ -90,12 +102,12 @@ def usign_sign(image_path):
     return True
 
 def usign_verify(file_path, pubkey):
-    key_folder = config.get_folder("key_folder")
+    keys_private = config.get_folder("keys_private")
     # better way then using echo?
     cmdline = ['echo', pubkey, '|', 'usign', '-V', '-p', '-', '-m', file_path]
     proc = subprocess.Popen(
         cmdline,
-        cwd=key_folder,
+        cwd=keys_private,
         stdout=subprocess.PIPE,
         shell=False,
         stderr=subprocess.STDOUT
@@ -116,3 +128,4 @@ def pkg_hash(packages):
 def request_hash(distro, release, target, subtarget, profile, packages):
     request_array = [distro, release, target, subtarget, profile, pkg_hash]
     return(get_hash(" ".join(request_array), 12))
+

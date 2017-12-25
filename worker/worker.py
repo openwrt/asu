@@ -22,7 +22,7 @@ import yaml
 
 from worker.imagebuilder import ImageBuilder
 from utils.imagemeta import ImageMeta
-from utils.common import get_hash, setup_gnupg, usign_sign, get_pubkey, init_usign
+from utils.common import get_hash, gpg_init, gpg_recv_keys, usign_sign, usign_pubkey, usign_init
 from utils.config import Config
 from utils.database import Database
 
@@ -40,7 +40,9 @@ class Worker(threading.Thread):
         self.worker_id = None
         self.imagebuilders = []
         self.auth = (self.config.get("worker"), self.config.get("password"))
-        init_usign()
+        self.worker_name = gethostname()
+        self.worker_address = ""
+        usign_init("worker-" + self.worker_name)
 
     def api(self, path, data=None, json=None, files=None):
         try:
@@ -49,13 +51,11 @@ class Worker(threading.Thread):
            self.log.error("could not connect to server")
            exit(1)
 
-
     def worker_register(self):
-        self.worker_name = gethostname()
-        self.worker_address = ""
-        self.worker_pubkey = get_pubkey()
+        self.worker_pubkey = usign_pubkey()
         self.log.info("register worker '%s' '%s' '%s'", self.worker_name, self.worker_address, self.worker_pubkey)
-        json = {'worker_name': gethostname(), 'worker_address': '', 'worker_pubkey': get_pubkey()}
+        print(self.worker_pubkey)
+        json = {'worker_name': gethostname(), 'worker_address': '', 'worker_pubkey': self.worker_pubkey}
         self.worker_id = str(self.api("/worker/register", json=json))
 
     def worker_add_skill(self, imagebuilder):
@@ -86,7 +86,8 @@ class Worker(threading.Thread):
         self.log.info("register worker")
         self.worker_register()
         self.log.debug("setting up gnupg")
-        setup_gnupg()
+        gpg_init()
+        gpg_recv_keys()
         while True:
             self.log.debug("severing %s", self.imagebuilders)
             build_job_request = None
@@ -159,8 +160,12 @@ class Image(ImageMeta):
 
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
-#            if self.network_profile:
-#                cmdline.append('FILES=%s' % self.network_profile_path)
+
+            # add server key to image
+            server_keys = self.config.get("keys_public") + "/server"
+            if self.config.get("sign_images") and os.path.exists(server_keys):
+                cmdline.append('FILES=%s' % server_keys)
+
             extra_image_name = "-".join(extra_image_name_array)
             self.log.debug("extra_image_name %s", extra_image_name)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % extra_image_name)

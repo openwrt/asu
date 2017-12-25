@@ -11,7 +11,7 @@ import os.path
 import threading
 import subprocess
 
-from utils.common import get_statuscode, check_signature
+from utils.common import get_statuscode, gpg_verify
 from utils.config import Config
 
 class ImageBuilder(threading.Thread):
@@ -153,7 +153,7 @@ class ImageBuilder(threading.Thread):
             self.log.info("downloading signature")
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums"), (tempdir + "/sha256sums"))
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
-            if not check_signature(tempdir) and not self.release == 'snapshot':
+            if not gpg_verify(tempdir) and not self.release == 'snapshot':
                 self.log.warn("bad signature")
                 return False
             self.log.debug("good signature")

@@ -18,7 +18,7 @@ from server import app
 import utils
 from utils.config import Config
 from utils.database import Database
-from utils.common import init_usign, usign_verify, usign_sign
+from utils.common import usign_init, usign_verify, usign_sign
 
 config = Config()
 database = Database(config)
@@ -211,9 +211,11 @@ def worker_register():
         request_json["worker_name"],
         request_json["worker_address"],
         request_json["worker_pubkey"]))
-    worker_pubkey_path = config.get("worker_keys") + "/worker-" + worker_id
+    worker_pubkey_path = os.path.abspath(config.get("keys_public") + "/worker-" + worker_id)
     with open(worker_pubkey_path, "w") as worker_pubkey:
-        worker_pubkey.writelines(request_json["worker_pubkey"])
+        worker_pubkey.write("untrusted comment: worker-{}\n".format(worker_id))
+        worker_pubkey.write(request_json["worker_pubkey"])
+    print(request_json)
     usign_sign(worker_pubkey_path)
     return worker_id
 
