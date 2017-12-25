@@ -758,7 +758,7 @@ end
 $$ LANGUAGE 'plpgsql';
 
 create or replace view images_info as
-select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, build_date, build_seconds
+select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, worker_id, build_date, build_seconds
             from images
 		join profiles on
 			images.distro = profiles.distro and
