@@ -1,6 +1,7 @@
 import threading
 import glob
 import requests
+from requests.exceptions import ConnectionError
 import re
 from socket import gethostname
 import shutil
@@ -42,7 +43,12 @@ class Worker(threading.Thread):
         init_usign()
 
     def api(self, path, data=None, json=None, files=None):
-        return requests.post(self.config.get("server") + path, json=json, data=data, files=files, auth=self.auth).json()
+        try:
+            return requests.post(self.config.get("server") + path, json=json, data=data, files=files, auth=self.auth).json()
+        except ConnectionError:
+           self.log.error("could not connect to server")
+           exit(1)
+
 
     def worker_register(self):
         self.worker_name = gethostname()
