@@ -104,7 +104,7 @@ class ServerCli():
 
     def init_server(self):
         self.download_releases()
-        for distro in get_distros():
+        for distro in self.config.get_distros():
             alias = self.config.get(distro).get("distro_alias")
             self.log.info("set alias %s for %s", distro, alias)
             self.database.set_distro_alias(distro, alias)
@@ -117,7 +117,7 @@ class ServerCli():
                             self.database.insert_supported(distro, release, *target)
 
     def download_releases(self):
-        for distro in get_distros():
+        for distro in self.config.get_distros():
             snapshots_url = self.config.get(distro).get("snapshots_url", False)
             if snapshots_url:
                 snapshots_url = snapshots_url + "/targets/"
