@@ -84,7 +84,11 @@ def api_files_request(request_hash=None):
 
 @app.route("/")
 def root_path():
-    return render_template("index.html",
+    return render_template("index.html")
+
+@app.route("/stats")
+def stats():
+    return render_template("stats.html",
             popular_subtargets=database.get_popular_subtargets(),
             worker_active=database.get_worker_active(),
             images_count=database.get_images_count(),
