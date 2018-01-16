@@ -439,7 +439,7 @@ create table if not exists images_table (
 	image_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id) ON DELETE CASCADE,
 	manifest_id integer references manifest_table(id) ON DELETE CASCADE,
-	worker_id integer references worker(id) ON DELETE CASCADE,
+	worker_id integer,
 	build_date timestamp,
 	sysupgrade_suffix_id integer references sysupgrade_suffixes(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'untested',
