@@ -225,9 +225,11 @@ class Image(ImageMeta):
                 self.log.info("signed sha256sums")
 
                 if not already_created or entry_missing:
-                    sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
-                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
-                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
+                    sysupgrade_files = [ "*-squashfs-sysupgrade.bin",
+                            "*-squashfs-sysupgrade.tar", "*-squashfs.trx",
+                            "*-squashfs.chk", "*-squashfs.bin",
+                            "*-squashfs-sdcard.img.gz", "*-combined-squashfs*",
+                            "*.img.gz"]
 
                     sysupgrade = None
 
