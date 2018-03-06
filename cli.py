@@ -50,9 +50,8 @@ class ServerCli():
             if release == 'snapshot' or release == self.config.get(distro).get("latest"):
                 subtargets = self.database.get_subtargets(distro, release)
                 for target, subtarget, supported in subtargets:
-                    if int(supported): # 0 and 1 are returned as strings
-                        self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
-                        self.database.imagebuilder_status(distro, release, target, subtarget)
+                    self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
+                    self.database.imagebuilder_status(distro, release, target, subtarget)
 
     def build_vanilla(self):
         for distro, release in self.database.get_releases():
@@ -81,7 +80,6 @@ class ServerCli():
                         try:
                             response = urllib.request.urlopen(req)
                             self.log.info(response.read())
-                            self.log.info("blaa %s", conditions)
                         except:
                             self.log.warning("bad request")
                     else:
@@ -108,13 +106,6 @@ class ServerCli():
             alias = self.config.get(distro).get("distro_alias")
             self.log.info("set alias %s for %s", distro, alias)
             self.database.set_distro_alias(distro, alias)
-            releases = self.config.get(distro).get("releases", False)
-            if releases:
-                for release in releases:
-                    supported = self.config.release(distro, release).get("supported")
-                    if supported:
-                        for target in [x.split("/") for x in supported]:
-                            self.database.insert_supported(distro, release, *target)
 
     def download_releases(self):
         for distro in self.config.get_distros():
