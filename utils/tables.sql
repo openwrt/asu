@@ -86,6 +86,11 @@ where subtargets_table.id =
 returning
 old.*;
 
+create or replace rule delete_subtargets as
+on delete to subtargets do instead
+delete from subtargets_table
+where old.id = subtargets_table.id;
+
 create table if not exists profiles_table(
 	id serial primary key,
 	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
