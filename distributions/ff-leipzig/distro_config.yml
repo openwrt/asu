@@ -1,5 +1,0 @@
----
-distro_alias: Freifunk Leipzig
-vanilla:
-  - luci
-snapshots_url: "http://gadow.freifunk.net:8004/srv2/lede/lede-20171030/bin"
