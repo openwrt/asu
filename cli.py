@@ -3,6 +3,8 @@
 import re
 import yaml
 import json
+from os import makedirs
+from shutil import copyfile
 from shutil import rmtree
 import urllib.request
 import logging
@@ -24,12 +26,8 @@ class ServerCli():
         parser.add_argument("-a", "--init-all-imagebuilders", action="store_true")
         parser.add_argument("-v", "--build-vanilla", action="store_true")
         parser.add_argument("-r", "--download-releases", action="store_true")
-        parser.add_argument("-u", "--update-packages", action="store_true")
-        parser.add_argument("-c", "--update-repositories", action="store_true")
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
-        parser.add_argument("--ignore-not-supported", action="store_true")
-        parser.add_argument("-p", "--parse-configs", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["build_vanilla"]:
             self.build_vanilla()
@@ -88,11 +86,11 @@ class ServerCli():
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
-        imagebuilder_folder = os.path.join(get_folder("imagebuilder_folder"), "openwrt", "snapshot")
+        imagebuilder_folder = os.path.join(config.get_folder("imagebuilder_folder"), "openwrt", "snapshot")
         if os.path.exists(imagebuilder_folder):
             self.log.info("remove snapshots imagebuidler")
             rmtree(imagebuilder_folder)
-        downloaddir = os.path.join(get_folder("downloaddir"), "openwrt", "snapshot")
+        downloaddir = os.path.join(config.get_folder("download_folder"), "openwrt", "snapshot")
 
         if os.path.exists(downloaddir):
             self.log.info("remove snapshots images")
@@ -101,14 +99,22 @@ class ServerCli():
         self.database.flush_snapshots()
 
     def init_server(self):
+        usign_init()
+        gpg_init()
+        #gpg_gen_key("test@test.de")
+        copyfile(config.get_folder("keys_private") + "/public", config.get_folder("keys_public") + "/server/etc/server.pub")
+        copyfile(config.get_folder("keys_private") + "/public.gpg", config.get_folder("keys_public") + "/server/etc/server.gpg")
+        makedirs(config.get_folder("download_folder") + "/faillogs", exist_ok=True)
+
+        # folder to include server keys in created images
+        makedirs(config.get_folder("keys_public") + "/server/etc/", exist_ok=True)
         self.download_releases()
+
+    def download_releases(self):
         for distro in self.config.get_distros():
             alias = self.config.get(distro).get("distro_alias")
             self.log.info("set alias %s for %s", distro, alias)
             self.database.set_distro_alias(distro, alias)
-
-    def download_releases(self):
-        for distro in self.config.get_distros():
             snapshots_url = self.config.get(distro).get("snapshots_url", False)
             if snapshots_url:
                 snapshots_url = snapshots_url + "/targets/"
@@ -192,5 +198,4 @@ class ServerCli():
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
-#sc.download_releases()
 #sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")
