@@ -163,9 +163,8 @@ class Database():
     def get_subtarget_outdated(self):
         sql = """select distro, release, target, subtarget
             from subtargets
-            where 
-            (last_sync < NOW() - INTERVAL '1 day' and
-            release != 'snapshot') 
+            where
+            (last_sync < NOW() - INTERVAL '1 day')
             or
             last_sync < '1970-01-02'
             order by (last_sync) asc limit 1;"""
@@ -182,6 +181,7 @@ class Database():
             target = ? and
             subtarget = ?;"""
         self.c.execute(sql, distro, release, target, subtarget)
+        self.commit()
 
     def insert_packages_available(self, distro, release, target, subtarget, packages):
         self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
