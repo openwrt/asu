@@ -79,12 +79,13 @@ class ImageBuilder(threading.Thread):
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()
         self.log.info("check custom repositories of release")
-        custom_repositories = self.config.release(self.distro, self.release).get("repositories")
-        if not custom_repositories:
+        release_config = self.config.release(self.distro, self.release)
+        if release_config:
+            custom_repositories = release_config.get("repositories")
+        else:
             self.log.info("check custom repositories of distro")
             custom_repositories = self.config.get(self.distro).get("repositories")
         if custom_repositories:
-            self.log.info("add custom repositories")
             with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
                 repositories.write(self.fill_repositories_template(custom_repositories))
         else:
