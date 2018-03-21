@@ -39,7 +39,7 @@ def gpg_init():
 def gpg_gen_key(email):
     gpg_folder = config.get_folder("keys_private")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
-    if os.listdir(gpg_folder + "/private-keys-v1.d") == []:
+    if not os.path.exists(gpg_folder + "/private-keys-v1.d"):
         input_data = gpg.gen_key_input(name_email=email, passphrase=config.get("gpg_pass"))
         key = gpg.gen_key(input_data)
     pubkey = gpg.export_keys(gpg.list_keys()[0]["keyid"])
@@ -49,11 +49,11 @@ def gpg_gen_key(email):
 def gpg_recv_keys():
     gpg_folder = config.get_folder("keys_private")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
-    key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B"]
+    key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B", "833C6010"]
     gpg.recv_keys('pool.sks-keyservers.net', *key_array)
 
 def gpg_verify(path):
-    gpg_folder = config.get_folder("keys_public")
+    gpg_folder = config.get_folder("keys_private")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
     verified = gpg.verify_file(open(os.path.join(path, "sha256sums.gpg"), "rb"), os.path.join(path, "sha256sums"))
     return verified.valid
