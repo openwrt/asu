@@ -11,7 +11,7 @@ import os.path
 import threading
 import subprocess
 
-from utils.common import get_statuscode, gpg_verify
+from utils.common import get_statuscode, gpg_verify, get_last_modified
 from utils.config import Config
 
 class ImageBuilder(threading.Thread):
@@ -101,7 +101,6 @@ class ImageBuilder(threading.Thread):
         return custom_repositories
 
     def download_url(self):
-        print(self.imagebuilder_release)
         if self.imagebuilder_release == "snapshot":
             imagebuilder_download_url = os.path.join(self.config.get(self.imagebuilder_distro).get("snapshots_url"), "targets", self.target, self.subtarget)
         else:
@@ -121,8 +120,32 @@ class ImageBuilder(threading.Thread):
         name += ".Linux-x86_64.tar.xz"
         return name
 
+    def check_outdated(self):
+        """
+        checks if local imagebuilder is older then the upstream available
+        imagebuilder. currently the file .config of the imagebuilder is checked
+        """
+        local_ib = os.path.getmtime("{}/.config".format(self.path))
+        # local_ib is a numer the get_last_modified datetime object must be int
+        upstream_ib = int(get_last_modified(
+                self.download_url() + "/" + self.tar_name()).strftime("%s"))
+        self.log.debug("local imagebuilder from %s", local_ib)
+        self.log.debug("upstream imagebuilder from %s", upstream_ib)
+        if local_ib < upstream_ib:
+            return True
+        return False
+
     def run(self):
-        self.log.info("downloading imagebuilder %s", self.path)
+        self.log.info("run imagebuilder %s", self.path)
+        # only check if snapshot build are outdated
+        if self.imagebuilder_release == "snapshot":
+            self.log.info("snapshot build check if outdated")
+            if self.created():
+                if self.check_outdated():
+                    self.log.debug("imagebuilder is outdated")
+                    # remove imagebuilder folder
+                    shutil.rmtree(self.path)
+
         if not self.created():
             os.makedirs(self.path, exist_ok=True)
 
@@ -142,9 +165,10 @@ class ImageBuilder(threading.Thread):
                         return False
                 else:
                     return False
-            self.patch_makefile()
-            self.add_custom_repositories()
-            self.pkg_arch = self.parse_packages_arch()
+
+        self.patch_makefile()
+        self.add_custom_repositories()
+        self.pkg_arch = self.parse_packages_arch()
 
         self.log.info("initialized imagebuilder %s", self.path)
         return True

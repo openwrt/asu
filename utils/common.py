@@ -11,6 +11,9 @@ import hashlib
 import os
 import os.path
 import subprocess
+import urllib
+from email.utils import parsedate
+from datetime import datetime
 
 from utils.config import Config
 
@@ -24,12 +27,22 @@ def get_hash(string, length):
     return response_hash
 
 def get_statuscode(url):
+    """get statuscode of a url"""
     try:
-        urllib.request.urlopen(url)
+        request = urllib.request.urlopen(url)
     except urllib.error.HTTPError as e:
         return e.code
     else:
-        return 200
+        return request.getcode()
+
+def get_header(url):
+    """get headers of a url"""
+    return urllib.request.urlopen(url).info()
+
+def get_last_modified(url):
+    """returns the last-modified header value as datetime object"""
+    header_last_modified = get_header(url)["last-modified"]
+    return datetime(*parsedate(header_last_modified)[:6])
 
 def gpg_init():
     gpg_folder = config.get_folder("keys_private")
