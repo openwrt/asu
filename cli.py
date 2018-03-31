@@ -39,9 +39,6 @@ class ServerCli():
             self.init_server()
         if self.args["flush_snapshots"]:
             self.flush_snapshots()
-        if self.args["parse_configs"]:
-            self.insert_board_rename()
-            self.load_tables()
 
     def init_all_imagebuilders(self):
         for distro, release in self.database.get_releases():
@@ -86,15 +83,11 @@ class ServerCli():
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
-        imagebuilder_folder = os.path.join(config.get_folder("imagebuilder_folder"), "openwrt", "snapshot")
-        if os.path.exists(imagebuilder_folder):
-            self.log.info("remove snapshots imagebuidler")
-            rmtree(imagebuilder_folder)
-        downloaddir = os.path.join(config.get_folder("download_folder"), "openwrt", "snapshot")
-
-        if os.path.exists(downloaddir):
-            self.log.info("remove snapshots images")
-            rmtree(downloaddir)
+        for distro in self.config.get_distros():
+            download_folder = os.path.join(config.get_folder("download_folder"), distro, "snapshot")
+            if os.path.exists(download_folder):
+                self.log.info("remove snapshots of %s", distro)
+                rmtree(download_folder)
 
         self.database.flush_snapshots()
 
