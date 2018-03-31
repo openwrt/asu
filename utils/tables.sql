@@ -204,8 +204,8 @@ group by (distro, release, target, subtarget);
 create or replace function add_packages_default(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), packages text) returns void as
 $$
 declare
-package varchar(40);
-packages_array varchar(40)[] = string_to_array(packages, ' ');
+package varchar(100);
+packages_array varchar(100)[] = string_to_array(packages, ' ');
 begin
 	FOREACH package IN array packages_array
 	loop
@@ -250,8 +250,8 @@ group by (distro, release, target, subtarget, profile, model) ;
 create or replace function add_packages_profile(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), profile varchar(20), model varchar(50), packages text) returns void as
 $$
 declare
-package varchar(40);
-packages_array varchar(40)[] = string_to_array(packages, ' ');
+package varchar(100);
+packages_array varchar(100)[] = string_to_array(packages, ' ');
 begin
 	insert into profiles (distro, release, target, subtarget, profile, model)
 	values (distro, release, target, subtarget, profile, model);
@@ -328,7 +328,7 @@ SELECT add_manifest_packages(
 
 create table if not exists packages_hashes_table (
 	id serial primary key,
-	hash varchar(40) unique
+	hash varchar(100) unique
 );
 
 create table if not exists packages_hashes_link(
@@ -348,8 +348,8 @@ group by (packages_hashes_table.id, hash);
 create or replace function add_packages_hashes(hash varchar(20), packages text) returns void as
 $$
 declare
-package varchar(40);
-packages_array varchar(40)[] = string_to_array(packages, ' ');
+package varchar(100);
+packages_array varchar(100)[] = string_to_array(packages, ' ');
 begin
 	insert into packages_hashes_table (hash) values (add_packages_hashes.hash) on conflict do nothing;
 	FOREACH package IN array packages_array
