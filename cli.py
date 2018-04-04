@@ -28,6 +28,7 @@ class ServerCli():
         parser.add_argument("-r", "--download-releases", action="store_true")
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
+        parser.add_argument("-p", "--parse-configs", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["build_vanilla"]:
             self.build_vanilla()
@@ -39,6 +40,10 @@ class ServerCli():
             self.init_server()
         if self.args["flush_snapshots"]:
             self.flush_snapshots()
+        if self.args["parse_configs"]:
+            self.insert_board_rename()
+            self.load_tables()
+
 
     def init_all_imagebuilders(self):
         for distro, release in self.database.get_releases():
