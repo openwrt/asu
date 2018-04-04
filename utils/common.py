@@ -37,12 +37,16 @@ def get_statuscode(url):
 
 def get_header(url):
     """get headers of a url"""
-    return urllib.request.urlopen(url).info()
+    try:
+        return urllib.request.urlopen(url).info()
+    except urllib.error.HTTPError:
+        return None
 
 def get_last_modified(url):
     """returns the last-modified header value as datetime object"""
-    header_last_modified = get_header(url)["last-modified"]
-    return datetime(*parsedate(header_last_modified)[:6])
+    headers = get_header(url)
+    if headers:
+        return datetime(*parsedate(headers["last-modified"])[:6])
 
 def gpg_init():
     gpg_folder = config.get_folder("keys_private")

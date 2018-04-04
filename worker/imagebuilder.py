@@ -15,13 +15,12 @@ from utils.common import get_statuscode, gpg_verify, get_last_modified
 from utils.config import Config
 
 class ImageBuilder(threading.Thread):
-    def __init__(self, distro, version, target, subtarget):
+    def __init__(self, distro, release, target, subtarget):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.distro = distro
-        self.version = version
-        self.release = version
+        self.release = release
         if self.release != 'snapshot':
             self.imagebuilder_distro = self.config.get(self.distro).get("parent_distro", self.distro)
             self.imagebuilder_release = self.config.get(self.distro).get("parent_release", self.release)
@@ -31,7 +30,7 @@ class ImageBuilder(threading.Thread):
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
-        self.path = os.path.join(self.config.get_folder("imagebuilder_folder"), self.distro, self.version, self.target, self.subtarget)
+        self.path = os.path.join(self.config.get_folder("imagebuilder_folder"), self.distro, self.release, self.target, self.subtarget)
         self.log.debug("imagebuilder path %s", self.path)
 
     def created(self):
@@ -126,12 +125,14 @@ class ImageBuilder(threading.Thread):
         imagebuilder. currently the file .config of the imagebuilder is checked
         """
         local_ib = os.path.getmtime("{}/.config".format(self.path))
+        upstream_ib = get_last_modified(self.download_url() + "/" + self.tar_name())
+
+        # if imagebuilder is currently not available return False
+        if not upstream_ib:
+            return False
+
         # local_ib is a numer the get_last_modified datetime object must be int
-        upstream_ib = int(get_last_modified(
-                self.download_url() + "/" + self.tar_name()).strftime("%s"))
-        self.log.debug("local imagebuilder from %s", local_ib)
-        self.log.debug("upstream imagebuilder from %s", upstream_ib)
-        if local_ib < upstream_ib:
+        if local_ib < int(upstream_ib).strftime("%s"):
             return True
         return False
 
