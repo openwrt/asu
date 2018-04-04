@@ -696,6 +696,16 @@ class Database():
         self.log.debug("no image request")
         return None
 
+    def get_popular_packages(self):
+        sql = """select name, count(name) as count
+            from packages_hashes_link phl join packages_names pn
+                on phl.package_id = pn.id
+            where name not like '-%'
+            group by name
+            order by count desc;"""
+        self.c.execute(sql)
+        return self.c.fetchall()
+
     def get_worker(self, worker_id):
         sql = "select * from worker where id = ?"
         result = self.c.execute(sql, worker_id)
