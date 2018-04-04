@@ -132,7 +132,7 @@ class ImageBuilder(threading.Thread):
             return False
 
         # local_ib is a numer the get_last_modified datetime object must be int
-        if local_ib < int(upstream_ib).strftime("%s"):
+        if local_ib < int(upstream_ib.strftime("%s")):
             return True
         return False
 

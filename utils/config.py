@@ -27,7 +27,12 @@ class Config():
     def release(self, distro, release):
         if release not in self.config[distro]:
             with open(os.path.join("distributions", distro, release + ".yml"), 'r') as ymlfile:
-               self.config[distro][release] = yaml.load(ymlfile)
+                release_config = yaml.load(ymlfile)
+                if release_config:
+                   self.config[distro][release] = release_config
+                else:
+                   self.config[distro][release] = {}
+
         return self.config.get(distro).get(release)
 
     def get(self, opt, alt=None):
