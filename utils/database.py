@@ -493,7 +493,8 @@ class Database():
 
     def get_supported_distros(self):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]') from (select name, alias from distributions order by (alias)) as distributions;"""
-        return self.c.execute(sql).fetchone()[0]
+        self.c.execute(sql)
+        return self.c.fetchone()[0]
 
     def get_supported_releases(self, distro):
         if distro == '': distro='%'
