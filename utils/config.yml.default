@@ -4,7 +4,6 @@ sign_images: True
 server: "http://localhost:5000"
 
 # database
-database_type: PostgreSQL Unicode
 database_address: localhost
 database_name: attended-sysupgrade
 database_user: postgres

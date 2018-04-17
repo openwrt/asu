@@ -1,5 +1,5 @@
 import datetime
-import pyodbc
+import psycopg2
 import logging
 import json
 
@@ -7,16 +7,18 @@ from utils.common import get_hash
 
 class Database():
     def __init__(self, config):
-        # python3 immport pyodbc; pyodbc.drivers()
-        #self.cnxn = pyodbc.connect("DRIVER={SQLite3};SERVER=localhost;DATABASE=test.db;Trusted_connection=yes")
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
         self.config = config
         self.log.info("config initialized")
-        connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
-                self.config.get("database_type"), self.config.get("database_address"), self.config.get("database_name"), self.config.get("database_user"),
-                self.config.get("database_pass"), self.config.get("database_port"))
-        self.cnxn = pyodbc.connect(connection_string)
+        connection_string = \
+            "dbname='{}' user='{}' host='{}' password='{}' port='{}'".format(
+                self.config.get("database_name"),
+                self.config.get("database_user")
+                self.config.get("database_address"),
+                self.config.get("database_pass"),
+                self.config.get("database_port"))
+        self.cnxn = psycopg2.connect(connection_string)
         self.c = self.cnxn.cursor()
         self.log.info("database connected")
 
