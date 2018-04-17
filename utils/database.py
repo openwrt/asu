@@ -14,7 +14,7 @@ class Database():
         connection_string = \
             "dbname='{}' user='{}' host='{}' password='{}' port='{}'".format(
                 self.config.get("database_name"),
-                self.config.get("database_user")
+                self.config.get("database_user"),
                 self.config.get("database_address"),
                 self.config.get("database_pass"),
                 self.config.get("database_port"))
