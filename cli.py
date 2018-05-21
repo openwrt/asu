@@ -60,13 +60,13 @@ class ServerCli():
                 subtargets = self.database.get_subtargets(distro, release)
                 for target, subtarget, supported in subtargets:
                     sql = """select profile from profiles
-                        where distro = ? and
-                        release = ? and
-                        target = ? and
-                        subtarget = ?
+                        where distro = %s and
+                        release = %s and
+                        target = %s and
+                        subtarget = %s
                         order by profile desc
                         limit 1;"""
-                    profile_request = self.database.c.execute(sql, distro, release, target, subtarget)
+                    profile_request = self.database.c.execute(sql, (distro, release, target, subtarget))
                     if self.database.c.rowcount > 0:
                         profile = profile_request.fetchone()[0]
 
@@ -102,7 +102,9 @@ class ServerCli():
         self.database.flush_snapshots()
 
     def init_server(self):
+        print(config.get("distributions"))
         self.download_releases()
+
         for distro in self.config.get("distributions"):
             for release in self.config.get(distro).get("releases"):
                 alias = self.config.get(distro).get("distro_alias")
