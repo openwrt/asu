@@ -86,6 +86,11 @@ where subtargets_table.id =
 returning
 old.*;
 
+create or replace rule delete_subtargets as
+on delete to subtargets do instead
+delete from subtargets_table
+where old.id = subtargets_table.id;
+
 create table if not exists profiles_table(
 	id serial primary key,
 	subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
@@ -199,8 +204,8 @@ group by (distro, release, target, subtarget);
 create or replace function add_packages_default(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), packages text) returns void as
 $$
 declare
-package varchar(40);
-packages_array varchar(40)[] = string_to_array(packages, ' ');
+package varchar(100);
+packages_array varchar(100)[] = string_to_array(packages, ' ');
 begin
 	FOREACH package IN array packages_array
 	loop
@@ -245,8 +250,8 @@ group by (distro, release, target, subtarget, profile, model) ;
 create or replace function add_packages_profile(distro varchar(20), release varchar(20), target varchar(20), subtarget varchar(20), profile varchar(20), model varchar(50), packages text) returns void as
 $$
 declare
-package varchar(40);
-packages_array varchar(40)[] = string_to_array(packages, ' ');
+package varchar(100);
+packages_array varchar(100)[] = string_to_array(packages, ' ');
 begin
 	insert into profiles (distro, release, target, subtarget, profile, model)
 	values (distro, release, target, subtarget, profile, model);
@@ -323,7 +328,7 @@ SELECT add_manifest_packages(
 
 create table if not exists packages_hashes_table (
 	id serial primary key,
-	hash varchar(40) unique
+	hash varchar(100) unique
 );
 
 create table if not exists packages_hashes_link(
@@ -343,8 +348,8 @@ group by (packages_hashes_table.id, hash);
 create or replace function add_packages_hashes(hash varchar(20), packages text) returns void as
 $$
 declare
-package varchar(40);
-packages_array varchar(40)[] = string_to_array(packages, ' ');
+package varchar(100);
+packages_array varchar(100)[] = string_to_array(packages, ' ');
 begin
 	insert into packages_hashes_table (hash) values (add_packages_hashes.hash) on conflict do nothing;
 	FOREACH package IN array packages_array
@@ -439,6 +444,7 @@ create table if not exists images_table (
 	image_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id) ON DELETE CASCADE,
 	manifest_id integer references manifest_table(id) ON DELETE CASCADE,
+	worker_id integer,
 	build_date timestamp,
 	sysupgrade_suffix_id integer references sysupgrade_suffixes(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'untested',
@@ -450,18 +456,18 @@ create table if not exists images_table (
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla, build_seconds
+images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, worker_id, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla, build_seconds
 from profiles, images_table, manifest_table, sysupgrade_suffixes
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_suffix_id = sysupgrade_suffixes.id;
 
-create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean, build_seconds decimal) returns void as
+create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, worker_id integer, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean, build_seconds decimal) returns void as
 $$
 begin
 	insert into sysupgrade_suffixes (sysupgrade_suffix) values (add_image.sysupgrade_suffix) on conflict do nothing;
-	insert into images_table (image_hash, profile_id, manifest_id, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds) values (
+	insert into images_table (image_hash, profile_id, manifest_id, worker_id, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds) values (
 		add_image.image_hash,
 		(select profiles.id from profiles where
 			profiles.distro = add_image.distro and
@@ -471,6 +477,7 @@ begin
 			profiles.profile = add_image.profile),
 		(select manifest_table.id from manifest_table where
 			manifest_table.hash = add_image.manifest_hash),
+		add_image.worker_id,
 		(select sysupgrade_suffixes.id from sysupgrade_suffixes where
 			sysupgrade_suffixes.sysupgrade_suffix = add_image.sysupgrade_suffix),
 		add_image.build_date,
@@ -492,6 +499,7 @@ SELECT add_image(
 	NEW.subtarget,
 	NEW.profile,
 	NEW.manifest_hash,
+	NEW.worker_id,
 	NEW.sysupgrade_suffix,
 	NEW.build_date,
 	NEW.subtarget_in_name,
@@ -755,7 +763,7 @@ end
 $$ LANGUAGE 'plpgsql';
 
 create or replace view images_info as
-select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, build_date, build_seconds
+select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, worker_id, build_date, build_seconds
             from images
 		join profiles on
 			images.distro = profiles.distro and

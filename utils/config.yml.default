@@ -1,21 +1,24 @@
-dev: True
-sign_images: False
-imagebuilder_url: "http://downloads.lede-project.org/releases/"
-snapshots: Flase
-imagebuilder_snapshots_url: "https://downloads.lede-project.org/snapshots/"
-update_server: "http://localhost:5000"
-database_type: PostgreSQL Unicode
-database_address: "localhost"
-database_name: attendedsysupgrade
-database_user: upimaged
-database_pass: password
-database_port: 5432
-imagebuilder_folder: imagebuilder
-downloaddir: static
-tempdir: /tmp
-keys_folder: keys
-distro_folder: distributions
+# server
+dev: False
+sign_images: True
+server: "http://localhost:5000"
 
-distributions:
-    lede: https://downloads.lede-project.org/releases/
-    libremesh: http://repo.libremesh.org/releases/
+# database
+database_type: PostgreSQL Unicode
+database_address: localhost
+database_name: attended-sysupgrade
+database_user: postgres
+database_pass: <password>
+database_port: 5432
+
+# folder
+imagebuilder_folder: imagebuilder
+distro_folder: distributions
+download_folder: download
+tempdir: /tmp
+keys_private: keys
+keys_public: server/static/keys
+
+# worker
+worker: <worker_name>
+password: <password>

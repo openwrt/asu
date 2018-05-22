@@ -11,20 +11,13 @@ import hashlib
 import os
 import os.path
 import subprocess
+import urllib
+from email.utils import parsedate
+from datetime import datetime
 
 from utils.config import Config
 
 config = Config()
-
-def create_folder(folder):
-    try:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-            logging.info("created folder %s", folder)
-        return True
-    except:
-        logging.error("could not create %s", folder)
-        return False
 
 # return hash of string in defined length
 def get_hash(string, length):
@@ -34,46 +27,65 @@ def get_hash(string, length):
     return response_hash
 
 def get_statuscode(url):
+    """get statuscode of a url"""
     try:
-        urllib.request.urlopen(url)
+        request = urllib.request.urlopen(url)
     except urllib.error.HTTPError as e:
         return e.code
     else:
-        return 200
+        return request.getcode()
 
-def get_folder(requested_folder):
-    folder = config.get(requested_folder)
-    if folder:
-        if create_folder(folder):
-            return os.path.abspath(folder)
+def get_header(url):
+    """get headers of a url"""
+    try:
+        return urllib.request.urlopen(url).info()
+    except urllib.error.HTTPError:
+        return None
 
-    default_folder = os.path.join(os.getcwdb(), requested_folder)
-    if create_folder(default_folder):
-        return os.path.abspath(default_folder)
-    else:
-        quit()
+def get_last_modified(url):
+    """returns the last-modified header value as datetime object"""
+    headers = get_header(url)
+    if headers:
+        return datetime(*parsedate(headers["last-modified"])[:6])
 
-def setup_gnupg():
-    gpg_folder = get_folder("key_folder")
+def gpg_init():
+    gpg_folder = config.get_folder("keys_private")
     os.chmod(gpg_folder, 0o700)
     gpg = gnupg.GPG(gnupghome=gpg_folder)
-    key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B"]
+
+def gpg_gen_key(email):
+    gpg_folder = config.get_folder("keys_private")
+    gpg = gnupg.GPG(gnupghome=gpg_folder)
+    if not os.path.exists(gpg_folder + "/private-keys-v1.d"):
+        input_data = gpg.gen_key_input(name_email=email, passphrase=config.get("gpg_pass"))
+        key = gpg.gen_key(input_data)
+    pubkey = gpg.export_keys(gpg.list_keys()[0]["keyid"])
+    with open(config.get("keys_private") + "/public.gpg", "w") as f:
+        f.write(pubkey)
+
+def gpg_recv_keys():
+    gpg_folder = config.get_folder("keys_private")
+    gpg = gnupg.GPG(gnupghome=gpg_folder)
+    key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B", "833C6010"]
     gpg.recv_keys('pool.sks-keyservers.net', *key_array)
 
-def check_signature(path):
-    gpg_folder = get_folder("key_folder")
+def gpg_verify(path):
+    gpg_folder = config.get_folder("keys_private")
     gpg = gnupg.GPG(gnupghome=gpg_folder)
     verified = gpg.verify_file(open(os.path.join(path, "sha256sums.gpg"), "rb"), os.path.join(path, "sha256sums"))
     return verified.valid
 
-def init_usign():
-    key_folder = get_folder("key_folder")
-    if not os.path.exists(key_folder + "/secret"):
+
+def usign_init(comment=None):
+    keys_private = config.get_folder("keys_private")
+    if not os.path.exists(keys_private + "/secret"):
         print("create keypair")
         cmdline = ['usign', '-G', '-s', 'secret', '-p', 'public']
+        if comment:
+            cmdline.extend(["-c", comment])
         proc = subprocess.Popen(
             cmdline,
-            cwd=key_folder,
+            cwd=keys_private,
             stdout=subprocess.PIPE,
             shell=False,
             stderr=subprocess.STDOUT
@@ -86,17 +98,16 @@ def init_usign():
         print("found keys, ready to sign")
     return True
 
-def get_pubkey():
-    key_folder = get_folder("key_folder")
-    with open(os.path.join(key_folder, "public"), "r") as pubkey_file:
+def usign_pubkey():
+    keys_private = config.get_folder("keys_private")
+    with open(os.path.join(keys_private, "public"), "r") as pubkey_file:
         return pubkey_file.readlines()[1].strip()
 
-def sign_file(image_path):
-    key_folder = get_folder("key_folder")
+def usign_sign(image_path):
     cmdline = ['usign', '-S', '-s', 'secret', '-m', image_path]
     proc = subprocess.Popen(
         cmdline,
-        cwd=key_folder,
+        cwd=config.get_folder("keys_private"),
         stdout=subprocess.PIPE,
         shell=False,
         stderr=subprocess.STDOUT
@@ -107,6 +118,24 @@ def sign_file(image_path):
         return False
     return True
 
+def usign_verify(file_path, pubkey):
+    keys_private = config.get_folder("keys_private")
+    # better way then using echo?
+    cmdline = ['echo', pubkey, '|', 'usign', '-V', '-p', '-', '-m', file_path]
+    proc = subprocess.Popen(
+        cmdline,
+        cwd=keys_private,
+        stdout=subprocess.PIPE,
+        shell=False,
+        stderr=subprocess.STDOUT
+    )
+    output, _ = proc.communicate()
+    return_code = proc.returncode
+    if not return_code == 0:
+        return False
+    else:
+        return True
+
 def pkg_hash(packages):
     packages = sorted(list(set(packages)))
     package_hash = get_hash(" ".join(packages), 12)
@@ -116,7 +145,4 @@ def pkg_hash(packages):
 def request_hash(distro, release, target, subtarget, profile, packages):
     request_array = [distro, release, target, subtarget, profile, pkg_hash]
     return(get_hash(" ".join(request_array), 12))
-
-def get_distros():
-    return(os.listdir(config.get("distro_folder")))
 

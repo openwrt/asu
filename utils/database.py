@@ -12,7 +12,6 @@ class Database():
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
         self.config = config
-        print("db config", config)
         self.log.info("config initialized")
         connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
                 self.config.get("database_type"), self.config.get("database_address"), self.config.get("database_name"), self.config.get("database_user"),
@@ -53,10 +52,17 @@ class Database():
     def insert_upgrade_check(self, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest):
         sql = """insert into upgrade_requests
             (request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
-            values (?, ?, ?, ?, ?, ?, ?, ?) 
+            values (?, ?, ?, ?, ?, ?, ?, ?)
         """
         self.c.execute(sql, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
         self.commit()
+
+    def check_distro(self, distro):
+        self.c.execute("select 1 from distributions where name = ?", distro)
+        if self.c.rowcount == 1:
+            return True
+        else:
+            return False
 
     def get_releases(self, distro=None):
         if not distro:
@@ -157,8 +163,10 @@ class Database():
     def get_subtarget_outdated(self):
         sql = """select distro, release, target, subtarget
             from subtargets
-            where last_sync < NOW() - INTERVAL '1 day' and
-            release != 'snapshot'
+            where
+            (last_sync < NOW() - INTERVAL '1 day')
+            or
+            last_sync < '1970-01-02'
             order by (last_sync) asc limit 1;"""
         self.c.execute(sql)
         if self.c.rowcount == 1:
@@ -173,6 +181,7 @@ class Database():
             target = ? and
             subtarget = ?;"""
         self.c.execute(sql, distro, release, target, subtarget)
+        self.commit()
 
     def insert_packages_available(self, distro, release, target, subtarget, packages):
         self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
@@ -207,12 +216,15 @@ class Database():
             WHERE distro = ? and release = ? and target LIKE ? and subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def check_build_request_hash(self, request_hash):
+    def check_build_request_hash(self, request_hash, status=False):
         self.log.debug("check_request_hash")
         sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ? or image_hash = ?"
         self.c.execute(sql, request_hash, request_hash)
         if self.c.rowcount == 1:
-            return self.c.fetchone()
+            if not status:
+                return self.c.fetchone()
+            else:
+                return self.c.fetchone()[3]
         else:
             return None
 
@@ -276,8 +288,7 @@ class Database():
         else:
             return False
 
-    def add_image(self, image_hash, image_array, sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds=0):
-        self.log.debug("add image %s", image_array)
+    def add_image(self, image_hash, distro, release, target, subtarget, profile, manifest_hash, worker_id, sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds=0):
         sql = """INSERT INTO images
             (image_hash,
             distro,
@@ -286,16 +297,18 @@ class Database():
             subtarget,
             profile,
             manifest_hash,
+            worker_id,
             sysupgrade_suffix,
             build_date,
             subtarget_in_name,
             profile_in_name,
             vanilla,
             build_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
         self.c.execute(sql,
                 image_hash,
-                *image_array, # contains distro, release, target, subtarget, profile, manifest_hash
+                distro, release, target, subtarget, profile, manifest_hash,
+                worker_id,
                 sysupgrade_suffix,
                 'true' if subtarget_in_name else 'false', # dirty, outdated pyodbc?
                 'true' if profile_in_name else 'false',
@@ -336,7 +349,7 @@ class Database():
         if self.c.description:
             self.log.debug("found image request")
             self.commit()
-            return self.c.fetchone()
+            return list(self.c.fetchone())
         self.log.debug("no image request")
         return None
 
@@ -346,6 +359,15 @@ class Database():
             SET status = ?
             WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_request_hash)
+        self.commit()
+
+    def worker_done_build(self, request_hash, image_hash, status):
+        self.log.info("done build job: rqst %s img %s status %s", request_hash, image_hash, status)
+        sql = """UPDATE image_requests SET
+            status = ?,
+            image_hash = ?
+            WHERE request_hash = ?;"""
+        self.c.execute(sql, status, image_hash, request_hash)
         self.commit()
 
     def done_build_job(self, request_hash, image_hash, status="created"):
@@ -408,16 +430,20 @@ class Database():
         result = self.c.fetchall()
         return result
 
-    def worker_needed(self):
+    def worker_needed(self, worker=False):
         self.log.debug("get needed worker")
         sql = """(select * from imagebuilder_requests union
             select distro, release, target, subtarget
                 from worker_needed, subtargets
                 where worker_needed.subtarget_id = subtargets.id) limit 1"""
-        self.c.execute(sql)
-        result = self.c.fetchone()
-        self.log.debug("need worker for %s", result)
-        return result
+        result = self.c.execute(sql).fetchone()
+        if not worker:
+            return result
+        else:
+            if result:
+                return "/".join(result)
+            else:
+                return ""
 
     def worker_register(self, name, address, pubkey):
         self.log.info("register worker %s %s", name, address)
@@ -641,4 +667,50 @@ class Database():
         sql = "select transform(?, ?, ?, ?)"
         self.c.execute(sql, distro, orig_release, dest_release, packages)
         return self.c.fetchall()
+
+    def worker_build_job(self, worker_id):
+        self.log.debug("get build job for worker %s", worker_id)
+        sql = """UPDATE image_requests
+            SET status = 'building'
+            FROM packages_hashes
+            WHERE image_requests.packages_hash = packages_hashes.hash and
+                distro LIKE ? and
+                release LIKE ? and
+                target LIKE ? and
+                subtarget LIKE ? and
+                image_requests.id = (
+                    SELECT MIN(id)
+                    FROM image_requests
+                    WHERE status = 'requested' and
+                    distro LIKE ? and
+                    release LIKE ? and
+                    target LIKE ? and
+                    subtarget LIKE ?
+                )
+            RETURNING image_requests.id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages;"""
+        self.c.execute(sql, distro, release, target, subtarget, distro, release, target, subtarget)
+        if self.c.description:
+            self.log.debug("found image request")
+            self.commit()
+            return self.c.fetchone()
+        self.log.debug("no image request")
+        return None
+
+    def get_popular_packages(self):
+        sql = """select name, count(name) as count
+            from packages_hashes_link phl join packages_names pn
+                on phl.package_id = pn.id
+            where name not like '-%'
+            group by name
+            order by count desc;"""
+        self.c.execute(sql)
+        return self.c.fetchall()
+
+    def get_worker(self, worker_id):
+        sql = "select * from worker where id = ?"
+        result = self.c.execute(sql, worker_id)
+        if self.c.rowcount == 1:
+            return self.c.fetchone()
+        else:
+            return False
 

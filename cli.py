@@ -3,6 +3,8 @@
 import re
 import yaml
 import json
+from os import makedirs
+from shutil import copyfile
 from shutil import rmtree
 import urllib.request
 import logging
@@ -24,11 +26,8 @@ class ServerCli():
         parser.add_argument("-a", "--init-all-imagebuilders", action="store_true")
         parser.add_argument("-v", "--build-vanilla", action="store_true")
         parser.add_argument("-r", "--download-releases", action="store_true")
-        parser.add_argument("-u", "--update-packages", action="store_true")
-        parser.add_argument("-c", "--update-repositories", action="store_true")
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
-        parser.add_argument("--ignore-not-supported", action="store_true")
         parser.add_argument("-p", "--parse-configs", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["build_vanilla"]:
@@ -45,14 +44,14 @@ class ServerCli():
             self.insert_board_rename()
             self.load_tables()
 
+
     def init_all_imagebuilders(self):
         for distro, release in self.database.get_releases():
             if release == 'snapshot' or release == self.config.get(distro).get("latest"):
                 subtargets = self.database.get_subtargets(distro, release)
                 for target, subtarget, supported in subtargets:
-                    if int(supported): # 0 and 1 are returned as strings
-                        self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
-                        self.database.imagebuilder_status(distro, release, target, subtarget)
+                    self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
+                    self.database.imagebuilder_status(distro, release, target, subtarget)
 
     def build_vanilla(self):
         for distro, release in self.database.get_releases():
@@ -63,7 +62,8 @@ class ServerCli():
                         where distro = ? and
                         release = ? and
                         target = ? and
-                        subtarget = ?
+                        subtarget = ? and
+                        profile != 'Default'
                         order by profile desc
                         limit 1;"""
                     profile_request = self.database.c.execute(sql, distro, release, target, subtarget)
@@ -80,7 +80,6 @@ class ServerCli():
                         try:
                             response = urllib.request.urlopen(req)
                             self.log.info(response.read())
-                            self.log.info("blaa %s", conditions)
                         except:
                             self.log.warning("bad request")
                     else:
@@ -89,34 +88,31 @@ class ServerCli():
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
-        imagebuilder_folder = os.path.join(get_folder("imagebuilder_folder"), "openwrt", "snapshot")
-        if os.path.exists(imagebuilder_folder):
-            self.log.info("remove snapshots imagebuidler")
-            rmtree(imagebuilder_folder)
-        downloaddir = os.path.join(get_folder("downloaddir"), "openwrt", "snapshot")
-
-        if os.path.exists(downloaddir):
-            self.log.info("remove snapshots images")
-            rmtree(downloaddir)
+        for distro in self.config.get_distros():
+            download_folder = os.path.join(config.get_folder("download_folder"), distro, "snapshot")
+            if os.path.exists(download_folder):
+                self.log.info("remove snapshots of %s", distro)
+                rmtree(download_folder)
 
         self.database.flush_snapshots()
 
     def init_server(self):
+        usign_init()
+        gpg_init()
+        #gpg_gen_key("test@test.de")
+        copyfile(config.get_folder("keys_private") + "/public", config.get_folder("keys_public") + "/server/etc/server.pub")
+        copyfile(config.get_folder("keys_private") + "/public.gpg", config.get_folder("keys_public") + "/server/etc/server.gpg")
+        makedirs(config.get_folder("download_folder") + "/faillogs", exist_ok=True)
+
+        # folder to include server keys in created images
+        makedirs(config.get_folder("keys_public") + "/server/etc/", exist_ok=True)
         self.download_releases()
-        for distro in self.config.get("distributions"):
-            for release in self.config.get(distro).get("releases"):
-                alias = self.config.get(distro).get("distro_alias")
-                self.log.info("set alias %s for %s", distro, alias)
-                self.database.set_distro_alias(distro, alias)
-                print("fo", distro, release)
-                supported = self.config.release(distro, release).get("supported")
-                print(supported)
-                if supported:
-                    for target in [x.split("/") for x in supported]:
-                        self.database.insert_supported(distro, release, *target)
 
     def download_releases(self):
-        for distro in get_distros():
+        for distro in self.config.get_distros():
+            alias = self.config.get(distro).get("distro_alias")
+            self.log.info("set alias %s for %s", distro, alias)
+            self.database.set_distro_alias(distro, alias)
             snapshots_url = self.config.get(distro).get("snapshots_url", False)
             if snapshots_url:
                 snapshots_url = snapshots_url + "/targets/"
@@ -200,5 +196,4 @@ class ServerCli():
 
 logging.basicConfig(level=logging.DEBUG)
 sc = ServerCli()
-sc.download_releases()
 #sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")
