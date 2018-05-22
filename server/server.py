@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from flask import Flask
 from flask import render_template, request, send_from_directory, redirect, jsonify
 from shutil import rmtree
@@ -11,17 +9,17 @@ import os
 import logging
 from http import HTTPStatus
 
-from server.build_request import BuildRequest
-from server.upgrade_check import UpgradeCheck
-from server import app
+from .build_request import BuildRequest
+from .upgrade_check import UpgradeCheck
 
-import utils
 from utils.config import Config
 from utils.database import Database
 from utils.common import usign_init, usign_verify, usign_sign
 
 config = Config()
 database = Database(config)
+
+app = Flask(__name__)
 
 uc = UpgradeCheck(config, database)
 br = BuildRequest(config, database)
@@ -96,16 +94,12 @@ def stats():
 
 @app.route("/api/distros")
 def api_distros():
-    return app.response_class(
-            response=database.get_supported_distros(),
-            mimetype='application/json')
+    return jsonify(database.get_supported_distros())
 
 @app.route("/api/releases")
 def api_releases():
     distro = request.args.get("distro", "")
-    return app.response_class(
-            response=database.get_supported_releases(distro),
-            mimetype='application/json')
+    return jsonify(database.get_supported_releases(distro))
 
 @app.route("/api/models")
 def api_models():
@@ -113,9 +107,8 @@ def api_models():
     release = request.args.get("release", "")
     model_search = request.args.get("model_search", "")
     if distro != "" and release != "" and model_search != "":
-        return app.response_class(
-                response=database.get_supported_models(model_search, distro, release),
-                mimetype='application/json')
+        return jsonify(
+                database.get_supported_models(model_search, distro, release))
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
@@ -129,23 +122,17 @@ def api_default_packages():
     subtarget = request.args.get("subtarget", "")
     profile = request.args.get("profile", "")
     if distro != "" and release != "" and target != "" and subtarget != "" and profile != "":
-        return app.response_class(
-                response=database.get_image_packages(distro, release, target, subtarget, profile, as_json=True),
-                mimetype='application/json')
+        return jsonify(database.get_image_packages(distro, release, target, subtarget, profile, as_json=True))
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
 @app.route("/api/image/<image_hash>")
 def api_image(image_hash):
-    return app.response_class(
-            response=database.get_image_info(image_hash, json=True) ,
-            mimetype='application/json')
+    return jsonify(database.get_image_info(image_hash, json=True))
 
 @app.route("/api/manifest/<manifest_hash>")
 def api_manifest(manifest_hash):
-    return app.response_class(
-            response=database.get_manifest_info(manifest_hash, json=True),
-            mimetype='application/json')
+    return jsonify(database.get_manifest_info(manifest_hash, json=True))
 
 @app.route("/supported")
 def supported():
@@ -196,7 +183,6 @@ def worker_register():
     with open(worker_pubkey_path, "w") as worker_pubkey:
         worker_pubkey.write("untrusted comment: worker-{}\n".format(worker_id))
         worker_pubkey.write(request_json["worker_pubkey"])
-    print(request_json)
     usign_sign(worker_pubkey_path)
     return worker_id
 
