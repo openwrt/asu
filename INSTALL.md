@@ -35,9 +35,9 @@
     CREATE DATABASE attended-sysupgrade ENCODING 'UTF8' OWNER sysupgrade;
     
 
-- Copy   utils/config.yml.default to the  attendedsysupgrade-server  folder and add the credentials for the database
+- Copy `utils/config.yml.default` to the `attendedsysupgrade-server` folder and add the credentials for the database
  
-- Import the SQL in  utils/tables.sql:
+- Import the SQL in `utils/tables.sql`:
  
 
     $ psql -U sysupgrade --password -h localhost -d attended-sysupgrade < utils/tables.sql 
