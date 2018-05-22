@@ -2,8 +2,9 @@
 
 ## Prerequites 
 
-- Debian/Ubuntu
-    - anything Unixlike should work but commands may differ
+- Debian/Ubuntu 
+    - Tested on Ubuntu 18.04
+    - anything Unixoid should work but commands may differ
 - Python3 + venv Module  
 - PostgreSQL 
 - GnuPG 
@@ -35,7 +36,7 @@
     CREATE DATABASE attended-sysupgrade ENCODING 'UTF8' OWNER sysupgrade;
     
 
-- Copy `utils/config.yml.default` to the `attendedsysupgrade-server` folder and add the credentials for the database
+- Copy `utils/config.yml.default` to the `attendedsysupgrade-server` folder, rename to `config.yml` and add the credentials for the database
  
 - Import the SQL in `utils/tables.sql`:
  
@@ -48,7 +49,7 @@
 - Install usign in `/usr/local/bin/usign`
   
 
-    $ https://git.openwrt.org/project/usign.git
+    $ git clone https://git.openwrt.org/project/usign.git
     $ cd usign 
     $ cmake . 
     $ make 
