@@ -11,6 +11,7 @@
 - Working Compiler 
 
 
+
     # apt install python3-dev python3-venv build-essential cmake git postgresql-10 
     
     
@@ -36,9 +37,10 @@
     CREATE DATABASE attended-sysupgrade ENCODING 'UTF8' OWNER sysupgrade;
     
 
-- Copy `utils/config.yml.default` to the `attendedsysupgrade-server` folder, rename to `config.yml` and add the credentials for the database
+Copy `utils/config.yml.default` to the `attendedsysupgrade-server` folder, rename to `config.yml` and add the credentials for the database
  
-- Import the SQL in `utils/tables.sql`:
+Import the SQL in `utils/tables.sql`:
+
  
 
     $ psql -U sysupgrade --password -h localhost -d attended-sysupgrade < utils/tables.sql 
@@ -46,7 +48,7 @@
 
 ### 4. Install `usign`
 
-- Install usign in `/usr/local/bin/usign`
+Install usign in `/usr/local/bin/usign`
   
 
     $ git clone https://git.openwrt.org/project/usign.git
@@ -59,7 +61,7 @@
 
 ### 5. Test
  
-- Start the Server:
+Start the Server:
  
 
     $ ./cli.py -ia 
