@@ -1,5 +1,7 @@
 import threading
 import glob
+import requests
+from requests.exceptions import ConnectionError
 import re
 from socket import gethostname
 import shutil
@@ -20,7 +22,7 @@ import yaml
 
 from worker.imagebuilder import ImageBuilder
 from utils.imagemeta import ImageMeta
-from utils.common import create_folder, get_hash, get_folder, setup_gnupg, sign_file, get_pubkey
+from utils.common import get_hash, gpg_init, gpg_recv_keys, usign_sign, usign_pubkey, usign_init
 from utils.config import Config
 from utils.database import Database
 
@@ -37,13 +39,24 @@ class Worker(threading.Thread):
         self.log.info("database initialized")
         self.worker_id = None
         self.imagebuilders = []
-
-    def worker_register(self):
+        self.auth = (self.config.get("worker"), self.config.get("password"))
         self.worker_name = gethostname()
         self.worker_address = ""
-        self.worker_pubkey = get_pubkey()
+        usign_init("worker-" + self.worker_name)
+
+    def api(self, path, data=None, json=None, files=None):
+        try:
+            return requests.post(self.config.get("server") + path, json=json, data=data, files=files, auth=self.auth).json()
+        except ConnectionError:
+           self.log.error("could not connect to server")
+           exit(1)
+
+    def worker_register(self):
+        self.worker_pubkey = usign_pubkey()
         self.log.info("register worker '%s' '%s' '%s'", self.worker_name, self.worker_address, self.worker_pubkey)
-        self.worker_id = str(self.database.worker_register(self.worker_name, self.worker_address, self.worker_pubkey))
+        print(self.worker_pubkey)
+        json = {'worker_name': gethostname(), 'worker_address': '', 'worker_pubkey': self.worker_pubkey}
+        self.worker_id = str(self.api("/worker/register", json=json))
 
     def worker_add_skill(self, imagebuilder):
         self.database.worker_add_skill(self.worker_id, *imagebuilder, 'ready')
@@ -73,7 +86,8 @@ class Worker(threading.Thread):
         self.log.info("register worker")
         self.worker_register()
         self.log.debug("setting up gnupg")
-        setup_gnupg()
+        gpg_init()
+        gpg_recv_keys()
         while True:
             self.log.debug("severing %s", self.imagebuilders)
             build_job_request = None
@@ -88,7 +102,7 @@ class Worker(threading.Thread):
             if build_job_request:
                 self.log.debug("found build job")
                 self.last_build_id = build_job_request[0]
-                image = Image(*build_job_request[2:9])
+                image = Image(self.worker_id, *build_job_request[2:9])
                 self.log.debug(image.as_array())
                 if not image.build():
                     self.log.warn("build failed for %s", image.as_array())
@@ -115,7 +129,8 @@ class Worker(threading.Thread):
         self.database.worker_heartbeat(self.worker_id)
 
 class Image(ImageMeta):
-    def __init__(self, distro, release, target, subtarget, profile, packages=None):
+    def __init__(self, worker_id, distro, release, target, subtarget, profile, packages=None):
+        self.worker_id = worker_id
         super().__init__(distro, release, target, subtarget, profile, packages.split(" "))
 
     def filename_rename(self, content):
@@ -135,7 +150,7 @@ class Image(ImageMeta):
         self.log.info("use imagebuilder %s", self.imagebuilder.path)
 
 
-        with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as self.build_path:
+        with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as self.build_path:
             already_created = False
 
             # only add manifest hash if special packages
@@ -145,8 +160,12 @@ class Image(ImageMeta):
 
             cmdline = ['make', 'image', "-j", str(os.cpu_count())]
             cmdline.append('PROFILE=%s' % self.profile)
-#            if self.network_profile:
-#                cmdline.append('FILES=%s' % self.network_profile_path)
+
+            # add server key to image
+            server_keys = self.config.get("keys_public") + "/server"
+            if self.config.get("sign_images") and os.path.exists(server_keys):
+                cmdline.append('FILES=%s' % server_keys)
+
             extra_image_name = "-".join(extra_image_name_array)
             self.log.debug("extra_image_name %s", extra_image_name)
             cmdline.append('EXTRA_IMAGE_NAME=%s' % extra_image_name)
@@ -180,14 +199,14 @@ class Image(ImageMeta):
                 self.parse_manifest()
                 self.image_hash = get_hash(" ".join(self.as_array_build()), 15)
 
-                path_array = [get_folder("downloaddir"), self.distro, self.release, self.target, self.subtarget, self.profile]
+                path_array = [self.config.get_folder("download_folder"), self.distro, self.release, self.target, self.subtarget, self.profile]
                 if not self.vanilla:
                     path_array.append(self.manifest_hash)
                 else:
                     path_array.append("vanilla")
 
                 self.store_path = os.path.join(*path_array)
-                create_folder(self.store_path)
+                os.makedirs(self.store_path, exist_ok=True)
 
                 self.log.debug(os.listdir(self.build_path))
                 for filename in os.listdir(self.build_path):
@@ -202,13 +221,15 @@ class Image(ImageMeta):
                     self.log.info("move file %s", filename_output)
                     shutil.move(os.path.join(self.build_path, filename), filename_output)
 
-                if sign_file(os.path.join(self.store_path, "sha256sums")):
-                    self.log.info("signed sha256sums")
+                usign_sign(os.path.join(self.store_path, "sha256sums"))
+                self.log.info("signed sha256sums")
 
                 if not already_created or entry_missing:
-                    sysupgrade_files = [ "*-squashfs-sysupgrade.bin", "*-squashfs-sysupgrade.tar",
-                        "*-squashfs.trx", "*-squashfs.chk", "*-squashfs.bin",
-                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*"]
+                    sysupgrade_files = [ "*-squashfs-sysupgrade.bin",
+                            "*-squashfs-sysupgrade.tar", "*-squashfs.trx",
+                            "*-squashfs.chk", "*-squashfs.bin",
+                            "*-squashfs-sdcard.img.gz", "*-combined-squashfs*",
+                            "*.img.gz"]
 
                     sysupgrade = None
 
@@ -226,7 +247,7 @@ class Image(ImageMeta):
                         self.log.debug("sysupgrade not found")
                         if self.build_log.find("too big") != -1:
                             self.log.warning("created image was to big")
-                            self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
+                            self.store_log(os.path.join(self.config.get_folder("download_folder"), "faillogs/request-{}".format(self.request_hash)))
                             self.database.set_image_requests_status(self.request_hash, 'imagesize_fail')
                             return False
                         else:
@@ -270,9 +291,10 @@ class Image(ImageMeta):
 
                     self.store_log(os.path.join(self.store_path, "build-{}".format(self.image_hash)))
 
-                    self.log.debug("add image: {} {} {} {} {}".format(
+                    self.log.debug("add image: {} {} {} {} {} {}".format(
                             self.image_hash,
                             self.as_array_build(),
+                            self.worker_id,
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
@@ -280,7 +302,8 @@ class Image(ImageMeta):
                             self.build_seconds))
                     self.database.add_image(
                             self.image_hash,
-                            self.as_array_build(),
+                            *self.as_array_build(),
+                            self.worker_id,
                             self.sysupgrade_suffix,
                             self.subtarget_in_name,
                             self.profile_in_name,
@@ -291,7 +314,7 @@ class Image(ImageMeta):
             else:
                 self.log.info("build failed")
                 self.database.set_image_requests_status(self.request_hash, 'build_fail')
-                self.store_log(os.path.join(get_folder("downloaddir"), "faillogs/request-{}".format(self.request_hash)))
+                self.store_log(os.path.join(self.config.get_folder("download_folder"), "faillogs/request-{}".format(self.request_hash)))
                 return False
 
     def store_log(self, path):

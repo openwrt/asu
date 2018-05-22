@@ -64,9 +64,9 @@ class BuildRequest(Request):
         # the sysupgrade should be stored in a different way but works for now
         if request_status == "created":
             file_path, file_name = self.database.get_sysupgrade(image_hash)
-            self.response_json["sysupgrade"] = "{}/static/{}{}".format(self.config.get("update_server"), file_path, file_name)
-            self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("update_server"), file_path, image_hash)
-            self.response_json["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
+            self.response_json["sysupgrade"] = "{}/static/{}{}".format(self.config.get("server"), file_path, file_name)
+            self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("server"), file_path, image_hash)
+            self.response_json["files"] =  "{}/json/{}".format(self.config.get("server"), file_path)
             self.response_json["request_hash"] = request_hash
             self.response_json["image_hash"] = image_hash
 
@@ -79,8 +79,8 @@ class BuildRequest(Request):
 
         elif request_status == "no_sysupgrade" and not self.sysupgrade:
             file_path = self.database.get_image_path(image_hash)
-            self.response_json["files"] =  "{}/json/{}".format(self.config.get("update_server"), file_path)
-            self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("update_server"), file_path, image_hash)
+            self.response_json["files"] =  "{}/json/{}".format(self.config.get("server"), file_path)
+            self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("server"), file_path, image_hash)
             self.response_json["request_hash"] = request_hash
             self.response_json["image_hash"] = image_hash
 
@@ -103,14 +103,14 @@ class BuildRequest(Request):
 
         elif request_status == "build_fail":
             self.response_json["error"] = "imagebuilder faild to create image"
-            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("update_server"), request_hash)
+            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("server"), request_hash)
             self.response_json["request_hash"] = request_hash
 
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR # 500
 
         elif request_status == "imagesize_fail":
             self.response_json["error"] = "No firmware created due to image size. Try again with less packages selected."
-            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("update_server"), request_hash)
+            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("server"), request_hash)
             self.response_json["request_hash"] = request_hash
 
             self.response_status = 413 # PAYLOAD_TO_LARGE RCF 7231

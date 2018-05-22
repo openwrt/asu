@@ -11,17 +11,16 @@ import os.path
 import threading
 import subprocess
 
-from utils.common import create_folder, get_statuscode, get_folder, check_signature
+from utils.common import get_statuscode, gpg_verify, get_last_modified
 from utils.config import Config
 
 class ImageBuilder(threading.Thread):
-    def __init__(self, distro, version, target, subtarget):
+    def __init__(self, distro, release, target, subtarget):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.distro = distro
-        self.version = version
-        self.release = version
+        self.release = release
         if self.release != 'snapshot':
             self.imagebuilder_distro = self.config.get(self.distro).get("parent_distro", self.distro)
             self.imagebuilder_release = self.config.get(self.distro).get("parent_release", self.release)
@@ -31,7 +30,7 @@ class ImageBuilder(threading.Thread):
         self.log.debug("using imagebuilder %s", self.imagebuilder_release)
         self.target = target
         self.subtarget = subtarget
-        self.path = os.path.join(get_folder("imagebuilder_folder"), self.distro, self.version, self.target, self.subtarget)
+        self.path = os.path.join(self.config.get_folder("imagebuilder_folder"), self.distro, self.release, self.target, self.subtarget)
         self.log.debug("imagebuilder path %s", self.path)
 
     def created(self):
@@ -79,12 +78,13 @@ class ImageBuilder(threading.Thread):
     def add_custom_repositories(self):
         self.pkg_arch = self.parse_packages_arch()
         self.log.info("check custom repositories of release")
-        custom_repositories = self.config.release(self.distro, self.release).get("repositories")
-        if not custom_repositories:
+        release_config = self.config.release(self.distro, self.release)
+        if release_config:
+            custom_repositories = release_config.get("repositories")
+        else:
             self.log.info("check custom repositories of distro")
             custom_repositories = self.config.get(self.distro).get("repositories")
         if custom_repositories:
-            self.log.info("add custom repositories")
             with open(os.path.join(self.path, "repositories.conf"), "w") as repositories:
                 repositories.write(self.fill_repositories_template(custom_repositories))
         else:
@@ -100,7 +100,6 @@ class ImageBuilder(threading.Thread):
         return custom_repositories
 
     def download_url(self):
-        print(self.imagebuilder_release)
         if self.imagebuilder_release == "snapshot":
             imagebuilder_download_url = os.path.join(self.config.get(self.imagebuilder_distro).get("snapshots_url"), "targets", self.target, self.subtarget)
         else:
@@ -120,10 +119,36 @@ class ImageBuilder(threading.Thread):
         name += ".Linux-x86_64.tar.xz"
         return name
 
+    def check_outdated(self):
+        """
+        checks if local imagebuilder is older then the upstream available
+        imagebuilder. currently the file .config of the imagebuilder is checked
+        """
+        local_ib = os.path.getmtime("{}/.config".format(self.path))
+        upstream_ib = get_last_modified(self.download_url() + "/" + self.tar_name())
+
+        # if imagebuilder is currently not available return False
+        if not upstream_ib:
+            return False
+
+        # local_ib is a numer the get_last_modified datetime object must be int
+        if local_ib < int(upstream_ib.strftime("%s")):
+            return True
+        return False
+
     def run(self):
-        self.log.info("downloading imagebuilder %s", self.path)
+        self.log.info("run imagebuilder %s", self.path)
+        # only check if snapshot build are outdated
+        if self.imagebuilder_release == "snapshot":
+            self.log.info("snapshot build check if outdated")
+            if self.created():
+                if self.check_outdated():
+                    self.log.debug("imagebuilder is outdated")
+                    # remove imagebuilder folder
+                    shutil.rmtree(self.path)
+
         if not self.created():
-            create_folder(self.path)
+            os.makedirs(self.path, exist_ok=True)
 
             regular_tar_url = os.path.join(self.download_url(), self.tar_name())
             if get_statuscode(regular_tar_url) != 404:
@@ -141,19 +166,20 @@ class ImageBuilder(threading.Thread):
                         return False
                 else:
                     return False
-            self.patch_makefile()
-            self.add_custom_repositories()
-            self.pkg_arch = self.parse_packages_arch()
+
+        self.patch_makefile()
+        self.add_custom_repositories()
+        self.pkg_arch = self.parse_packages_arch()
 
         self.log.info("initialized imagebuilder %s", self.path)
         return True
 
     def download(self, url):
-        with tempfile.TemporaryDirectory(dir=get_folder("tempdir")) as tempdir:
+        with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as tempdir:
             self.log.info("downloading signature")
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums"), (tempdir + "/sha256sums"))
             urllib.request.urlretrieve(os.path.join(self.download_url(), "sha256sums.gpg"), (tempdir + "/sha256sums.gpg"))
-            if not check_signature(tempdir) and not self.release == 'snapshot':
+            if not gpg_verify(tempdir) and not self.release == 'snapshot':
                 self.log.warn("bad signature")
                 return False
             self.log.debug("good signature")

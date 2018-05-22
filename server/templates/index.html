@@ -11,47 +11,5 @@
 	<p>Currently the client side is implemented for <a href="https://github.com/openwrt/luci">LuCi1</a> while all JavaScript code should be compatible with the upcomming <a href="https://github.com/jow-/luci-ng">luci-ng</a>. To use this project on a client the new package <a href="https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade">luci-app-attendedsysupgrade</a> (currently only in LEDE snapshots) is required.
 	</p>
 
-	<p>All server related code can be found in the current GitHub <a href="https://github.com/aparcar/gsoc17-attended-sysupgrade">repository</a> with additional information in the README</p>
-<div class="row">
-	<div class="col">
-		<h3>Popular target/subtarget</h3>
-
-		<table class="table">
-			<tr>
-				<th>Count</th>
-				<th>Target</th>
-				<th>Subtarget</th>
-			</tr>
-			{% for count, target, subtarget in popular_subtargets %}
-			<tr>
-				<td>{{ count }}</td>
-				<td>{{ target }}</td>
-				<td>{{ subtarget }}</td>
-			</tr>
-			{% endfor %}
-		</table>
-	</div>
-	<div class="col">
-		<h3>Stats</h3>
-		<table class="table">
-			<tr>
-				<td><b>Stored images</b></td>
-				<td>{{ images_count }}</td>
-			</tr>
-			<tr>
-				<td><b>Created images</b></td>
-				<td>{{ images_total }}</td>
-			</tr>
-			<tr>
-				<td><b>Active worker</b></td>
-				<td>{{ worker_active }}</td>
-			</tr>
-			<tr>
-				<td><b>Known packages</b></td>
-				<td>{{ packages_count }}</td>
-			</tr>
-		</table>
-
-	</div>
-</div>
+	<p>All server related code can be found in the current GitHub <a href="https://github.com/aparcar/attendedsysupgrade-server">repository</a> with additional information in the README</p>
 {% include 'footer.html' %}

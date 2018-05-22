@@ -2,6 +2,7 @@ import threading
 import signal
 import logging
 import time
+import os.path
 
 from worker.imagebuilder import ImageBuilder
 from utils.config import Config
@@ -42,11 +43,24 @@ class Updater(threading.Thread):
                     logging.error("could not receive profiles of %s/%s", target, subtarget)
                     self.db.subtarget_synced(distro, release, target, subtarget)
                     continue
-                    #exit(1)
+
+                if os.path.exists(os.path.join(
+                        self.config.get_folder("imagebuilder_folder"), distro,
+                        release, target, subtarget, "target/linux", target,
+                        "base-files/lib/upgrade/platform.sh")):
+                    self.log.info("%s target is supported", target)
+                    self.db.insert_supported(distro, release, target)
+                else:
+                    self.log.info("%s is not supported", target)
 
                 self.log.info("parse packages")
                 packages = imagebuilder.parse_packages()
-                self.db.insert_packages_available(distro, release, target, subtarget, packages)
+                if packages:
+                    self.db.insert_packages_available(distro, release, target, subtarget, packages)
+                else:
+                    self.log.warning("could not get packages for %s, %s %s",
+                            distro, release, target)
+
                 self.db.subtarget_synced(distro, release, target, subtarget)
 
 if __name__ == "__main__":

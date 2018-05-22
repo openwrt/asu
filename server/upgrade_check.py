@@ -73,15 +73,17 @@ class UpgradeCheck(Request):
                 else:
                     package_versions = self.database.packages_versions(self.distro, self.release, self.target, self.subtarget, " ".join(self.packages_installed))
 
+                if not "upgrades" in self.response_json:
+                    self.response_json["upgrades"] = {}
+
                 if "upgrade_packages" in self.request_json or "version" in self.response_json:
                     if self.request_json["upgrade_packages"] is 1 or "version" in self.response_json:
                         for package, version in package_versions:
-                            self.response_json["packages"][package] = version
-                            if package in self.packages_installed.keys():
-                                if self.packages_installed[package] != version:
-                                    if not "upgrades" in self.response_json:
-                                        self.response_json["upgrades"] = {}
-                                    self.response_json["upgrades"][package] = [version, self.packages_installed[package]]
+                            if package and version:
+                                self.response_json["packages"][package] = version
+                                if package in self.packages_installed.keys():
+                                    if self.packages_installed[package] != version:
+                                        self.response_json["upgrades"][package] = [version, self.packages_installed[package]]
 
                 self.response_json["packages"] = OrderedDict(sorted(self.response_json["packages"].items()))
 

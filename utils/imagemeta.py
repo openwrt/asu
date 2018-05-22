@@ -1,7 +1,7 @@
 import logging
 import os.path
 
-from utils.common import create_folder, get_hash, get_folder
+from utils.common import get_hash
 from utils.config import Config
 from utils.database import Database
 

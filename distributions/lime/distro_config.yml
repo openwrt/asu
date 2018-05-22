@@ -1,7 +1,7 @@
 ---
 distro_alias: LibreMesh
 parent_distro: lede
-parent_release: "17.01.2"
+parent_release: "17.01.4"
 releases:
   - "17.06"
 releases_url: http://repo.libremesh.org/releases/
