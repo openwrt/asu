@@ -1,6 +1,6 @@
 # Installation Notes
 
-## Prerequites 
+## Prerequisites
 
 - Debian/Ubuntu 
     - Tested on Ubuntu 18.04
@@ -11,6 +11,7 @@
 - Working Compiler 
 
 
+### 0. Install required packages 
 
     # apt install python3-dev python3-venv build-essential cmake git postgresql-10 
     
