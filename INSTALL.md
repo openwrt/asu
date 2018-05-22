@@ -42,6 +42,22 @@
 
     $ psql -U sysupgrade --password -h localhost -d attended-sysupgrade < utils/tables.sql 
 
+
+### 4. Install `usign`
+
+- Install usign in `/usr/local/bin/usign`
+  
+
+    $ https://git.openwrt.org/project/usign.git
+    $ cd usign 
+    $ cmake . 
+    $ make 
+    $ sudo make install 
+    
+
+
+### 5. Test
+ 
 - Start the Server:
  
 
