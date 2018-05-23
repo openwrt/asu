@@ -396,7 +396,7 @@ class Database():
     def imagebuilder_status(self, distro, release, target, subtarget):
         sql = """select 1 from worker_imagebuilder
             WHERE distro=%s and release=%s and target=%s and subtarget=%s;"""
-        self.c.execute(sql, (distro, release, target, subtarget))
+        self.c.execute(sql, distro, release, target, subtarget)
         if self.c.rowcount > 0:
             return "ready"
         else:
@@ -404,7 +404,7 @@ class Database():
             sql = """insert into imagebuilder_requests
                 (distro, release, target, subtarget)
                 VALUES (%s, %s, %s, %s)"""
-            self.c.execute(sql, (distro, release, target, subtarget))
+            self.c.execute(sql, distro, release, target, subtarget)
             self.commit()
             return 'requested'
 
