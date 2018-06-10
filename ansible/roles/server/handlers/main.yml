@@ -1,2 +1,4 @@
-- name: restart server
-  service: name=server state=restarted
+- name: 'Restart Server'
+  service:
+    name: 'server'
+    state: 'restarted'
