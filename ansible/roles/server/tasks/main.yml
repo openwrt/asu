@@ -65,7 +65,7 @@
     src: 'server.service.j2'
     dest: '/etc/systemd/system/server.service'
 
-# This stanza is referencing a missing file.
+# @TODO: This stanza is referencing a missing file.
 - name: 'Template Configuration'
   template:
     src: 'config.yml.j2'
@@ -77,7 +77,7 @@
     state: 'started'
     enabled: True
 
-# This stanza is NOT IDEMPOTENT. Perhaps reference a 'creates' to prevent undesirable repetition.
+# @TODO: This stanza is NOT IDEMPOTENT. Perhaps reference a 'creates' to prevent undesirable repetition.
 # download all releases and init all current imagebuilders
 - name: 'Initialize Server'
   become_user: '{{ server_user }}'
