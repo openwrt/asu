@@ -1,7 +1,0 @@
-ansible_ssh_user: root
-
-worker_user: user1
-
-worker_folder: /srv
-
-server_url: https://betaupdate.libremesh.org

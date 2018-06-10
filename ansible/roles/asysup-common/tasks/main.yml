@@ -1,0 +1,14 @@
+---
+- name: 'Include OS Variables'
+  include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+      - '{{ ansible_distribution }}.yml'
+      - '{{ ansible_os_family }}.yml'
+      skip: True
+
+- name: 'Install Packages'
+  package:
+    name: '{{ item }}'
+    state: 'present'
+  with_items: '{{ asysup_common_pkg }}'

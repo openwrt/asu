@@ -1,0 +1,4 @@
+---
+asysup_server_pkg:
+  - 'nginx'
+  - 'python3-flask'

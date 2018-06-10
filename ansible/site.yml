@@ -3,10 +3,10 @@
   become: True
   become_method: 'sudo'
   roles:
-    - { role: 'server' }
+    - { role: 'asysup-server' }
 
 - hosts: 'workers'
   become: True
   become_method: 'sudo'
   roles:
-    - { role: 'worker' }
+    - { role: 'asysup-worker' }

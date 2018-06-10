@@ -1,0 +1,4 @@
+worker_user: 'wkrusr'
+worker_folder: ''/srv'
+
+server_url: 'https://betaupdate.libremesh.org'

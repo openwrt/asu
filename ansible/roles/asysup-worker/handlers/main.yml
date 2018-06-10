@@ -1,0 +1,4 @@
+- name: 'Restart Worker'
+  service:
+    name: 'worker'
+    state: 'restarted'

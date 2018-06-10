@@ -1,0 +1,19 @@
+---
+- name: 'Clone Repository'
+  git:
+    repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'
+    version: '{{ asysup_commit }}'
+    dest: '{{ worker_folder }}'
+    update: '{{ force_update }}'
+  notify: 'Restart Worker'
+
+- name: 'Template Service'
+  template:
+    src: 'worker.service.j2'
+    dest: '/etc/systemd/system/worker.service'
+
+- name: 'Ensure Worker Started/Enabled'
+  service:
+    name: 'worker'
+    state: 'started'
+    enabled: True

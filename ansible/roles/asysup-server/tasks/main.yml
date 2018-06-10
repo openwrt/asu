@@ -1,47 +1,35 @@
 ---
+- name: 'Include OS Variables'
+  include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+      - '{{ ansible_distribution }}.yml'
+      - '{{ ansible_os_family }}.yml'
+      skip: True
+
 - name: 'Install Packages'
   package:
     name: '{{ item }}'
     state: 'present'
-  with_items:
-    - 'nginx'
-    - 'postgresql'
-    - 'odbc-postgresql'
-    - 'python3-pyodbc'
-    - 'python3-psycopg2'
-    - 'python3-gnupg'
-    - 'python-psycopg2'
-    - 'python3-yaml'
-    - 'python3-flask'
-    - 'git'
-    - 'subversion'
-    - 'build-essential'
-    - 'libncurses5-dev'
-    - 'zlib1g-dev'
-    - 'gawk'
-    - 'git'
-    - 'ccache'
-    - 'gettext'
-    - 'libssl-dev'
-    - 'xsltproc'
-    - 'wget'
-    - 'unzip'
-    - 'python'
+  with_items: '{{ asysup_server_pkg }}'
 
 - name: 'Clone Repository'
   git:
     repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'
+    version: '{{ asysup_commit }}'
     dest: '{{ server_folder }}'
     update: '{{ force_update }}'
   notify:
     - 'Restart Server'
 
+# @TODO: This is NOT IDEMPOTENT -- a check should be done to make sure this database needs creating before this is run.
 - name: 'Ensure Database'
   become_user: 'postgres'
   postgresql_db:
     name: '{{ database_name }}'
 
 - name: 'Ensure Database Access'
+  become: True
   become_user: 'postgres'
   postgresql_user:
     db: '{{ database_name }}'
@@ -50,6 +38,7 @@
     priv: 'ALL'
 
 - name: 'Ensure User Priveleges'
+  become: True
   become_user: 'postgres'
   postgresql_user:
     name: '{{ database_user }}'
@@ -80,6 +69,7 @@
 # @TODO: This stanza is NOT IDEMPOTENT. Perhaps reference a 'creates' to prevent undesirable repetition.
 # download all releases and init all current imagebuilders
 - name: 'Initialize Server'
+  become: True
   become_user: '{{ server_user }}'
   command: 'python3 cli.py -ia'
   args:
