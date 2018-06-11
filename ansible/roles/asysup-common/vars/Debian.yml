@@ -1,5 +1,6 @@
 ---
 asysup_common_pkg:
+  - 'acl'
   - 'git'
   - 'subversion'
   - 'build-essential'

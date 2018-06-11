@@ -1,4 +1,8 @@
 ---
+- name: 'Ensure Worker User'
+  user:
+    name: '{{ worker_user }}'
+
 - name: 'Clone Repository'
   git:
     repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'

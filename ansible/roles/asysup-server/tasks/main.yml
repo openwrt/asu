@@ -13,6 +13,10 @@
     state: 'present'
   with_items: '{{ asysup_server_pkg }}'
 
+- name: 'Ensure Server User'
+  user:
+    name: '{{ server_user }}'
+
 - name: 'Clone Repository'
   git:
     repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'
@@ -22,15 +26,16 @@
   notify:
     - 'Restart Server'
 
-# @TODO: This is NOT IDEMPOTENT -- a check should be done to make sure this database needs creating before this is run.
 - name: 'Ensure Database'
   become: True
+  become_method: 'sudo'
   become_user: 'postgres'
   postgresql_db:
     name: '{{ database_name }}'
 
 - name: 'Ensure Database Access'
   become: True
+  become_method: 'sudo'
   become_user: 'postgres'
   postgresql_user:
     db: '{{ database_name }}'
@@ -40,6 +45,7 @@
 
 - name: 'Ensure User Priveleges'
   become: True
+  become_method: 'sudo'
   become_user: 'postgres'
   postgresql_user:
     name: '{{ database_user }}'
@@ -55,7 +61,6 @@
     src: 'server.service.j2'
     dest: '/etc/systemd/system/server.service'
 
-# @TODO: This stanza is referencing a missing file.
 - name: 'Template Configuration'
   template:
     src: 'config.yml.j2'
@@ -67,7 +72,6 @@
     state: 'started'
     enabled: True
 
-# @TODO: This stanza is NOT IDEMPOTENT. Perhaps reference a 'creates' to prevent undesirable repetition.
 # download all releases and init all current imagebuilders
 - name: 'Initialize Server'
   become: True
@@ -75,4 +79,5 @@
   command: 'python3 cli.py -ia'
   args:
     chdir: '{{ server_folder }}'
+    creates: '{{ server_folder }}/imagebuilder'
 
