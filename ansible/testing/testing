@@ -1,3 +1,10 @@
+[servers]
+debian-test-server
+
+[workers]
+debian-test-worker1
+debian-test-worker2
+
 [testing:children]
 servers
 workers

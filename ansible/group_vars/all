@@ -1,0 +1,28 @@
+# Common
+
+asysup_commit: 'b9491852ffc2e4d7b35828e1fb41c35096189005'
+
+# Server
+
+server_url: 'https://betaupdate.libremesh.org'
+
+server_user: 'svrusr'
+server_folder: '/srv'
+
+nginx_url:
+  - 'betaupdate.libremesh.org'
+  - 'imagebuilder.libremesh.org'
+  - 'ib.libremesh.org'
+  - 'jefe.tk'
+
+database_name: 'attendedsysupgrade'
+database_user: 'postgres'
+database_pass: 'changeme'
+
+# Worker
+
+worker_user: 'wkrusr'
+worker_folder: '/srv'
+
+worker_name: 'UNKNOWN'
+worker_pass: 'UNKNOWN'

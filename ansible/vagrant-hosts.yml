@@ -1,0 +1,39 @@
+# SOURCE: https://github.com/bertvv/ansible-skeleton/blob/master/vagrant-hosts.yml
+
+# vagrant_hosts.yml
+#
+# List of hosts to be created by Vagrant. This file controls the Vagrant
+# settings, specifically host name and network settings. You should at least
+# have a `name:`.  Other optional settings that can be specified:
+#
+# * `ip`: by default, an IP will be assigned by DHCP. If you want a fixed
+#         addres, specify it.
+# * `netmask`: by default, the network mask is `255.255.255.0`. If you want
+#              another one, it should be specified.
+# * `mac`: The MAC address to be assigned to the NIC. Several notations are
+#          accepted, including "Linux-style" (`00:11:22:33:44:55`) and
+#          "Windows-style" (`00-11-22-33-44-55`). The separator characters can
+#          be omitted altogether (`001122334455`).
+# * `intnet`: If set to `true`, the network interface will be attached to an
+#             internal network rather than a host-only adapter.
+# * `forwarded_ports`: A list of forwarded ports. Required items are `host` and 'guest`
+# * `auto_config`: If set to `false`, Vagrant will not attempt to configure
+#                  the network interface.
+# * `shell_always`: a list of shell scripts to be run after boot of the
+#                   machine. Required field is `cmd` having the path
+# * `synced_folders`: A list of dicts that specify synced folders. `src` and
+#   `dest` are mandatory, `options:` are optional. For the possible options,
+#   see the Vagrant documentation[1]. Keys of options should be prefixed with
+#   a colon, e.g. `:owner:`.
+#
+# To enable *provisioning*, add these hosts to site.yml and assign some roles.
+#
+# [1] http://docs.vagrantup.com/v2/synced-folders/basic_usage.html
+---
+- name: 'asysup-server'
+  box: 'bento/debian-9.4'
+  ip: '10.0.0.100'
+
+- name: 'asysup-worker'
+  box: 'bento/debian-9.4'
+  ip: '10.0.0.101'

@@ -1,0 +1,24 @@
+# server
+dev: False
+sign_images: True
+server: "{{ server_url }}"
+
+# database
+database_type: PostgreSQL Unicode
+database_address: localhost
+database_name: {{ database_name }}
+database_user: {{ database_user }}
+database_pass: {{ database_pass }}
+database_port: 5432
+
+# folder
+imagebuilder_folder: imagebuilder
+distro_folder: distributions
+download_folder: download
+tempdir: /tmp
+keys_private: keys
+keys_public: server/static/keys
+
+# worker
+worker: {{ worker_name }}
+password: {{ worker_pass }}

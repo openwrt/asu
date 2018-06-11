@@ -1,5 +1,7 @@
+.idea/
 ansible/*.retry
 ansible/host_vars/
+.vagrant/
 *.log
 config.yml
 imagebuilder/

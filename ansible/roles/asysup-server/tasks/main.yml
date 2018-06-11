@@ -24,6 +24,7 @@
 
 # @TODO: This is NOT IDEMPOTENT -- a check should be done to make sure this database needs creating before this is run.
 - name: 'Ensure Database'
+  become: True
   become_user: 'postgres'
   postgresql_db:
     name: '{{ database_name }}'
