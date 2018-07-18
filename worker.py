@@ -20,16 +20,82 @@ import time
 import os
 import yaml
 
-from worker.imagebuilder import ImageBuilder
-from utils.imagemeta import ImageMeta
 from utils.common import get_hash, usign_sign, usign_pubkey, usign_init
 from utils.config import Config
 from utils.database import Database
 
-MAX_TARGETS=0
+class Image():
+    def __init__(self, params):
+        self.params = params
+
+        # sort and deduplicate requested packages
+        self.params["packages"] = sorted(list(set(self.params["packages"])))
+
+        # create hash of requested packages and store in database
+        self.params["package_hash"] = get_hash(" ".join(self.params["packages"]), 12)
+        self.database.insert_hash(self.params["package_hash"], self.params["packages"])
+
+    # write buildlog.txt to image dir
+    def store_log(self, buildlog):
+        self.log.debug("write log")
+        with open(self.params["dir"] + "/buildlog.txt", "a") as buildlog_file:
+            buildlog_file.writelines(buildlog)
+
+    # parse created manifest and add to database, returns hash of manifest file
+    def set_manifest_hash(self):
+        manifest_path = glob.glob(self.params["dir"] + "/*.manifest"))[0]
+        with open(manifest_path, 'rb') as manifest_file:
+            self.params["manifest_hash"] = hashlib.sha256(manifest_file.read()).hexdigest()[0:15]
+            
+        manifest_pattern = r"(.+) - (.+)\n"
+        with open(manifest_path, "r") as manifest_file:
+            manifest_packages = dict(re.findall(manifest_pattern, manifest_file.read()))
+            self.database.add_manifest_packages(self.params["manifest_hash"], manifest_packages)
+
+    def set_image_hash(self):
+        self.params["image_hash"] = get_hash(" ".join(self.as_array("manifest_hash"), 15)
+
+    def set(self, key, value):
+        self.params[key] = value
+
+    def get(self, key):
+        return self.params.get(key)
+
+    # return dir where image is stored on server
+    def set_image_dir(self):
+        self.params["dir"] = "/".join([
+            self.config.get_folder("download_folder"),
+            self.params["distro"],
+            self.params["release"],
+            self.params["target"],
+            self.params["subtarget"],
+            self.params["profile"],
+            self.params["manifest_hash"]
+            ])
+        return self.params["dir"]
+
+
+    # return params of array in specific order
+    def as_array(self, extra=None):
+        as_array= [
+            self.params["distro"],
+            self.params["release"],
+            self.params["target"],
+            self.params["subtarget"],
+            self.params["profile"]
+            ]
+        if extra:
+            as_array.append(self.params[extra])
+        return as_array
+
+    def get_params(self):
+        return self.params
 
 class Worker(threading.Thread):
-    def __init__(self):
+    def __init__(self, job, worker, params):
+        self.job = job
+        self.worker = worker
+        self.params = params
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
@@ -38,67 +104,16 @@ class Worker(threading.Thread):
         self.database = Database(self.config)
         self.log.info("database initialized")
 
-    # write buildlog.txt to image dir
-    def store_log(self, buildlog):
-        self.log.debug("write log to %s", path)
-        with open os.path.join(, "buildlog.txt") as buildlog_path:
-            log_file = open(buildlog_path, "a")
-            log_file.writelines(buildlog)
-
-    # parse created manifest and add to database, returns hash of manifest file
-    def get_manifest_hash(self, image):
-        manifest_path = glob.glob(image["dir"] + "/*.manifest"))[0]
-        with open(manifest_path, 'rb') as manifest_file:
-            manifest_hash = hashlib.sha256(manifest_file.read()).hexdigest()[0:15]
-            
-        manifest_pattern = r"(.+) - (.+)\n"
-        with open(manifest_path, "r") as manifest_file:
-            manifest_packages = dict(re.findall(manifest_pattern, manifest_file.read()))
-            self.database.add_manifest_packages(manifest_hash, manifest_packages)
-
-        return manifest_hash
-
-    # return dir where image is stored on server
-    def get_image_dir(self, image):
-        return "/".join([
-            self.config.get_folder("download_folder"),
-            image["distro"],
-            image["release"],
-            image["target"],
-            image["subtarget"],
-            image["profile"],
-            image["manifest_hash"]
-            ])
-
-    
-    # return params of array in specific order
-    def image_as_array(image, extra=None):
-        as_array= [
-            image["distro"],
-            image["release"],
-            image["target"],
-            image["subtarget"],
-            image["profile"]
-            ]
-        if extra:
-            as_array.append(extra)
-        return as_array
-
     # build image
-    def run_worker(self, image):
-        # sort and deduplicate requested packages
-        image["packages"] = sorted(list(set(image["packages"])))
+    def build(self)
+        self.image = Image(self.params["image"])
 
-        # create hash of requested packages and store in database
-        image["package_hash"] = get_hash(" ".join(image["packages"]), 12)
-        self.database.insert_hash(image["package_hash"], image["packages"])
-
-        request_hash = get_hash(" ".join(image_as_array(image, image["package_hash"])), 12)
+        request_hash = get_hash(" ".join(self.image.as_array("package_hash"), 12)
 
         with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_path:
             env = os.environ.copy()
             env.update(image)
-            for key, value in image.items():
+            for key, value in self.image.get_params().items():
                 env[key.upper()] = value
 
             env["j"] = str(os.cpu_count())
@@ -120,23 +135,30 @@ class Worker(threading.Thread):
             buildlog = output.decode("utf-8")
             returnCode = proc.returncode
             if returnCode == 0:
+                # move manifest first to calculate image hash
+                manifest_path = glob.glob(build_dir + "/*.manifest")[0]
+                if manifest_path:
+                    shutil.move(manifest_path, self.image.get("dir"))
+                else:
+                    self.log.error("Could not find manifest file")
+                    return 0
+
                 # calculate hash based on resulted manifest
-                image["manifest_hash"] = self.get_manifest_hash(image)
-                image["image_hash"] = get_hash(" ".join(image_as_array(image, image["manifest_hash"])), 15)
+                self.image.manifest_hash()
+                self.image.image_hash()
 
                 # get directory where image is stored on server
-                image["dir"] = self.get_image_dir(image)
+                image_dir = self.image.set_image_dir()
 
                 # create folder in advance
-                os.makedirs(image["dir"], exist_ok=True)
+                os.makedirs(self.image.get("dir"), exist_ok=True)
 
                 self.log.debug(os.listdir(build_path))
 
                 # move files to new location and rename contents of sha256sums
+                # TODO rename request_hash to manifest_hash
                 for filename in os.listdir(build_path):
-                    new_path = os.path.join(image["dir"], self.filename_rename(filename))
-                    self.log.info("move file %s", new_path)
-                    shutil.move(os.path.join(build_path, filename), new_path)
+                    shutil.move(build_path + "/" + filename), image_dir))
 
                 # TODO this should be done on the worker, not client
                 # however, as the request_hash is changed to manifest_hash after transer
@@ -155,7 +177,7 @@ class Worker(threading.Thread):
                 sysupgrade = None
 
                 for sysupgrade_file in possible_sysupgrade_files:
-                    sysupgrade = glob.glob(os.path.join(image["dir"], sysupgrade_file))
+                    sysupgrade = glob.glob(image_dir, sysupgrade_file))
                     if sysupgrade:
                         break
 
@@ -163,13 +185,13 @@ class Worker(threading.Thread):
                     self.log.debug("sysupgrade not found")
                     if buildlog.find("too big") != -1:
                         self.log.warning("created image was to big")
-                        self.store_log(image, buildlog)
+                        self.image.store_log(buildlog)
                         self.database.set_image_requests_status(request_hash, "imagesize_fail")
                         return False
                     else:
                         self.build_status = "no_sysupgrade"
                 else:
-                    image["sysupgrade"] = os.path.basename(sysupgrade[0])
+                    self.image.set("sysupgrade", os.path.basename(sysupgrade[0]))
 
                     self.store_log(image, buildlog)
 
@@ -183,14 +205,86 @@ class Worker(threading.Thread):
                     return False
 
                 self.log.info("build successfull")
-
+    
     def run(self):
-        while True:
-            image = self.database.get_build_job()
-            if image:
-                image["worker"] = "/tmp/worker"
-                run_worker(image)
-            time.sleep(5)
+        if self.job == "build":
+            self.build()
+        elif self.job == "info":
+            self.parse_info()
+        elif self.job == "packages":
+            self.parse_packages()
+
+    def parse_info(self):
+        self.log.debug("parse info")
+        cmdline = ['meta', 'info']
+
+        env = os.environ.copy()
+        env.update(image)
+        for key, value in self.params.items():
+            env[key.upper()] = value
+
+        proc = subprocess.Popen(
+            cmdline,
+            cwd=self.worker,
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT,
+            env=env
+        )
+
+        output, erros = proc.communicate()
+        returnCode = proc.returncode
+        output = output.decode('utf-8')
+        if returnCode == 0:
+            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
+            default_packages = re.match(default_packages_pattern, output, re.M).group(2)
+            logging.debug("default packages: %s", default_packages)
+
+            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
+            profiles = re.findall(profiles_pattern, output)
+            if not profiles:
+                profiles = []
+            self.database.insert_profiles(self.params, default_packages, profiles)
+        else:
+            logging.error("could not receive profiles")
+            return False
+
+    def parse_packages(self):
+        self.log.info("receive packages")
+
+        cmdline = ['meta', 'package_list']
+        env = os.environ.copy()
+        env.update(image)
+        for key, value in self.params.items():
+            env[key.upper()] = value
+
+        proc = subprocess.Popen(
+            cmdline,
+            cwd=self.params["worker"],
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT,
+            env=env
+        )
+
+        output, erros = proc.communicate()
+        returnCode = proc.returncode
+        output = output.decode('utf-8')
+        if returnCode == 0:
+            packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
+            self.log.info("found {} packages for {} {} {} {}".format(len(packages)))
+            self.database.insert_packages_available(self.params, packages)
+        else:
+            self.log.warning("could not receive packages")
+
+while True:
+    worker = "/tmp/worker"
+    image = self.database.get_build_job()
+    if image:
+        job = "build"
+        worker = Worker(job, worker, image)
+        worker.run() # TODO no threading just yet
+    time.sleep(5)
 
     # TODO reimplement
     #def diff_packages(self):

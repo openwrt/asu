@@ -89,17 +89,14 @@ class Database():
             subtargets.subtarget = ?)""", distro, release, target, subtarget)
         self.commit()
 
-    def insert_profiles(self, distro, release, target, subtarget, packages_default, profiles):
+    def insert_profiles(self, target, packages_default, profiles):
+        self.log.debug("insert packages_default")
+        self.insert_dict("packages_default", { *target, "packages": packages_default})
 
-        self.log.debug("insert_profiles %s/%s/%s/%s", distro, release, target, subtarget)
-        self.c.execute("INSERT INTO packages_default VALUES (?, ?, ?, ?, ?);", distro, release, target, subtarget, packages_default)
-
-        sql = "INSERT INTO packages_profile VALUES (?, ?, ?, ?, ?, ?, ?);"
         for profile in profiles:
-            profile_name, profile_model, profile_packages = profile
-            self.log.debug("insert '%s' '%s' '%s'", profile_name, profile_model, profile_packages)
-            self.c.execute(sql, distro, release, target, subtarget, profile_name, profile_model, profile_packages)
-        self.commit()
+            profile, model, packages = profile
+            self.insert_dict("packages_profiles",
+                    { **target, "profile": profile, "model": model, "packages": packages })
 
     def check_subtarget(self, distro, release, target, subtarget):
         self.c.execute("""SELECT 1 from subtargets
@@ -183,13 +180,13 @@ class Database():
         self.c.execute(sql, distro, release, target, subtarget)
         self.commit()
 
-    def insert_packages_available(self, distro, release, target, subtarget, packages):
-        self.log.debug("insert packages of {}/{}/{}/{}".format(distro, release, target, subtarget))
+    def insert_packages_available(self, target, packages):
+        self.log.debug("insert packages")
         sql = """INSERT INTO packages_available VALUES (?, ?, ?, ?, ?, ?);"""
         for package in packages:
             name, version = package
-            self.c.execute(sql, distro, release, target, subtarget, name, version)
-        self.commit()
+            self.insert_dict("packages_available", 
+                    { **target, "name": name, "version": version })
 
     def get_packages_available(self, distro, release, target, subtarget):
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, release, target, subtarget)
@@ -507,7 +504,6 @@ class Database():
 
     def get_request_packages(self, distro, release, target, subtarget, profile):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and release like ? and target like ?;"""
-
 
     def get_images_list(self):
         self.log.debug("get images list")

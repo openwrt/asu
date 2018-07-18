@@ -63,56 +63,6 @@ class Updater(threading.Thread):
 
                 self.db.subtarget_synced(distro, release, target, subtarget)
 
-    def parse_info(self):
-        self.log.debug("parse info")
-        cmdline = ['make', 'info']
-        self.log.info("receive profiles for %s/%s", self.target, self.subtarget)
-
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=self.path,
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT
-        )
-
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
-        output = output.decode('utf-8')
-        if returnCode == 0:
-            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
-            default_packages = re.match(default_packages_pattern, output, re.M).group(2)
-            logging.debug("default packages: %s", default_packages)
-            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
-            profiles = re.findall(profiles_pattern, output)
-            if not profiles:
-                profiles = []
-            return(default_packages, profiles)
-        else:
-            logging.error("could not receive profiles of %s/%s", self.target, self.subtarget)
-            return False
-
-    def parse_packages(self):
-        self.log.info("receive packages for %s/%s", self.target, self.subtarget)
-        cmdline = ['make', 'package_list']
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=self.path,
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT
-        )
-
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
-        output = output.decode('utf-8')
-        if returnCode == 0:
-            packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
-            self.log.info("found {} packages for {} {} {} {}".format(len(packages), self.distro, self.release, self.target, self.subtarget))
-            return(packages)
-        else:
-            print(output)
-            self.log.warning("could not receive packages of %s/%s", self.target, self.subtarget)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
