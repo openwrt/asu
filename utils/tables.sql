@@ -1,3 +1,10 @@
+create table if not exists worker (
+	id serial primary key,
+	name varchar(100),
+	address varchar(100),
+	public_key varchar(100),
+);
+
 create table if not exists distributions (
 	id serial primary key,
 	name varchar(20) not null,
@@ -434,9 +441,9 @@ where imagebuilder_table.subtarget_id =
 returning
 old.*;
 
-create table if not exists sysupgrade_suffixes (
+create table if not exists sysupgrade_files (
 	id SERIAL PRIMARY KEY,
-	sysupgrade_suffix varchar(30) unique
+	sysupgrade varchar(100) unique
 );
 
 create table if not exists images_table (
@@ -444,30 +451,29 @@ create table if not exists images_table (
 	image_hash varchar(30) UNIQUE,
 	profile_id integer references profiles_table(id) ON DELETE CASCADE,
 	manifest_id integer references manifest_table(id) ON DELETE CASCADE,
-	worker_id integer,
+	worker_id integer references worker(id) ON DELETE CASCADE,
 	build_date timestamp,
-	sysupgrade_suffix_id integer references sysupgrade_suffixes(id) ON DELETE CASCADE,
+	sysupgrade_id integer references sysupgrade_files(id) ON DELETE CASCADE,
 	status varchar(20) DEFAULT 'untested',
-	subtarget_in_name boolean,
-	profile_in_name boolean,
 	vanilla boolean,
 	build_seconds integer
 );
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, worker_id, build_date, sysupgrade_suffix, status, subtarget_in_name, profile_in_name, vanilla, build_seconds
-from profiles, images_table, manifest_table, sysupgrade_suffixes
+images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, worker.name, build_date, sysupgrade_file, status, vanilla, build_seconds
+from profiles, images_table, manifest_table, sysupgrade, worker
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
-images_table.sysupgrade_suffix_id = sysupgrade_suffixes.id;
+images_table.sysupgrade_id = sysupgrade_files.id and
+images_table.worker_id = worker.name;
 
-create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, worker_id integer, sysupgrade_suffix varchar, build_date timestamp, subtarget_in_name boolean, profile_in_name boolean, vanilla boolean, build_seconds decimal) returns void as
+create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, worker integer, sysupgrade varchar, build_date timestamp, vanilla boolean, build_seconds decimal) returns void as
 $$
 begin
-	insert into sysupgrade_suffixes (sysupgrade_suffix) values (add_image.sysupgrade_suffix) on conflict do nothing;
-	insert into images_table (image_hash, profile_id, manifest_id, worker_id, sysupgrade_suffix_id, build_date, subtarget_in_name, profile_in_name, vanilla, build_seconds) values (
+	insert into sysupgrade_files (sysupgrade) values (add_image.sysupgrade) on conflict do nothing;
+	insert into images_table (image_hash, profile_id, manifest_id, worker_id, sysupgrade_file_id, build_date, vanilla, build_seconds) values (
 		add_image.image_hash,
 		(select profiles.id from profiles where
 			profiles.distro = add_image.distro and
@@ -477,12 +483,11 @@ begin
 			profiles.profile = add_image.profile),
 		(select manifest_table.id from manifest_table where
 			manifest_table.hash = add_image.manifest_hash),
-		add_image.worker_id,
-		(select sysupgrade_suffixes.id from sysupgrade_suffixes where
-			sysupgrade_suffixes.sysupgrade_suffix = add_image.sysupgrade_suffix),
+        (select worker.id from worker where
+            worker.name = add_image.worker),
+		(select sysupgrade_files.id from sysupgrade_files where
+			sysupgrade_files.sysupgrade = add_image.sysupgrade),
 		add_image.build_date,
-		add_image.subtarget_in_name,
-		add_image.profile_in_name,
 		add_image.vanilla,
 		add_image.build_seconds)
 	on conflict do nothing;
@@ -500,10 +505,8 @@ SELECT add_image(
 	NEW.profile,
 	NEW.manifest_hash,
 	NEW.worker_id,
-	NEW.sysupgrade_suffix,
+	NEW.sysupgrade_file,
 	NEW.build_date,
-	NEW.subtarget_in_name,
-	NEW.profile_in_name,
 	NEW.vanilla,
 	NEW.build_seconds
 );
@@ -530,16 +533,8 @@ id, image_hash,
 	|| target || '/'
 	|| subtarget || '/'
 	|| profile || '/'
-	|| (CASE vanilla WHEN true THEN 'vanilla/' ELSE  manifest_hash || '/'  END)
-	as file_path,
-    distro || '-'
-	|| (CASE release WHEN 'snapshot' THEN '' ELSE release || '-'  END)
-	|| (CASE vanilla WHEN true THEN '' ELSE  manifest_hash || '-'  END)
-	|| target || '-'
-	|| (CASE subtarget_in_name WHEN false THEN '' ELSE  subtarget || '-'  END)
-	|| (CASE profile_in_name WHEN false THEN '' ELSE profile || '-'  END)
-	|| sysupgrade_suffix
-	as file_name
+    || manifest_hash as file_path,
+    sysupgrade
 from images;
 
 create table if not exists image_requests_table (
@@ -597,13 +592,6 @@ where profiles_table.id = image_requests_table.profile_id and status = 'requeste
 group by (subtarget_id)
 order by requests desc;
 
-create table if not exists worker (
-	id serial primary key,
-	name varchar(100),
-	address varchar(100),
-	public_key varchar(100),
-	heartbeat timestamp
-);
 
 create table if not exists worker_skills (
 	worker_id integer references worker(id) ON DELETE CASCADE,

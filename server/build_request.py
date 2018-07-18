@@ -63,8 +63,8 @@ class BuildRequest(Request):
 
         # the sysupgrade should be stored in a different way but works for now
         if request_status == "created":
-            file_path, file_name = self.database.get_sysupgrade(image_hash)
-            self.response_json["sysupgrade"] = "{}/static/{}{}".format(self.config.get("server"), file_path, file_name)
+            file_path, sysupgrade = self.database.get_sysupgrade(image_hash)
+            self.response_json["sysupgrade"] = "{}/static/{}{}".format(self.config.get("server"), file_path, sysupgrade)
             self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("server"), file_path, image_hash)
             self.response_json["files"] =  "{}/json/{}".format(self.config.get("server"), file_path)
             self.response_json["request_hash"] = request_hash
