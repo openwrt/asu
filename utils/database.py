@@ -288,33 +288,22 @@ class Database():
         else:
             return False
 
-    def add_image(self, image_hash, distro, release, target, subtarget, profile, manifest_hash, worker_id, sysupgrade_suffix="", subtarget_in_name="", profile_in_name="", vanilla=False, build_seconds=0):
-        sql = """INSERT INTO images
-            (image_hash,
-            distro,
-            release,
-            target,
-            subtarget,
-            profile,
-            manifest_hash,
-            worker_id,
-            sysupgrade_suffix,
-            build_date,
-            subtarget_in_name,
-            profile_in_name,
-            vanilla,
-            build_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)"""
-        self.c.execute(sql,
-                image_hash,
-                distro, release, target, subtarget, profile, manifest_hash,
-                worker_id,
-                sysupgrade_suffix,
-                'true' if subtarget_in_name else 'false', # dirty, outdated pyodbc?
-                'true' if profile_in_name else 'false',
-                'true' if vanilla else 'false',
-                build_seconds)
+    def insert_dict(self, table, data):
+        columns = []
+        values = []
+        for key, value in data.items():
+            columns.append(key)
+            values.append(value)
+        sql = 'insert into {} ({}) values ({})'.format(
+                table, ', '.join(columns), "?" + ",?" * len(values) - 1 )
+        self.c.execute(sql, values)
         self.commit()
+        return self.c.execute("select last_insert_rowid()").fetchval()
+
+    def add_image(self, image):
+        image["build_secods"] = 0 # not implemeted
+        image["build_date"] = datetime.datetime.now()
+        self.insert_dict("images", image)
 
     def add_manifest_packages(self, manifest_hash, packages):
         self.log.debug("add manifest packages")
