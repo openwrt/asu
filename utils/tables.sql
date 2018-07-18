@@ -1,8 +1,10 @@
+--drop schema public cascade; create schema public;
+
 create table if not exists worker (
 	id serial primary key,
 	name varchar(100),
 	address varchar(100),
-	public_key varchar(100),
+	public_key varchar(100)
 );
 
 create table if not exists distributions (
@@ -461,15 +463,15 @@ create table if not exists images_table (
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, worker.name, build_date, sysupgrade_file, status, vanilla, build_seconds
-from profiles, images_table, manifest_table, sysupgrade, worker
+images_table.id, image_hash, distro, release, target, subtarget, profile, hash as manifest_hash, worker.name as worker, build_date, sysupgrade, status, vanilla, build_seconds
+from profiles, images_table, manifest_table, sysupgrade_files, worker
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_id = sysupgrade_files.id and
-images_table.worker_id = worker.name;
+images_table.worker_id = worker.id;
 
-create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, worker integer, sysupgrade varchar, build_date timestamp, vanilla boolean, build_seconds decimal) returns void as
+create or replace function add_image(image_hash varchar, distro varchar, release varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, worker varchar, sysupgrade varchar, build_date timestamp, vanilla boolean, build_seconds decimal) returns void as
 $$
 begin
 	insert into sysupgrade_files (sysupgrade) values (add_image.sysupgrade) on conflict do nothing;
@@ -504,8 +506,8 @@ SELECT add_image(
 	NEW.subtarget,
 	NEW.profile,
 	NEW.manifest_hash,
-	NEW.worker_id,
-	NEW.sysupgrade_file,
+	NEW.worker,
+	NEW.sysupgrade,
 	NEW.build_date,
 	NEW.vanilla,
 	NEW.build_seconds
@@ -751,7 +753,7 @@ end
 $$ LANGUAGE 'plpgsql';
 
 create or replace view images_info as
-select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, worker_id, build_date, build_seconds
+select distinct images.id, images.image_hash, distributions.alias, images.distro, images.release, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, worker, build_date, build_seconds
             from images
 		join profiles on
 			images.distro = profiles.distro and
