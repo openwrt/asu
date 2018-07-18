@@ -6,6 +6,7 @@ releases:
   - "17.01.2"
   - "17.01.3"
   - "17.01.4"
+  - "17.01.5"
 vanilla:
   - luci
 releases_url: https://downloads.lede-project.org/releases/

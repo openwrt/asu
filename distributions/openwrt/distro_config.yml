@@ -1,5 +1,9 @@
 ---
 distro_alias: OpenWrt
+releases:
+  - 18.06.0-rc1
+  - 18.06.0-rc2
 vanilla:
   - luci
 snapshots_url: "https://downloads.lede-project.org/snapshots/"
+releases_url: https://downloads.lede-project.org/releases/
