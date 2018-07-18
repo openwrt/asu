@@ -1,2 +1,0 @@
-- name: restart server
-  service: name=server state=restarted

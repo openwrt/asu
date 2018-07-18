@@ -29,22 +29,17 @@
     - unzip
     - python
 
-- name: clone git repository
-  git:
-    repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'
-    dest: "{{ server_folder }}"
-    clone: yes
-    update: yes
-  notify:
-    - restart server
-
 - name: ensure database is created
   become_user: postgres
+  vars:
+      ansible_ssh_pipelining: true
   postgresql_db:
     name: "{{ database_name }}"
 
 - name: ensure user has access to database
   become_user: postgres
+  vars:
+      ansible_ssh_pipelining: true
   postgresql_user:
     db: "{{ database_name }}"
     name: "{{ database_user }}"
@@ -53,30 +48,17 @@
 
 - name: ensure user does not have unnecessary privilege
   become_user: postgres
+  vars:
+      ansible_ssh_pipelining: true
   postgresql_user:
     name: "{{ database_user }}"
     role_attr_flags: NOSUPERUSER,NOCREATEDB
 
-- name: copy nginx server config
-  template: src=server.conf dest=/etc/nginx/sites-enabled/server.conf
-
-- name: copy server service
-  template:
-    src: server.service
-    dest: /etc/systemd/system/server.service
-
-- name: copy config.yml
-  template: src=config.yml dest="{{ server_folder }}/config.yml"
-
-- name: start and enable server
-  service:
-    name: server
-    state: started
-    enabled: true
-
-- name: init server
-  become_user: "{{ server_user }}"
-  command: python3 cli.py -ia # download all releases and init all current imagebuilders
-  args:
-    chdir: "{{ server_folder }}"
-
+- name: init database
+  become_user: postgres
+  vars:
+      ansible_ssh_pipelining: true
+  postgresql_db:
+    name: "{{ database_name }}"
+    state: restore
+    target: "{{ server_dir }}/utils/tables.sql"
