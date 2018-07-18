@@ -91,7 +91,7 @@ class Database():
 
     def insert_profiles(self, target, packages_default, profiles):
         self.log.debug("insert packages_default")
-        self.insert_dict("packages_default", { *target, "packages": packages_default})
+        self.insert_dict("packages_default", { **target, "packages": packages_default})
 
         for profile in profiles:
             profile, model, packages = profile
@@ -292,7 +292,7 @@ class Database():
             columns.append(key)
             values.append(value)
         sql = 'insert into {} ({}) values ({})'.format(
-                table, ', '.join(columns), "?" + ",?" * len(values) - 1 )
+                table, ', '.join(columns), "?" + ",?" * (len(values) - 1))
         self.c.execute(sql, values)
         self.commit()
         return self.c.execute("select last_insert_rowid()").fetchval()

@@ -7,6 +7,7 @@ from socket import gethostname
 import shutil
 import json
 import urllib.request
+import zipfile
 import tempfile
 from datetime import datetime
 import hashlib
@@ -43,7 +44,7 @@ class Image():
 
     # parse created manifest and add to database, returns hash of manifest file
     def set_manifest_hash(self):
-        manifest_path = glob.glob(self.params["dir"] + "/*.manifest"))[0]
+        manifest_path = glob.glob(self.params["dir"] + "/*.manifest")[0]
         with open(manifest_path, 'rb') as manifest_file:
             self.params["manifest_hash"] = hashlib.sha256(manifest_file.read()).hexdigest()[0:15]
             
@@ -53,7 +54,7 @@ class Image():
             self.database.add_manifest_packages(self.params["manifest_hash"], manifest_packages)
 
     def set_image_hash(self):
-        self.params["image_hash"] = get_hash(" ".join(self.as_array("manifest_hash"), 15)
+        self.params["image_hash"] = get_hash(" ".join(self.as_array("manifest_hash"), 15))
 
     def set(self, key, value):
         self.params[key] = value
@@ -104,37 +105,44 @@ class Worker(threading.Thread):
         self.database = Database(self.config)
         self.log.info("database initialized")
 
+    def setup_meta(self):
+        self.log.debug("setup meta")
+        os.makedirs(self.worker, exist_ok=True)
+        url = "https://github.com/aparcar/meta-imagebuilder/archive/master.zip"
+        urllib.request.urlretrieve(url, "meta.zip")
+        zip_ref = zipfile.ZipFile("meta.zip", 'r')
+        zip_ref.extractall(self.worker)
+        zip_ref.close()
+
+    def setup(self):
+        self.log.debug("setup")
+
+        return_code, output, errors = self.run_meta("download_ib")
+        if return_code == 0:
+            self.log.info("setup complete")
+        else:
+            self.log.error("failed to download imagebuilder")
+            print(output)
+            print(errors)
+            exit()
+
     # build image
-    def build(self)
+    def build(self):
         self.image = Image(self.params["image"])
 
-        request_hash = get_hash(" ".join(self.image.as_array("package_hash"), 12)
+        request_hash = get_hash(" ".join(self.image.as_array("package_hash"), 12))
 
         with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_path:
-            env = os.environ.copy()
-            env.update(image)
-            for key, value in self.image.get_params().items():
-                env[key.upper()] = value
 
-            env["j"] = str(os.cpu_count())
-            env["EXTRA_IMAGE_NAME"] = request_hash
-            env["BIN_DIR"] = build_path
+            self.params["j"] = str(os.cpu_count())
+            self.params["EXTRA_IMAGE_NAME"] = request_hash
+            self.params["BIN_DIR"] = build_path
 
             self.log.info("start build: %s", " ".join(cmdline))
 
-            proc = subprocess.Popen(
-                cmdline,
-                cwd=build_path,
-                stdout=subprocess.PIPE,
-                shell=False,
-                stderr=subprocess.STDOUT,
-                env=env
-            )
+            return_code, output, errors = self.run_meta("image")
 
-            output, erros = proc.communicate()
-            buildlog = output.decode("utf-8")
-            returnCode = proc.returncode
-            if returnCode == 0:
+            if return_code == 0:
                 # move manifest first to calculate image hash
                 manifest_path = glob.glob(build_dir + "/*.manifest")[0]
                 if manifest_path:
@@ -158,7 +166,7 @@ class Worker(threading.Thread):
                 # move files to new location and rename contents of sha256sums
                 # TODO rename request_hash to manifest_hash
                 for filename in os.listdir(build_path):
-                    shutil.move(build_path + "/" + filename), image_dir))
+                    shutil.move(build_path + "/" + filename, image_dir)
 
                 # TODO this should be done on the worker, not client
                 # however, as the request_hash is changed to manifest_hash after transer
@@ -177,7 +185,7 @@ class Worker(threading.Thread):
                 sysupgrade = None
 
                 for sysupgrade_file in possible_sysupgrade_files:
-                    sysupgrade = glob.glob(image_dir, sysupgrade_file))
+                    sysupgrade = glob.glob(image_dir, sysupgrade_file)
                     if sysupgrade:
                         break
 
@@ -198,15 +206,18 @@ class Worker(threading.Thread):
                     self.database.add_image(image)
                     self.database.done_build_job(request_hash, image["image_hash"], build_status)
                     return True
-                else:
-                    self.log.info("build failed")
-                    self.database.set_image_requests_status(request_hash, 'build_fail')
-                    self.store_log(image, buildlog)
-                    return False
+            else:
+                self.log.info("build failed")
+                self.database.set_image_requests_status(request_hash, 'build_fail')
+                self.store_log(image, buildlog)
+                return False
 
-                self.log.info("build successfull")
+            self.log.info("build successfull")
     
     def run(self):
+        if not os.path.exists(self.worker + "/meta"):
+            self.setup_meta()
+        self.setup()
         if self.job == "build":
             self.build()
         elif self.job == "info":
@@ -214,17 +225,14 @@ class Worker(threading.Thread):
         elif self.job == "packages":
             self.parse_packages()
 
-    def parse_info(self):
-        self.log.debug("parse info")
-        cmdline = ['meta', 'info']
-
+    def run_meta(self, cmd):
         env = os.environ.copy()
-        env.update(image)
         for key, value in self.params.items():
+            print(key, value)
             env[key.upper()] = value
 
         proc = subprocess.Popen(
-            cmdline,
+            ["sh", "meta", cmd],
             cwd=self.worker,
             stdout=subprocess.PIPE,
             shell=False,
@@ -232,16 +240,26 @@ class Worker(threading.Thread):
             env=env
         )
 
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
+        output, errors = proc.communicate()
+        return_code = proc.returncode
         output = output.decode('utf-8')
-        if returnCode == 0:
+
+        return (return_code, output, errors)
+
+
+    def parse_info(self):
+        self.log.debug("parse info")
+
+        return_code, output, errors = self.run_meta("info")
+
+        if return_code == 0:
             default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
             default_packages = re.match(default_packages_pattern, output, re.M).group(2)
             logging.debug("default packages: %s", default_packages)
 
             profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
             profiles = re.findall(profiles_pattern, output)
+            print(profiles)
             if not profiles:
                 profiles = []
             self.database.insert_profiles(self.params, default_packages, profiles)
@@ -252,39 +270,26 @@ class Worker(threading.Thread):
     def parse_packages(self):
         self.log.info("receive packages")
 
-        cmdline = ['meta', 'package_list']
-        env = os.environ.copy()
-        env.update(image)
-        for key, value in self.params.items():
-            env[key.upper()] = value
+        return_code, output, errors = self.run_meta("package_list")
 
-        proc = subprocess.Popen(
-            cmdline,
-            cwd=self.params["worker"],
-            stdout=subprocess.PIPE,
-            shell=False,
-            stderr=subprocess.STDOUT,
-            env=env
-        )
-
-        output, erros = proc.communicate()
-        returnCode = proc.returncode
-        output = output.decode('utf-8')
-        if returnCode == 0:
+        if return_code == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.log.info("found {} packages for {} {} {} {}".format(len(packages)))
             self.database.insert_packages_available(self.params, packages)
         else:
             self.log.warning("could not receive packages")
 
-while True:
-    worker = "/tmp/worker"
-    image = self.database.get_build_job()
-    if image:
-        job = "build"
-        worker = Worker(job, worker, image)
-        worker.run() # TODO no threading just yet
-    time.sleep(5)
+if __name__ == '__main__':
+    config = Config()
+    database = Database(config)
+    while True:
+        worker = "/tmp/worker"
+        image = database.get_build_job()
+        if image:
+            job = "build"
+            worker = Worker(job, worker, image)
+            worker.run() # TODO no threading just yet
+        time.sleep(5)
 
     # TODO reimplement
     #def diff_packages(self):
