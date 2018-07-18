@@ -98,10 +98,7 @@ class ServerCli():
 
     def init_server(self):
         usign_init()
-        gpg_init()
-        #gpg_gen_key("test@test.de")
         copyfile(config.get_folder("keys_private") + "/public", config.get_folder("keys_public") + "/server/etc/server.pub")
-        copyfile(config.get_folder("keys_private") + "/public.gpg", config.get_folder("keys_public") + "/server/etc/server.gpg")
         makedirs(config.get_folder("download_folder") + "/faillogs", exist_ok=True)
 
         # folder to include server keys in created images
@@ -110,46 +107,21 @@ class ServerCli():
 
     def download_releases(self):
         for distro in self.config.get_distros():
-            alias = self.config.get(distro).get("distro_alias")
-            self.log.info("set alias %s for %s", distro, alias)
-            self.database.set_distro_alias(distro, alias)
-            snapshots_url = self.config.get(distro).get("snapshots_url", False)
-            if snapshots_url:
-                snapshots_url = snapshots_url + "/targets/"
-                print("adding snapshots")
-                self.database.insert_release(distro, "snapshot")
-                target_website = urllib.request.urlopen(snapshots_url).read().decode('utf-8')
-                target_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                targets = re.findall(target_pattern, target_website)
+            release_url = self.config.get(distro).get("releases_url")
+            for release in self.config.get(distro).get("releases", []):
+                self.database.insert_release(distro, release)
+                release_targets = json.loads(urllib.request.urlopen(
+                    "{}/{}/targets?json-targets".format(release_url, release))
+                        .read().decode('utf-8'))
 
-                for target in targets:
-                    subtarget_website = urllib.request.urlopen("{}/{}".format(snapshots_url, target)).read().decode('utf-8')
-                    subtarget_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                    subtargets = re.findall(subtarget_pattern, subtarget_website)
-                    print("snapshots {} {}".format("snapshot", target, subtargets))
-                    self.database.insert_subtargets(distro, "snapshot", target, subtargets)
+                for target in release_targets:
+                    self.database.insert_subtarget(distro, release, *target.split("/"))
 
-            releases_url = self.config.get(distro).get("releases_url", False)
-            if releases_url:
-                for release in self.config.get(distro).get("releases"):
-                    print("{} {}".format(distro, release))
-                    self.database.insert_release(distro, release)
-                    release_url = "{}/{}/targets/".format(releases_url, release)
-                    if get_statuscode(release_url) != 404:
-                        print("release {} online".format(release))
-                        targets_website = urllib.request.urlopen(release_url).read().decode('utf-8')
-                        targets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                        targets = re.findall(targets_pattern, targets_website)
-                        for target in targets:
-                            subtargets_website = urllib.request.urlopen("{}/{}/targets/{}".format(releases_url, release, target)).read().decode('utf-8')
-                            subtargets_pattern = r'<a href="(\w+?)/?">.+?/?</a>/?</td>'
-                            subtargets = re.findall(subtargets_pattern, subtargets_website)
-                            print("{} {} {}".format(release, target, subtargets))
-                            self.database.insert_subtargets(distro, release, target, subtargets)
-                    else:
-                        print("release {} offline".format(release))
+            # set distro alias like OpenWrt, fallback would be openwrt
+            self.database.set_distro_alias(distro, self.config.get(distro).get("distro_alias", distro))
 
     def insert_board_rename(self):
+        # TODO implement snapshots in a better way then before so a release can have multiple snapshots
         for distro, release in self.database.get_releases():
             release_config = self.config.release(distro, release)
             if "board_rename" in release_config:
@@ -194,6 +166,7 @@ class ServerCli():
                         if "transformations" in replacements:
                             self.insert_replacements(distro, release, replacements["transformations"])
 
-logging.basicConfig(level=logging.DEBUG)
-sc = ServerCli()
-#sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    sc = ServerCli()
+    #sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")

@@ -30,8 +30,8 @@ class Database():
         self.commit()
         self.log.info("created tables")
 
-    def set_distro_alias(self, distro, alias):
-        self.log.info("set alias %s/%s ", distro, alias)
+    def set_distro_alias(self, distro, alias=""):
+        self.log.info("insert distro")
         sql = "UPDATE distributions SET alias = ? WHERE name = ?;"
         self.c.execute(sql, alias, distro)
         self.commit()
@@ -199,12 +199,9 @@ class Database():
             response[name] = version
         return response
 
-    def insert_subtargets(self, distro, release, target, subtargets):
-        self.log.info("insert subtargets %s/%s ", target, " ".join(subtargets))
+    def insert_subtarget(self, distro, release, target, subtarget):
         sql = "INSERT INTO subtargets (distro, release, target, subtarget) VALUES (?, ?, ?, ?);"
-        for subtarget in subtargets:
-            self.c.execute(sql, distro, release, target, subtarget)
-
+        self.c.execute(sql, distro, release, target, subtarget)
         self.commit()
 
     def get_subtargets(self, distro, release, target="%", subtarget="%"):
