@@ -41,17 +41,24 @@ class Worker(threading.Thread):
 
     def setup_meta(self):
         self.log.debug("setup meta")
-        os.makedirs(self.worker, exist_ok=True)
-        url = "https://github.com/aparcar/meta-imagebuilder/archive/master.zip"
-        urllib.request.urlretrieve(url, "meta.zip")
-        zip_ref = zipfile.ZipFile("meta.zip", 'r')
-        zip_ref.extractall(self.worker)
-        zip_ref.close()
+        cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
+        proc = subprocess.Popen(
+            cmdline.split(" "),
+            cwd=self.worker,
+            stdout=subprocess.PIPE,
+            shell=False,
+            stderr=subprocess.STDOUT,
+        )
+
+        output, errors = proc.communicate()
+        return_code = proc.returncode
+
+        return return_code
 
     def setup(self):
         self.log.debug("setup")
 
-        return_code, output, errors = self.run_meta("download_ib")
+        return_code, output, errors = self.run_meta("download")
         if return_code == 0:
             self.log.info("setup complete")
         else:
@@ -150,7 +157,9 @@ class Worker(threading.Thread):
     
     def run(self):
         if not os.path.exists(self.worker + "/meta"):
-            self.setup_meta()
+            if self.setup_meta():
+                self.log.error("failed to setup meta ImageBuilder")
+                exit()
         self.setup()
         if self.job == "build":
             self.build()
@@ -160,7 +169,6 @@ class Worker(threading.Thread):
             self.parse_packages()
 
     def run_meta(self, cmd):
-        print(self.params)
         env = os.environ.copy()
         for key, value in self.params.items():
             print(key, value)
