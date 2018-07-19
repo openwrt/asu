@@ -95,7 +95,7 @@ class Database():
 
         for profile in profiles:
             profile, model, packages = profile
-            self.insert_dict("packages_profiles",
+            self.insert_dict("packages_profile",
                     { **target, "profile": profile, "model": model, "packages": packages })
 
     def check_subtarget(self, distro, release, target, subtarget):
@@ -156,9 +156,6 @@ class Database():
             return True
         else:
             return False
-
-    def as_dict(self):
-        return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
 
     def get_subtarget_outdated(self):
         sql = """select distro, release, target, subtarget
@@ -285,6 +282,11 @@ class Database():
         else:
             return False
 
+    # TODO check if there is a native way to do this
+    def as_dict(self):
+        return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
+
+    # TODO check if this is dangerous
     def insert_dict(self, table, data):
         columns = []
         values = []
@@ -295,10 +297,9 @@ class Database():
                 table, ', '.join(columns), "?" + ",?" * (len(values) - 1))
         self.c.execute(sql, values)
         self.commit()
-        return self.c.execute("select last_insert_rowid()").fetchval()
 
     def add_image(self, image):
-        image["build_secods"] = 0 # not implemeted
+        image["build_seconds"] = 0 # not implemeted
         image["build_date"] = datetime.datetime.now()
         self.insert_dict("images", image)
 

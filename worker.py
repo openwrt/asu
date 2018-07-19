@@ -6,6 +6,7 @@ import urllib.request
 import tempfile
 import os
 import os.path
+import hashlib
 import subprocess
 import logging
 import time
@@ -16,9 +17,8 @@ from utils.config import Config
 from utils.database import Database
 
 class Worker(threading.Thread):
-    def __init__(self, job, worker, params):
+    def __init__(self, job, params):
         self.job = job
-        self.worker = worker
         self.params = params
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
@@ -29,11 +29,12 @@ class Worker(threading.Thread):
         self.log.info("database initialized")
 
     def setup_meta(self):
+        os.makedirs(self.params["worker"], exist_ok=True)
         self.log.debug("setup meta")
         cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
         proc = subprocess.Popen(
             cmdline.split(" "),
-            cwd=self.worker,
+            cwd=self.params["worker"],
             stdout=subprocess.PIPE,
             shell=False,
             stderr=subprocess.STDOUT,
@@ -56,47 +57,57 @@ class Worker(threading.Thread):
             print(errors)
             exit()
 
+    # write buildlog.txt to image dir
+    def store_log(self, buildlog):
+        self.log.debug("write log")
+        with open(self.image.params["dir"] + "/buildlog.txt", "a") as buildlog_file:
+            buildlog_file.writelines(buildlog)
+
     # build image
     def build(self):
-        self.image = Image(self.params["image"])
+        self.image = Image(self.params)
 
-        request_hash = get_hash(" ".join(self.image.as_array("package_hash"), 12))
+        request_hash = get_hash(" ".join(self.image.as_array("package_hash")), 12)
 
-        with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_path:
+        with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_dir:
 
             self.params["j"] = str(os.cpu_count())
             self.params["EXTRA_IMAGE_NAME"] = request_hash
-            self.params["BIN_DIR"] = build_path
+            self.params["BIN_DIR"] = build_dir
 
-            self.log.info("start build: %s", " ".join(cmdline))
+            self.log.info("start build")
 
-            return_code, output, errors = self.run_meta("image")
+            return_code, buildlog, errors = self.run_meta("image")
 
             if return_code == 0:
-                # move manifest first to calculate image hash
+                build_status = "image_created"
+                # parse created manifest and add to database, returns hash of manifest file
                 manifest_path = glob.glob(build_dir + "/*.manifest")[0]
-                if manifest_path:
-                    shutil.move(manifest_path, self.image.get("dir"))
-                else:
-                    self.log.error("Could not find manifest file")
-                    return 0
+                with open(manifest_path, 'r') as manifest_file:
+                    manifest_content = manifest_file.read()
+                    self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
+                    
+                    manifest_pattern = r"(.+) - (.+)\n"
+                    manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
+                    self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
 
                 # calculate hash based on resulted manifest
-                self.image.manifest_hash()
-                self.image.image_hash()
+                self.image.params["image_hash"] = get_hash(" ".join(self.image.as_array("manifest_hash")), 15)
 
                 # get directory where image is stored on server
-                image_dir = self.image.set_image_dir()
+                self.image.set_image_dir()
 
                 # create folder in advance
-                os.makedirs(self.image.get("dir"), exist_ok=True)
+                os.makedirs(self.image.params["dir"], exist_ok=True)
 
-                self.log.debug(os.listdir(build_path))
+                self.log.debug(os.listdir(build_dir))
 
                 # move files to new location and rename contents of sha256sums
                 # TODO rename request_hash to manifest_hash
-                for filename in os.listdir(build_path):
-                    shutil.move(build_path + "/" + filename, image_dir)
+                for filename in os.listdir(build_dir):
+                    if os.path.exists(self.image.params["dir"] + "/" + filename):
+                        break
+                    shutil.move(build_dir + "/" + filename, self.image.params["dir"])
 
                 # TODO this should be done on the worker, not client
                 # however, as the request_hash is changed to manifest_hash after transer
@@ -115,7 +126,7 @@ class Worker(threading.Thread):
                 sysupgrade = None
 
                 for sysupgrade_file in possible_sysupgrade_files:
-                    sysupgrade = glob.glob(image_dir, sysupgrade_file)
+                    sysupgrade = glob.glob(self.image.params["dir"] + "/" + sysupgrade_file)
                     if sysupgrade:
                         break
 
@@ -123,34 +134,35 @@ class Worker(threading.Thread):
                     self.log.debug("sysupgrade not found")
                     if buildlog.find("too big") != -1:
                         self.log.warning("created image was to big")
-                        self.image.store_log(buildlog)
+                        self.store_log(buildlog)
                         self.database.set_image_requests_status(request_hash, "imagesize_fail")
                         return False
                     else:
                         self.build_status = "no_sysupgrade"
                 else:
-                    self.image.set("sysupgrade", os.path.basename(sysupgrade[0]))
+                    self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
 
-                    self.store_log(image, buildlog)
+                    self.store_log(buildlog)
 
-                    self.database.add_image(image)
-                    self.database.done_build_job(request_hash, image["image_hash"], build_status)
+                    self.database.add_image(self.image.get_params())
+                    self.database.done_build_job(request_hash, self.image.params["image_hash"], build_status)
                     return True
             else:
+                print(buildlog)
                 self.log.info("build failed")
                 self.database.set_image_requests_status(request_hash, 'build_fail')
-                self.store_log(image, buildlog)
+ #               self.store_log(buildlog)
                 return False
 
             self.log.info("build successfull")
     
     def run(self):
-        if not os.path.exists(self.worker + "/meta"):
+        if not os.path.exists(self.params["worker"] + "/meta"):
             if self.setup_meta():
                 self.log.error("failed to setup meta ImageBuilder")
                 exit()
         self.setup()
-        if self.job == "build":
+        if self.job == "image":
             self.build()
         elif self.job == "info":
             self.parse_info()
@@ -160,12 +172,11 @@ class Worker(threading.Thread):
     def run_meta(self, cmd):
         env = os.environ.copy()
         for key, value in self.params.items():
-            print(key, value)
             env[key.upper()] = value
 
         proc = subprocess.Popen(
             ["sh", "meta", cmd],
-            cwd=self.worker,
+            cwd=self.params["worker"],
             stdout=subprocess.PIPE,
             shell=False,
             stderr=subprocess.STDOUT,
@@ -191,10 +202,8 @@ class Worker(threading.Thread):
 
             profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
             profiles = re.findall(profiles_pattern, output)
-            print(profiles)
             if not profiles:
                 profiles = []
-            print(self.params)
             self.database.insert_profiles(self.params, default_packages, profiles)
         else:
             logging.error("could not receive profiles")
@@ -216,20 +225,21 @@ if __name__ == '__main__':
     config = Config()
     database = Database(config)
     while True:
-        worker = "/tmp/worker"
         image = database.get_build_job()
         if image != None:
             job = "build"
-            worker = Worker(job, worker, image)
+            image["worker"] = "/tmp/worker"
+            worker = Worker(job, image)
             worker.run() # TODO no threading just yet
         outdated_subtarget = database.get_subtarget_outdated()
         if outdated_subtarget:
             print(outdated_subtarget.cursor_description)
+            outdated_subtarget["worker"] = "/tmp/worker"
             job = "info"
-            worker = Worker(job, worker, image)
+            worker = Worker(job, outdated_subtarget)
             worker.run()
             job = "packages"
-            worker = Worker(job, worker, image)
+            worker = Worker(job, outdated_subtarget)
             worker.run()
         time.sleep(5)
 
