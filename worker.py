@@ -1,25 +1,14 @@
 import threading
 import glob
-import requests
-from requests.exceptions import ConnectionError
 import re
-from socket import gethostname
 import shutil
-import json
 import urllib.request
-import zipfile
 import tempfile
-from datetime import datetime
-import hashlib
 import os
 import os.path
 import subprocess
-import signal
-import sys
 import logging
 import time
-import os
-import yaml
 
 from utils.image import Image
 from utils.common import get_hash
