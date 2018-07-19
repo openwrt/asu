@@ -157,6 +157,9 @@ class Database():
         else:
             return False
 
+    def as_dict(self):
+        return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
+
     def get_subtarget_outdated(self):
         sql = """select distro, release, target, subtarget
             from subtargets
@@ -167,7 +170,7 @@ class Database():
             order by (last_sync) asc limit 1;"""
         self.c.execute(sql)
         if self.c.rowcount == 1:
-            return self.c.fetchone()
+            return self.as_dict()
         else:
             return False
 
