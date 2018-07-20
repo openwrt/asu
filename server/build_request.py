@@ -4,7 +4,7 @@ import glob
 from http import HTTPStatus
 from flask import Response
 
-from utils.imagemeta import ImageMeta
+from utils.image import Image
 from server.request import Request
 
 class BuildRequest(Request):
@@ -57,7 +57,15 @@ class BuildRequest(Request):
                     self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                     return self.respond()
 
-            self.imagemeta = ImageMeta(self.distro, self.release, self.target, self.subtarget, self.profile, self.packages)
+            image_params = {
+                    "distro": self.distro,
+                    "release": self.release,
+                    "target": self.target,
+                    "subtarget": self.subtarget,
+                    "profile": self.profile,
+                    "packages": " ".join(self.packages)
+                    }
+            self.image = Image(image_params)
             image_hash, request_id, request_hash, request_status = self.database.check_build_request(self.imagemeta)
             self.log.debug("found image in database: %s", request_status)
 
