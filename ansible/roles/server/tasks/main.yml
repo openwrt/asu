@@ -55,6 +55,12 @@
     name: "{{ database_user }}"
     role_attr_flags: NOSUPERUSER,NOCREATEDB
 
+- name: clone server git repo
+  git:
+    repo: 'https://github.com/aparcar/attendedsysupgrade-server.git'
+    dest: "{{ server_dir }}"
+    version: meta-builder
+
 - name: init database
   become_user: postgres
   vars:
