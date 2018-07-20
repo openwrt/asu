@@ -1,4 +1,5 @@
 import logging
+import os.path
 
 from utils.common import get_hash
 from utils.config import Config
@@ -66,3 +67,9 @@ class Image():
             "worker": self.params["worker"],
             "sysupgrade": self.params["sysupgrade"]
         }
+
+    def created(self):
+        if os.path.exists(self.params["dir"] + "/sha256sums"):
+            return True
+        else:
+            return False

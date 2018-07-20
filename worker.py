@@ -65,96 +65,95 @@ class Worker(threading.Thread):
 
     # build image
     def build(self):
+        self.log.info("check if image exists")
         self.image = Image(self.params)
 
         request_hash = get_hash(" ".join(self.image.as_array("package_hash")), 12)
 
-        with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_dir:
+        # first determine the resulting manifest hash
+        return_code, manifest_content, errors = self.run_meta("list")
 
-            self.params["j"] = str(os.cpu_count())
-            self.params["EXTRA_IMAGE_NAME"] = request_hash
-            self.params["BIN_DIR"] = build_dir
+        if return_code == 0:
+            self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
 
-            self.log.info("start build")
+            manifest_pattern = r"(.+) - (.+)\n"
+            manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
+            self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
+        else:
+            self.database.set_image_requests_status(request_hash, "manifest_fail")
+            return False
 
-            return_code, buildlog, errors = self.run_meta("image")
+        # set directory where image is stored on server
+        self.image.set_image_dir()
 
-            if return_code == 0:
-                build_status = "image_created"
-                # parse created manifest and add to database, returns hash of manifest file
-                manifest_path = glob.glob(build_dir + "/*.manifest")[0]
-                with open(manifest_path, 'r') as manifest_file:
-                    manifest_content = manifest_file.read()
-                    self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
-                    
-                    manifest_pattern = r"(.+) - (.+)\n"
-                    manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
-                    self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
+        # calculate hash based on resulted manifest
+        self.image.params["image_hash"] = get_hash(" ".join(self.image.as_array("manifest_hash")), 15)
 
-                # calculate hash based on resulted manifest
-                self.image.params["image_hash"] = get_hash(" ".join(self.image.as_array("manifest_hash")), 15)
+        # check if image already exists
+        if not self.image.created():
+            self.log.info("build image")
+            with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_dir:
+                # now actually build the image with manifest hash as EXTRA_IMAGE_NAME
+                self.params["BIN_DIR"] = build_dir
+                self.params["j"] = str(os.cpu_count())
+                self.params["EXTRA_IMAGE_NAME"] = self.params["manifest_hash"]
+                return_code, buildlog, errors = self.run_meta("image")
 
-                # get directory where image is stored on server
-                self.image.set_image_dir()
+                if return_code == 0:
+                    build_status = "created"
+                    # parse created manifest and add to database, returns hash of manifest file
+                    manifest_path = glob.glob(build_dir + "/*.manifest")[0]
+                    with open(manifest_path, 'r') as manifest_file:
 
-                # create folder in advance
-                os.makedirs(self.image.params["dir"], exist_ok=True)
+                    # create folder in advance
+                    os.makedirs(self.image.params["dir"], exist_ok=True)
 
-                self.log.debug(os.listdir(build_dir))
+                    self.log.debug(os.listdir(build_dir))
 
-                # move files to new location and rename contents of sha256sums
-                # TODO rename request_hash to manifest_hash
-                for filename in os.listdir(build_dir):
-                    if os.path.exists(self.image.params["dir"] + "/" + filename):
-                        break
-                    shutil.move(build_dir + "/" + filename, self.image.params["dir"])
+                    for filename in os.listdir(build_dir):
+                        if os.path.exists(self.image.params["dir"] + "/" + filename):
+                            break
+                        shutil.move(build_dir + "/" + filename, self.image.params["dir"])
 
-                # TODO this should be done on the worker, not client
-                # however, as the request_hash is changed to manifest_hash after transer
-                # it not really possible... a solution would be to only trust the server
-                # and add no worker keys
-                #usign_sign(os.path.join(self.store_path, "sha256sums"))
-                #self.log.info("signed sha256sums")
+                    # possible sysupgrade names, ordered by likeliness
+                    possible_sysupgrade_files = [ "*-squashfs-sysupgrade.bin",
+                            "*-squashfs-sysupgrade.tar", "*-squashfs.trx",
+                            "*-squashfs.chk", "*-squashfs.bin",
+                            "*-squashfs-sdcard.img.gz", "*-combined-squashfs*",
+                            "*.img.gz"]
 
-                # possible sysupgrade names, ordered by likeliness        
-                possible_sysupgrade_files = [ "*-squashfs-sysupgrade.bin",
-                        "*-squashfs-sysupgrade.tar", "*-squashfs.trx",
-                        "*-squashfs.chk", "*-squashfs.bin",
-                        "*-squashfs-sdcard.img.gz", "*-combined-squashfs*",
-                        "*.img.gz"]
+                    sysupgrade = None
 
-                sysupgrade = None
+                    for sysupgrade_file in possible_sysupgrade_files:
+                        sysupgrade = glob.glob(self.image.params["dir"] + "/" + sysupgrade_file)
+                        if sysupgrade:
+                            break
 
-                for sysupgrade_file in possible_sysupgrade_files:
-                    sysupgrade = glob.glob(self.image.params["dir"] + "/" + sysupgrade_file)
-                    if sysupgrade:
-                        break
-
-                if not sysupgrade:
-                    self.log.debug("sysupgrade not found")
-                    if buildlog.find("too big") != -1:
-                        self.log.warning("created image was to big")
-                        self.store_log(buildlog)
-                        self.database.set_image_requests_status(request_hash, "imagesize_fail")
-                        return False
+                    if not sysupgrade:
+                        self.log.debug("sysupgrade not found")
+                        if buildlog.find("too big") != -1:
+                            self.log.warning("created image was to big")
+                            self.store_log(buildlog)
+                            self.database.set_image_requests_status(request_hash, "imagesize_fail")
+                            return False
+                        else:
+                            self.build_status = "no_sysupgrade"
                     else:
-                        self.build_status = "no_sysupgrade"
+                        self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
+
+                        self.store_log(buildlog)
+
+                        self.database.add_image(self.image.get_params())
                 else:
-                    self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
-
-                    self.store_log(buildlog)
-
-                    self.database.add_image(self.image.get_params())
-                    self.database.done_build_job(request_hash, self.image.params["image_hash"], build_status)
-                    return True
-            else:
-                print(buildlog)
-                self.log.info("build failed")
-                self.database.set_image_requests_status(request_hash, 'build_fail')
- #               self.store_log(buildlog)
-                return False
+                    print(buildlog)
+                    self.log.info("build failed")
+                    self.database.set_image_requests_status(request_hash, 'build_fail')
+     #               self.store_log(buildlog)
+                    return False
 
             self.log.info("build successfull")
+            self.database.done_build_job(request_hash, self.image.params["image_hash"], build_status)
+            return True
     
     def run(self):
         if not os.path.exists(self.params["worker"] + "/meta"):
@@ -224,6 +223,8 @@ class Worker(threading.Thread):
 if __name__ == '__main__':
     config = Config()
     database = Database(config)
+    available_worker = ["/tmp/worker", "/tmp/worker2" ] # just for testing
+    workers = []
     while True:
         image = database.get_build_job()
         if image != None:
