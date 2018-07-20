@@ -15,6 +15,7 @@
 - name: install imagebuilder dependencies
   package: name={{ item }} state=present
   with_items:
+    - time
     - subversion
     - build-essential
     - libncurses5-dev
