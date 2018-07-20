@@ -107,13 +107,14 @@ class ServerCli():
 
     def download_releases(self):
         for distro in self.config.get_distros():
-            release_url = self.config.get(distro).get("releases_url")
             for release in self.config.get(distro).get("releases", []):
                 self.database.insert_release(distro, release)
+                release_url = self.config.release(distro, release).get("targets_url")
                 release_targets = json.loads(urllib.request.urlopen(
                     "{}/{}/targets?json-targets".format(release_url, release))
                         .read().decode('utf-8'))
 
+                # TODO do this at once instead of per target
                 for target in release_targets:
                     self.database.insert_subtarget(distro, release, *target.split("/"))
 
@@ -121,7 +122,6 @@ class ServerCli():
             self.database.set_distro_alias(distro, self.config.get(distro).get("distro_alias", distro))
 
     def insert_board_rename(self):
-        # TODO implement snapshots in a better way then before so a release can have multiple snapshots
         for distro, release in self.database.get_releases():
             release_config = self.config.release(distro, release)
             if "board_rename" in release_config:

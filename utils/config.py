@@ -25,15 +25,13 @@ class Config():
                 self.config[distro]["latest"] = None
 
     def release(self, distro, release):
-        if release not in self.config[distro]:
-            with open(os.path.join("distributions", distro, release + ".yml"), 'r') as ymlfile:
-                release_config = yaml.load(ymlfile)
-                if release_config:
-                   self.config[distro][release] = release_config
-                else:
-                   self.config[distro][release] = {}
+        release_config = {}
+        with open(os.path.join(self.get_folder("distro_folder"), distro, "distro_config.yml"), 'r') as distro_file:
+            release_config.update(yaml.load(distro_file.read()))
 
-        return self.config.get(distro).get(release)
+        with open(os.path.join(self.get_folder("distro_folder"), distro, release + ".yml"), 'r') as release_file:
+            release_config.update(yaml.load(release_file.read()))
+        return release_config
 
     def get(self, opt, alt=None):
         if opt in self.config:

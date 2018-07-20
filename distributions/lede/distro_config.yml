@@ -9,4 +9,12 @@ releases:
   - "17.01.5"
 vanilla:
   - luci
-releases_url: https://downloads.lede-project.org/releases/
+targets_url: https://downloads.lede-project.org/releases/
+board_rename:
+  nanostation-m: ubnt-nano-m
+  nanostation-m-xw: ubnt-nano-m-xw
+  loco-m: ubnt-loco-m
+  loco-m-xw: ubnt-loco-m-xw
+  tl-wdr3500: tl-wdr3500-v1
+  tl-wdr4300: tl-wdr4300-v1
+  tl-wr741: tl-wr741-v1
