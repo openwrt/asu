@@ -10,6 +10,7 @@ import hashlib
 import subprocess
 import logging
 import time
+import queue
 
 from utils.image import Image
 from utils.common import get_hash
@@ -164,6 +165,14 @@ class Worker(threading.Thread):
             self.build()
         elif self.job == "info":
             self.parse_info()
+            if os.path.exists(os.path.join(
+                    self.location, "imagebuilder",
+                    self.params["distro"], self.param["release"],
+                    self.params["target"], self.params["subtarget"],
+                    "target/linux", self.params["target"],
+                    "base-files/lib/upgrade/platform.sh")):
+                self.log.info("%s target is supported", self.params["target"])
+                self.database.insert_supported(self.params)
         elif self.job == "packages":
             self.parse_packages()
             self.database.subtarget_synced(self.params)

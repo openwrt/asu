@@ -42,11 +42,11 @@ class Database():
         self.c.execute(sql, distro, release, alias)
         self.commit()
 
-    def insert_supported(self, distro, release, target, subtarget="%"):
-        self.log.info("insert supported {} {} {} {}".format(distro, release, target, subtarget))
+    def insert_supported(self, p):
+        self.log.info("insert supported {} {} {} {}".format(distro, release, target))
         sql = """UPDATE subtargets SET supported = true
-            WHERE distro=? and release=? and target=? and subtarget LIKE ?"""
-        self.c.execute(sql, distro, release, target, subtarget)
+            WHERE distro=? and release=? and target=?"""
+        self.c.execute(sql, p["distro"], p["release"], p["target"])
         self.commit()
 
     def insert_upgrade_check(self, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest):
