@@ -171,13 +171,13 @@ class Database():
         else:
             return False
 
-    def subtarget_synced(self, distro, release, target, subtarget):
+    def subtarget_synced(self, p):
         sql = """update subtargets set last_sync = NOW()
             where distro = ? and
             release = ? and
             target = ? and
             subtarget = ?;"""
-        self.c.execute(sql, distro, release, target, subtarget)
+        self.c.execute(sql, p["distro"], p["release"], p["target"], p["subtarget"])
         self.commit()
 
     def insert_packages_available(self, target, packages):

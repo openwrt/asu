@@ -17,7 +17,8 @@ from utils.config import Config
 from utils.database import Database
 
 class Worker(threading.Thread):
-    def __init__(self, job, params):
+    def __init__(self, location, job, params):
+        self.location = location
         self.job = job
         self.params = params
         threading.Thread.__init__(self)
@@ -29,12 +30,12 @@ class Worker(threading.Thread):
         self.log.info("database initialized")
 
     def setup_meta(self):
-        os.makedirs(self.params["worker"], exist_ok=True)
+        os.makedirs(self.location, exist_ok=True)
         self.log.debug("setup meta")
         cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
         proc = subprocess.Popen(
             cmdline.split(" "),
-            cwd=self.params["worker"],
+            cwd=self.location,
             stdout=subprocess.PIPE,
             shell=False,
             stderr=subprocess.STDOUT,
@@ -94,6 +95,7 @@ class Worker(threading.Thread):
             self.log.info("build image")
             with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_dir:
                 # now actually build the image with manifest hash as EXTRA_IMAGE_NAME
+                self.params["worker"] = self.location
                 self.params["BIN_DIR"] = build_dir
                 self.params["j"] = str(os.cpu_count())
                 self.params["EXTRA_IMAGE_NAME"] = self.params["manifest_hash"]
@@ -153,7 +155,7 @@ class Worker(threading.Thread):
             return True
     
     def run(self):
-        if not os.path.exists(self.params["worker"] + "/meta"):
+        if not os.path.exists(self.location + "/meta"):
             if self.setup_meta():
                 self.log.error("failed to setup meta ImageBuilder")
                 exit()
@@ -164,6 +166,7 @@ class Worker(threading.Thread):
             self.parse_info()
         elif self.job == "packages":
             self.parse_packages()
+            self.database.subtarget_synced(self.params)
 
     def run_meta(self, cmd):
         env = os.environ.copy()
@@ -172,7 +175,7 @@ class Worker(threading.Thread):
 
         proc = subprocess.Popen(
             ["sh", "meta", cmd],
-            cwd=self.params["worker"],
+            cwd=self.location,
             stdout=subprocess.PIPE,
             shell=False,
             stderr=subprocess.STDOUT,
@@ -212,7 +215,7 @@ class Worker(threading.Thread):
 
         if return_code == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
-            self.log.info("found {} packages for {} {} {} {}".format(len(packages)))
+            self.log.info("found {} packages".format(len(packages)))
             self.database.insert_packages_available(self.params, packages)
         else:
             self.log.warning("could not receive packages")
@@ -222,22 +225,18 @@ if __name__ == '__main__':
     database = Database(config)
     available_worker = ["/tmp/worker", "/tmp/worker2" ] # just for testing
     workers = []
+    location = available_worker[0]
     while True:
         image = database.get_build_job()
         if image != None:
-            job = "build"
-            image["worker"] = "/tmp/worker"
-            worker = Worker(job, image)
+            worker = Worker(location, "build", image)
             worker.run() # TODO no threading just yet
         outdated_subtarget = database.get_subtarget_outdated()
         if outdated_subtarget:
-            print(outdated_subtarget.cursor_description)
-            outdated_subtarget["worker"] = "/tmp/worker"
-            job = "info"
-            worker = Worker(job, outdated_subtarget)
+            print(outdated_subtarget)
+            worker = Worker(location, "info", outdated_subtarget)
             worker.run()
-            job = "packages"
-            worker = Worker(job, outdated_subtarget)
+            worker = Worker(location, "packages", outdated_subtarget)
             worker.run()
         time.sleep(5)
 
