@@ -101,9 +101,6 @@ class Worker(threading.Thread):
 
                 if return_code == 0:
                     build_status = "created"
-                    # parse created manifest and add to database, returns hash of manifest file
-                    manifest_path = glob.glob(build_dir + "/*.manifest")[0]
-                    with open(manifest_path, 'r') as manifest_file:
 
                     # create folder in advance
                     os.makedirs(self.image.params["dir"], exist_ok=True)
