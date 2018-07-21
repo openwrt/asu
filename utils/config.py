@@ -26,11 +26,19 @@ class Config():
 
     def release(self, distro, release):
         release_config = {}
-        with open(os.path.join(self.get_folder("distro_folder"), distro, "distro_config.yml"), 'r') as distro_file:
+        base_path = self.get_folder("distro_folder") + "/" + distro
+
+        with open(base_path + "/distro_config.yml", 'r') as distro_file:
             release_config.update(yaml.load(distro_file.read()))
 
-        with open(os.path.join(self.get_folder("distro_folder"), distro, release + ".yml"), 'r') as release_file:
-            release_config.update(yaml.load(release_file.read()))
+
+        release_path = os.path.join(base_path, distro, release + ".yml")
+        if os.path.exists(release_path):
+            with open(release_path, 'r') as release_file:
+                release_content = yaml.load(release_file.read())
+                if release_content:
+                    release_config.update(release_content)
+
         return release_config
 
     def get(self, opt, alt=None):
