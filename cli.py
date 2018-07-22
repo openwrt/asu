@@ -51,11 +51,11 @@ class ServerCli():
             for release in self.config.get(distro).get("releases", []):
                 self.database.insert_release(distro, release)
                 release_url = self.config.release(distro, release).get("targets_url")
-                print(release_url, release)
 
                 release_targets = json.loads(urllib.request.urlopen(
                     "{}/{}/targets?json-targets".format(release_url, release))
                         .read().decode('utf-8'))
+                self.log.info("add %s/%s targets", distro, release)
 
                 # TODO do this at once instead of per target
                 for target in release_targets:
@@ -108,3 +108,7 @@ class ServerCli():
                     if replacements:
                         if "transformations" in replacements:
                             self.insert_replacements(distro, release, replacements["transformations"])
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    sc = ServerCli()

@@ -1,9 +1,15 @@
+# ansible
+
+config_file: host_vars/default.yml
+
 # server
 dev: False
 sign_images: True
 server: "http://localhost:5000"
 server_user: root
 server_dir: /vagrant
+worker:
+    - "/tmp/worker"
 
 # database
 database_type: PostgreSQL Unicode

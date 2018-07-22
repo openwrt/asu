@@ -232,9 +232,7 @@ class Worker(threading.Thread):
 if __name__ == '__main__':
     config = Config()
     database = Database(config)
-    available_worker = ["/tmp/worker", "/tmp/worker2" ] # just for testing
-    workers = []
-    location = available_worker[0]
+    location = config.get("worker")[0]
     while True:
         image = database.get_build_job()
         if image != None:
