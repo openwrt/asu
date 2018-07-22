@@ -58,6 +58,7 @@
     role_attr_flags: NOSUPERUSER,NOCREATEDB
 
 - name: clone server git repo
+  become_user: "{{ server_user }}"
   git:
     repo: 'https://github.com/aparcar/attendedsysupgrade-server.git'
     dest: "{{ server_dir }}"
@@ -79,6 +80,7 @@
     dest: /etc/systemd/system/asu-server.service
 
 - name: copy config file
+  become_user: "{{ server_user }}"
   template: src="{{ playbook_dir }}/{{ config_file }}" dest="{{ server_dir }}/config.yml"
 
 - name: start and enable server

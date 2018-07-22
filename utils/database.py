@@ -43,7 +43,6 @@ class Database():
         self.commit()
 
     def insert_supported(self, p):
-        self.log.info("insert supported {} {} {} {}".format(distro, release, target))
         sql = """UPDATE subtargets SET supported = true
             WHERE distro=? and release=? and target=?"""
         self.c.execute(sql, p["distro"], p["release"], p["target"])
