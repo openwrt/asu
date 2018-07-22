@@ -1,0 +1,6 @@
+- hosts: all
+  become: True
+  vars:
+      config_file: config.yml
+  roles:
+    - server

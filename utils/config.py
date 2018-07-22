@@ -10,7 +10,8 @@ class Config():
         self.config_file = "config.yml"
 
         if not os.path.exists(self.config_file):
-            copyfile(("utils/config.yml.default"), self.config_file)
+            print("Missing config.yml")
+            exit(1)
 
         with open(self.config_file, 'r') as ymlfile:
             self.config = yaml.load(ymlfile)

@@ -4,7 +4,6 @@ import re
 import yaml
 import json
 from os import makedirs
-from shutil import copyfile
 from shutil import rmtree
 import urllib.request
 import logging
@@ -23,17 +22,11 @@ class ServerCli():
 
     def init_args(self):
         parser = argparse.ArgumentParser(description="CLI for update-server")
-        parser.add_argument("-a", "--init-all-imagebuilders", action="store_true")
-        parser.add_argument("-v", "--build-vanilla", action="store_true")
         parser.add_argument("-r", "--download-releases", action="store_true")
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
         parser.add_argument("-p", "--parse-configs", action="store_true")
         self.args = vars(parser.parse_args())
-        if self.args["build_vanilla"]:
-            self.build_vanilla()
-        if self.args["init_all_imagebuilders"]:
-            self.init_all_imagebuilders()
         if self.args["download_releases"]:
             self.download_releases()
         if self.args["init_server"]:
@@ -44,48 +37,6 @@ class ServerCli():
             self.insert_board_rename()
             self.load_tables()
 
-
-    def init_all_imagebuilders(self):
-        for distro, release in self.database.get_releases():
-            if release == 'snapshot' or release == self.config.get(distro).get("latest"):
-                subtargets = self.database.get_subtargets(distro, release)
-                for target, subtarget, supported in subtargets:
-                    self.log.info("requesting {} {} {} {}".format(distro, release, target, subtarget))
-                    self.database.imagebuilder_status(distro, release, target, subtarget)
-
-    def build_vanilla(self):
-        for distro, release in self.database.get_releases():
-            if release == self.config.get(distro).get("latest"):
-                subtargets = self.database.get_subtargets(distro, release)
-                for target, subtarget, supported in subtargets:
-                    sql = """select profile from profiles
-                        where distro = ? and
-                        release = ? and
-                        target = ? and
-                        subtarget = ? and
-                        profile != 'Default'
-                        order by profile desc
-                        limit 1;"""
-                    profile_request = self.database.c.execute(sql, distro, release, target, subtarget)
-                    if self.database.c.rowcount > 0:
-                        profile = profile_request.fetchone()[0]
-
-                        conditions = {"distro": distro, "version": release, "target": target, "subtarget": subtarget, "board": profile}
-                        self.log.info("request %s", conditions)
-                        params = json.dumps(conditions).encode('utf-8')
-                        req = urllib.request.Request(
-                                self.config.get("update_server") + '/api/build-request',
-                                data=params,
-                                headers={'content-type': 'application/json'})
-                        try:
-                            response = urllib.request.urlopen(req)
-                            self.log.info(response.read())
-                        except:
-                            self.log.warning("bad request")
-                    else:
-                        self.log.warning("no profile found")
-
-
     def flush_snapshots(self):
         self.log.info("flush snapshots")
         for distro in self.config.get_distros():
@@ -93,23 +44,15 @@ class ServerCli():
             if os.path.exists(download_folder):
                 self.log.info("remove snapshots of %s", distro)
                 rmtree(download_folder)
-
         self.database.flush_snapshots()
-
-    def init_server(self):
-        usign_init()
-        copyfile(config.get_folder("keys_private") + "/public", config.get_folder("keys_public") + "/server/etc/server.pub")
-        makedirs(config.get_folder("download_folder") + "/faillogs", exist_ok=True)
-
-        # folder to include server keys in created images
-        makedirs(config.get_folder("keys_public") + "/server/etc/", exist_ok=True)
-        self.download_releases()
 
     def download_releases(self):
         for distro in self.config.get_distros():
             for release in self.config.get(distro).get("releases", []):
                 self.database.insert_release(distro, release)
                 release_url = self.config.release(distro, release).get("targets_url")
+                print(release_url, release)
+
                 release_targets = json.loads(urllib.request.urlopen(
                     "{}/{}/targets?json-targets".format(release_url, release))
                         .read().decode('utf-8'))
@@ -165,8 +108,3 @@ class ServerCli():
                     if replacements:
                         if "transformations" in replacements:
                             self.insert_replacements(distro, release, replacements["transformations"])
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    sc = ServerCli()
-    #sc.database.imagebuilder_status("test", "17.01.4", "x86", "64")

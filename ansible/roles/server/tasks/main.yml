@@ -1,3 +1,5 @@
+- name: include vars
+  include_vars: "{{ playbook_dir }}/{{ config_file }}"
 - name: install required software
   package: name={{ item }} state=present
   with_items:
@@ -60,6 +62,7 @@
     repo: 'https://github.com/aparcar/attendedsysupgrade-server.git'
     dest: "{{ server_dir }}"
     version: meta-builder
+  when: server_dir != "/vagrant"
 
 - name: init database
   become_user: postgres
@@ -69,3 +72,24 @@
     name: "{{ database_name }}"
     state: restore
     target: "{{ server_dir }}/utils/tables.sql"
+
+- name: copy server service
+  template:
+    src: asu-server.service
+    dest: /etc/systemd/system/asu-server.service
+
+- name: copy config file
+  template: src="{{ playbook_dir }}/{{ config_file }}" dest="{{ server_dir }}/config.yml"
+
+- name: start and enable server
+  service:
+    name: asu-server
+    state: started
+    enabled: true
+
+- name: init server
+  become_user: "{{ server_user }}"
+  command: python3 cli.py -r # init server
+  args:
+    chdir: "{{ server_dir }}"
+
