@@ -167,7 +167,7 @@ class Worker(threading.Thread):
             self.parse_info()
             if os.path.exists(os.path.join(
                     self.location, "imagebuilder",
-                    self.params["distro"], self.param["release"],
+                    self.params["distro"], self.params["release"],
                     self.params["target"], self.params["subtarget"],
                     "target/linux", self.params["target"],
                     "base-files/lib/upgrade/platform.sh")):
