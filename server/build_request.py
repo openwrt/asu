@@ -11,7 +11,7 @@ class BuildRequest(Request):
     def __init__(self, config, db):
         super().__init__(config, db)
 
-    def _request(self):
+    def _process_request(self):
         self.profile = ""
         # if request_hash is available check the database directly
         if "request_hash" in self.request_json:
@@ -19,9 +19,11 @@ class BuildRequest(Request):
             if not self.request:
                 self.response_status = HTTPStatus.NOT_FOUND
                 return self.respond()
+            else:
+                return self.return_status()
         else:
             # required params for a build request
-            missing_params = check_missing_params(["distro", "release", "target", "subtarget", "profile"])
+            missing_params = self.check_missing_params(["distro", "release", "target", "subtarget", "profile"])
             if missing_params:
                 return self.respond()
 

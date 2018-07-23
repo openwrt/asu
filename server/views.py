@@ -39,7 +39,7 @@ def api_upgrade_check(request_hash=None):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
-    return uc.request(request_json)
+    return uc.process_request(request_json)
 
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
@@ -65,7 +65,7 @@ def api_upgrade_request(request_hash=None):
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
 
-    return br.request(request_json, sysupgrade=1)
+    return br.process_request(request_json, sysupgrade=1)
 
 @app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
@@ -80,7 +80,7 @@ def api_files_request(request_hash=None):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
-    return br.request(request_json)
+    return br.process_request(request_json)
 
 @app.route("/")
 def root_path():

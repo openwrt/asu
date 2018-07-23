@@ -9,16 +9,16 @@ class Request():
         self.database = database
         self.log = logging.getLogger(__name__)
 
-    def request(self, request_json, sysupgrade_requested=False):
+    def process_request(self, request_json, sysupgrade_requested=False):
         self.request = {}
         self.request_json = request_json
         self.response_json = {}
         self.response_header = {}
         self.response_status = 0
         self.sysupgrade_requested = sysupgrade_requested
-        return self._request()
+        return self._process_request()
 
-    def _request(self):
+    def _process_request(self):
         pass
 
     # these checks are relevant for upgrade and image reuqest
@@ -71,7 +71,7 @@ class Request():
         response.headers.extend(self.response_header)
         return response
 
-    def missing_params(self, params):
+    def check_missing_params(self, params):
         for param in params:
             if not param in self.request_json:
                 self.response_header["X-Missing-Param"] = param
