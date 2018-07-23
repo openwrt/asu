@@ -294,7 +294,10 @@ class Database():
 
     # TODO check if there is a native way to do this
     def as_dict(self):
-        return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
+        if self.c.rowcount == 1:
+            return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
+        else:
+            return {}
 
     # TODO check is this must be removed
     # this is dangerours if used for user input. check all everything before calling this
