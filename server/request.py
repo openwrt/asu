@@ -25,22 +25,22 @@ class Request():
     def check_bad_request(self):
         # I'm considering a dict request is faster than asking the database
         self.request["distro"] = self.request_json["distro"].lower()
-        if not self.distro in self.config.get_distros():
+        if not self.request["distro"] in self.config.get_distros():
             self.response_json["error"] = "unknown distribution %s" % self.distro
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
 
         # same here
-        if "release" in self.request_json:
-            self.request["release"] = self.request_json["release"]
-            # check if release is valid
-            if not self.release in self.config.get(self.request["distro"]).get("releases"): # rename releases to versions
-                self.response_json["error"] = "unknown release %s" % self.release
+        if "version" in self.request_json:
+            self.request["version"] = self.request_json["version"]
+            # check if version is valid
+            if not self.request["version"] in self.config.get(self.request["distro"]).get("versions"):
+                self.response_json["error"] = "unknown version %s" % self.version
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
         else:
-            # if no release is given fallback to latest release of distro
-            self.request["release"] = self.config.get(self.request["distro"]).get("latest")
+            # if no version is given fallback to latest version of distro
+            self.request["version"] = self.config.get(self.request["distro"]).get("latest")
 
         # all checks passed, not bad
         return False
@@ -74,6 +74,7 @@ class Request():
     def check_missing_params(self, params):
         for param in params:
             if not param in self.request_json:
+                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 self.response_header["X-Missing-Param"] = param
                 return self.respond()
 
@@ -82,13 +83,15 @@ class Request():
 
     # check packages by sending requested packages again postgres
     def check_bad_packages(self):
-        self.request["packages"] = sorted(list(set(self.request_json["packages"])))
-        packages_unknown = " ".join(self.database.check_packages(self.request))
+        # remove packages which doesn't exists but appear in the package list
+        packages_set = set(self.request_json["packages"]) - set(["libc", "kernel"])
+        self.request["packages"] = sorted(list(packages_set))
+        packages_unknown = self.database.check_packages(self.request)
 
         # if list is not empty there where some unknown packages found
-        if unknown_packages:
+        if packages_unknown:
             logging.warning("could not find packages %s", packages_unknown)
-            self.response_header["X-Unknown-Package"] = packages_unknown
+            self.response_header["X-Unknown-Package"] = ", ".join(packages_unknown)
             self.response_json["error"] = "could not find packages '{}' for requested target".format(packages_unknown)
             self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 422
             return self.respond()

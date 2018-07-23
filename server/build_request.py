@@ -6,16 +6,18 @@ from flask import Response
 
 from utils.image import Image
 from server.request import Request
+from utils.common import get_hash
 
 class BuildRequest(Request):
     def __init__(self, config, db):
         super().__init__(config, db)
 
     def _process_request(self):
-        self.profile = ""
+        self.log.debug("request_json: %s", self.request_json)
         # if request_hash is available check the database directly
         if "request_hash" in self.request_json:
             self.request = self.database.check_build_request_hash(self.request_json["request_hash"])
+
             if not self.request:
                 self.response_status = HTTPStatus.NOT_FOUND
                 return self.respond()
@@ -23,21 +25,29 @@ class BuildRequest(Request):
                 return self.return_status()
         else:
             # required params for a build request
-            missing_params = self.check_missing_params(["distro", "release", "target", "subtarget", "profile"])
+            missing_params = self.check_missing_params(["distro", "version", "target", "subtarget", "board"])
             if missing_params:
                 return self.respond()
 
+        self.request_json["profile"] = self.request_json["board"] # TODO fix this workaround
+
         # create image object to get the request_hash
-        request_hash = get_hash(" ".join(Image(self.request_json).as_array("package_hash")), 12)
+        image = Image(self.request_json)
+        image.set_packages_hash()
+        request_hash = get_hash(" ".join(image.as_array("packages_hash")), 12)
         self.request = self.database.check_build_request_hash(request_hash)
 
         # if found return instantly the status
         if self.request:
-            self.log.debug("found image in database: %s", request_status)
+            self.log.debug("found image in database: %s", self.request["status"])
             return self.return_status()
+        else:
+            self.request["request_hash"] = request_hash
+
+        self.request["packages_hash"] = image.params["packages_hash"] # TODO make this better
 
         # if not perform various checks to see if the request is acutally valid
-        # check for valid distro and release/version
+        # check for valid distro and version
         bad_request = self.check_bad_request()
         if bad_request:
             return bad_request
@@ -53,38 +63,40 @@ class BuildRequest(Request):
             return bad_packages
 
         # add package_hash to database
-        self.database.insert_package_hash(self.params["package_hash"], self.params["packages"])
+        self.database.insert_packages_hash(self.request["packages_hash"], self.request["packages"])
 
         # now some heavy guess work is done to figure out the profile
         # eventually this could be simplified if upstream unifirm the profiles/boards
+        # TODO not yet working
         if "board" in self.request_json:
             self.log.debug("board in request, search for %s", self.request_json["board"])
-            self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
+            self.request["profile"] = self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], self.request_json["board"])
 
-        if not self.profile:
+        if not self.request["profile"]:
             if "model" in self.request_json:
                 self.log.debug("model in request, search for %s", self.request_json["model"])
-                self.profile = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
-                self.log.debug("model search found profile %s", self.profile)
+                self.request["profile"] = self.database.check_model(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], self.request_json["model"])
+                self.log.debug("model search found profile %s", self.request["profile"])
 
-        if not self.profile:
-            if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
-                self.profile = "Generic"
-            elif self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "generic"):
-                self.profile = "generic"
+        if not self.request["profile"]:
+            if self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], "Generic"):
+                self.request["profile"] = "Generic"
+            elif self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], "generic"):
+                self.request["profile"] = "generic"
             else:
                 self.response_json["error"] = "unknown device, please check model and board params"
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
 
         # all checks passed, eventually add to queue!
+        self.request.pop("packages")
         self.database.add_build_job(self.request)
         return self.return_queued()
 
     def return_queued(self):
         self.response_header["X-Imagebuilder-Status"] = "queue"
         self.response_header['X-Build-Queue-Position'] = '1337' # TODO: currently not implemented
-        self.response_json["request_hash"] = request_hash
+        self.response_json["request_hash"] = self.request["request_hash"]
 
         self.response_status = HTTPStatus.ACCEPTED # 202
         return self.respond()

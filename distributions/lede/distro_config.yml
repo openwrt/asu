@@ -1,6 +1,7 @@
 ---
 distro_alias: LEDE
-releases:
+latest: "17.01.5"
+versions:
   - "17.01.4"
   - "17.01.5"
 vanilla:

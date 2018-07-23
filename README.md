@@ -1,6 +1,6 @@
 # Attendedsysupgrade Server for LEDE/OpenWrt (GSoC 2017)
 
-This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new release or package updates, without the need of `opkg` installed.
+This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new version or package updates, without the need of `opkg` installed.
 
 ![luci-app-attendedsysupgrade-screenshot](https://camo.githubusercontent.com/d21d3c2e43993325c0371866b28f09a67ea21902/687474703a2f2f692e696d6775722e636f6d2f653443716841502e706e67)
 
@@ -30,7 +30,7 @@ Add CLI to perform sysupgrades.
 
 ## Server
 
-The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of distribution, release, target & subtarget.
+The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of distribution, version, target & subtarget.
 
 All requests are stored in a queue and build by workers.
 
@@ -43,34 +43,34 @@ All requests are stored in a queue and build by workers.
 
 ### Upgrade check `/api/upgrade-check`
 
-Sends information about the device to the server to see if a new distribution release or package upgrades are available. An *upgrade check* could look like this:
+Sends information about the device to the server to see if a new distribution version or package upgrades are available. An *upgrade check* could look like this:
 
 | key	| value | information	|
 | ---	| ---	| ---		|
 | `distro` | `LEDE` | installed distribution |
-| `version` | `17.01.0` | installed release |
+| `version` | `17.01.0` | installed version |
 | `target` | `ar71xx` | |
 | `subtarget` | `generic` | |
 | `packages` | `{libuci-lua: 2017-04-12-c4df32b3-1, cgi-io: 3, ...}` | all user installed packages |
 
 Most information can be retrieved via `ubus call system board`. Missing information can be gathered via the `rpcd-mod-rpcsys` package.
-`packages` contains all user installed packages plus version. Packages installed as an dependence are excluded as they've been automatically and dependencies may change between releases.
+`packages` contains all user installed packages plus version. Packages installed as an dependence are excluded as they've been automatically and dependencies may change between versions.
 
-It's also possible to check for a new release without sending packages by removing `packages` from the request.
+It's also possible to check for a new version without sending packages by removing `packages` from the request.
 
 ### Response `status 200`
 
-The server validates the request. Below is a possible response for a new release:
+The server validates the request. Below is a possible response for a new version:
 
 | key		| value		| information	|
 | ---		| ---		| ---		|
-| `version`		| `17.01.2`		| newest release |
+| `version`		| `17.01.2`		| newest version |
 | `upgrades`	| `{luci-lib-jsonc: [git-17.230.25723-2163284-1, git-17.228.56579-209deb5-1], ...}` | Package updates `[new_version, current_version]` |
 | `packages`	| `[libuci-lua, cgi-io: 3, ...]` | All packages for the new image |
 
 See [other status codes](#response-status-codes)
 
-An release upgrade does not ignore package upgrades for the following reason. Between releases it possible that package names may change, packages are dropped or merged. The *response* contains all packages included changed ones.
+An version upgrade does not ignore package upgrades for the following reason. Between versions it possible that package names may change, packages are dropped or merged. The *response* contains all packages included changed ones.
 
 The *upgrade check response* should be shown to the user in a readable way.
 
@@ -83,7 +83,7 @@ Once the user decides to perform the sysupgrade a new request is send to the ser
 | key		| value					| information	|
 | ---		| ---					| ---		|
 | `distro`	| `LEDE`				| installed distribution |
-| `version`	| `17.01.2`					| installed release |
+| `version`	| `17.01.2`					| installed version |
 | `target`	| `ar71xx`				| |
 | `subtarget`	| `generic`					| |
 | `board`	| `tl-wdr4300-v1`			| `board_name` of `ubus call system board` |
@@ -143,11 +143,11 @@ It's also possible to receive information about build images or package versions
 * `/api/distro`
 	Get all supported distros
 
-* `/api/releases[?distro=<distribution>]`
-	Get all supported releases (of distribution)
+* `/api/versions[?distro=<distribution>]`
+	Get all supported versions (of distribution)
 
-* `/api/models?distro=&release=&model_search=<search string>`
-	Get all supported devices of distro/release that contain the `model_search` string
+* `/api/models?distro=&version=&model_search=<search string>`
+	Get all supported devices of distro/version that contain the `model_search` string
 
-* `/api/packages_image?distro=&release=&target=&subtarget=&profile=`
+* `/api/packages_image?distro=&version=&target=&subtarget=&profile=`
 	Get all default packages installed on an image

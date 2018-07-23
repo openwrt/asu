@@ -135,14 +135,3 @@ def usign_verify(file_path, pubkey):
         return False
     else:
         return True
-
-def pkg_hash(packages):
-    packages = sorted(list(set(packages)))
-    package_hash = get_hash(" ".join(packages), 12)
-    database.insert_hash(package_hash, packages)
-    return package_hash
-
-def request_hash(distro, release, target, subtarget, profile, packages):
-    request_array = [distro, release, target, subtarget, profile, pkg_hash]
-    return(get_hash(" ".join(request_array), 12))
-

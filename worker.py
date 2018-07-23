@@ -39,7 +39,6 @@ class Worker(threading.Thread):
             cwd=self.location,
             stdout=subprocess.PIPE,
             shell=False,
-            stderr=subprocess.STDOUT,
         )
 
         output, errors = proc.communicate()
@@ -67,11 +66,13 @@ class Worker(threading.Thread):
 
     # build image
     def build(self):
-        self.log.info("check if image exists")
+        self.log.debug("create and parse manifest")
         self.image = Image(self.params)
 
         # first determine the resulting manifest hash
         return_code, manifest_content, errors = self.run_meta("list")
+
+        self.log.debug(manifest_content)
 
         if return_code == 0:
             self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
@@ -79,15 +80,23 @@ class Worker(threading.Thread):
             manifest_pattern = r"(.+) - (.+)\n"
             manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
             self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
+            self.log.info("successfully parsed manifest")
         else:
+            print(errors)
+            print(manifest_content)
+            self.log.error("couldn't determine manifest")
             self.database.set_image_requests_status(self.params["request_hash"], "manifest_fail")
             return False
 
         # set directory where image is stored on server
         self.image.set_image_dir()
+        self.log.debug("dir %s", self.image.params["dir"])
 
         # calculate hash based on resulted manifest
         self.image.params["image_hash"] = get_hash(" ".join(self.image.as_array("manifest_hash")), 15)
+
+        # set build_status ahead, if stuff goes wrong it will be changed
+        self.build_status = "created"
 
         # check if image already exists
         if not self.image.created():
@@ -101,7 +110,6 @@ class Worker(threading.Thread):
                 return_code, buildlog, errors = self.run_meta("image")
 
                 if return_code == 0:
-                    build_status = "created"
 
                     # create folder in advance
                     os.makedirs(self.image.params["dir"], exist_ok=True)
@@ -142,6 +150,7 @@ class Worker(threading.Thread):
                         self.store_log(buildlog)
 
                         self.database.add_image(self.image.get_params())
+                        self.log.info("build successfull")
                 else:
                     print(buildlog)
                     self.log.info("build failed")
@@ -149,9 +158,9 @@ class Worker(threading.Thread):
      #               self.store_log(buildlog)
                     return False
 
-            self.log.info("build successfull")
-            self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], build_status)
-            return True
+        self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
+        self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], self.build_status)
+        return True
     
     def run(self):
         if not os.path.exists(self.location + "/meta"):
@@ -159,13 +168,13 @@ class Worker(threading.Thread):
                 self.log.error("failed to setup meta ImageBuilder")
                 exit()
         self.setup()
-        if self.job == "image":
+        if self.job == "build":
             self.build()
         elif self.job == "info":
             self.parse_info()
             if os.path.exists(os.path.join(
                     self.location, "imagebuilder",
-                    self.params["distro"], self.params["release"],
+                    self.params["distro"], self.params["version"],
                     self.params["target"], self.params["subtarget"],
                     "target/linux", self.params["target"],
                     "base-files/lib/upgrade/platform.sh")):
@@ -176,16 +185,16 @@ class Worker(threading.Thread):
             self.database.subtarget_synced(self.params)
 
     def run_meta(self, cmd):
+        cmdline = ["sh", "meta", cmd ]
         env = os.environ.copy()
         for key, value in self.params.items():
-            env[key.upper()] = value
+            env[key.upper()] = str(value) # TODO convert meta script to Makefile
 
         proc = subprocess.Popen(
-            ["sh", "meta", cmd],
+            cmdline,
             cwd=self.location,
             stdout=subprocess.PIPE,
             shell=False,
-            stderr=subprocess.STDOUT,
             env=env
         )
 
@@ -228,17 +237,20 @@ class Worker(threading.Thread):
             self.log.warning("could not receive packages")
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    log = logging.getLogger(__name__)
     config = Config()
     database = Database(config)
     location = config.get("worker")[0]
     while True:
         image = database.get_build_job()
-        if image != None:
+        if image:
+            print(image)
             worker = Worker(location, "build", image)
             worker.run() # TODO no threading just yet
         outdated_subtarget = database.get_subtarget_outdated()
         if outdated_subtarget:
-            print(outdated_subtarget)
+            log.info("found outdated subtarget %s", outdated_subtarget)
             worker = Worker(location, "info", outdated_subtarget)
             worker.run()
             worker = Worker(location, "packages", outdated_subtarget)

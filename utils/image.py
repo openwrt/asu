@@ -14,6 +14,7 @@ class Image():
         self.log.info("database initialized")
         self.params = params
 
+    def set_packages_hash(self):
         # sort and deduplicate requested packages
         if "packages" in self.params:
             self.params["packages"] = sorted(list(set(self.params["packages"])))
@@ -21,7 +22,7 @@ class Image():
             self.params["packages"] = ""
 
         # calculate hash of packages
-        self.params["package_hash"] = get_hash(" ".join(self.params["packages"]), 12)
+        self.params["packages_hash"] = get_hash(" ".join(self.params["packages"]), 12)
 
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
@@ -34,7 +35,7 @@ class Image():
         self.params["dir"] = "/".join([
             self.config.get_folder("download_folder"),
             self.params["distro"],
-            self.params["release"],
+            self.params["version"],
             self.params["target"],
             self.params["subtarget"],
             self.params["profile"],
@@ -45,7 +46,7 @@ class Image():
     def as_array(self, extra=None):
         as_array = [
             self.params["distro"],
-            self.params["release"],
+            self.params["version"],
             self.params["target"],
             self.params["subtarget"],
             self.params["profile"]
@@ -57,7 +58,7 @@ class Image():
     def get_params(self):
         return {
             "distro": self.params["distro"],
-            "release": self.params["release"],
+            "version": self.params["version"],
             "target": self.params["target"],
             "subtarget": self.params["subtarget"],
             "profile": self.params["profile"],
