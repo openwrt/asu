@@ -16,9 +16,12 @@ class Image():
 
         # sort and deduplicate requested packages
         if "packages" in self.params:
-            self.params["packages"] = " ".join(sorted(list(set(self.params["packages"].split(" ")))))
+            self.params["packages"] = sorted(list(set(self.params["packages"])))
         else:
             self.params["packages"] = ""
+
+        # calculate hash of packages
+        self.params["package_hash"] = get_hash(" ".join(self.params["packages"]), 12)
 
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
