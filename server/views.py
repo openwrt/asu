@@ -160,12 +160,6 @@ def supported():
         supported = database.get_subtargets_supported()
         return render_template("supported.html", supported=supported)
 
-@app.route("/image/<image_hash>")
-def image(image_hash):
-    image = database.get_image_info(image_hash)
-    manifest = database.get_manifest_info(image["manifest_hash"])
-    return render_template("image.html", **image, manifest=manifest)
-
 @app.route("/fails")
 def fails():
     fails = database.get_fails_list()
