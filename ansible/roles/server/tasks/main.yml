@@ -95,3 +95,9 @@
   args:
     chdir: "{{ server_dir }}"
 
+- name: copy nginx config
+  template:
+      src: asu-server.conf
+      dest: /etc/nginx/sites-available/default
+  notify:
+      - nginx reload
