@@ -109,7 +109,7 @@ class Database():
 
     def sysupgrade_supported(self, image):
         self.c.execute("""SELECT supported from subtargets WHERE distro=? and release=? and target=? and subtarget = ? LIMIT 1;""",
-            image["distro", image["release"], image["target"], image["subtarget"])
+            image["distro"], image["release"], image["target"], image["subtarget"])
         return self.c.fetchval()
 
     def check_profile(self, distro, release, target, subtarget, profile):
@@ -221,23 +221,30 @@ class Database():
         self.c.execute(sql, request_hash)
         return self.as_dict()
 
-    def check_upgrade_check_hash(self, request_hash):
+    # returns upgrade requests responses cached in database
+    def check_upgrade_check_hash(self, upgrade_hash):
         self.log.debug("check_upgrade_hash")
-        # postgresql is my new crossword puzzle
-        sql = """SELECT to_json(sub) AS response
-            FROM  (
-               SELECT response_release as version, json_object_agg(name, version) AS "packages"
-               FROM  upgrade_requests ur
-               LEFT JOIN manifest_packages mp ON mp.manifest_hash = ur.response_manifest
-               WHERE ur.request_hash = ?
-               GROUP BY ur.response_release, ur.response_manifest
-               ) sub;
-            """
+        sql = "select * from upgrade_requests where request_hash = ?"
         self.c.execute(sql, request_hash)
-        if self.c.rowcount == 1:
-            return self.c.fetchone()[0]
-        else:
-            return None
+        return self.as_dict()
+
+#    def check_upgrade_check_hash(self, request_hash):
+#        self.log.debug("check_upgrade_hash")
+#        # postgresql is my new crossword puzzle
+#        sql = """SELECT to_json(sub) AS response
+#            FROM  (
+#               SELECT response_release as version, json_object_agg(name, version) AS "packages"
+#               FROM  upgrade_requests ur
+#               LEFT JOIN manifest_packages mp ON mp.manifest_hash = ur.response_manifest
+#               WHERE ur.request_hash = ?
+#               GROUP BY ur.response_release, ur.response_manifest
+#               ) sub;
+#            """
+#        self.c.execute(sql, request_hash)
+#        if self.c.rowcount == 1:
+#            return self.c.fetchone()[0]
+#        else:
+#            return None
 
     # inserts an image to the build queue
     def add_build_job(self, image):

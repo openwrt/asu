@@ -51,7 +51,7 @@ class Request():
 
         # check if sysupgrade is supported. If None is returned the subtarget isn't found
         sysupgrade_supported = self.database.sysupgrade_supported(self.request)
-        if sysupgrade_supported == None
+        if sysupgrade_supported == None:
             self.response_json["error"] = "unknown target %s/%s" % (self.request["target"], self.request["subtarget"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()

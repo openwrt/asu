@@ -16,7 +16,7 @@ class BuildRequest(Request):
         # if request_hash is available check the database directly
         if "request_hash" in self.request_json:
             self.request = self.database.check_build_request_hash(self.request_json["request_hash"])
-            if not self.request
+            if not self.request:
                 self.response_status = HTTPStatus.NOT_FOUND
                 return self.respond()
         else:
@@ -35,50 +35,49 @@ class BuildRequest(Request):
             return self.return_status()
 
         # if not perform various checks to see if the request is acutally valid
-        else:
-            # check for valid distro and release/version
-            bad_request = self.check_bad_request()
-            if bad_request:
-                return bad_request
+        # check for valid distro and release/version
+        bad_request = self.check_bad_request()
+        if bad_request:
+            return bad_request
 
-            # check for valid target and subtarget
-            bad_target = self.check_bad_target()
-            if bad_target:
-                return bad_target
+        # check for valid target and subtarget
+        bad_target = self.check_bad_target()
+        if bad_target:
+            return bad_target
 
-            # check for existing packages
-            bad_packages = self.check_bad_packages()
-            if bad_packages:
-                return bad_packages
+        # check for existing packages
+        bad_packages = self.check_bad_packages()
+        if bad_packages:
+            return bad_packages
 
-            # add package_hash to database
-            self.database.insert_package_hash(self.params["package_hash"], self.params["packages"])
+        # add package_hash to database
+        self.database.insert_package_hash(self.params["package_hash"], self.params["packages"])
 
-            # now some heavy guess work is done to figure out the profile
-            # eventually this could be simplified if upstream unifirm the profiles/boards
-            if "board" in self.request_json:
-                self.log.debug("board in request, search for %s", self.request_json["board"])
-                self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
+        # now some heavy guess work is done to figure out the profile
+        # eventually this could be simplified if upstream unifirm the profiles/boards
+        if "board" in self.request_json:
+            self.log.debug("board in request, search for %s", self.request_json["board"])
+            self.profile = self.database.check_profile(self.distro, self.release, self.target, self.subtarget, self.request_json["board"])
 
-            if not self.profile:
-                if "model" in self.request_json:
-                    self.log.debug("model in request, search for %s", self.request_json["model"])
-                    self.profile = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
-                    self.log.debug("model search found profile %s", self.profile)
+        if not self.profile:
+            if "model" in self.request_json:
+                self.log.debug("model in request, search for %s", self.request_json["model"])
+                self.profile = self.database.check_model(self.distro, self.release, self.target, self.subtarget, self.request_json["model"])
+                self.log.debug("model search found profile %s", self.profile)
 
-            if not self.profile:
-                if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
-                    self.profile = "Generic"
-                elif self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "generic"):
-                    self.profile = "generic"
-                else:
-                    self.response_json["error"] = "unknown device, please check model and board params"
-                    self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
-                    return self.respond()
+        if not self.profile:
+            if self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "Generic"):
+                self.profile = "Generic"
+            elif self.database.check_profile(self.distro, self.release, self.target, self.subtarget, "generic"):
+                self.profile = "generic"
+            else:
+                self.response_json["error"] = "unknown device, please check model and board params"
+                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+                return self.respond()
 
-            # all checks passed, eventually add to queue!
-            self.database.add_build_job(self.request)
-            return self.return_queued()
+        # all checks passed, eventually add to queue!
+        self.database.add_build_job(self.request)
+        return self.return_queued()
 
     def return_queued(self):
         self.response_header["X-Imagebuilder-Status"] = "queue"
