@@ -20,10 +20,6 @@ class Image():
         else:
             self.params["packages"] = ""
 
-        # create hash of requested packages and store in database
-        self.params["package_hash"] = get_hash(self.params["packages"], 12)
-        self.database.insert_hash(self.params["package_hash"], self.params["packages"])
-
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
         self.log.debug("write log")

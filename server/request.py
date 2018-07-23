@@ -20,50 +20,41 @@ class Request():
     def _request(self):
         pass
 
+    # these checks are relevant for upgrade and image reuqest
     def check_bad_request(self):
-        if not "distro" in self.request_json:
-            self.distro = "lede"
-        else:
-            self.distro = self.request_json["distro"].lower()
+        # I'm considering a dict request is faster than asking the database
+        self.image["distro"] = self.request_json["distro"].lower()
+        if not self.distro in self.config.get_distros():
+            self.response_json["error"] = "unknown distribution %s" % self.distro
+            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+            return self.respond()
 
-            if not self.database.check_distro(self.distro):
-                self.log.info("update request unknown distro")
-                self.response_json["error"] = "unknown distribution %s" % self.distro
-                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
-                return self.respond()
+        # same here
+        self.release = self.config.get(self.image["distro"]).get("latest")
+        if not self.release in self.config.get(self.image["distro"]).get("releases"): # rename releases to versions
+            self.response_json["error"] = "unknown release %s" % self.release
+            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+            return self.respond()
 
-        if not "version" in self.request_json:
-            self.release = self.config.get(self.distro).get("latest")
-        else:
-            self.release = self.request_json["version"].lower()
-
-            if not self.release in self.database.get_releases(self.distro):
-                self.response_json["error"] = "unknown release %s" % self.release
-                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
-                return self.respond()
+        # all checks passed, not bad
+        return False
 
     def check_bad_target(self):
-        self.target = self.request_json["target"]
-        self.subtarget = self.request_json["subtarget"]
+        self.image["target"] = self.request_json["target"]
+        self.image["subtarget"] = self.request_json["subtarget"]
 
-        subtarget_check =  self.database.get_subtargets(self.distro, self.release, self.target, self.subtarget)
-        if not len(subtarget_check) == 1:
-            self.response_json["error"] = "unknown target %s/%s" % (self.target, self.subtarget)
+        # check if sysupgrade is supported. If None is returned the subtarget isn't found
+        sysupgrade_supported = self.database.sysupgrade_supported(self.image)
+        if sysupgrade_supported == None
+            self.response_json["error"] = "unknown target %s/%s" % (self.image["target"], self.image["subtarget"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
-        elif not subtarget_check[0][2] == "1" and self.sysupgrade: # [2] is supported flag
-            self.response_json["error"] = "target currently not supported %s/%s" % (self.target, self.subtarget)
+        elif sysupgrade_supported and self.sysupgrade: 
+            self.response_json["error"] = "target currently not supported %s/%s" % (self.image["target"], self.image["subtarget"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
 
-        if self.database.subtarget_outdated(self.distro, self.release, self.target, self.subtarget) and False:
-            self.log.debug("subtarget %s/%s not outdated - no need to setup imagebuilder", self.target, self.subtarget)
-            if not self.database.imagebuilder_status(self.distro, self.release, self.target, self.subtarget) == 'ready':
-                self.log.debug("imagebuilder not ready")
-                self.response_header["X-Imagebuilder-Status"] = "initialize"
-                self.response_status = HTTPStatus.ACCEPTED # 202
-                return self.respond()
-
+        # all checks passed, not bad
         return False
 
     def respond(self, json_content=False):
@@ -74,22 +65,27 @@ class Request():
         response.headers.extend(self.response_header)
         return response
 
-    # if local version is newer than received returns true
-    def release_latest(self, latest, external):
-        return LooseVersion(external) >= LooseVersion(latest)
+    def missing_params(self, params):
+        for param in params:
+            if not param in self.request_json:
+                self.response_header["X-Missing-Param"] = param
+                return self.respond()
 
+        # all checks passed, not bad
+        return False
+
+    # check packages by sending requested packages again postgres
     def check_bad_packages(self):
-        self.packages = None
-        if "packages" in self.request_json:
-            self.packages = self.request_json["packages"]
-            available_packages = self.database.get_packages_available(self.distro, self.release, self.target, self.subtarget).keys()
-            for package in self.packages:
-                if package in ["kernel", "libc", "base-files"]: # these tend to cause problems, even tho always installed
-                    pass # kernel is not an installable package, but installed...
-                elif package not in available_packages:
-                    logging.warning("could not find package {}/{}/{}/{}/{}".format(self.distro, self.release, self.target, self.subtarget, package))
-                    self.response_header["X-Unknown-Package"] = package
-                    self.response_json["error"] = "could not find package '{}' for requested target".format(package)
-                    self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 422
-                    return self.respond()
+        self.image["packages"] = sorted(list(set(self.request_json["packages"])))
+        packages_unknown = " ".join(self.database.check_packages(self.image))
+
+        # if list is not empty there where some unknown packages found
+        if unknown_packages:
+            logging.warning("could not find packages %s", packages_unknown)
+            self.response_header["X-Unknown-Package"] = packages_unknown
+            self.response_json["error"] = "could not find packages '{}' for requested target".format(packages_unknown)
+            self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 422
+            return self.respond()
+
+        # all checks passed, not bad
         return False

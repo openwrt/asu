@@ -70,8 +70,6 @@ class Worker(threading.Thread):
         self.log.info("check if image exists")
         self.image = Image(self.params)
 
-        request_hash = get_hash(" ".join(self.image.as_array("package_hash")), 12)
-
         # first determine the resulting manifest hash
         return_code, manifest_content, errors = self.run_meta("list")
 
@@ -82,7 +80,7 @@ class Worker(threading.Thread):
             manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
             self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
         else:
-            self.database.set_image_requests_status(request_hash, "manifest_fail")
+            self.database.set_image_requests_status(self.params["request_hash"], "manifest_fail")
             return False
 
         # set directory where image is stored on server
@@ -134,7 +132,7 @@ class Worker(threading.Thread):
                         if buildlog.find("too big") != -1:
                             self.log.warning("created image was to big")
                             self.store_log(buildlog)
-                            self.database.set_image_requests_status(request_hash, "imagesize_fail")
+                            self.database.set_image_requests_status(self.params["request_hash"], "imagesize_fail")
                             return False
                         else:
                             self.build_status = "no_sysupgrade"
@@ -147,12 +145,12 @@ class Worker(threading.Thread):
                 else:
                     print(buildlog)
                     self.log.info("build failed")
-                    self.database.set_image_requests_status(request_hash, 'build_fail')
+                    self.database.set_image_requests_status(self.params["request_hash"], 'build_fail')
      #               self.store_log(buildlog)
                     return False
 
             self.log.info("build successfull")
-            self.database.done_build_job(request_hash, self.image.params["image_hash"], build_status)
+            self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], build_status)
             return True
     
     def run(self):

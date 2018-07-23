@@ -56,13 +56,6 @@ class Database():
         self.c.execute(sql, request_hash, distro, release, target, subtarget, request_manifest, response_release, response_manifest)
         self.commit()
 
-    def check_distro(self, distro):
-        self.c.execute("select 1 from distributions where name = ?", distro)
-        if self.c.rowcount == 1:
-            return True
-        else:
-            return False
-
     def get_releases(self, distro=None):
         if not distro:
             return self.c.execute("select distro, release from releases").fetchall()
@@ -73,9 +66,12 @@ class Database():
                 respond.append(release[0])
             return respond
 
-    def insert_hash(self, hash, packages):
+    # TODO this should be done via some postgres json magic
+    # currently this is splitted back and forth but I'm hungry
+    # TODO unify packageS_hash and package_hash
+    def insert_package_hash(self, package_hash, packages):
         sql = "INSERT INTO packages_hashes (hash, packages) VALUES (?, ?)"
-        self.c.execute(sql, (hash, " ".join(packages)))
+        self.c.execute(sql, (packages_hash, " ".join(packages)))
         self.commit()
 
     def delete_profiles(self, distro, release, target, subtarget, profiles):
@@ -97,14 +93,24 @@ class Database():
             self.insert_dict("packages_profile",
                     { **target, "profile": profile, "model": model, "packages": packages })
 
-    def check_subtarget(self, distro, release, target, subtarget):
-        self.c.execute("""SELECT 1 from subtargets
-            WHERE distro=? and release=? and target=? and subtarget = ? LIMIT 1;""",
-            distro, release, target, subtarget)
-        if self.c.rowcount == 1:
-            return True
-        else:
-            return False
+    def check_packages(self, image):
+        sql = """select value as packages_unknown
+            from json_array_elements_text('?') as pr
+            where not exists (
+                select 1 from packages_available pa where
+                    pa.distro = ? and
+                    pa.release = ? and
+                    pa.target = ? and
+                    pa.subtarget = ? and
+                    pa.name = pr)"""
+        self.c.execute(sql, json.dumps(image["packages"]), image["distro"],
+                image["release"], image["target"], image["subtarget"])
+        return self.c.fetchall()
+
+    def sysupgrade_supported(self, image):
+        self.c.execute("""SELECT supported from subtargets WHERE distro=? and release=? and target=? and subtarget = ? LIMIT 1;""",
+            image["distro", image["release"], image["target"], image["subtarget"])
+        return self.c.fetchval()
 
     def check_profile(self, distro, release, target, subtarget, profile):
         self.log.debug("check_profile %s/%s/%s/%s/%s", distro, release, target, subtarget, profile)
@@ -209,17 +215,11 @@ class Database():
             WHERE distro = ? and release = ? and target LIKE ? and subtarget LIKE ?;""",
             distro, release, target, subtarget).fetchall()
 
-    def check_build_request_hash(self, request_hash, status=False):
+    def check_build_request_hash(self, request_hash):
         self.log.debug("check_request_hash")
-        sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ? or image_hash = ?"
-        self.c.execute(sql, request_hash, request_hash)
-        if self.c.rowcount == 1:
-            if not status:
-                return self.c.fetchone()
-            else:
-                return self.c.fetchone()[3]
-        else:
-            return None
+        sql = "select * from image_requests where request_hash = ?"
+        self.c.execute(sql, request_hash)
+        return self.as_dict()
 
     def check_upgrade_check_hash(self, request_hash):
         self.log.debug("check_upgrade_hash")
@@ -238,6 +238,10 @@ class Database():
             return self.c.fetchone()[0]
         else:
             return None
+
+    # inserts an image to the build queue
+    def add_build_job(self, image):
+        self.insert_dict("image_requests", image)
 
     def check_build_request(self, request):
         request_array = request.as_array()
@@ -285,7 +289,8 @@ class Database():
     def as_dict(self):
         return(dict(zip([column[0] for column in self.c.description], self.c.fetchone())))
 
-    # TODO check if this is dangerous
+    # TODO check is this must be removed
+    # this is dangerours if used for user input. check all everything before calling this
     def insert_dict(self, table, data):
         columns = []
         values = []
@@ -330,14 +335,10 @@ class Database():
                     target LIKE ? and
                     subtarget LIKE ?
                 )
-            RETURNING image_requests.id, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages;"""
+            RETURNING image_requests.id, request_hash, image_hash, distro, release, target, subtarget, profile, packages_hashes.packages;"""
         self.c.execute(sql, distro, release, target, subtarget, distro, release, target, subtarget)
-        if self.c.description:
-            self.log.debug("found image request")
-            self.commit()
-            return list(self.c.fetchone())
-        self.log.debug("no image request")
-        return None
+        self.commit()
+        return self.as_dict()
 
     def set_image_requests_status(self, image_request_hash, status):
         self.log.info("set image {} status to {}".format(image_request_hash, status))
