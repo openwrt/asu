@@ -84,7 +84,13 @@ class Request():
     # check packages by sending requested packages again postgres
     def check_bad_packages(self):
         # remove packages which doesn't exists but appear in the package list
-        packages_set = set(self.request_json["packages"]) - set(["libc", "kernel"])
+        # upgrade_checks send a dict with package name & version while build 
+        # requests contain only an array
+        if type(self.request_json["packages"]) ==  dict:
+            packages_set = set(self.request_json["packages"].keys()) - set(["libc", "kernel"])
+        else:
+            packages_set = set(self.request_json["packages"]) - set(["libc", "kernel"])
+
         self.request["packages"] = sorted(list(packages_set))
         packages_unknown = self.database.check_packages(self.request)
 

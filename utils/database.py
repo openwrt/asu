@@ -138,6 +138,19 @@ class Database():
         self.c.execute(sql, distro, version, target, subtarget, profile)
         return json.dumps({"packages": self.c.fetchval().rstrip().split(" ")})
 
+    def manifest_outdated(self, p):
+        sql = """select package_name, pa.package_version, mp.package_version as outdated as current 
+                from manifest_packages mp join packages_available pa using (package_name)
+                where 
+                    manifest_hash = ? and 
+                    pa.package_version != mp.package_version
+                    pa.distro = ? and
+                    pa.version = ? and
+                    pa.target = ? and
+                    pa.subtarget = ?;"""
+        self.c.execute(sql, p["manifest_hash"], p["distro"], p["version"], p["target"], p["subtarget"])
+        return self.c.fetchval()
+
     def subtarget_outdated(self, distro, version, target, subtarget):
         outdated_interval = 1
         outdated_unit = 'day'
@@ -591,30 +604,6 @@ class Database():
         result = self.c.fetchone()
         return result[0]
 
-    def packages_versions(self, distro, version, target, subtarget, packages):
-        self.log.debug("packages versions")
-        sql = """
-        select name, version from
-            unnest(string_to_array(?, ' ')) packages_installed left join
-            (select name, version from packages_available where
-            distro = ? and version = ? and target = ? and subtarget = ?) as packages_available
-            on packages_available.name = packages_installed;
-        """
-        self.c.execute(sql, packages, distro, version, target, subtarget)
-        result = self.c.fetchall()
-        return result
-
-    def packages_updates(self, distro, version, target, subtarget, packages):
-        self.log.debug("packages updates")
-        sql = """select name, version, installed_version from packages_available join (
-                select key as installed_name, value as installed_version from json_each_text(?)
-                ) as installed on installed.installed_name = packages_available.name
-        where installed.installed_version != packages_available.version and
-            distro = ? and version = ? and target = ? and subtarget = ?"""
-        self.c.execute(sql, str(packages).replace("\'", "\""), distro, version, target, subtarget)
-        result = self.c.fetchall()
-        return result
-
     def flush_snapshots(self, distro="%", target="%", subtarget="%"):
         self.log.debug("flush snapshots")
         sql = """delete from images where
@@ -701,4 +690,3 @@ class Database():
             return self.c.fetchone()
         else:
             return False
-
