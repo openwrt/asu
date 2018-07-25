@@ -58,7 +58,7 @@ def api_upgrade_request(request_hash=None):
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
 
-    return br.process_request(request_json, sysupgrade=1)
+    return br.process_request(request_json, sysupgrade_requested=1)
 
 @app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
