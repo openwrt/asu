@@ -117,11 +117,11 @@ class BuildRequest(Request):
                 self.response_status = HTTPStatus.NOT_IMPLEMENTED # 501
             else:
                 # no sysupgrade found but not requested, factory image is likely from interest
-                file_path = self.database.get_image_path(image_hash)
+                file_path = self.database.get_image_path(self.request["image_hash"])
                 self.response_json["files"] =  "{}/json/{}".format(self.config.get("server"), file_path)
-                self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("server"), file_path, image_hash)
-                self.response_json["request_hash"] = request_hash
-                self.response_json["image_hash"] = image_hash
+                self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("server"), file_path, self.request["image_hash"])
+                self.response_json["request_hash"] = self.request["request_hash"]
+                self.response_json["image_hash"] = self.request["image_hash"]
 
                 self.response_status = HTTPStatus.OK # 200
 
@@ -149,8 +149,8 @@ class BuildRequest(Request):
         # likely to many package where requested
         elif self.request["status"] == "imagesize_fail":
             self.response_json["error"] = "No firmware created due to image size. Try again with less packages selected."
-            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("server"), request_hash)
-            self.response_json["request_hash"] = request_hash
+            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("server"), self.request["request_hash"])
+            self.response_json["request_hash"] = self.request["request_hash"]
 
             self.response_status = 413 # PAYLOAD_TO_LARGE RCF 7231
 
