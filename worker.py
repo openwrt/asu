@@ -58,7 +58,7 @@ class Worker(threading.Thread):
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
         self.log.debug("write log")
-        with open(self.image.params["dir"] + "/buildlog-{}.txt".format(self.params["image_hash"], "a") as buildlog_file:
+        with open(self.image.params["dir"] + "/buildlog-{}.txt".format(self.params["image_hash"]), "a") as buildlog_file:
             buildlog_file.writelines(buildlog)
 
     # build image

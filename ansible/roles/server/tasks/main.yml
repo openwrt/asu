@@ -3,16 +3,19 @@
 - name: install required software
   package: name={{ item }} state=present
   with_items:
+    - git
     - nginx
     - postgresql
     - odbc-postgresql
-    - python3-pyodbc
     - python3-psycopg2
-    - python3-gnupg
     - python-psycopg2
     - python3-yaml
     - python3-flask
-    - git
+    - python3-pip
+
+- pip:
+    executable : pip3
+    name: pyodbc
 
 - name: install imagebuilder dependencies
   package: name={{ item }} state=present
@@ -32,47 +35,13 @@
     - unzip
     - python
 
-- name: ensure database is created
-  become_user: postgres
-  vars:
-      ansible_ssh_pipelining: true
-  postgresql_db:
-    name: "{{ database_name }}"
-
-- name: ensure user has access to database
-  become_user: postgres
-  vars:
-      ansible_ssh_pipelining: true
-  postgresql_user:
-    db: "{{ database_name }}"
-    name: "{{ database_user }}"
-    password: "{{ database_pass }}"
-    priv: ALL
-
-- name: ensure user does not have unnecessary privilege
-  become_user: postgres
-  vars:
-      ansible_ssh_pipelining: true
-  postgresql_user:
-    name: "{{ database_user }}"
-    role_attr_flags: NOSUPERUSER,NOCREATEDB
-
 - name: clone server git repo
   become_user: "{{ server_user }}"
   git:
     repo: 'https://github.com/aparcar/attendedsysupgrade-server.git'
     dest: "{{ server_dir }}"
-    version: meta-builder
+    version: "{{ git_branch | default('master') }}"
   when: server_dir != "/vagrant"
-
-- name: init database
-  become_user: postgres
-  vars:
-      ansible_ssh_pipelining: true
-  postgresql_db:
-    name: "{{ database_name }}"
-    state: restore
-    target: "{{ server_dir }}/utils/tables.sql"
 
 - name: copy server service
   template:
