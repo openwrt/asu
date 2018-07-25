@@ -698,55 +698,46 @@ select distinct images.id, images.image_hash, distributions.alias, images.distro
             distributions.name = profiles.distro
         order by id desc;
 
+-- TODO check if this function is much to expensive
+create or replace view manifest_upgrades as
+select distro, version, target, subtarget, manifest_id, manifest_hash, json_object_agg(package_name, package_versions) as upgrades
+        from (
+                select
+                        distro, version, target, subtarget,
+                        manifest_id, manifest_hash,
+                        pa.package_name as package_name,
+                        array[pa.package_version, mp.package_version] as package_versions
+                from manifest_packages mp join packages_available pa using (package_name)
+                where
+                        manifest_hash = '33a4739ae2d85e8' and
+                        pa.package_version != mp.package_version
+        ) as upgrades group by (distro, version, target, subtarget, manifest_id, manifest_hash);
 
---create table if not exists upgrade_requests_table (
---    id SERIAL PRIMARY KEY,
---    request_hash varchar(30) UNIQUE,
---    subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
---    request_manifest_id integer references manifest_table(id) ON DELETE CASCADE
---);
---
---create or replace view upgrade_requests as
---select
---upgrade_requests_table.id, request_hash, subtargets.distro, subtargets.version, target, subtarget, reqm.hash request_manifest, latest response_version, resm.hash response_manifest
---from upgrade_requests_table, distributions, subtargets, manifest_table reqm, manifest_table resm where
---subtargets.id = upgrade_requests_table.subtarget_id and
---subtargets.distro = dirstirubtions.name and
---reqm.id = request_manifest_id
---
---
---create or replace rule insert_upgrade_requests AS
---ON insert TO upgrade_requests DO INSTEAD
---insert into upgrade_requests_table (request_hash, subtarget_id, request_manifest_id, response_version_id, response_manifest_id) values (
---    NEW.request_hash,
---    (select subtargets.id from subtargets where
---        subtargets.distro = NEW.distro and
---        subtargets.version = NEW.version and
---        subtargets.target = NEW.target and
---        subtargets.subtarget = NEW.subtarget),
---    (select manifest_table.id from manifest_table where
---        manifest_table.hash = NEW.request_manifest),
---    (select id from versions where
---        versions.distro = NEW.distro and
---        versions.version = NEW.response_version),
---    (select manifest_table.id from manifest_table where
---        manifest_table.hash = NEW.response_manifest)
---    )
---on conflict do nothing;
---
---create or replace rule update_upgrade_requests AS
---ON update TO upgrade_requests DO INSTEAD
---update upgrade_requests_table set
---response_version_id = coalesce(
---    (select id from versions where
---        versions.distro = NEW.distro and
---        versions.version = NEW.response_version),
---    response_version_id),
---response_manifest_id = coalesce(
---    (select manifest_table.id from manifest_table where
---        manifest_table.hash = NEW.response_manifest),
---    response_manifest_id)
---where upgrade_requests_table.request_hash = NEW.request_hash
---returning
---old.*; 
---
+
+create table if not exists upgrade_checks_table (
+    id SERIAL PRIMARY KEY,
+    check_hash varchar(30) UNIQUE,
+    subtarget_id integer references subtargets_table(id) ON DELETE CASCADE,
+    manifest_id integer references manifest_table(id) ON DELETE CASCADE
+);
+
+create or replace view upgrade_checks as
+select
+uc.check_hash, s.distro, s.version, s.target, s.subtarget, manifest_hash, mu.upgrades
+from upgrade_checks_table uc, distributions d, subtargets s, manifest_upgrades mu where
+s.id = uc.subtarget_id and
+s.distro = d.name and
+mu.manifest_id = uc.manifest_id;
+
+create or replace rule insert_upgrade_checks AS
+ON insert TO upgrade_checks DO INSTEAD
+insert into upgrade_checks_table (check_hash, subtarget_id, manifest_id) values (
+    NEW.check_hash,
+    (select subtargets.id from subtargets where
+        subtargets.distro = NEW.distro and
+        subtargets.version = NEW.version and
+        subtargets.target = NEW.target and
+        subtargets.subtarget = NEW.subtarget),
+    (select manifest_table.id from manifest_table where
+        manifest_table.hash = NEW.manifest_hash))
+on conflict do nothing;

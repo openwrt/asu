@@ -48,14 +48,6 @@ class Database():
         self.c.execute(sql, p["distro"], p["version"], p["target"])
         self.commit()
 
-    def insert_upgrade_check(self, request_hash, distro, version, target, subtarget, request_manifest, response_version, response_manifest):
-        sql = """insert into upgrade_requests
-            (request_hash, distro, version, target, subtarget, request_manifest, response_version, response_manifest)
-            values (?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        self.c.execute(sql, request_hash, distro, version, target, subtarget, request_manifest, response_version, response_manifest)
-        self.commit()
-
     def get_versions(self, distro=None):
         if not distro:
             return self.c.execute("select distro, version from versions").fetchall()
@@ -139,15 +131,14 @@ class Database():
         return json.dumps({"packages": self.c.fetchval().rstrip().split(" ")})
 
     def manifest_outdated(self, p):
-        sql = """select package_name, pa.package_version, mp.package_version as outdated as current 
-                from manifest_packages mp join packages_available pa using (package_name)
+        sql = """select upgrades
+                from manifest_upgrades
                 where 
                     manifest_hash = ? and 
-                    pa.package_version != mp.package_version
-                    pa.distro = ? and
-                    pa.version = ? and
-                    pa.target = ? and
-                    pa.subtarget = ?;"""
+                    distro = ? and
+                    version = ? and
+                    target = ? and
+                    subtarget = ?;"""
         self.c.execute(sql, p["manifest_hash"], p["distro"], p["version"], p["target"], p["subtarget"])
         return self.c.fetchval()
 
@@ -234,27 +225,14 @@ class Database():
     # returns upgrade requests responses cached in database
     def check_upgrade_check_hash(self, upgrade_hash):
         self.log.debug("check_upgrade_hash")
-        sql = "select * from upgrade_requests where request_hash = ?"
+        sql = "select * from upgrade_checks where check_hash = ?"
         self.c.execute(sql, request_hash)
         return self.as_dict()
 
-#    def check_upgrade_check_hash(self, request_hash):
-#        self.log.debug("check_upgrade_hash")
-#        # postgresql is my new crossword puzzle
-#        sql = """SELECT to_json(sub) AS response
-#            FROM  (
-#               SELECT response_version as version, json_object_agg(name, version) AS "packages"
-#               FROM  upgrade_requests ur
-#               LEFT JOIN manifest_packages mp ON mp.manifest_hash = ur.response_manifest
-#               WHERE ur.request_hash = ?
-#               GROUP BY ur.response_version, ur.response_manifest
-#               ) sub;
-#            """
-#        self.c.execute(sql, request_hash)
-#        if self.c.rowcount == 1:
-#            return self.c.fetchone()[0]
-#        else:
-#            return None
+    def insert_upgrade_check(self, p):
+        sql = """insert into upgrade_checks (check_hash, distro, version, target, subtarget, manifest_hash) values (?, ?, ?, ?, ?, ?);"""
+        self.c.execute(sql, p["check_hash"], p["distro"], p["version"], p["target"], p["subtarget"], p["manifest_hash"])
+        self.commit()
 
     # inserts an image to the build queue
     def add_build_job(self, image):
