@@ -524,7 +524,7 @@ class Database():
             manifest_packages.package_version as version
             ) from manifest_packages where manifest_hash = ?;"""
         self.c.execute(sql, manifest_hash)
-        return(self.c.fetchval()
+        return self.c.fetchval()
 
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)
