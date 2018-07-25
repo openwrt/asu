@@ -110,19 +110,14 @@ class Database():
                 (select newname from board_rename where distro = ? and version = ? and target = ? and subtarget = ? and origname = ?), ?)
             LIMIT 1;""",
             distro, version, target, subtarget, distro, version, target, subtarget, profile, profile)
-        if self.c.rowcount == 1:
-            return self.c.fetchone()[0]
-        else:
-            return False
+        return self.c.fetchval()
 
     def check_model(self, distro, version, target, subtarget, model):
         self.log.debug("check_model %s/%s/%s/%s/%s", distro, version, target, subtarget, model)
         self.c.execute("""SELECT profile FROM profiles
             WHERE distro=? and version=? and target=? and subtarget = ? and lower(model) = lower(?);""",
             distro, version, target, subtarget, model)
-        if self.c.rowcount == 1:
-            return self.c.fetchone()[0]
-        return False
+        return self.c.fetchval()
 
     def get_image_packages(self, distro, version, target, subtarget, profile, as_json=False):
         self.log.debug("get_image_packages for %s/%s/%s/%s/%s", distro, version, target, subtarget, profile)
@@ -266,10 +261,7 @@ class Database():
         self.log.debug("get sysupgrade image for %s", image_hash)
         sql = "select file_path from images_download where image_hash = ?"
         self.c.execute(sql, image_hash)
-        if self.c.rowcount == 1:
-            return self.c.fetchone()[0]
-        else:
-            return False
+        return self.c.fetchval()
 
     def get_sysupgrade(self, image_hash):
         self.log.debug("get image %s", image_hash)
@@ -436,7 +428,7 @@ class Database():
             RETURNING id;"""
         self.c.execute(sql, name, address, datetime.datetime.now(), pubkey)
         self.commit()
-        return self.c.fetchone()[0]
+        return self.c.fetchval()
 
     def worker_destroy(self, worker_id):
         self.log.info("destroy worker %s", worker_id)
@@ -475,12 +467,12 @@ class Database():
 
     def get_supported_distros(self):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]') from (select name, alias from distributions order by (alias)) as distributions;"""
-        return self.c.execute(sql).fetchone()[0]
+        return self.c.execute(sql).fetchval()
 
     def get_supported_versions(self, distro):
         if distro == '': distro='%'
         sql = """select coalesce(array_to_json(array_agg(row_to_json(versions))), '[]') from (select distro, version from versions where distro LIKE ? order by id desc) as versions;"""
-        return self.c.execute(sql, distro).fetchone()[0]
+        return self.c.execute(sql, distro).fetchval()
 
     def get_supported_models(self, search='', distro='', version=''):
         search_like = '%' + search.lower() + '%'
@@ -488,17 +480,17 @@ class Database():
         if version == '': version = '%'
 
         sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE ? and distro LIKE ? and version LIKE ?;"""
-        response = self.c.execute(sql, search_like, distro, version).fetchone()[0]
+        response = self.c.execute(sql, search_like, distro, version).fetchval()
         if response == "[]":
             sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where (lower(target) LIKE ? or lower(subtarget) LIKE ? or lower(profile) LIKE ?)and distro LIKE ? and version LIKE ?;"""
-            response = self.c.execute(sql, search_like, search_like, search_like, distro, version).fetchone()[0]
+            response = self.c.execute(sql, search_like, search_like, search_like, distro, version).fetchval()
 
         return response
 
     def get_subtargets_json(self, distro='%', version='%', target='%'):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and version like ? and target like ?;"""
         self.c.execute(sql, distro, version, target)
-        return self.c.fetchone()[0]
+        return self.c.fetchval()
 
     # TODO
     def get_request_packages(self, distro, version, target, subtarget, profile):
@@ -523,26 +515,21 @@ class Database():
     def get_image_info(self, image_hash):
         self.log.debug("get image info %s", image_hash)
         sql = "select row_to_json(images_info) from images_info where image_hash = ?"
-        #return self.c.execute(sql, image_hash).fetchval()
-        return {}
+        return self.c.execute(sql, image_hash).fetchval()
 
     def get_manifest_info(self, manifest_hash, json=False):
         self.log.debug("get manifest info %s", manifest_hash)
-        if not json:
-            sql = """select name, version from manifest_packages
-                where manifest_hash = ?"""
-            self.c.execute(sql, manifest_hash)
-            result = self.c.fetchall()
-            return result
-        else:
-            sql = """select json_object_agg(manifest_packages.name, manifest_packages.version) from manifest_packages where manifest_hash = ?;"""
-            self.c.execute(sql, manifest_hash)
-            return(self.c.fetchone()[0])
+        sql = """select json_object_agg(
+            manifest_packages.package_name as name, 
+            manifest_packages.package_version as version
+            ) from manifest_packages where manifest_hash = ?;"""
+        self.c.execute(sql, manifest_hash)
+        return(self.c.fetchval()
 
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)
         sql = "select packages from packages_hashes where hash = ?;"
-        return self.c.execute(sql, packages_hash).fetchone()[0]
+        return self.c.execute(sql, packages_hash).fetchval()
 
     def get_popular_subtargets(self):
         self.log.debug("get popular subtargets")
@@ -554,33 +541,23 @@ class Database():
         result = self.c.fetchall()
         return result
 
-    def get_worker_active(self):
-        self.log.debug("get worker active")
-        sql = "select count(*) as count from worker;"
-        self.c.execute(sql)
-        result = self.c.fetchone()
-        return result[0]
-
     def get_images_count(self):
         self.log.debug("get images count")
         sql = "select count(*) as count from images;"
         self.c.execute(sql)
-        result = self.c.fetchone()
-        return result[0]
+        self.c.fetchval()
 
     def get_images_total(self):
         self.log.debug("get images count")
         sql = "select last_value as total from image_requests_table_id_seq;"
         self.c.execute(sql)
-        result = self.c.fetchone()
-        return result[0]
+        return self.c.fetchval()
 
     def get_packages_count(self):
         self.log.debug("get packages count")
         sql = "select count(*) as count from packages_names;"
         self.c.execute(sql)
-        result = self.c.fetchone()
-        return result[0]
+        return self.c.fetchval()
 
     def flush_snapshots(self, distro="%", target="%", subtarget="%"):
         self.log.debug("flush snapshots")
@@ -622,34 +599,6 @@ class Database():
         sql = "select transform(?, ?, ?, ?)"
         self.c.execute(sql, distro, orig_version, dest_version, packages)
         return self.c.fetchall()
-
-    def worker_build_job(self, worker_id):
-        self.log.debug("get build job for worker %s", worker_id)
-        sql = """UPDATE image_requests
-            SET status = 'building'
-            FROM packages_hashes
-            WHERE image_requests.packages_hash = packages_hashes.hash and
-                distro LIKE ? and
-                version LIKE ? and
-                target LIKE ? and
-                subtarget LIKE ? and
-                image_requests.id = (
-                    SELECT MIN(id)
-                    FROM image_requests
-                    WHERE status = 'requested' and
-                    distro LIKE ? and
-                    version LIKE ? and
-                    target LIKE ? and
-                    subtarget LIKE ?
-                )
-            RETURNING image_requests.id, image_hash, distro, version, target, subtarget, profile, packages_hashes.packages;"""
-        self.c.execute(sql, distro, version, target, subtarget, distro, version, target, subtarget)
-        if self.c.description:
-            self.log.debug("found image request")
-            self.commit()
-            return self.c.fetchone()
-        self.log.debug("no image request")
-        return None
 
     def get_popular_packages(self):
         sql = """select name, count(name) as count

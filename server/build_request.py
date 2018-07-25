@@ -63,7 +63,6 @@ class BuildRequest(Request):
 
         # now some heavy guess work is done to figure out the profile
         # eventually this could be simplified if upstream unifirm the profiles/boards
-        # TODO not yet working
         if "board" in self.request_json:
             self.log.debug("board in request, search for %s", self.request_json["board"])
             self.request["profile"] = self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], self.request_json["board"])
@@ -101,8 +100,8 @@ class BuildRequest(Request):
         # image created, return all desired information
         if self.request["status"] == "created":
             file_path, sysupgrade_file = self.database.get_sysupgrade(self.request["image_hash"])
-            self.response_json["sysupgrade"] = "{}/static/{}{}".format(self.config.get("server"), file_path, sysupgrade_file)
-            self.response_json["log"] = "{}/static/{}/buildlog.txt".format(self.config.get("server"), file_path)
+            self.response_json["sysupgrade"] = "{}/download/{}/{}".format(self.config.get("server"), file_path, sysupgrade_file)
+            self.response_json["log"] = "{}/download/{}/buildlog-{}.txt".format(self.config.get("server"), file_path, self.request["image_hash"])
             self.response_json["files"] =  "{}/json/{}".format(self.config.get("server"), file_path)
             self.response_json["request_hash"] = self.request["request_hash"]
             self.response_json["image_hash"] = self.request["image_hash"]
@@ -112,14 +111,14 @@ class BuildRequest(Request):
         elif self.request["status"] == "no_sysupgrade":
             if self.sysupgrade_requested:
                 # no sysupgrade found but requested, let user figure out what to do
-                self.response_json["error"] = "No sysupgrade file produced, may not supported by modell."
+                self.response_json["error"] = "No sysupgrade file produced, may not supported by model."
 
                 self.response_status = HTTPStatus.NOT_IMPLEMENTED # 501
             else:
                 # no sysupgrade found but not requested, factory image is likely from interest
                 file_path = self.database.get_image_path(self.request["image_hash"])
-                self.response_json["files"] =  "{}/json/{}".format(self.config.get("server"), file_path)
-                self.response_json["log"] = "{}/static/{}build-{}.log".format(self.config.get("server"), file_path, self.request["image_hash"])
+                self.response_json["files"] = "{}/json/{}".format(self.config.get("server"), file_path)
+                self.response_json["log"] = "{}/download/{}/buildlog-{}.txt".format(self.config.get("server"), file_path, self.request["image_hash"])
                 self.response_json["request_hash"] = self.request["request_hash"]
                 self.response_json["image_hash"] = self.request["image_hash"]
 
@@ -140,8 +139,8 @@ class BuildRequest(Request):
 
         # build failed, see build log for details
         elif self.request["status"] == "build_fail":
-            self.response_json["error"] = "imagebuilder faild to create image"
-            self.response_json["log"] = "{}/static/faillogs/faillog-{}.txt".format(self.config.get("server"), self.request["request_hash"])
+            self.response_json["error"] = "ImageBuilder faild to create image"
+            self.response_json["log"] = "{}/download/faillogs/faillog-{}.txt".format(self.config.get("server"), self.request["request_hash"])
             self.response_json["request_hash"] = self.request["request_hash"]
 
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR # 500
@@ -149,7 +148,7 @@ class BuildRequest(Request):
         # likely to many package where requested
         elif self.request["status"] == "imagesize_fail":
             self.response_json["error"] = "No firmware created due to image size. Try again with less packages selected."
-            self.response_json["log"] = "{}/static/faillogs/request-{}.log".format(self.config.get("server"), self.request["request_hash"])
+            self.response_json["log"] = "{}/download/faillogs/request-{}.log".format(self.config.get("server"), self.request["request_hash"])
             self.response_json["request_hash"] = self.request["request_hash"]
 
             self.response_status = 413 # PAYLOAD_TO_LARGE RCF 7231
