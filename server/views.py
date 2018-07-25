@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 
 from flask import Flask
-from flask import render_template, request, send_from_directory, redirect, jsonify
-from shutil import rmtree
+from flask import render_template, request, send_from_directory, jsonify
 import json
-import time
-from zipfile import ZipFile
-import socket
 import os
-import logging
 from http import HTTPStatus
 
 from server.build_request import BuildRequest
 from server.upgrade_check import UpgradeCheck
 from server import app
 
-import utils
 from utils.config import Config
 from utils.database import Database
-from utils.common import usign_init, usign_verify, usign_sign
 
 config = Config()
 database = Database(config)
@@ -122,7 +115,6 @@ def api_models():
 @app.route("/api/packages_image")
 @app.route("/api/default_packages")
 def api_default_packages():
-    data = []
     distro = request.args.get("distro", "")
     version = request.args.get("version", "")
     target = request.args.get("target", "")

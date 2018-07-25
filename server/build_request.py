@@ -1,8 +1,4 @@
-import os
-import logging
-import glob
 from http import HTTPStatus
-from flask import Response
 
 from utils.image import Image
 from server.request import Request

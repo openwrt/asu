@@ -181,8 +181,7 @@ class Database():
         self.commit()
 
     def insert_packages_available(self, target, packages):
-        self.log.debug("insert packages")
-        sql = """INSERT INTO packages_available VALUES (?, ?, ?, ?, ?, ?);"""
+        self.log.debug("insert packages available %s", packages)
         for package in packages:
             name, version = package
             self.insert_dict("packages_available", 
@@ -501,6 +500,7 @@ class Database():
         self.c.execute(sql, distro, version, target)
         return self.c.fetchone()[0]
 
+    # TODO
     def get_request_packages(self, distro, version, target, subtarget, profile):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and version like ? and target like ?;"""
 
@@ -663,8 +663,5 @@ class Database():
 
     def get_worker(self, worker_id):
         sql = "select * from worker where id = ?"
-        result = self.c.execute(sql, worker_id)
-        if self.c.rowcount == 1:
-            return self.c.fetchone()
-        else:
-            return False
+        self.c.execute(sql, worker_id)
+        return self.as_dict()

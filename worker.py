@@ -2,15 +2,12 @@ import threading
 import glob
 import re
 import shutil
-import urllib.request
 import tempfile
 import os
 import os.path
-import hashlib
 import subprocess
 import logging
 import time
-import queue
 
 from utils.image import Image
 from utils.common import get_hash
@@ -41,7 +38,7 @@ class Worker(threading.Thread):
             shell=False,
         )
 
-        output, errors = proc.communicate()
+        _, errors = proc.communicate()
         return_code = proc.returncode
 
         return return_code
@@ -180,7 +177,7 @@ class Worker(threading.Thread):
                     "base-files/lib/upgrade/platform.sh")):
                 self.log.info("%s target is supported", self.params["target"])
                 self.database.insert_supported(self.params)
-        elif self.job == "packages":
+        elif self.job == "package_list":
             self.parse_packages()
             self.database.subtarget_synced(self.params)
 
@@ -250,6 +247,7 @@ if __name__ == '__main__':
             worker.run() # TODO no threading just yet
         outdated_subtarget = database.get_subtarget_outdated()
         if outdated_subtarget:
+            print(outdated_subtarget)
             log.info("found outdated subtarget %s", outdated_subtarget)
             worker = Worker(location, "info", outdated_subtarget)
             worker.run()

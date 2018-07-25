@@ -1,12 +1,6 @@
 import urllib.request
-import gnupg
-import json
-import yaml
-import tarfile
-import re
 import shutil
 import tempfile
-import logging
 import hashlib
 import os
 import os.path
@@ -47,34 +41,6 @@ def get_last_modified(url):
     headers = get_header(url)
     if headers:
         return datetime(*parsedate(headers["last-modified"])[:6])
-
-def gpg_init():
-    gpg_folder = config.get_folder("keys_private")
-    os.chmod(gpg_folder, 0o700)
-    gpg = gnupg.GPG(gnupghome=gpg_folder)
-
-def gpg_gen_key(email):
-    gpg_folder = config.get_folder("keys_private")
-    gpg = gnupg.GPG(gnupghome=gpg_folder)
-    if not os.path.exists(gpg_folder + "/private-keys-v1.d"):
-        input_data = gpg.gen_key_input(name_email=email, passphrase=config.get("gpg_pass"))
-        key = gpg.gen_key(input_data)
-    pubkey = gpg.export_keys(gpg.list_keys()[0]["keyid"])
-    with open(config.get("keys_private") + "/public.gpg", "w") as f:
-        f.write(pubkey)
-
-def gpg_recv_keys():
-    gpg_folder = config.get_folder("keys_private")
-    gpg = gnupg.GPG(gnupghome=gpg_folder)
-    key_array = ["08DAF586 ", "0C74E7B8 ", "12D89000 ", "34E5BBCC ", "612A0E98 ", "626471F1 ", "A0DF8604 ", "A7DCDFFB ", "D52BBB6B", "833C6010"]
-    gpg.recv_keys('pool.sks-keyservers.net', *key_array)
-
-def gpg_verify(path):
-    gpg_folder = config.get_folder("keys_private")
-    gpg = gnupg.GPG(gnupghome=gpg_folder)
-    verified = gpg.verify_file(open(os.path.join(path, "sha256sums.gpg"), "rb"), os.path.join(path, "sha256sums"))
-    return verified.valid
-
 
 def usign_init(comment=None):
     keys_private = config.get_folder("keys_private")

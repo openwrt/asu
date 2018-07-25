@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-import re
 import yaml
 import json
-from os import makedirs
 from shutil import rmtree
 import urllib.request
 import logging

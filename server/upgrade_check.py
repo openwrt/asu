@@ -1,6 +1,5 @@
 from http import HTTPStatus
 import logging
-from collections import OrderedDict
 
 from server.request import Request
 from utils.common import get_hash
@@ -45,7 +44,7 @@ class UpgradeCheck(Request):
                 ]
 
         # create hash of the upgrade check
-        upgrade_check_hash = get_hash(" ".join(upgrade_request_hash_array), 15)
+        upgrade_check_hash = get_hash(" ".join(upgrade_check_hash_array), 15)
 
         # check database for cached upgrade check
         upgrade_check = self.database.check_upgrade_check_hash(upgrade_check_hash)
@@ -105,7 +104,7 @@ class UpgradeCheck(Request):
                     # the "upgrades" should be visually displayed to the client
                     # so save bandwidth the format is simply
                     # { "package_name": [ "new_version", "old_version" ], ... }
-                    self.response_json["upgrades"][package] = [ current, outdated ]
+                    self.response_json["upgrades"][name] = [ current, outdated ]
 
         # if a version jump happens make sure to check for package changes, drops & renames
         if "version" in self.request_json:
