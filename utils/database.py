@@ -257,15 +257,10 @@ class Database():
         self.c.execute(sql, distro, version, target, subtarget, "imagebuilder")
         self.commit()
 
+    # merge image_download table with images tables
     def get_image_path(self, image_hash):
         self.log.debug("get sysupgrade image for %s", image_hash)
-        sql = "select file_path from images_download where image_hash = ?"
-        self.c.execute(sql, image_hash)
-        return self.c.fetchval()
-
-    def get_sysupgrade(self, image_hash):
-        self.log.debug("get image %s", image_hash)
-        sql = "select file_path, sysupgrade from images_download where image_hash = ?"
+        sql = "select * from images_download where image_hash = ?"
         self.c.execute(sql, image_hash)
         return self.as_dict()
 
