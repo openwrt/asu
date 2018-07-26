@@ -16,11 +16,11 @@ class UpgradeCheck(Request):
         if self.config.version(self.request["distro"], self.request["version"]).get("snapshot", False):
             self.response_json["version"] = self.request_json["version"]
         else:
-            self.request["version"] = self.config.get(self.distro).get("latest")
+            self.request["version"] = self.config.get(self.request["distro"]).get("latest")
             if not self.request["version"] == self.installed_version:
                 self.response_json["version"] = self.request["version"]
 
-    def _request(self):
+    def _process_request(self):
         # required params for a build request
         missing_params = self.check_missing_params(["distro", "version", "target", "subtarget"])
         if missing_params:
@@ -35,19 +35,18 @@ class UpgradeCheck(Request):
 
         # distro version target subtarget profile manifest_hash
         upgrade_check_hash_array = [
-                self.request["distro"],
-                self.request["version"],
-                self.request["target"],
-                self.request["subtarget"],
-                self.request["profile"],
+                self.request_json["distro"],
+                self.request_json["version"],
+                self.request_json["target"],
+                self.request_json["subtarget"],
                 self.request["manifest_hash"]
                 ]
 
         # create hash of the upgrade check
-        upgrade_check_hash = get_hash(" ".join(upgrade_check_hash_array), 15)
+        self.request["check_hash"] = get_hash(" ".join(upgrade_check_hash_array), 15)
 
         # check database for cached upgrade check
-        upgrade_check = self.database.check_upgrade_check_hash(upgrade_check_hash)
+        upgrade_check = self.database.check_upgrade_check_hash(self.request["check_hash"])
         if upgrade_check:
             self.request = upgrade_check
 
@@ -92,7 +91,10 @@ class UpgradeCheck(Request):
             return bad_packages
 
         # package are vaild so safe the clients combination as a manifest
-        self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_content)
+        # TODO this is confusing as request_json[packages] contains package
+        # names + version while the validated packages of request[packages] only
+        # contain the names...
+        self.database.add_manifest_packages(self.image.params["manifest_hash"], self.request_json["packages"])
 
         # only check for package upgrades if activle requested by the client or version jump
         if "upgrade_packages" in self.request_json or "version" in self.response_json:
@@ -115,6 +117,8 @@ class UpgradeCheck(Request):
             self.response_json["packages"] = [package[0] for package in self.database.transform_packages(
                 self.request["distro"], self.installed_version, self.request["version"],
                 " ".join(self.request_json["packages"].keys()))]
+        else:
+            self.request_json["packages"] = self.request["packages"]
 
         # only if version or upgrades in response something is actually upgraded
         if "version" in self.response_json or "upgrades" in self.response_json:

@@ -1,6 +1,6 @@
 ---
 distro_alias: OpenWrt
-latest: 18.06.0-rc2
+latest: "18.06.0-rc2"
 versions:
   - 18.06.0-rc1
   - 18.06.0-rc2

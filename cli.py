@@ -60,7 +60,9 @@ class ServerCli():
                     self.database.insert_subtarget(distro, version, *target.split("/"))
 
             # set distro alias like OpenWrt, fallback would be openwrt
-            self.database.set_distro_alias(distro, self.config.get(distro).get("distro_alias", distro))
+            self.database.set_distro_settings(distro,
+                    self.config.get(distro).get("distro_alias", distro),
+                    self.config.get(distro).get("latest"))
 
     def insert_board_rename(self):
         for distro, version in self.database.get_versions():

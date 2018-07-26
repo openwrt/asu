@@ -30,10 +30,13 @@ class Database():
         self.commit()
         self.log.info("created tables")
 
-    def set_distro_alias(self, distro, alias=""):
+    def set_distro_settings(self, distro, alias, latest):
         self.log.info("insert distro")
-        sql = "UPDATE distributions SET alias = ? WHERE name = ?;"
-        self.c.execute(sql, alias, distro)
+        sql = """UPDATE distributions SET
+            alias = ?,
+            latest = ?
+            WHERE name = ?;"""
+        self.c.execute(sql, alias, latest, distro)
         self.commit()
 
     def insert_version(self, distro, version, alias=""):
@@ -219,10 +222,10 @@ class Database():
         return self.as_dict()
 
     # returns upgrade requests responses cached in database
-    def check_upgrade_check_hash(self, upgrade_hash):
+    def check_upgrade_check_hash(self, check_hash):
         self.log.debug("check_upgrade_hash")
         sql = "select * from upgrade_checks where check_hash = ?"
-        self.c.execute(sql, request_hash)
+        self.c.execute(sql, check_hash)
         return self.as_dict()
 
     def insert_upgrade_check(self, p):
@@ -591,6 +594,7 @@ class Database():
         self.c.execute(sql, distro, version, package, replacement, context)
         self.commit()
 
+    # TODO broken
     def transform_packages(self, distro, orig_version, dest_version, packages):
         self.log.debug("transform packages {} {} {} {}".format(distro, orig_version, dest_version, packages))
         sql = "select transform(?, ?, ?, ?)"

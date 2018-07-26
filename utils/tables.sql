@@ -1,4 +1,4 @@
---drop schema public cascade; create schema public;
+drop schema public cascade; create schema public;
 
 create table if not exists worker (
     id serial primary key,
@@ -726,7 +726,11 @@ uc.check_hash, s.distro, s.version, s.target, s.subtarget, manifest_hash, mu.upg
 from upgrade_checks_table uc, distributions d, subtargets s, manifest_upgrades mu where
 s.id = uc.subtarget_id and
 s.distro = d.name and
-mu.manifest_id = uc.manifest_id;
+mu.manifest_id = uc.manifest_id and
+mu.distro = s.distro and
+mu.version = s.version and
+mu.target = s.target and
+mu.subtarget = s.subtarget;
 
 create or replace rule insert_upgrade_checks AS
 ON insert TO upgrade_checks DO INSTEAD
