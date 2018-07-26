@@ -520,8 +520,8 @@ class Database():
     def get_manifest_info(self, manifest_hash, json=False):
         self.log.debug("get manifest info %s", manifest_hash)
         sql = """select json_object_agg(
-            manifest_packages.package_name as name, 
-            manifest_packages.package_version as version
+            manifest_packages.package_name,
+            manifest_packages.package_version
             ) from manifest_packages where manifest_hash = ?;"""
         self.c.execute(sql, manifest_hash)
         return self.c.fetchval()
