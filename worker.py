@@ -165,7 +165,7 @@ class Worker(threading.Thread):
                 self.log.error("failed to setup meta ImageBuilder")
                 exit()
         self.setup()
-        if self.job == "build":
+        if self.job == "image":
             self.build()
         elif self.job == "info":
             self.parse_info()
@@ -243,7 +243,7 @@ if __name__ == '__main__':
         image = database.get_build_job()
         if image:
             print(image)
-            worker = Worker(location, "build", image)
+            worker = Worker(location, "image", image)
             worker.run() # TODO no threading just yet
         outdated_subtarget = database.get_subtarget_outdated()
         if outdated_subtarget:
@@ -251,7 +251,7 @@ if __name__ == '__main__':
             log.info("found outdated subtarget %s", outdated_subtarget)
             worker = Worker(location, "info", outdated_subtarget)
             worker.run()
-            worker = Worker(location, "packages", outdated_subtarget)
+            worker = Worker(location, "package_list", outdated_subtarget)
             worker.run()
         time.sleep(5)
 
