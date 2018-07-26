@@ -709,7 +709,6 @@ select distro, version, target, subtarget, manifest_id, manifest_hash, json_obje
                         array[pa.package_version, mp.package_version] as package_versions
                 from manifest_packages mp join packages_available pa using (package_name)
                 where
-                        manifest_hash = '33a4739ae2d85e8' and
                         pa.package_version != mp.package_version
         ) as upgrades group by (distro, version, target, subtarget, manifest_id, manifest_hash);
 
