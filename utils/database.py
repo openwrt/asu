@@ -175,8 +175,10 @@ class Database():
         self.c.execute(sql, p["distro"], p["version"], p["target"], p["subtarget"])
         self.commit()
 
+    # todo this should be improved somehow
+    # currently the insert takes quite long as there are ~6000 packages
     def insert_packages_available(self, target, packages):
-        self.log.debug("insert packages available %s", packages)
+        self.log.debug("insert packages available")
         for package in packages:
             name, version = package
             self.insert_dict("packages_available", 
