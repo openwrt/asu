@@ -1,0 +1,16 @@
+---
+parent_distro: "openwrt"
+parent_version: "snapshots"
+snapshots: True
+repos: |
+  src/gz reboot_core http://downloads.openwrt.org/snapshots/targets/{{ target }}/{{ subtarget }}/packages
+  src/gz reboot_base http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/base
+  src/gz reboot_luci http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/luci
+  src/gz reboot_packages http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/packages
+  src/gz reboot_telephony http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/telephony
+  src imagebuilder file:packages
+  src/gz libremesh http://snapshots.libremesh.org/packages/{{ pkg_arch }}/libremesh
+  src/gz libremap http://snapshots.libremesh.org/packages/{{ pkg_arch }}/libremap
+  src/gz limeui http://snapshots.libremesh.org/packages/{{ pkg_arch }}/limeui
+  src/gz lm_routing http://snapshots.libremesh.org/packages/{{ pkg_arch }}/routing
+  src/gz lm_profiles http://repo.libremesh.org/network-profiles/

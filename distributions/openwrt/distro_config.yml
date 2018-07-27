@@ -4,6 +4,7 @@ latest: "18.06.0-rc2"
 versions:
   - 18.06.0-rc1
   - 18.06.0-rc2
+  - snapshots
 vanilla:
   - luci
 targets_url: https://downloads.openwrt.org/releases/

@@ -48,11 +48,14 @@ class ServerCli():
         for distro in self.config.get_distros():
             for version in self.config.get(distro).get("versions", []):
                 self.database.insert_version(distro, version)
-                version_url = self.config.version(distro, version).get("targets_url")
+                version_config = self.config.version(distro, version)
+                version_url = version_config.get("targets_url")
+                # use parent_version for ImageBuilder if exists
+                version_imagebuilder = version_config.get("parent_version", version)
 
                 version_targets = json.loads(urllib.request.urlopen(
-                    "{}/{}/targets?json-targets".format(version_url, version))
-                        .read().decode('utf-8'))
+                    "{}/{}/targets?json-targets".format(version_url,
+                        version_imagebuilder)).read().decode('utf-8'))
                 self.log.info("add %s/%s targets", distro, version)
 
                 # TODO do this at once instead of per target

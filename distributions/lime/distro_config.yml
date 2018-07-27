@@ -1,0 +1,21 @@
+---
+distro_alias: "LibreMesh"
+parent_distro: "lede"
+parent_version: "17.01.5"
+versions:
+  - "17.06"
+  - "18.06.0-rc2"
+  - "snapshots"
+  - "snapshots-dev"
+repos: |
+  src/gz reboot_core http://downloads.lede-project.org/releases/{{ ib_version }}/targets/{{ target }}/{{ subtarget }}/packages
+  src/gz reboot_base http://downloads.lede-project.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/base
+  src/gz reboot_luci http://downloads.lede-project.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/luci
+  src/gz reboot_packages http://downloads.lede-project.org/releases/{{ ib_release }}/packages/{{ pkg_arch }}/packages
+  src/gz reboot_telephony http://downloads.lede-project.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/telephony
+  src imagebuilder file:packages
+  src/gz libremesh http://repo.libremesh.org/releases/{{ version }}/packages/{{ pkg_arch }}/libremesh
+  src/gz libremap http://repo.libremesh.org/releases/{{ version }}/packages/{{ pkg_arch }}/libremap
+  src/gz limeui http://repo.libremesh.org/releases/{{ version }}/packages/{{ pkg_arch }}/limeui
+  src/gz lm_routing http://repo.libremesh.org/releases/{{ version }}/packages/{{ pkg_arch }}/routing
+  src/gz lm_profiles http://repo.libremesh.org/network-profiles/

@@ -26,6 +26,8 @@ class Worker(threading.Thread):
         self.log.info("config initialized")
         self.database = Database(self.config)
         self.log.info("database initialized")
+        self.version_config = self.config.version(
+                self.params["distro"], self.params["version"])
 
     def setup_meta(self):
         os.makedirs(self.location, exist_ok=True)
@@ -67,7 +69,7 @@ class Worker(threading.Thread):
         self.image = Image(self.params)
 
         # first determine the resulting manifest hash
-        return_code, manifest_content, errors = self.run_meta("list")
+        return_code, manifest_content, errors = self.run_meta("manifest")
 
         self.log.debug(manifest_content)
 
@@ -104,6 +106,7 @@ class Worker(threading.Thread):
                 self.params["BIN_DIR"] = build_dir
                 self.params["j"] = str(os.cpu_count())
                 self.params["EXTRA_IMAGE_NAME"] = self.params["manifest_hash"]
+
                 return_code, buildlog, errors = self.run_meta("image")
 
                 if return_code == 0:
@@ -184,8 +187,15 @@ class Worker(threading.Thread):
     def run_meta(self, cmd):
         cmdline = ["sh", "meta", cmd ]
         env = os.environ.copy()
+
+        if "parent_version" in self.version_config:
+            self.params["IB_VERSION"] = self.version_config["parent_version"]
+        if "repos" in self.version_config:
+            self.params["REPOS"] = self.version_config["repos"]
+
         for key, value in self.params.items():
             env[key.upper()] = str(value) # TODO convert meta script to Makefile
+
 
         proc = subprocess.Popen(
             cmdline,
