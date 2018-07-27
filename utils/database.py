@@ -180,12 +180,14 @@ class Database():
 
     # todo this should be improved somehow
     # currently the insert takes quite long as there are ~6000 packages
-    def insert_packages_available(self, target, packages):
+    def insert_packages_available(self, p, packages):
         self.log.debug("insert packages available")
         for package in packages:
             name, version = package
             self.insert_dict("packages_available", 
-                    { **target, "package_name": name, "package_version": version })
+                    { "distro": p["distro"], "version": p["version", "target":
+                        p["target"], "subtarget": p["subtarget"],
+                        "package_name": name, "package_version": version })
 
     def get_packages_available(self, distro, version, target, subtarget):
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, version, target, subtarget)
