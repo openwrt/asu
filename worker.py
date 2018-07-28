@@ -226,7 +226,12 @@ class Worker(threading.Thread):
             profiles = re.findall(profiles_pattern, output)
             if not profiles:
                 profiles = []
-            self.database.insert_profiles(self.params, default_packages, profiles)
+            self.database.insert_profiles({
+                "distro": self.params["distro"],
+                "version": self.params["version"],
+                "target": self.params["target"],
+                "subtarget": self.params["subtarget"]},
+                default_packages, profiles)
         else:
             logging.error("could not receive profiles")
             return False
@@ -239,7 +244,11 @@ class Worker(threading.Thread):
         if return_code == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.log.info("found {} packages".format(len(packages)))
-            self.database.insert_packages_available(self.params, packages)
+            self.database.insert_packages_available({
+                "distro": self.params["distro"],
+                "version": self.params["version"],
+                "target": self.params["target"],
+                "subtarget": self.params["subtarget"]}, packages)
         else:
             self.log.warning("could not receive packages")
 

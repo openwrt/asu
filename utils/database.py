@@ -7,15 +7,17 @@ from utils.common import get_hash
 
 class Database():
     def __init__(self, config):
-        # python3 immport pyodbc; pyodbc.drivers()
-        #self.cnxn = pyodbc.connect("DRIVER={SQLite3};SERVER=localhost;DATABASE=test.db;Trusted_connection=yes")
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
         self.config = config
         self.log.info("config initialized")
         connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
-                self.config.get("database_type"), self.config.get("database_address"), self.config.get("database_name"), self.config.get("database_user"),
-                self.config.get("database_pass"), self.config.get("database_port"))
+                self.config.get("database_type"),
+                self.config.get("database_address"),
+                self.config.get("database_name"),
+                self.config.get("database_user"),
+                self.config.get("database_pass"),
+                self.config.get("database_port"))
         self.cnxn = pyodbc.connect(connection_string)
         self.c = self.cnxn.cursor()
         self.log.info("database connected")
@@ -78,14 +80,14 @@ class Database():
             subtargets.subtarget = ?)""", distro, version, target, subtarget)
         self.commit()
 
-    def insert_profiles(self, target, packages_default, profiles):
+    def insert_profiles(self, params, packages_default, profiles):
         self.log.debug("insert packages_default")
-        self.insert_dict("packages_default", { **target, "packages": packages_default})
+        self.insert_dict("packages_default", { **params, "packages": packages_default})
 
         for profile in profiles:
             profile, model, packages = profile
             self.insert_dict("packages_profile",
-                    { **target, "profile": profile, "model": model, "packages": packages })
+                    { **params, "profile": profile, "model": model, "packages": packages })
 
     def check_packages(self, image):
         sql = """select value as packages_unknown
@@ -180,14 +182,12 @@ class Database():
 
     # todo this should be improved somehow
     # currently the insert takes quite long as there are ~6000 packages
-    def insert_packages_available(self, p, packages):
+    def insert_packages_available(self, params, packages):
         self.log.debug("insert packages available")
         for package in packages:
             name, version = package
             self.insert_dict("packages_available", 
-                    { "distro": p["distro"], "version": p["version", "target":
-                        p["target"], "subtarget": p["subtarget"],
-                        "package_name": name, "package_version": version })
+                { **params, "package_name": name, "package_version": version })
 
     def get_packages_available(self, distro, version, target, subtarget):
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, version, target, subtarget)
