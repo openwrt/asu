@@ -32,14 +32,9 @@ class Database():
         self.commit()
         self.log.info("created tables")
 
-    def set_distro_settings(self, distro, alias, latest):
-        self.log.info("insert distro")
-        sql = """UPDATE distributions SET
-            alias = ?,
-            latest = ?
-            WHERE name = ?;"""
-        self.c.execute(sql, alias, latest, distro)
-        self.commit()
+    def insert_distro_(self, distro):
+        slf.log.info("insert distro")
+        self.insert_dict(distro)
 
     def insert_version(self, distro, version, alias=""):
         self.log.info("insert %s/%s ", distro, version)
@@ -187,7 +182,8 @@ class Database():
         for package in packages:
             name, version = package
             self.insert_dict("packages_available", 
-                { **params, "package_name": name, "package_version": version })
+                { **params, "package_name": name, "package_version": version }, False)
+        self.commit()
 
     def get_packages_available(self, distro, version, target, subtarget):
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, version, target, subtarget)
@@ -282,7 +278,7 @@ class Database():
 
     # TODO check is this must be removed
     # this is dangerours if used for user input. check all everything before calling this
-    def insert_dict(self, table, data):
+    def insert_dict(self, table, data, commit=True):
         columns = []
         values = []
         for key, value in data.items():
@@ -291,7 +287,8 @@ class Database():
         sql = 'insert into {} ({}) values ({})'.format(
                 table, ', '.join(columns), "?" + ",?" * (len(values) - 1))
         self.c.execute(sql, values)
-        self.commit()
+        if commit:
+            self.commit()
 
     def add_image(self, image):
         image["build_seconds"] = 0 # not implemeted
@@ -468,12 +465,14 @@ class Database():
         return result
 
     def get_supported_distros(self):
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]') from (select name, alias from distributions order by (alias)) as distributions;"""
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]')
+                from (select * from distributions order by (alias)) as distributions;"""
         return self.c.execute(sql).fetchval()
 
     def get_supported_versions(self, distro):
         if distro == '': distro='%'
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(versions))), '[]') from (select distro, version from versions where distro LIKE ? order by id desc) as versions;"""
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(versions))), '[]')
+            from (select * from versions where distro LIKE ? order by id desc) as versions;"""
         return self.c.execute(sql, distro).fetchval()
 
     def get_supported_models(self, search='', distro='', version=''):
