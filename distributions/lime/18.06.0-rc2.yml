@@ -1,5 +1,7 @@
 parent_distro: openwrt
 parent_version: "18.06.0-rc2"
+version_description: >
+  LibreMesh based on OpenWrt pre release
 repos: |
   src/gz reboot_core http://downloads.openwrt.org/releases/{{ ib_version }}/targets/{{ target }}/{{ subtarget }}/packages
   src/gz reboot_base http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/base

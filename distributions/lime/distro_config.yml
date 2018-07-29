@@ -42,3 +42,8 @@ active_targets:
     - mediatek/generic
     - arm64/generic
     - armvirt/generic
+distro_description: >
+  LibreMesh is a modular framework for creating OpenWrt-based firmwares for
+  wireless mesh nodes. Several communities around the world use LibreMesh as the
+  foundation of their local mesh firmwares.
+
