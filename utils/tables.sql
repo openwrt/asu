@@ -11,8 +11,9 @@ create table if not exists worker (
 create table if not exists distributions (
     id serial primary key,
     name varchar(20) not null,
-    alias varchar(20) default '',
+    distro_alias varchar(20) default '',
     latest varchar(20),
+    distro_description text default '',
     unique(name)
 );
 
@@ -20,23 +21,24 @@ create table if not exists versions_table(
     id serial primary key,
     distro_id integer not null,
     name varchar(20) not null,
-    alias varchar(20) default '',
+    version_alias varchar(20) default '',
+    version_description text default '',
     unique(distro_id, name),
     foreign key (distro_id) references distributions(id) ON DELETE CASCADE
 );
 
 create or replace view versions as
-select versions_table.id, distributions.name as distro, versions_table.name as version, versions_table.alias
+select versions_table.id, distributions.name as distro, versions_table.name as version, versions_table.alias, versions_table.description
 from distributions join versions_table on distributions.id = versions_table.distro_id;
 
-create or replace function add_versions(distro varchar, version varchar, alias varchar) returns void as
+create or replace function add_versions(distro varchar, version varchar, alias varchar, description text) returns void as
 $$
 begin
-    insert into distributions (name) values (add_versions.distro) on conflict do nothing;
     insert into versions_table (distro_id, name, alias) values (
         (select id from distributions where distributions.name = add_versions.distro),
         add_versions.version,
-        add_versions.alias
+        add_versions.alias,
+        add_versions.description
     ) on conflict do nothing;
 end
 $$ language 'plpgsql';

@@ -46,8 +46,21 @@ class ServerCli():
 
     def download_versions(self):
         for distro in self.config.get_distros():
+            # set distro alias like OpenWrt, fallback would be openwrt
+            self.database.insert_distro({
+                "distro": distro,
+                "distro_alias": self.config.get(distro).get("distro_alias", distro),
+                "distro_description": self.config.get(distro).get("distro_description", ""),
+                "latest": self.config.get(distro).get("latest")
+                })
             for version in self.config.get(distro).get("versions", []):
-                self.database.insert_version(distro, version)
+                version_config = self.config.version(distro, version)
+                self.database.insert_version({
+                    "distro": distro,
+                    "version": version,
+                    "version_alias": version.get("version_alias", "")
+                    "version_description": version.get("version_description", "")
+                    })
                 version_config = self.config.version(distro, version)
                 version_url = version_config.get("targets_url")
                 # use parent_version for ImageBuilder if exists
@@ -70,10 +83,6 @@ class ServerCli():
                     self.log.debug("add %s/%s/%s", distro, version, target)
                     self.database.insert_subtarget(distro, version, *target.split("/"))
 
-            # set distro alias like OpenWrt, fallback would be openwrt
-            self.database.set_distro_settings(distro,
-                    self.config.get(distro).get("distro_alias", distro),
-                    self.config.get(distro).get("latest"))
 
     def insert_board_rename(self):
         for distro, version in self.database.get_versions():

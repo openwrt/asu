@@ -32,15 +32,13 @@ class Database():
         self.commit()
         self.log.info("created tables")
 
-    def insert_distro_(self, distro):
-        slf.log.info("insert distro")
-        self.insert_dict(distro)
+    def insert_distro(self, distro):
+        slf.log.info("insert distro", distro)
+        self.insert_dict("distributions", distro)
 
-    def insert_version(self, distro, version, alias=""):
-        self.log.info("insert %s/%s ", distro, version)
-        sql = "INSERT INTO versions (distro, version, alias) VALUES (?, ?, ?);"
-        self.c.execute(sql, distro, version, alias)
-        self.commit()
+    def insert_version(self, version):
+        self.log.info("insert version", version)
+        self.insert_dict("versions", version)
 
     def insert_supported(self, p):
         sql = """UPDATE subtargets SET supported = true
