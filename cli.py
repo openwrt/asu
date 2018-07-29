@@ -53,13 +53,21 @@ class ServerCli():
                 # use parent_version for ImageBuilder if exists
                 version_imagebuilder = version_config.get("parent_version", version)
 
-                version_targets = json.loads(urllib.request.urlopen(
+                version_targets = set(json.loads(urllib.request.urlopen(
                     "{}/{}/targets?json-targets".format(version_url,
-                        version_imagebuilder)).read().decode('utf-8'))
+                        version_imagebuilder)).read().decode('utf-8')))
+
+                if version_config.get("active_targets"):
+                    version_targets = version_targets & set(version_config.get("active_targets"))
+
+                if version_config.get("ignore_targets"):
+                    version_targets = version_targets - set(version_config.get("ignore_targets"))
+                
                 self.log.info("add %s/%s targets", distro, version)
 
                 # TODO do this at once instead of per target
                 for target in version_targets:
+                    self.log.debug("add %s/%s/%s", distro, version, target)
                     self.database.insert_subtarget(distro, version, *target.split("/"))
 
             # set distro alias like OpenWrt, fallback would be openwrt
@@ -113,5 +121,5 @@ class ServerCli():
                             self.insert_replacements(distro, version, replacements["transformations"])
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     sc = ServerCli()

@@ -19,3 +19,26 @@ repos: |
   src/gz limeui http://repo.libremesh.org/releases/{{ version }}/packages/{{ pkg_arch }}/limeui
   src/gz lm_routing http://repo.libremesh.org/releases/{{ version }}/packages/{{ pkg_arch }}/routing
   src/gz lm_profiles http://repo.libremesh.org/network-profiles/
+active_targets:
+    - ar71xx/generic
+    - ramips/rt305x
+    - ramips/rt3883
+    - ramips/mt7620
+    - ramips/mt7621
+    - ramips/mt7628
+    - ramips/mt7688
+    - lantiq/xrx200
+    - lantiq/xway
+    - x86/generic
+    - x86/64
+    - x86/geode
+    - mvebu/generic
+    - ipq806x/generic
+    - brcm2708/bcm2708
+    - brcm2708/bcm2709
+    - brcm2708/bcm2710
+    - octeon/generic
+    - sunxi/generic
+    - mediatek/generic
+    - arm64/generic
+    - armvirt/generic
