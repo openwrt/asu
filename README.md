@@ -1,4 +1,4 @@
-# Attendedsysupgrade Server for LEDE/OpenWrt (GSoC 2017)
+# Attendedsysupgrade Server for OpenWrt (GSoC 2017)
 
 This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new version or package updates, without the need of `opkg` installed.
 
@@ -135,19 +135,25 @@ The client should check the status code:
 It's also possible to receive information about build images or package versions, available devices and more. All responses are in `JSON` format.
 
 * `/api/image/<image_hash>`
-	Get information about an image. This contains various information stored about the image.
+    Get information about an image. This contains various information stored
+    about the image.
 
 * `/api/manifest/<manifest_hash>`
-	Get packages and versions of a manifest. The manifest contains all installed packages of an image. The `manifest_hash` can be received by the api call `/api/image`
+    Get packages and versions of a manifest. The manifest contains all installed
+    packages of an image. The `manifest_hash` can be received by the api call
+    `/api/image`.
 
-* `/api/distro`
-	Get all supported distros
+* `/api/distros`
+	Get all supported distros with latest version and a short description if
+    available.
 
 * `/api/versions[?distro=<distribution>]`
-	Get all supported versions (of distribution)
+    Get all supported versions with short description (of a singele distribution
+    if given).
 
 * `/api/models?distro=&version=&model_search=<search string>`
-	Get all supported devices of distro/version that contain the `model_search` string
+    Get all supported devices of distro/version that contain the `model_search`
+    string
 
 * `/api/packages_image?distro=&version=&target=&subtarget=&profile=`
 	Get all default packages installed on an image
