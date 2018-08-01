@@ -11,9 +11,9 @@ create table if not exists worker (
 create table if not exists distributions (
     id serial primary key,
     name varchar(20) not null,
-    distro_alias varchar(20) default '',
+    alias varchar(20) default '',
     latest varchar(20),
-    distro_description text default '',
+    description text default '',
     unique(name)
 );
 
@@ -21,8 +21,8 @@ create table if not exists versions_table(
     id serial primary key,
     distro_id integer not null,
     name varchar(20) not null,
-    version_alias varchar(20) default '',
-    version_description text default '',
+    alias varchar(20) default '',
+    description text default '',
     unique(distro_id, name),
     foreign key (distro_id) references distributions(id) ON DELETE CASCADE
 );
@@ -34,7 +34,7 @@ from distributions join versions_table on distributions.id = versions_table.dist
 create or replace function add_versions(distro varchar, version varchar, alias varchar, description text) returns void as
 $$
 begin
-    insert into versions_table (distro_id, name, alias) values (
+    insert into versions_table (distro_id, name, alias, description) values (
         (select id from distributions where distributions.name = add_versions.distro),
         add_versions.version,
         add_versions.alias,
@@ -48,7 +48,8 @@ ON insert TO versions DO INSTEAD
 SELECT add_versions(
     NEW.distro,
     NEW.version,
-    NEW.alias
+    NEW.alias,
+    NEW.description
 );
 
 create table if not exists subtargets_table(
