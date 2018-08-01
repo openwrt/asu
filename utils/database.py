@@ -33,7 +33,7 @@ class Database():
         self.log.info("created tables")
 
     def insert_distro(self, distro):
-        slf.log.info("insert distro", distro)
+        self.log.info("insert distro", distro)
         self.insert_dict("distributions", distro)
 
     def insert_version(self, version):
