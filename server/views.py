@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 
 from flask import Flask
-from flask import render_template, request, send_from_directory, redirect, jsonify
-from shutil import rmtree
+from flask import render_template, request, send_from_directory, jsonify
 import json
-import time
-from zipfile import ZipFile
-import socket
 import os
-import logging
 from http import HTTPStatus
 
 from server.build_request import BuildRequest
 from server.upgrade_check import UpgradeCheck
 from server import app
 
-import utils
 from utils.config import Config
 from utils.database import Database
-from utils.common import usign_init, usign_verify, usign_sign
 
 config = Config()
 database = Database(config)
@@ -39,7 +32,7 @@ def api_upgrade_check(request_hash=None):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
-    return uc.request(request_json)
+    return uc.process_request(request_json)
 
 # direct link to download a specific image based on hash
 @app.route("/download/<path:image_path>/<path:image_name>")
@@ -65,7 +58,7 @@ def api_upgrade_request(request_hash=None):
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
 
-    return br.request(request_json, sysupgrade=1)
+    return br.process_request(request_json, sysupgrade_requested=1)
 
 @app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
@@ -80,7 +73,7 @@ def api_files_request(request_hash=None):
         if not request_hash:
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = { "request_hash": request_hash }
-    return br.request(request_json)
+    return br.process_request(request_json)
 
 @app.route("/")
 def root_path():
@@ -100,21 +93,21 @@ def api_distros():
             response=database.get_supported_distros(),
             mimetype='application/json')
 
-@app.route("/api/releases")
-def api_releases():
+@app.route("/api/versions")
+def api_versions():
     distro = request.args.get("distro", "")
     return app.response_class(
-            response=database.get_supported_releases(distro),
+            response=database.get_supported_versions(distro),
             mimetype='application/json')
 
 @app.route("/api/models")
 def api_models():
     distro = request.args.get("distro", "")
-    release = request.args.get("release", "")
+    version = request.args.get("version", "")
     model_search = request.args.get("model_search", "")
-    if distro != "" and release != "" and model_search != "":
+    if distro != "" and version != "" and model_search != "":
         return app.response_class(
-                response=database.get_supported_models(model_search, distro, release),
+                response=database.get_supported_models(model_search, distro, version),
                 mimetype='application/json')
     else:
         return "[]", HTTPStatus.BAD_REQUEST
@@ -122,15 +115,14 @@ def api_models():
 @app.route("/api/packages_image")
 @app.route("/api/default_packages")
 def api_default_packages():
-    data = []
     distro = request.args.get("distro", "")
-    release = request.args.get("release", "")
+    version = request.args.get("version", "")
     target = request.args.get("target", "")
     subtarget = request.args.get("subtarget", "")
     profile = request.args.get("profile", "")
-    if distro != "" and release != "" and target != "" and subtarget != "" and profile != "":
+    if distro != "" and version != "" and target != "" and subtarget != "" and profile != "":
         return app.response_class(
-                response=database.get_image_packages(distro, release, target, subtarget, profile, as_json=True),
+                response=database.get_image_packages(distro, version, target, subtarget, profile),
                 mimetype='application/json')
     else:
         return "[]", HTTPStatus.BAD_REQUEST
@@ -138,13 +130,13 @@ def api_default_packages():
 @app.route("/api/image/<image_hash>")
 def api_image(image_hash):
     return app.response_class(
-            response=database.get_image_info(image_hash, json=True) ,
+            response=database.get_image_info(image_hash),
             mimetype='application/json')
 
 @app.route("/api/manifest/<manifest_hash>")
 def api_manifest(manifest_hash):
     return app.response_class(
-            response=database.get_manifest_info(manifest_hash, json=True),
+            response=database.get_manifest_info(manifest_hash),
             mimetype='application/json')
 
 @app.route("/supported")
@@ -152,31 +144,10 @@ def supported():
     show_json = request.args.get('json', False)
     if show_json:
         distro = request.args.get('distro', '%')
-        release = request.args.get('release', '%')
+        version = request.args.get('version', '%')
         target = request.args.get('target', '%')
-        supported = database.get_subtargets_json(distro, release, target)
+        supported = database.get_subtargets_json(distro, version, target)
         return supported
     else:
         supported = database.get_subtargets_supported()
         return render_template("supported.html", supported=supported)
-
-@app.route("/image/<image_hash>")
-def image(image_hash):
-    image = database.get_image_info(image_hash)
-    manifest = database.get_manifest_info(image["manifest_hash"])
-    return render_template("image.html", **image, manifest=manifest)
-
-@app.route("/fails")
-def fails():
-    fails = database.get_fails_list()
-    return render_template("fails.html", fails=fails)
-
-@app.route("/packages-hash/<packages_hash>")
-def packages_hash(packages_hash):
-    packages = database.get_packages_hash(packages_hash).split(" ")
-    return render_template("packages_list.html", packages=packages)
-
-@app.route("/manifest-info/<manifest_hash>")
-def image_info(manifest_hash):
-    manifest = database.get_manifest_info(manifest_hash)
-    return render_template("manifest-info.html", manifest=manifest)

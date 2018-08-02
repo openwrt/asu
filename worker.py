@@ -2,15 +2,12 @@ import threading
 import glob
 import re
 import shutil
-import urllib.request
 import tempfile
 import os
 import os.path
-import hashlib
 import subprocess
 import logging
 import time
-import queue
 
 from utils.image import Image
 from utils.common import get_hash
@@ -29,6 +26,8 @@ class Worker(threading.Thread):
         self.log.info("config initialized")
         self.database = Database(self.config)
         self.log.info("database initialized")
+        self.version_config = self.config.version(
+                self.params["distro"], self.params["version"])
 
     def setup_meta(self):
         os.makedirs(self.location, exist_ok=True)
@@ -39,17 +38,15 @@ class Worker(threading.Thread):
             cwd=self.location,
             stdout=subprocess.PIPE,
             shell=False,
-            stderr=subprocess.STDOUT,
         )
 
-        output, errors = proc.communicate()
+        _, errors = proc.communicate()
         return_code = proc.returncode
 
         return return_code
 
     def setup(self):
         self.log.debug("setup")
-
         return_code, output, errors = self.run_meta("download")
         if return_code == 0:
             self.log.info("setup complete")
@@ -62,16 +59,18 @@ class Worker(threading.Thread):
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
         self.log.debug("write log")
-        with open(self.image.params["dir"] + "/buildlog.txt", "a") as buildlog_file:
+        with open(self.image.params["dir"] + "/buildlog-{}.txt".format(self.params["image_hash"]), "a") as buildlog_file:
             buildlog_file.writelines(buildlog)
 
     # build image
     def build(self):
-        self.log.info("check if image exists")
+        self.log.debug("create and parse manifest")
         self.image = Image(self.params)
 
         # first determine the resulting manifest hash
-        return_code, manifest_content, errors = self.run_meta("list")
+        return_code, manifest_content, errors = self.run_meta("manifest")
+
+        self.log.debug(manifest_content)
 
         if return_code == 0:
             self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
@@ -79,15 +78,23 @@ class Worker(threading.Thread):
             manifest_pattern = r"(.+) - (.+)\n"
             manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
             self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
+            self.log.info("successfully parsed manifest")
         else:
+            print(errors)
+            print(manifest_content)
+            self.log.error("couldn't determine manifest")
             self.database.set_image_requests_status(self.params["request_hash"], "manifest_fail")
             return False
 
         # set directory where image is stored on server
         self.image.set_image_dir()
+        self.log.debug("dir %s", self.image.params["dir"])
 
         # calculate hash based on resulted manifest
         self.image.params["image_hash"] = get_hash(" ".join(self.image.as_array("manifest_hash")), 15)
+
+        # set build_status ahead, if stuff goes wrong it will be changed
+        self.build_status = "created"
 
         # check if image already exists
         if not self.image.created():
@@ -98,10 +105,10 @@ class Worker(threading.Thread):
                 self.params["BIN_DIR"] = build_dir
                 self.params["j"] = str(os.cpu_count())
                 self.params["EXTRA_IMAGE_NAME"] = self.params["manifest_hash"]
+
                 return_code, buildlog, errors = self.run_meta("image")
 
                 if return_code == 0:
-                    build_status = "created"
 
                     # create folder in advance
                     os.makedirs(self.image.params["dir"], exist_ok=True)
@@ -136,12 +143,13 @@ class Worker(threading.Thread):
                             return False
                         else:
                             self.build_status = "no_sysupgrade"
+                            self.image.params["sysupgrade"] = ""
                     else:
                         self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
-
                         self.store_log(buildlog)
 
-                        self.database.add_image(self.image.get_params())
+                    self.database.add_image(self.image.get_params())
+                    self.log.info("build successfull")
                 else:
                     print(buildlog)
                     self.log.info("build failed")
@@ -149,9 +157,9 @@ class Worker(threading.Thread):
      #               self.store_log(buildlog)
                     return False
 
-            self.log.info("build successfull")
-            self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], build_status)
-            return True
+        self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
+        self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], self.build_status)
+        return True
     
     def run(self):
         if not os.path.exists(self.location + "/meta"):
@@ -165,27 +173,34 @@ class Worker(threading.Thread):
             self.parse_info()
             if os.path.exists(os.path.join(
                     self.location, "imagebuilder",
-                    self.params["distro"], self.params["release"],
+                    self.params["distro"], self.params["version"],
                     self.params["target"], self.params["subtarget"],
                     "target/linux", self.params["target"],
                     "base-files/lib/upgrade/platform.sh")):
                 self.log.info("%s target is supported", self.params["target"])
                 self.database.insert_supported(self.params)
-        elif self.job == "packages":
+        elif self.job == "package_list":
             self.parse_packages()
             self.database.subtarget_synced(self.params)
 
     def run_meta(self, cmd):
+        cmdline = ["sh", "meta", cmd ]
         env = os.environ.copy()
+
+        if "parent_version" in self.version_config:
+            self.params["IB_VERSION"] = self.version_config["parent_version"]
+        if "repos" in self.version_config:
+            self.params["REPOS"] = self.version_config["repos"]
+
         for key, value in self.params.items():
-            env[key.upper()] = value
+            env[key.upper()] = str(value) # TODO convert meta script to Makefile
+
 
         proc = subprocess.Popen(
-            ["sh", "meta", cmd],
+            cmdline,
             cwd=self.location,
             stdout=subprocess.PIPE,
             shell=False,
-            stderr=subprocess.STDOUT,
             env=env
         )
 
@@ -210,7 +225,12 @@ class Worker(threading.Thread):
             profiles = re.findall(profiles_pattern, output)
             if not profiles:
                 profiles = []
-            self.database.insert_profiles(self.params, default_packages, profiles)
+            self.database.insert_profiles({
+                "distro": self.params["distro"],
+                "version": self.params["version"],
+                "target": self.params["target"],
+                "subtarget": self.params["subtarget"]},
+                default_packages, profiles)
         else:
             logging.error("could not receive profiles")
             return False
@@ -223,25 +243,33 @@ class Worker(threading.Thread):
         if return_code == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.log.info("found {} packages".format(len(packages)))
-            self.database.insert_packages_available(self.params, packages)
+            self.database.insert_packages_available({
+                "distro": self.params["distro"],
+                "version": self.params["version"],
+                "target": self.params["target"],
+                "subtarget": self.params["subtarget"]}, packages)
         else:
             self.log.warning("could not receive packages")
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    log = logging.getLogger(__name__)
     config = Config()
     database = Database(config)
     location = config.get("worker")[0]
     while True:
         image = database.get_build_job()
-        if image != None:
-            worker = Worker(location, "build", image)
+        if image:
+            print(image)
+            worker = Worker(location, "image", image)
             worker.run() # TODO no threading just yet
         outdated_subtarget = database.get_subtarget_outdated()
         if outdated_subtarget:
             print(outdated_subtarget)
+            log.info("found outdated subtarget %s", outdated_subtarget)
             worker = Worker(location, "info", outdated_subtarget)
             worker.run()
-            worker = Worker(location, "packages", outdated_subtarget)
+            worker = Worker(location, "package_list", outdated_subtarget)
             worker.run()
         time.sleep(5)
 

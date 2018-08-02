@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-import re
 import yaml
 import json
-from os import makedirs
 from shutil import rmtree
 import urllib.request
 import logging
@@ -22,13 +20,13 @@ class ServerCli():
 
     def init_args(self):
         parser = argparse.ArgumentParser(description="CLI for update-server")
-        parser.add_argument("-r", "--download-releases", action="store_true")
+        parser.add_argument("-r", "--download-versions", action="store_true")
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-f", "--flush-snapshots", action="store_true")
         parser.add_argument("-p", "--parse-configs", action="store_true")
         self.args = vars(parser.parse_args())
-        if self.args["download_releases"]:
-            self.download_releases()
+        if self.args["download_versions"]:
+            self.download_versions()
         if self.args["init_server"]:
             self.init_server()
         if self.args["flush_snapshots"]:
@@ -46,48 +44,70 @@ class ServerCli():
                 rmtree(download_folder)
         self.database.flush_snapshots()
 
-    def download_releases(self):
+    def download_versions(self):
         for distro in self.config.get_distros():
-            for release in self.config.get(distro).get("releases", []):
-                self.database.insert_release(distro, release)
-                release_url = self.config.release(distro, release).get("targets_url")
+            # set distro alias like OpenWrt, fallback would be openwrt
+            self.database.insert_distro({
+                "name": distro,
+                "alias": self.config.get(distro).get("distro_alias", distro),
+                "description": self.config.get(distro).get("distro_description", ""),
+                "latest": self.config.get(distro).get("latest")
+                })
+            for version in self.config.get(distro).get("versions", []):
+                version_config = self.config.version(distro, version)
+                self.database.insert_version({
+                    "distro": distro,
+                    "version": version,
+                    "alias": version_config.get("version_alias", ""),
+                    "description": version_config.get("version_description", "")
+                    })
+                version_config = self.config.version(distro, version)
+                version_url = version_config.get("targets_url")
+                # use parent_version for ImageBuilder if exists
+                version_imagebuilder = version_config.get("parent_version", version)
 
-                release_targets = json.loads(urllib.request.urlopen(
-                    "{}/{}/targets?json-targets".format(release_url, release))
-                        .read().decode('utf-8'))
-                self.log.info("add %s/%s targets", distro, release)
+                version_targets = set(json.loads(urllib.request.urlopen(
+                    "{}/{}/targets?json-targets".format(version_url,
+                        version_imagebuilder)).read().decode('utf-8')))
+
+                if version_config.get("active_targets"):
+                    version_targets = version_targets & set(version_config.get("active_targets"))
+
+                if version_config.get("ignore_targets"):
+                    version_targets = version_targets - set(version_config.get("ignore_targets"))
+                
+                self.log.info("add %s/%s targets", distro, version)
 
                 # TODO do this at once instead of per target
-                for target in release_targets:
-                    self.database.insert_subtarget(distro, release, *target.split("/"))
+                for target in version_targets:
+                    self.log.debug("add %s/%s/%s", distro, version, target)
+                    self.database.insert_subtarget(distro, version, *target.split("/"))
 
-            # set distro alias like OpenWrt, fallback would be openwrt
-            self.database.set_distro_alias(distro, self.config.get(distro).get("distro_alias", distro))
 
     def insert_board_rename(self):
-        for distro, release in self.database.get_releases():
-            release_config = self.config.release(distro, release)
-            if "board_rename" in release_config:
-                for origname, newname in release_config["board_rename"].items():
-                    self.log.info("insert board_rename {} {} {} {}".format(distro, release, origname, newname))
-                    self.database.insert_board_rename(distro, release, origname, newname)
+        for distro, version in self.database.get_versions():
+            version_config = self.config.version(distro, version)
+            if "board_rename" in version_config:
+                for origname, newname in version_config["board_rename"].items():
+                    self.log.info("insert board_rename {} {} {} {}".format(distro, version, origname, newname))
+                    self.database.insert_board_rename(distro, version, origname, newname)
 
-    def insert_replacements(self, distro, release, transformations):
+    def insert_replacements(self, distro, version, transformations):
         for package, action in transformations.items():
             if not action:
                 # drop package
                 #print("drop", package)
-                self.database.insert_transformation(distro, release, package, None, None)
+                self.database.insert_transformation(distro, version, package, None, None)
             elif type(action) is str:
                 # replace package
                 #print("replace", package, "with", action)
-                self.database.insert_transformation(distro, release, package, action, None)
+                self.database.insert_transformation(distro, version, package, action, None)
             elif type(action) is dict:
                 for choice, context in action.items():
                     if context is True:
                         # set default
                         #print("default", choice)
-                        self.database.insert_transformation(distro, release, package, choice, None)
+                        self.database.insert_transformation(distro, version, package, choice, None)
                     elif context is False:
                         # possible choice
                         #print("choice", choice)
@@ -96,19 +116,19 @@ class ServerCli():
                         for dependencie in context:
                             # if context package exists
                             #print("dependencie", dependencie, "for", choice)
-                            self.database.insert_transformation(distro, release, package, choice, dependencie)
+                            self.database.insert_transformation(distro, version, package, choice, dependencie)
 
     def load_tables(self):
-        for distro, release in self.database.get_releases():
-            release = str(release)
-            release_replacements_path = os.path.join("distributions", distro, (release + ".yml"))
-            if os.path.exists(release_replacements_path):
-                with open(release_replacements_path, "r") as release_replacements_file:
-                    replacements = yaml.load(release_replacements_file.read())
+        for distro, version in self.database.get_versions():
+            version = str(version)
+            version_replacements_path = os.path.join("distributions", distro, (version + ".yml"))
+            if os.path.exists(version_replacements_path):
+                with open(version_replacements_path, "r") as version_replacements_file:
+                    replacements = yaml.load(version_replacements_file.read())
                     if replacements:
                         if "transformations" in replacements:
-                            self.insert_replacements(distro, release, replacements["transformations"])
+                            self.insert_replacements(distro, version, replacements["transformations"])
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     sc = ServerCli()
