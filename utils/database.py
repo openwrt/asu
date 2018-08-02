@@ -34,11 +34,11 @@ class Database():
         self.log.info("created tables")
 
     def insert_distro(self, distro):
-        self.log.info("insert distro", distro)
+        self.log.info("insert distro %s", distro)
         self.insert_dict("distributions", distro)
 
     def insert_version(self, version):
-        self.log.info("insert version", version)
+        self.log.info("insert version %s", version)
         self.insert_dict("versions", version)
 
     def insert_supported(self, p):
@@ -62,16 +62,6 @@ class Database():
     def insert_packages_hash(self, packages_hash, packages):
         sql = "INSERT INTO packages_hashes (hash, packages) VALUES (?, ?)"
         self.c.execute(sql, (packages_hash, " ".join(packages)))
-        self.commit()
-
-    def delete_profiles(self, distro, version, target, subtarget, profiles):
-        self.log.debug("delete profiles of %s/%s/%s/%s", distro, version, target, subtarget)
-        subtarget_id = self.c.execute("""delete from profiles_table
-            where subtarget_id = (select id from subtargets where
-            subtargets.distro = ? and
-            subtargets.version = ? and
-            subtargets.target = ? and
-            subtargets.subtarget = ?)""", distro, version, target, subtarget)
         self.commit()
 
     def insert_profiles(self, params, packages_default, profiles):
@@ -139,8 +129,6 @@ class Database():
         return self.c.fetchval()
 
     def subtarget_outdated(self, distro, version, target, subtarget):
-        outdated_interval = 1
-        outdated_unit = 'day'
         sql = """select 1 from subtargets
             where distro = ? and
             version = ? and
@@ -182,7 +170,7 @@ class Database():
         self.log.debug("insert packages available")
         for package in packages:
             name, version = package
-            self.insert_dict("packages_available", 
+            self.insert_dict("packages_available",
                 { **params, "package_name": name, "package_version": version }, False)
         self.commit()
 
@@ -493,10 +481,6 @@ class Database():
         sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and version like ? and target like ?;"""
         self.c.execute(sql, distro, version, target)
         return self.c.fetchval()
-
-    # TODO
-    def get_request_packages(self, distro, version, target, subtarget, profile):
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and version like ? and target like ?;"""
 
     def get_images_list(self):
         self.log.debug("get images list")

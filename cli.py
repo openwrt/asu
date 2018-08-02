@@ -98,11 +98,11 @@ class ServerCli():
                 # drop package
                 #print("drop", package)
                 self.database.insert_transformation(distro, version, package, None, None)
-            elif type(action) is str:
+            elif isinstance(action, str):
                 # replace package
                 #print("replace", package, "with", action)
                 self.database.insert_transformation(distro, version, package, action, None)
-            elif type(action) is dict:
+            elif isinstance(action, dict):
                 for choice, context in action.items():
                     if context is True:
                         # set default
@@ -111,8 +111,9 @@ class ServerCli():
                     elif context is False:
                         # possible choice
                         #print("choice", choice)
+                        # TODO
                         pass
-                    elif type(context) is list:
+                    elif isinstance(context, list):
                         for dependencie in context:
                             # if context package exists
                             #print("dependencie", dependencie, "for", choice)

@@ -2,7 +2,6 @@ import yaml
 import os.path
 import os
 from os import listdir, makedirs
-from shutil import copyfile
 
 class Config():
     def __init__(self):

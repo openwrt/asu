@@ -55,7 +55,7 @@ class Request():
             self.response_json["error"] = "unknown target %s/%s" % (self.request["target"], self.request["subtarget"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
-        elif not sysupgrade_supported and self.sysupgrade_requested: 
+        elif not sysupgrade_supported and self.sysupgrade_requested:
             self.response_json["error"] = "target currently not supported %s/%s" % (self.request["target"], self.request["subtarget"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
@@ -84,9 +84,9 @@ class Request():
     # check packages by sending requested packages again postgres
     def check_bad_packages(self):
         # remove packages which doesn't exists but appear in the package list
-        # upgrade_checks send a dict with package name & version while build 
+        # upgrade_checks send a dict with package name & version while build
         # requests contain only an array
-        if type(self.request_json["packages"]) ==  dict:
+        if isinstance(self.request_json["packages"], dict):
             packages_set = set(self.request_json["packages"].keys()) - set(["libc", "kernel"])
         else:
             packages_set = set(self.request_json["packages"]) - set(["libc", "kernel"])

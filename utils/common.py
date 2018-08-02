@@ -1,6 +1,4 @@
 import urllib.request
-import shutil
-import tempfile
 import hashlib
 import os
 import os.path
@@ -59,6 +57,8 @@ def usign_init(comment=None):
         output, erros = proc.communicate()
         return_code = proc.returncode
         if not return_code == 0:
+            print("output", output)
+            print("errors", errors)
             return False
     else:
         print("found keys, ready to sign")

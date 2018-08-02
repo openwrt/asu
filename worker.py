@@ -160,7 +160,7 @@ class Worker(threading.Thread):
         self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
         self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], self.build_status)
         return True
-    
+
     def run(self):
         if not os.path.exists(self.location + "/meta"):
             if self.setup_meta():
