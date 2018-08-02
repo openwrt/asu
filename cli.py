@@ -58,7 +58,7 @@ class ServerCli():
                 self.database.insert_version({
                     "distro": distro,
                     "version": version,
-                    "alias": version_config.get("version_alias", "")
+                    "alias": version_config.get("version_alias", ""),
                     "description": version_config.get("version_description", "")
                     })
                 version_config = self.config.version(distro, version)
