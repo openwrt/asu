@@ -1,4 +1,5 @@
 import datetime
+from re import sub
 import pyodbc
 import logging
 import json
@@ -92,8 +93,10 @@ class Database():
                     pa.target = ? and
                     pa.subtarget = ? and
                     pa.package_name = pr)"""
-        self.c.execute(sql, json.dumps(image["packages"]), image["distro"],
-                image["version"], image["target"], image["subtarget"])
+        # the re.sub() replaces leading - which may appear in package request to
+        # explicitly remove packages installed per default
+        self.c.execute(sql, json.dumps([sub(r'^-?', '', p) for p in image["packages"]]),
+                image["distro"], image["version"], image["target"], image["subtarget"])
         return self.c.fetchone()
 
     def sysupgrade_supported(self, image):
