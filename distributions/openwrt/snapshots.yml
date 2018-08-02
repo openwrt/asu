@@ -1,2 +1,6 @@
 targets_url: "https://downloads.openwrt.org/"
 snapshots: True
+ignore_targets:
+    -  adm5120/rb1xx
+    -  adm5120/router_be
+    -  adm5120/router_le
