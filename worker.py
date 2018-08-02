@@ -45,6 +45,17 @@ class Worker(threading.Thread):
 
         return return_code
 
+    def setup(self):
+        self.log.debug("setup")
+        return_code, output, errors = self.run_meta("download")
+        if return_code == 0:
+            self.log.info("setup complete")
+        else:
+            self.log.error("failed to download imagebuilder")
+            print(output)
+            print(errors)
+            exit()
+
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
         self.log.debug("write log")
@@ -155,6 +166,7 @@ class Worker(threading.Thread):
             if self.setup_meta():
                 self.log.error("failed to setup meta ImageBuilder")
                 exit()
+        self.setup()
         if self.job == "image":
             self.build()
         elif self.job == "info":
