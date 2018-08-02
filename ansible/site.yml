@@ -1,9 +1,4 @@
-- hosts: worker
-  become: true
+- hosts: all
+  become: True
   roles:
-    - worker
-
-- hosts: server
-  become: true
-  roles:
-      - server
+    - server

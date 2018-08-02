@@ -1,20 +1,26 @@
+- name: include vars
+  include_vars: "{{ playbook_dir }}/{{ config_file }}"
 - name: install required software
   package: name={{ item }} state=present
   with_items:
+    - git
     - nginx
     - postgresql
     - odbc-postgresql
-    - python3-pyodbc
     - python3-psycopg2
-    - python3-gnupg
     - python-psycopg2
     - python3-yaml
     - python3-flask
-    - git
+    - python3-pip
+
+- pip:
+    executable : pip3
+    name: pyodbc
 
 - name: install imagebuilder dependencies
   package: name={{ item }} state=present
   with_items:
+    - time
     - subversion
     - build-essential
     - libncurses5-dev
@@ -29,54 +35,38 @@
     - unzip
     - python
 
-- name: clone git repository
+- name: clone server git repo
+  become_user: "{{ server_user }}"
   git:
-    repo: 'https://github.com/aparcar/gsoc17-attended-sysupgrade.git'
-    dest: "{{ server_folder }}"
-    clone: yes
-    update: yes
-  notify:
-    - restart server
-
-- name: ensure database is created
-  become_user: postgres
-  postgresql_db:
-    name: "{{ database_name }}"
-
-- name: ensure user has access to database
-  become_user: postgres
-  postgresql_user:
-    db: "{{ database_name }}"
-    name: "{{ database_user }}"
-    password: "{{ database_pass }}"
-    priv: ALL
-
-- name: ensure user does not have unnecessary privilege
-  become_user: postgres
-  postgresql_user:
-    name: "{{ database_user }}"
-    role_attr_flags: NOSUPERUSER,NOCREATEDB
-
-- name: copy nginx server config
-  template: src=server.conf dest=/etc/nginx/sites-enabled/server.conf
+    repo: 'https://github.com/aparcar/attendedsysupgrade-server.git'
+    dest: "{{ server_dir }}"
+    version: "{{ git_branch | default('master') }}"
+  when: server_dir != "/vagrant"
 
 - name: copy server service
   template:
-    src: server.service
-    dest: /etc/systemd/system/server.service
+    src: asu-server.service
+    dest: /etc/systemd/system/asu-server.service
 
-- name: copy config.yml
-  template: src=config.yml dest="{{ server_folder }}/config.yml"
+- name: copy config file
+  become_user: "{{ server_user }}"
+  template: src="{{ playbook_dir }}/{{ config_file }}" dest="{{ server_dir }}/config.yml"
 
 - name: start and enable server
   service:
-    name: server
+    name: asu-server
     state: started
     enabled: true
 
 - name: init server
   become_user: "{{ server_user }}"
-  command: python3 cli.py -ia # download all releases and init all current imagebuilders
+  command: python3 cli.py -r # init server
   args:
-    chdir: "{{ server_folder }}"
+    chdir: "{{ server_dir }}"
 
+- name: copy nginx config
+  template:
+      src: asu-server.conf
+      dest: /etc/nginx/sites-available/default
+  notify:
+      - nginx reload

@@ -3,14 +3,14 @@
 <table class="table table-sm table-hover">
 	<tr>
 		<th>Distro</th>
-		<th>Release</th>
+		<th>Version</th>
 		<th>Target</th>
 		<th>Subtarget</th>
 	</tr>
-	{% for distro, release, target, subtarget in supported %}
+	{% for distro, version, target, subtarget in supported %}
 	<tr>
 		<td>{{ distro }}</td>
-		<td>{{ release }}</td>
+		<td>{{ version }}</td>
 		<td>{{ target }}</td>
 		<td>{{ subtarget }}</td>
 	</tr>

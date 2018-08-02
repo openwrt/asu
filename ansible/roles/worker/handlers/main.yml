@@ -1,2 +1,0 @@
-- name: restart worker
-  service: name=worker state=restarted

@@ -1,2 +1,5 @@
-- name: restart server
-  service: name=server state=restarted
+- name: restart asu-server
+  service: name=asu-server state=restarted
+ 
+- name: nginx reload
+  service: name=nginx state=reloaded

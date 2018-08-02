@@ -10,7 +10,8 @@ class Config():
         self.config_file = "config.yml"
 
         if not os.path.exists(self.config_file):
-            copyfile(("utils/config.yml.default"), self.config_file)
+            print("Missing config.yml")
+            exit(1)
 
         with open(self.config_file, 'r') as ymlfile:
             self.config = yaml.load(ymlfile)
@@ -19,21 +20,36 @@ class Config():
             with open(os.path.join(self.get_folder("distro_folder"), distro, "distro_config.yml"), 'r') as ymlfile:
                 self.config[distro] = yaml.load(ymlfile)
 
-            if self.config.get(distro).get("releases"):
-                self.config[distro]["latest"] = self.config.get(distro).get("releases")[-1]
+            if self.config.get(distro).get("versions"):
+                self.config[distro]["latest"] = self.config.get(distro).get("versions")[-1]
             else:
                 self.config[distro]["latest"] = None
 
-    def release(self, distro, release):
-        if release not in self.config[distro]:
-            with open(os.path.join("distributions", distro, release + ".yml"), 'r') as ymlfile:
-                release_config = yaml.load(ymlfile)
-                if release_config:
-                   self.config[distro][release] = release_config
-                else:
-                   self.config[distro][release] = {}
+    # load configuration of distro and overlay it with custom version settings
+    def version(self, distro, version):
+        version_config = {}
+        base_path = self.get_folder("distro_folder") + "/" + distro
 
-        return self.config.get(distro).get(release)
+        with open(base_path + "/distro_config.yml", 'r') as distro_file:
+            version_config.update(yaml.load(distro_file.read()))
+
+        version_path = os.path.join(base_path, version + ".yml")
+        if os.path.exists(version_path):
+            with open(version_path, 'r') as version_file:
+                version_content = yaml.load(version_file.read())
+                if version_content:
+                    version_config.update(version_content)
+
+        # if distro is based on another distro, load these settings as well
+        if "parent_version" in version_config:
+            parent_config = self.version(
+                    version_config["parent_distro"],
+                    version_config["parent_version"])
+
+            parent_config.update(version_config)
+            return parent_config
+
+        return version_config
 
     def get(self, opt, alt=None):
         if opt in self.config:

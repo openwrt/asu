@@ -1,14 +1,22 @@
+# ansible
+
+config_file: host_vars/default.yml
+
 # server
 dev: False
 sign_images: True
 server: "http://localhost:5000"
+server_user: root
+server_dir: /vagrant
+worker:
+    - "/tmp/worker"
 
 # database
 database_type: PostgreSQL Unicode
 database_address: localhost
-database_name: attended-sysupgrade
+database_name: attendedsysupgrade
 database_user: postgres
-database_pass: <password>
+database_pass: changeme
 database_port: 5432
 
 # folder
@@ -18,7 +26,3 @@ download_folder: download
 tempdir: /tmp
 keys_private: keys
 keys_public: server/static/keys
-
-# worker
-worker: <worker_name>
-password: <password>
