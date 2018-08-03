@@ -56,10 +56,22 @@ class Worker(threading.Thread):
             self.database.subtarget_synced(self.params)
 
     # write buildlog.txt to image dir
-    def store_log(self, buildlog):
+    def store_log(self, path,  buildlog):
         self.log.debug("write log")
-        with open(self.image.params["dir"] + "/buildlog-{}.txt".format(self.params["image_hash"]), "a") as buildlog_file:
+        with open(path, "a") as buildlog_file:
             buildlog_file.writelines(buildlog)
+
+    def success_log(self, buildlog):
+        self.store_log(
+                self.image.params["dir"] + "/buildlog-{}.txt".format(self.params["image_hash"])
+                buildlog)
+
+    def fail_log(self, buildlog):
+        self.store_log("/".join([
+                self.config.get_folder("download_dir"),
+                "faillogs",
+                "faillog-{}.txt".format(self.parse_packages["request_hash"])
+                 ], buildlog)
 
     # build image
     def build(self):
@@ -108,7 +120,6 @@ class Worker(threading.Thread):
                 return_code, buildlog, errors = self.run_meta("image")
 
                 if return_code == 0:
-
                     # create folder in advance
                     os.makedirs(self.image.params["dir"], exist_ok=True)
 
@@ -137,23 +148,22 @@ class Worker(threading.Thread):
                         self.log.debug("sysupgrade not found")
                         if buildlog.find("too big") != -1:
                             self.log.warning("created image was to big")
-                            self.store_log(buildlog)
                             self.database.set_image_requests_status(self.params["request_hash"], "imagesize_fail")
+                            self.fail_log(buildlog)
                             return False
                         else:
                             self.build_status = "no_sysupgrade"
                             self.image.params["sysupgrade"] = ""
                     else:
                         self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
-                        self.store_log(buildlog)
 
+                    self.success_log(buildlog)
                     self.database.add_image(self.image.get_params())
                     self.log.info("build successfull")
                 else:
-                    print(buildlog)
                     self.log.info("build failed")
                     self.database.set_image_requests_status(self.params["request_hash"], 'build_fail')
-     #               self.store_log(buildlog)
+                    self.fail_log(buildlog)
                     return False
 
         self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
