@@ -28,6 +28,11 @@ Add CLI to perform sysupgrades.
 * `usteam-ssl` and `ca-certificates`
 	Securely communicate and download firmware from server via https
 
+#### [Chef Online Builder](https://github.com/libremesh/chef)
+
+* https://as-test.stephen304.com/chef **dev version**
+* https://chef.libremesh.org
+
 ## Server
 
 The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of distribution, version, target & subtarget.
@@ -36,8 +41,10 @@ All requests are stored in a queue and build by workers.
 
 ### Active server
 
-* [planetexpress](https://ledeupdate.planetexpress.cc) - thanks @egon0
-  You can set this server in `/etc/config/attendedsysupgrade` after installation of a client
+* [stephen304](https://as-test.stephen304.com/chef) **dev version**
+* [planetexpress](https://ledeupdate.planetexpress.cc)
+
+You can set this server in `/etc/config/attendedsysupgrade` after installation of a client
 
 ## API
 
