@@ -51,10 +51,9 @@ class Worker(threading.Thread):
         if return_code == 0:
             self.log.info("setup complete")
         else:
-            self.log.error("failed to download imagebuilder")
-            print(output)
-            print(errors)
-            exit()
+            self.log.error("failed to download imagebuilder \nstderr: %s\nstdout: %s", errors, output)
+            # this puts the imagebuilder back in the queue, tries again next day
+            self.database.subtarget_synced(self.params)
 
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
