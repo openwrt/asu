@@ -1,10 +1,17 @@
 # Attendedsysupgrade Server for OpenWrt (GSoC 2017)
 
-This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new version or package updates, without the need of `opkg` installed.
+This project intends to simplify the sysupgrade process of devices running
+OpenWrt or distributions based on the former like LibreMesh. The provided tools
+here offer an easy way to reflash the router with a new version or package
+upgrades, without the need of `opkg` installed.
+
+Additionally it offers an API (covered below) to request custom images with any
+selection of packages pre-installed, allowing to create firmware images without
+the need of setting up a build environment, even from mobile devices.
 
 ## Clients
 
-#### [`luci-app-attendedsysupgrade`](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
+### [`luci-app-attendedsysupgrade`](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
 
 Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server.
 
@@ -18,7 +25,7 @@ Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button 
 	
 ![luci-app-attendedsysupgrade-screenshot](https://camo.githubusercontent.com/d21d3c2e43993325c0371866b28f09a67ea21902/687474703a2f2f692e696d6775722e636f6d2f653443716841502e706e67)
 
-#### [`auc`](https://github.com/openwrt/packages/tree/master/utils/auc)
+### [`auc`](https://github.com/openwrt/packages/tree/master/utils/auc)
 
 Add CLI to perform sysupgrades.
 
@@ -28,7 +35,7 @@ Add CLI to perform sysupgrades.
 * `usteam-ssl` and `ca-certificates`
 	Securely communicate and download firmware from server via https
 
-#### [Chef Online Builder](https://github.com/libremesh/chef)
+### [Chef Online Builder](https://github.com/libremesh/chef)
 
 * https://as-test.stephen304.com/chef **dev version**
 * https://chef.libremesh.org
@@ -37,22 +44,26 @@ Add CLI to perform sysupgrades.
 
 ## Server
 
-The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of distribution, version, target & subtarget.
-
-All requests are stored in a queue and build by workers.
+The server listens to update and image requests and images are automatically
+generated if the requests was valid. This is done by automatically setting up
+OpenWrt ImageBuilders and cache images in a database. This allows to quickly
+respond to requests without rebuilding exiting images again.
 
 ### Active server
 
-* [stephen304](https://as-test.stephen304.com/chef) **dev version**
+* [stephen304](https://as-test.stephen304.com/) **dev version**
 * [planetexpress](https://ledeupdate.planetexpress.cc)
 
-You can set this server in `/etc/config/attendedsysupgrade` after installation of a client
+You can set this server in `/etc/config/attendedsysupgrade` after installation
+of a client.
 
 ## API
 
 ### Upgrade check `/api/upgrade-check`
 
-Sends information about the device to the server to see if a new distribution version or package upgrades are available. An *upgrade check* could look like this:
+Sends information about the device to the server to see if a new distribution
+version or package upgrades are available. An *upgrade check* could look like
+this:
 
 | key	| value | information	|
 | ---	| ---	| ---		|
@@ -62,14 +73,19 @@ Sends information about the device to the server to see if a new distribution ve
 | `subtarget` | `generic` | |
 | `packages` | `{libuci-lua: 2017-04-12-c4df32b3-1, cgi-io: 3, ...}` | all user installed packages |
 
-Most information can be retrieved via `ubus call system board`. Missing information can be gathered via the `rpcd-mod-rpcsys` package.
-`packages` contains all user installed packages plus version. Packages installed as an dependence are excluded as they've been automatically and dependencies may change between versions.
+Most information can be retrieved via `ubus call system board`. Missing
+information can be gathered via the `rpcd-mod-rpcsys` package. `packages`
+contains all user installed packages plus version. Packages installed as an
+dependence are excluded as they've been automatically and dependencies may
+change between versions.
 
-It's also possible to check for a new version without sending packages by removing `packages` from the request.
+It's also possible to check for a new version without sending packages by
+removing `packages` from the request.
 
 ### Response `status 200`
 
-The server validates the request. Below is a possible response for a new version:
+The server validates the request. Below is a possible response for a new
+version:
 
 | key		| value		| information	|
 | ---		| ---		| ---		|
@@ -79,13 +95,16 @@ The server validates the request. Below is a possible response for a new version
 
 See [other status codes](#response-status-codes)
 
-An version upgrade does not ignore package upgrades for the following reason. Between versions it possible that package names may change, packages are dropped or merged. The *response* contains all packages included changed ones.
+An version upgrade does not ignore package upgrades for the following reason.
+Between versions it possible that package names may change, packages are dropped
+or merged. The *response* contains all packages included changed ones.
 
 The *upgrade check response* should be shown to the user in a readable way.
 
 ### Upgrade request `/api/upgrade-request`
 
-Once the user decides to perform the sysupgrade a new request is send to the server called *upgrade request*.
+Once the user decides to perform the sysupgrade a new request is send to the
+server called *upgrade request*.
 
 #### POST
 
@@ -99,11 +118,15 @@ Once the user decides to perform the sysupgrade a new request is send to the ser
 | `[model]`		| `TP-Link TL-WDR4300 v1`		| `model` of `ubus call system board`. This is optional and a fallback |
 | `packages`	| `[libuci-lua, cgi-io: 3, ...]`	| All packages for the new image |
 
-The *upgrade request* is nearly the same as the *upgrade check* before, except only containing package names without version and adding `board` and possibly `model`. While the server builds the requested image the clients keeps polling the server sending a `request_hash` via `GET` to the server.
+The *upgrade request* is nearly the same as the *upgrade check* before, except
+only containing package names without version and adding `board` and possibly
+`model`. While the server builds the requested image the clients keeps polling
+the server sending a `request_hash` via `GET` to the server.
 
 #### GET
 
-If the `request_hash` was retrieved the client should switch to `GET` requests with the hash to save the server from validating the request again.
+If the `request_hash` was retrieved the client should switch to `GET` requests
+with the hash to save the server from validating the request again.
 
 `api/upgrade-request/<request_hash`
 
@@ -118,9 +141,13 @@ See [other status codes](#response-status-codes)
 
 ### Build request `/api/build-request`
 
-It's also possible to request to build an image. The request is exactly the same as for `upgrade-request`. The response only contains a link to the created `files` or `upgrade-request` parameters if available.
+It's also possible to request to build an image. The request is exactly the same
+as for `upgrade-request`. The response only contains a link to the created
+`files` or `upgrade-request` parameters if available.
 
-This is a special case for clients that do not necessary require a sysupgrade compatible image. An example is the [LibreMesh Chef](https://chef.libremesh.org) firmware builder.
+This is a special case for clients that do not necessary require a sysupgrade
+compatible image. An example is the [LibreMesh Chef](https://chef.libremesh.org)
+firmware builder.
 
 ### Response status codes
 
@@ -141,28 +168,24 @@ The client should check the status code:
 
 ### Request data
 
-It's also possible to receive information about build images or package versions, available devices and more. All responses are in `JSON` format.
+It's also possible to receive information about build images or package
+versions, available devices and more. All responses are in `JSON` format.
 
-* `/api/image/<image_hash>`
-    Get information about an image. This contains various information stored
-    about the image.
+* `/api/image/<image_hash>` Get information about an image. This contains
+  various information stored about the image.
 
-* `/api/manifest/<manifest_hash>`
-    Get packages and versions of a manifest. The manifest contains all installed
-    packages of an image. The `manifest_hash` can be received by the api call
-    `/api/image`.
+* `/api/manifest/<manifest_hash>` Get packages and versions of a manifest. The
+  manifest contains all installed packages of an image. The `manifest_hash` can
+  be received by the api call `/api/image`.
 
-* `/api/distros`
-	Get all supported distros with latest version and a short description if
-    available.
+* `/api/distros` Get all supported distros with latest version and a short
+  description if available.
 
-* `/api/versions[?distro=<distribution>]`
-    Get all supported versions with short description (of a singele distribution
-    if given).
+* `/api/versions[?distro=<distribution>]` Get all supported versions with short
+  description (of a singele distribution if given).
 
-* `/api/models?distro=&version=&model_search=<search string>`
-    Get all supported devices of distro/version that contain the `model_search`
-    string
+* `/api/models?distro=&version=&model_search=<search string>` Get all supported
+  devices of distro/version that contain the `model_search` string
 
-* `/api/packages_image?distro=&version=&target=&subtarget=&profile=`
-	Get all default packages installed on an image
+* `/api/packages_image?distro=&version=&target=&subtarget=&profile=` Get all
+  default packages installed on an image
