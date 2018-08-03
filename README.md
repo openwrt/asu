@@ -2,8 +2,6 @@
 
 This project intend to simplify the sysupgrade process of LEDE/LibreMesh. The provided tools here offer an easy way to reflash the router with a new version or package updates, without the need of `opkg` installed.
 
-![luci-app-attendedsysupgrade-screenshot](https://camo.githubusercontent.com/d21d3c2e43993325c0371866b28f09a67ea21902/687474703a2f2f692e696d6775722e636f6d2f653443716841502e706e67)
-
 ## Clients
 
 #### [`luci-app-attendedsysupgrade`](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
@@ -17,6 +15,8 @@ Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button 
 	Communication between the Browser and the Router
 * `cgi-io`
 	Upload image from Browser to Router
+	
+![luci-app-attendedsysupgrade-screenshot](https://camo.githubusercontent.com/d21d3c2e43993325c0371866b28f09a67ea21902/687474703a2f2f692e696d6775722e636f6d2f653443716841502e706e67)
 
 #### [`auc`](https://github.com/openwrt/packages/tree/master/utils/auc)
 
