@@ -33,6 +33,17 @@ class Database():
         self.commit()
         self.log.info("created tables")
 
+    def insert_defaults(self, defaults_hash, defaults):
+        self.insert_dict("defaults_table", {
+            "hash": defaults_hash,
+            "content": defaults
+            })
+
+    def get_defaults(self, defaults_hash):
+        sql = "select content from defaults_table where hash = ?"
+        self.c.execute(sql, defaults_hash)
+        return self.c.fetchval()
+
     def insert_distro(self, distro):
         self.log.info("insert distro %s", distro)
         self.insert_dict("distributions", distro)

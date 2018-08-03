@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from sys import getsizeof
 
 from utils.image import Image
 from server.request import Request
@@ -82,6 +83,14 @@ class BuildRequest(Request):
                 self.response_json["error"] = "unknown device, please check model and board params"
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
+
+        if "defaults" in self.request_json:
+            if getsizeof(self.request_json["defaults"]) > self.config.get("max_defaults_size"):
+                self.response_json["error"] = "attached defaults exceed max size"
+                self.response_status = 420
+            else:
+                self.request["defaults_hash"] = get_hash(self.request["defaults"], 32)
+                self.database.insert_defaults(self.request["defaults_hash"], self.request["defaults"])
 
         # all checks passed, eventually add to queue!
         self.request.pop("packages")
