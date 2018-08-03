@@ -84,12 +84,18 @@ class BuildRequest(Request):
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
 
+        # check if a default uci config is attached to the request
         if "defaults" in self.request_json:
+            # check if the uci file exceeds the max file size. this should be
+            # done as the uci-defaults are at least temporary stored in the
+            # database to be passed to a worker
             if getsizeof(self.request_json["defaults"]) > self.config.get("max_defaults_size"):
                 self.response_json["error"] = "attached defaults exceed max size"
-                self.response_status = 420
+                self.response_status = 420 # this error code is the best I could find
+                self.respond()
             else:
                 self.request["defaults_hash"] = get_hash(self.request["defaults"], 32)
+                # add the defaults to the database
                 self.database.insert_defaults(self.request["defaults_hash"], self.request["defaults"])
 
         # all checks passed, eventually add to queue!

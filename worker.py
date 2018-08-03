@@ -111,6 +111,19 @@ class Worker(threading.Thread):
                 self.params["BIN_DIR"] = build_dir
                 self.params["j"] = str(os.cpu_count())
                 self.params["EXTRA_IMAGE_NAME"] = self.params["manifest_hash"]
+                # if uci defaults are added, at least at parts of the hash to time image name
+                if self.params["defaults_hash"]:
+                    defaults_dir = build_dir + "/files/etc/uci-defaults/"
+                    # create folder to store uci defaults
+                    os.makedirs(defaults_dir)
+                    # request defaults content from database
+                    defaults_content = self.database.get_defaults(self.params["defaults_hash"])
+                    with open(defaults_dir + "99-server-defaults", "w") as defaults_file:
+                        defaults_file.write(defaults_content) # TODO check if special encoding is required
+
+                    # tell ImageBuilder to integrate files
+                    self.params["FILES"] = defaults_dir
+                    self.params["EXTRA_IMAGE_NAME"] += "-" + self.params["defaults_hash"][:6]
 
                 return_code, buildlog, errors = self.run_meta("image")
 
