@@ -33,6 +33,8 @@ Add CLI to perform sysupgrades.
 * https://as-test.stephen304.com/chef **dev version**
 * https://chef.libremesh.org
 
+![Chef](https://screenshotscdn.firefoxusercontent.com/images/6f96a6e3-1999-47b8-a3c7-643b61b56a0c.png)
+
 ## Server
 
 The server listens to update and image requests. Images are auto generated if the requests was valid. LEDE ImageBuilder is automatically setup up on first request of distribution, version, target & subtarget.
