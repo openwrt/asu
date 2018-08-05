@@ -148,7 +148,7 @@ class BuildRequest(Request):
         # likely to many package where requested
         elif self.request["status"] == "imagesize_fail":
             self.response_json["error"] = "No firmware created due to image size. Try again with less packages selected."
-            self.response_json["log"] = "{}/download/faillogs/faillog-{}.log".format(self.config.get("server"), self.request["request_hash"])
+            self.response_json["log"] = "{}/download/faillogs/faillog-{}.txt".format(self.config.get("server"), self.request["request_hash"])
             self.response_json["request_hash"] = self.request["request_hash"]
 
             self.response_status = 413 # PAYLOAD_TO_LARGE RCF 7231
@@ -156,7 +156,7 @@ class BuildRequest(Request):
         # something happend with is not yet covered in here
         else:
             self.response_json["error"] = self.request["status"]
-            self.response_json["log"] = "{}/download/faillogs/faillog-{}.log".format(self.config.get("server"), self.request["request_hash"])
+            self.response_json["log"] = "{}/download/faillogs/faillog-{}.txt".format(self.config.get("server"), self.request["request_hash"])
 
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR
 
