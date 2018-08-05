@@ -488,6 +488,18 @@ on delete to images do instead
 delete from images_table
 where old.id = images_table.id;
 
+create or replace view images_download as
+select
+id, image_hash,
+    distro || '/'
+    || version || '/'
+    || target || '/'
+    || subtarget || '/'
+    || profile || '/'
+    || manifest_hash as file_path,
+    sysupgrade
+from images;
+
 create table if not exists image_requests_table (
     id SERIAL PRIMARY KEY,
     request_hash varchar(30) UNIQUE,

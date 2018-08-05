@@ -96,23 +96,13 @@ class BuildRequest(Request):
         self.response_status = HTTPStatus.ACCEPTED # 202
         return self.respond()
 
-    def get_image_path(self):
-        return "/".join([
-            self.request["distro"],
-            self.request["version"],
-            self.request["target"],
-            self.request["subtarget"],
-            self.request["profile"],
-            self.request["manifest_hash"]
-            ])
-
     def return_status(self):
         # image created, return all desired information
         if self.request["status"] == "created":
-            image_path = self.get_image_path()
-            self.response_json["sysupgrade"] = "{}/download/{}/{}".format(self.config.get("server"), image_path, self.request["sysupgrade"])
-            self.response_json["log"] = "{}/download/{}/buildlog-{}.txt".format(self.config.get("server"), image_path, self.request["image_hash"])
-            self.response_json["files"] = "{}/json/{}/".format(self.config.get("server"), image_path)
+            image_path = self.database.get_image_path(self.request["image_hash"])
+            self.response_json["sysupgrade"] = "{}/download/{}/{}".format(self.config.get("server"), image_path["file_path"], image_path["sysupgrade"])
+            self.response_json["log"] = "{}/download/{}/buildlog-{}.txt".format(self.config.get("server"), image_path["file_path"], self.request["image_hash"])
+            self.response_json["files"] = "{}/json/{}/".format(self.config.get("server"), image_path["file_path"])
             self.response_json["request_hash"] = self.request["request_hash"]
             self.response_json["image_hash"] = self.request["image_hash"]
 
@@ -126,9 +116,9 @@ class BuildRequest(Request):
                 self.response_status = HTTPStatus.NOT_IMPLEMENTED # 501
             else:
                 # no sysupgrade found but not requested, factory image is likely from interest
-                image_path = self.get_image_path()
-                self.response_json["files"] = "{}/json/{}".format(self.config.get("server"), image_path)
-                self.response_json["log"] = "{}/download/{}/buildlog-{}.txt".format(self.config.get("server"), image_path, self.request["image_hash"])
+                image_path = self.database.get_image_path(self.request["image_hash"])
+                self.response_json["files"] = "{}/json/{}".format(self.config.get("server"), image_path["file_path"])
+                self.response_json["log"] = "{}/download/{}/buildlog-{}.txt".format(self.config.get("server"), image_path["file_path"], self.request["image_hash"])
                 self.response_json["request_hash"] = self.request["request_hash"]
                 self.response_json["image_hash"] = self.request["image_hash"]
 
