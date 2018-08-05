@@ -156,6 +156,7 @@ class BuildRequest(Request):
         # something happend with is not yet covered in here
         else:
             self.response_json["error"] = self.request["status"]
+            self.response_json["log"] = "{}/download/faillogs/faillog-{}.log".format(self.config.get("server"), self.request["request_hash"])
 
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR
 
