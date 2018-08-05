@@ -8,6 +8,7 @@ import os.path
 import subprocess
 import logging
 import time
+import pprint
 
 from utils.image import Image
 from utils.common import get_hash
@@ -55,33 +56,25 @@ class Worker(threading.Thread):
             # this puts the imagebuilder back in the queue, tries again next day
             self.database.subtarget_synced(self.params)
 
-    # write buildlog.txt to image dir
-    def store_log(self, path,  buildlog):
-        self.log.debug("write log")
-        with open(path, "a") as buildlog_file:
-            buildlog_file.writelines(buildlog)
-
-    def success_log(self, buildlog):
-        self.store_log(
-                self.image.params["dir"] + "/buildlog-{}.txt".format(self.params["image_hash"])
-                buildlog)
-
-    def fail_log(self, buildlog):
-        self.store_log("/".join([
-                self.config.get_folder("download_dir"),
-                "faillogs",
-                "faillog-{}.txt".format(self.parse_packages["request_hash"])
-                 ], buildlog)
+    def write_log(self, path, stdout=None, stderr=None):
+        with open(path, "a") as log_file:
+            log_file.write(pprint.pformat(self.params, indent=4, width=200))
+            if stdout:
+                log_file.write("\n\n### STDOUT:\n\n" + stdout)
+            if stderr:
+                log_file.write("\n\n### STDERR:\n\n" + stderr)
 
     # build image
     def build(self):
         self.log.debug("create and parse manifest")
+
+        # fail path in case of erros
+        fail_log_path = self.config.get_folder("download_folder") + "/faillogs/faillog-{}.txt".format(self.params["request_hash"])
+
         self.image = Image(self.params)
 
         # first determine the resulting manifest hash
         return_code, manifest_content, errors = self.run_meta("manifest")
-
-        self.log.debug(manifest_content)
 
         if return_code == 0:
             self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
@@ -91,9 +84,8 @@ class Worker(threading.Thread):
             self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
             self.log.info("successfully parsed manifest")
         else:
-            print(errors)
-            print(manifest_content)
             self.log.error("couldn't determine manifest")
+            self.write_log(fail_log_path, stderr=errors)
             self.database.set_image_requests_status(self.params["request_hash"], "manifest_fail")
             return False
 
@@ -103,6 +95,9 @@ class Worker(threading.Thread):
 
         # calculate hash based on resulted manifest
         self.image.params["image_hash"] = get_hash(" ".join(self.image.as_array("manifest_hash")), 15)
+
+        # set log path in case of success
+        success_log_path = self.image.params["dir"] + "/buildlog-{}.txt".format(self.params["image_hash"])
 
         # set build_status ahead, if stuff goes wrong it will be changed
         self.build_status = "created"
@@ -149,7 +144,7 @@ class Worker(threading.Thread):
                         if buildlog.find("too big") != -1:
                             self.log.warning("created image was to big")
                             self.database.set_image_requests_status(self.params["request_hash"], "imagesize_fail")
-                            self.fail_log(buildlog)
+                            self.write_log(fail_log_path, buildlog, errors)
                             return False
                         else:
                             self.build_status = "no_sysupgrade"
@@ -157,13 +152,13 @@ class Worker(threading.Thread):
                     else:
                         self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
 
-                    self.success_log(buildlog)
+                    self.write_log(success_log_path, buildlog)
                     self.database.add_image(self.image.get_params())
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
                     self.database.set_image_requests_status(self.params["request_hash"], 'build_fail')
-                    self.fail_log(buildlog)
+                    self.write_log(fail_log_path, buildlog, errors)
                     return False
 
         self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
@@ -209,6 +204,7 @@ class Worker(threading.Thread):
             cmdline,
             cwd=self.location,
             stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             shell=False,
             env=env
         )
@@ -216,6 +212,7 @@ class Worker(threading.Thread):
         output, errors = proc.communicate()
         return_code = proc.returncode
         output = output.decode('utf-8')
+        errors = errors.decode('utf-8')
 
         return (return_code, output, errors)
 
