@@ -24,6 +24,7 @@ class Image():
         # calculate hash of packages
         self.params["packages_hash"] = get_hash(" ".join(self.params["packages"]), 12)
 
+
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
         self.log.debug("write log")
@@ -35,9 +36,9 @@ class Image():
         path_array = [self.config.get_folder("download_folder")]
 
         # if custom uci defaults prepand some folders
-        if self.params["defaults_hash"]:
+        if self.params["defaults_hash"] != "":
             path_array.append("custom")
-            path_array.append(self.params["default_hash"])
+            path_array.append(self.params["defaults_hash"])
 
         path_array.extend([
             self.params["distro"],

@@ -1,4 +1,4 @@
-drop schema public cascade; create schema public;
+--drop schema public cascade; create schema public;
 
 create table if not exists worker (
     id serial primary key,
@@ -424,14 +424,14 @@ create table if not exists images_table (
     build_date timestamp,
     sysupgrade_id integer references sysupgrade_files(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'untested',
-    defaults_id integer references defaults_table(id) on delete casecade,
+    defaults_id integer references defaults_table(id) on delete cascade,
     vanilla boolean,
     build_seconds integer
 );
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, version, target, subtarget, profile, hash
+images_table.id, image_hash, distro, version, target, subtarget, profile, manifest_table.hash
 as manifest_hash, defaults_table.hash as defaults_hash, worker.name as worker,
 build_date, sysupgrade, status, vanilla, build_seconds
 from profiles, images_table, manifest_table, sysupgrade_files, worker, defaults_table
@@ -520,7 +520,13 @@ where old.id = images_table.id;
 create or replace view images_download as
 select
 id, image_hash,
-    distro || '/'
+    (CASE defaults_hash
+    WHEN '' THEN
+	''
+    ELSE
+	'custom/' || defaults_hash || '/'
+    end)
+    || distro || '/'
     || version || '/'
     || target || '/'
     || subtarget || '/'
@@ -534,7 +540,7 @@ create table if not exists image_requests_table (
     request_hash varchar(30) UNIQUE,
     profile_id integer references profiles_table(id) ON DELETE CASCADE,
     packages_hash_id integer references packages_hashes_table(id) ON DELETE CASCADE,
-    defaults_id integer references defaults_table(id) on delete casecade,
+    defaults_id integer references defaults_table(id) on delete cascade,
     image_id integer references images_table(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'requested'
 );
@@ -555,14 +561,14 @@ select
 from 
     profiles,
     packages_hashes_table,
-    image_requests_table,
-    defaults_table
+    defaults_table,
+    image_requests_table
 left join images_table on
     images_table.id = image_requests_table.image_id
 where
     profiles.id = image_requests_table.profile_id and
     packages_hashes_table.id = image_requests_table.packages_hash_id and
-    defaults_table.id = image_requests.defaults_id;
+    defaults_table.id = image_requests_table.defaults_id;
 
 create or replace rule insert_image_requests AS
 ON insert TO image_requests DO INSTEAD
@@ -582,7 +588,7 @@ insert into image_requests_table (
     (select packages_hashes_table.id from packages_hashes_table where
         packages_hashes_table.hash = NEW.packages_hash),
     (select defaults_table.id from defaults_table where
-        defaults_table.hash = NEW.packages_hash)
+        defaults_table.hash = NEW.defaults_hash)
     )
 on conflict do nothing;
 

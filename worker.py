@@ -122,7 +122,7 @@ class Worker(threading.Thread):
                         defaults_file.write(defaults_content) # TODO check if special encoding is required
 
                     # tell ImageBuilder to integrate files
-                    self.params["FILES"] = defaults_dir
+                    self.params["FILES"] = build_dir + "/files/"
                     self.params["EXTRA_IMAGE_NAME"] += "-" + self.params["defaults_hash"][:6]
 
                 return_code, buildlog, errors = self.run_meta("image")

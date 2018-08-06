@@ -11,6 +11,23 @@ class BuildRequest(Request):
 
     def _process_request(self):
         self.log.debug("request_json: %s", self.request_json)
+
+        if "defaults" in self.request_json:
+            if self.request_json["defaults"] != "":
+                # check if the uci file exceeds the max file size. this should be
+                # done as the uci-defaults are at least temporary stored in the
+                # database to be passed to a worker
+                if getsizeof(self.request_json["defaults"]) > self.config.get("max_defaults_size"):
+                    self.response_json["error"] = "attached defaults exceed max size"
+                    self.response_status = 420 # this error code is the best I could find
+                    self.respond()
+                else:
+                    self.request["defaults_hash"] = get_hash(self.request_json["defaults"], 32)
+            else:
+                self.request["defaults_hash"] = ""
+        else:
+            self.request["defaults_hash"] = ""
+
         # if request_hash is available check the database directly
         if "request_hash" in self.request_json:
             self.request = self.database.check_build_request_hash(self.request_json["request_hash"])
@@ -85,18 +102,8 @@ class BuildRequest(Request):
                 return self.respond()
 
         # check if a default uci config is attached to the request
-        if "defaults" in self.request_json:
-            # check if the uci file exceeds the max file size. this should be
-            # done as the uci-defaults are at least temporary stored in the
-            # database to be passed to a worker
-            if getsizeof(self.request_json["defaults"]) > self.config.get("max_defaults_size"):
-                self.response_json["error"] = "attached defaults exceed max size"
-                self.response_status = 420 # this error code is the best I could find
-                self.respond()
-            else:
-                self.request["defaults_hash"] = get_hash(self.request["defaults"], 32)
-                # add the defaults to the database
-                self.database.insert_defaults(self.request["defaults_hash"], self.request["defaults"])
+        if self.request["defaults_hash"] != "":
+            self.database.insert_defaults(self.request["defaults_hash"], self.request_json["defaults"])
 
         # all checks passed, eventually add to queue!
         self.request.pop("packages")
