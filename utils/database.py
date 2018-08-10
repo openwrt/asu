@@ -33,6 +33,16 @@ class Database():
         self.commit()
         self.log.info("created tables")
 
+    def insert_defaults(self, defaults_hash, defaults):
+        sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
+        self.c.execute(sql, defaults_hash, defaults)
+        self.commit()
+
+    def get_defaults(self, defaults_hash):
+        sql = "select content from defaults_table where hash = ?"
+        self.c.execute(sql, defaults_hash)
+        return self.c.fetchval()
+
     def insert_distro(self, distro):
         self.log.info("insert distro %s", distro)
         self.insert_dict("distributions", distro)
@@ -312,7 +322,7 @@ class Database():
                     target LIKE ? and
                     subtarget LIKE ?
                 )
-            RETURNING image_requests.id, request_hash, image_hash, distro, version, target, subtarget, profile, packages_hashes.packages;"""
+            RETURNING image_requests.id, request_hash, image_hash, distro, version, target, subtarget, profile, packages_hashes.packages, defaults_hash;"""
         self.c.execute(sql, distro, version, target, subtarget, distro, version, target, subtarget)
         self.commit()
         return self.as_dict()

@@ -1,4 +1,4 @@
-drop schema public cascade; create schema public;
+--drop schema public cascade; create schema public;
 
 create table if not exists worker (
     id serial primary key,
@@ -26,6 +26,7 @@ create table if not exists versions_table(
     unique(distro_id, name),
     foreign key (distro_id) references distributions(id) ON DELETE CASCADE
 );
+
 
 create or replace view versions as
 select versions_table.id, distributions.name as distro, versions_table.name as version, versions_table.alias, versions_table.description
@@ -296,6 +297,12 @@ SELECT add_packages_profile(
     NEW.packages
 );
 
+create table if not exists defaults_table (
+    id serial primary key,
+    hash varchar(64) unique,
+    content text
+);
+
 create table if not exists manifest_table (
     id serial primary key,
     hash varchar(64) unique
@@ -417,26 +424,45 @@ create table if not exists images_table (
     build_date timestamp,
     sysupgrade_id integer references sysupgrade_files(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'untested',
+    defaults_id integer references defaults_table(id) on delete cascade,
     vanilla boolean,
     build_seconds integer
 );
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, version, target, subtarget, profile, hash as manifest_hash, worker.name as worker, build_date, sysupgrade, status, vanilla, build_seconds
-from profiles, images_table, manifest_table, sysupgrade_files, worker
+images_table.id, image_hash, distro, version, target, subtarget, profile, manifest_table.hash
+as manifest_hash, defaults_table.hash as defaults_hash, worker.name as worker,
+build_date, sysupgrade, status, vanilla, build_seconds
+from profiles, images_table, manifest_table, sysupgrade_files, worker, defaults_table
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_id = sysupgrade_files.id and
+images_table.defaults_id = defaults_table.id and
 images_table.worker_id = worker.id;
 
-create or replace function add_image(image_hash varchar, distro varchar, version varchar, target varchar, subtarget varchar, profile varchar, manifest_hash varchar, worker varchar, sysupgrade varchar, build_date timestamp, vanilla boolean, build_seconds decimal) returns void as
+create or replace function add_image(
+    image_hash varchar,
+    distro varchar,
+    version varchar,
+    target varchar,
+    subtarget varchar,
+    profile varchar,
+    manifest_hash varchar,
+    defaults_hash varchar,
+    worker varchar, 
+    sysupgrade varchar,
+    build_date timestamp,
+    vanilla boolean,
+    build_seconds decimal
+)
+returns void as
 $$
 begin
     insert into sysupgrade_files (sysupgrade) values (add_image.sysupgrade) on conflict do nothing;
     insert into worker(name) values (add_image.worker) on conflict do nothing;
-    insert into images_table (image_hash, profile_id, manifest_id, worker_id, sysupgrade_id, build_date, vanilla, build_seconds) values (
+    insert into images_table (image_hash, profile_id, manifest_id, defaults_id, worker_id, sysupgrade_id, build_date, vanilla, build_seconds) values (
         add_image.image_hash,
         (select profiles.id from profiles where
             profiles.distro = add_image.distro and
@@ -446,6 +472,8 @@ begin
             profiles.profile = add_image.profile),
         (select manifest_table.id from manifest_table where
             manifest_table.hash = add_image.manifest_hash),
+        (select defaults_table.id from defaults_table where
+            defaults_table.hash = add_image.defaults_hash),
         (select worker.id from worker where
             worker.name = add_image.worker),
         (select sysupgrade_files.id from sysupgrade_files where
@@ -467,6 +495,7 @@ SELECT add_image(
     NEW.subtarget,
     NEW.profile,
     NEW.manifest_hash,
+    NEW.defaults_hash,
     NEW.worker,
     NEW.sysupgrade,
     NEW.build_date,
@@ -491,7 +520,13 @@ where old.id = images_table.id;
 create or replace view images_download as
 select
 id, image_hash,
-    distro || '/'
+    (CASE defaults_hash
+    WHEN '' THEN
+	''
+    ELSE
+	'custom/' || defaults_hash || '/'
+    end)
+    || distro || '/'
     || version || '/'
     || target || '/'
     || subtarget || '/'
@@ -505,22 +540,44 @@ create table if not exists image_requests_table (
     request_hash varchar(30) UNIQUE,
     profile_id integer references profiles_table(id) ON DELETE CASCADE,
     packages_hash_id integer references packages_hashes_table(id) ON DELETE CASCADE,
+    defaults_id integer references defaults_table(id) on delete cascade,
     image_id integer references images_table(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'requested'
 );
 
 create or replace view image_requests as
 select
-image_requests_table.id, request_hash, distro, version, target, subtarget, profile, hash as packages_hash, image_hash, image_requests_table.status
-from profiles, packages_hashes_table, image_requests_table left join images_table on
-images_table.id = image_requests_table.image_id
+    image_requests_table.id,
+    request_hash,
+    distro,
+    version,
+    target,
+    subtarget,
+    profile,
+    packages_hashes_table.hash as packages_hash,
+    defaults_table.hash as defaults_hash,
+    image_hash,
+    image_requests_table.status
+from 
+    profiles,
+    packages_hashes_table,
+    defaults_table,
+    image_requests_table
+left join images_table on
+    images_table.id = image_requests_table.image_id
 where
-profiles.id = image_requests_table.profile_id and
-packages_hashes_table.id = image_requests_table.packages_hash_id;
+    profiles.id = image_requests_table.profile_id and
+    packages_hashes_table.id = image_requests_table.packages_hash_id and
+    defaults_table.id = image_requests_table.defaults_id;
 
 create or replace rule insert_image_requests AS
 ON insert TO image_requests DO INSTEAD
-insert into image_requests_table (request_hash, profile_id, packages_hash_id) values (
+insert into image_requests_table (
+    request_hash,
+    profile_id,
+    packages_hash_id,
+    defaults_id
+) values (
     NEW.request_hash,
     (select profiles.id from profiles where
         profiles.distro = NEW.distro and
@@ -529,7 +586,9 @@ insert into image_requests_table (request_hash, profile_id, packages_hash_id) va
         profiles.subtarget = NEW.subtarget and
         profiles.profile = NEW.profile),
     (select packages_hashes_table.id from packages_hashes_table where
-        packages_hashes_table.hash = NEW.packages_hash)
+        packages_hashes_table.hash = NEW.packages_hash),
+    (select defaults_table.id from defaults_table where
+        defaults_table.hash = NEW.defaults_hash)
     )
 on conflict do nothing;
 

@@ -14,6 +14,12 @@ class Image():
         self.log.info("database initialized")
         self.params = params
 
+        if not "defaults_hash" in self.params:
+            self.params["defaults_hash"] = ""
+            if "defaults" in self.params:
+                if self.params["defaults"] != "":
+                    self.params["defaults_hash"] = get_hash(self.params["defaults"], 32)
+
     def set_packages_hash(self):
         # sort and deduplicate requested packages
         if "packages" in self.params:
@@ -24,6 +30,7 @@ class Image():
         # calculate hash of packages
         self.params["packages_hash"] = get_hash(" ".join(self.params["packages"]), 12)
 
+
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
         self.log.debug("write log")
@@ -32,8 +39,14 @@ class Image():
 
     # return dir where image is stored on server
     def set_image_dir(self):
-        self.params["dir"] = "/".join([
-            self.config.get_folder("download_folder"),
+        path_array = [self.config.get_folder("download_folder")]
+
+        # if custom uci defaults prepand some folders
+        if self.params["defaults_hash"] != "":
+            path_array.append("custom")
+            path_array.append(self.params["defaults_hash"])
+
+        path_array.extend([
             self.params["distro"],
             self.params["version"],
             self.params["target"],
@@ -41,6 +54,7 @@ class Image():
             self.params["profile"],
             self.params["manifest_hash"]
             ])
+        self.params["dir"] = "/".join(path_array)
 
     # return params of array in specific order
     def as_array(self, extra=None):
@@ -49,7 +63,8 @@ class Image():
             self.params["version"],
             self.params["target"],
             self.params["subtarget"],
-            self.params["profile"]
+            self.params["profile"],
+            self.params["defaults_hash"]
             ]
         if extra:
             as_array.append(self.params[extra])
@@ -64,6 +79,7 @@ class Image():
             "profile": self.params["profile"],
             "image_hash": self.params["image_hash"],
             "manifest_hash": self.params["manifest_hash"],
+            "defaults_hash": self.params["defaults_hash"],
             "worker": self.params["worker"],
             "sysupgrade": self.params["sysupgrade"]
         }

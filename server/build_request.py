@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from sys import getsizeof
 
 from utils.image import Image
 from server.request import Request
@@ -10,6 +11,7 @@ class BuildRequest(Request):
 
     def _process_request(self):
         self.log.debug("request_json: %s", self.request_json)
+
         # if request_hash is available check the database directly
         if "request_hash" in self.request_json:
             self.request = self.database.check_build_request_hash(self.request_json["request_hash"])
@@ -27,15 +29,25 @@ class BuildRequest(Request):
 
         self.request_json["profile"] = self.request_json["board"] # TODO fix this workaround
 
+        if "defaults" in self.request_json:
+            # check if the uci file exceeds the max file size. this should be
+            # done as the uci-defaults are at least temporary stored in the
+            # database to be passed to a worker
+            if getsizeof(self.request_json["defaults"]) > self.config.get("max_defaults_size"):
+                self.response_json["error"] = "attached defaults exceed max size"
+                self.response_status = 420 # this error code is the best I could find
+                self.respond()
+
         # create image object to get the request_hash
         image = Image(self.request_json)
         image.set_packages_hash()
         request_hash = get_hash(" ".join(image.as_array("packages_hash")), 12)
-        self.request = self.database.check_build_request_hash(request_hash)
+        request_database = self.database.check_build_request_hash(request_hash)
 
         # if found return instantly the status
-        if self.request:
+        if request_database:
             self.log.debug("found image in database: %s", self.request["status"])
+            self.request = request_database
             return self.return_status()
         else:
             self.request["request_hash"] = request_hash
@@ -82,6 +94,11 @@ class BuildRequest(Request):
                 self.response_json["error"] = "unknown device, please check model and board params"
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
+
+        # check if a default uci config is attached to the request
+        if image.params["defaults_hash"] != "":
+            self.request["defaults_hash"] = image.params["defaults_hash"]
+            self.database.insert_defaults(image.params["defaults_hash"], self.request_json["defaults"])
 
         # all checks passed, eventually add to queue!
         self.request.pop("packages")
