@@ -166,6 +166,7 @@ The client should check the status code:
 | 204		| no updates						| device is up to date. Contains `request_hash` |
 | 400		| bad request 						| see `error` parameter |
 | 413		| imagesize fail					| produced image too big for device |
+| 420		| defaults size fail				| requested defaults exceeds maximum size (10kB) |
 | 422		| unknown package					| unknown package in request |
 | 500		| build failed						| see `log` for build log	|
 | 501		| no sysupgrade						| image build successful but no sysupgrade image created |
