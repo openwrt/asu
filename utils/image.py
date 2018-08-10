@@ -14,6 +14,12 @@ class Image():
         self.log.info("database initialized")
         self.params = params
 
+        if not "defaults_hash" in self.params:
+            self.params["defaults_hash"] = ""
+            if "defaults" in self.params:
+                if self.params["defaults"] != "":
+                    self.params["defaults_hash"] = get_hash(self.params["defaults"], 32)
+
     def set_packages_hash(self):
         # sort and deduplicate requested packages
         if "packages" in self.params:
