@@ -141,9 +141,15 @@ See [other status codes](#response-status-codes)
 
 ### Build request `/api/build-request`
 
-It's also possible to request to build an image. The request is exactly the same
+It's also possible to request to build an image. The request is nearly the same
 as for `upgrade-request`. The response only contains a link to the created
 `files` or `upgrade-request` parameters if available.
+
+An additional parameter is the `defaults` parameter which allows to set the
+content of `/etc/uci-defaults/99-server-defaults` within the image. This allows
+to set custom options for the resulting image. To distinguish between custom
+images the name will contain a hash of the requested `defaults` value and is
+stored in a different place, only visible if the full hash (32bit) is known.
 
 This is a special case for clients that do not necessary require a sysupgrade
 compatible image. An example is the [LibreMesh Chef](https://chef.libremesh.org)
