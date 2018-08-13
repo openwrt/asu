@@ -90,14 +90,13 @@ def stats():
 @app.route("/api/distros")
 def api_distros():
     return app.response_class(
-            response=database.api_get_versions(),
+            response=database.api_get_distros(),
             mimetype='application/json')
 
 @app.route("/api/versions")
 def api_versions():
-    distro = request.args.get("distro", "")
     return app.response_class(
-            response=database.get_supported_versions(distro),
+            response=database.api_get_versions(),
             mimetype='application/json')
 
 @app.route("/api/models")

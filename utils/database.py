@@ -463,7 +463,7 @@ class Database():
         result = self.c.fetchall()
         return result
 
-    def get_supported_distros(self):
+    def api_get_distros(self):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]')
                 from (select * from distributions order by (alias)) as distributions;"""
         return self.c.execute(sql).fetchval()
