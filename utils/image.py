@@ -19,6 +19,8 @@ class Image():
             if "defaults" in self.params:
                 if self.params["defaults"] != "":
                     self.params["defaults_hash"] = get_hash(self.params["defaults"], 32)
+        if not self.params["defaults_hash"]:
+            self.params["defaults_hash"] = ""
 
     def set_packages_hash(self):
         # sort and deduplicate requested packages
@@ -42,7 +44,7 @@ class Image():
         path_array = [self.config.get_folder("download_folder")]
 
         # if custom uci defaults prepand some folders
-        if self.params["defaults_hash"] != "":
+        if self.params["defaults_hash"]:
             path_array.append("custom")
             path_array.append(self.params["defaults_hash"])
 

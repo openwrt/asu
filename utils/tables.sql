@@ -561,14 +561,13 @@ select
 from 
     profiles,
     packages_hashes_table,
-    defaults_table,
     image_requests_table
-left join images_table on
-    images_table.id = image_requests_table.image_id
+left join defaults_table on defaults_table.id = image_requests_table.defaults_id
+left join images_table on images_table.id = image_requests_table.image_id
+
 where
     profiles.id = image_requests_table.profile_id and
     packages_hashes_table.id = image_requests_table.packages_hash_id and
-    defaults_table.id = image_requests_table.defaults_id;
 
 create or replace rule insert_image_requests AS
 ON insert TO image_requests DO INSTEAD
