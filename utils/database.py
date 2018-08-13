@@ -469,7 +469,7 @@ class Database():
         return self.c.execute(sql).fetchval()
 
     def api_get_versions(self):
-        sql = """select json_object_agg(distro, row_to_json(versions)) from versions group by (distro);"""
+        sql = """select json_build_object(distro, json_agg(versions)) from versions group by (distro);"""
         return self.c.execute(sql).fetchval()
 
     def get_supported_models(self, search='', distro='', version=''):
