@@ -46,7 +46,7 @@ class BuildRequest(Request):
 
         # if found return instantly the status
         if request_database:
-            self.log.debug("found image in database: %s", self.request["status"])
+            self.log.debug("found image in database: %s", request_database["status"])
             self.request = request_database
             return self.return_status()
         else:
@@ -95,13 +95,14 @@ class BuildRequest(Request):
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
 
+        self.request["defaults_hash"] = image.params["defaults_hash"]
         # check if a default uci config is attached to the request
         if image.params["defaults_hash"] != "":
-            self.request["defaults_hash"] = image.params["defaults_hash"]
             self.database.insert_defaults(image.params["defaults_hash"], self.request_json["defaults"])
 
         # all checks passed, eventually add to queue!
         self.request.pop("packages")
+        self.log.debug("add build job %s", self.request)
         self.database.add_build_job(self.request)
         return self.return_queued()
 
