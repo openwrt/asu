@@ -15,4 +15,4 @@ repos: |
   src/gz libremap http://snapshots.libremesh.org/packages/{{ pkg_arch }}/libremap
   src/gz limeui http://snapshots.libremesh.org/packages/{{ pkg_arch }}/limeui
   src/gz lm_routing http://snapshots.libremesh.org/packages/{{ pkg_arch }}/routing
-  src/gz lm_profiles http://repo.libremesh.org/network-profiles/
+  src/gz lm_profiles http://as-test.stephen304.com/network-profiles/
