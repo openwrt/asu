@@ -15,6 +15,15 @@ from utils.common import get_hash
 from utils.config import Config
 from utils.database import Database
 
+class GarbageCollector(threading.Thread):
+    def __init__(self, location, job, params):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        # remove oudated manifests
+        # remove outdated snapshot builds
+        # remove custom images older than 7 days
+
 class Worker(threading.Thread):
     def __init__(self, location, job, params):
         self.location = location

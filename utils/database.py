@@ -126,6 +126,25 @@ class Database():
         self.c.execute(sql, distro, version, target, subtarget, profile)
         return json.dumps({"packages": self.c.fetchval().rstrip().split(" ")})
 
+    def outdated_images(self):
+        sql = """select image_hash from
+            images join manifest_upgrades using
+            (distro, version, target, subtarget, manifest_hash);"""
+        self.c.execute(sql)
+        return self.c.fetchall()
+
+    def outdated_snapshots(self):
+        sql = """select image_hash from
+            where snapshot = 1 and build_date < NOW() - INTERVAL '1 day';"""
+        self.c.execute(sql)
+        return self.c.fetchall()
+
+    def outdated_custom(self):
+        sql = """select image_hash from images
+            where defaults_hash != '' and build_date < NOW() - INTERVAL '7 day';"""
+        self.c.execute(sql)
+        return self.c.fetchall()
+
     def manifest_outdated(self, p):
         sql = """select upgrades
                 from manifest_upgrades
