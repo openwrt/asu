@@ -10,6 +10,9 @@ server_user: root
 server_dir: /vagrant
 worker:
     - "/tmp/worker"
+active_distros:
+    - lime
+    - openwrt
 
 # database
 database_type: PostgreSQL Unicode

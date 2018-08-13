@@ -37,7 +37,7 @@ class ServerCli():
 
     def flush_snapshots(self):
         self.log.info("flush snapshots")
-        for distro in self.config.get_distros():
+        for distro in self.config.get("active_distros", "openwrt"):
             download_folder = os.path.join(config.get_folder("download_folder"), distro, "snapshot")
             if os.path.exists(download_folder):
                 self.log.info("remove snapshots of %s", distro)
@@ -45,7 +45,7 @@ class ServerCli():
         self.database.flush_snapshots()
 
     def download_versions(self):
-        for distro in self.config.get_distros():
+        for distro in self.config.get("active_distros", "openwrt"):
             # set distro alias like OpenWrt, fallback would be openwrt
             self.database.insert_distro({
                 "name": distro,
