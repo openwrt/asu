@@ -468,11 +468,9 @@ class Database():
                 from (select * from distributions order by (alias)) as distributions;"""
         return self.c.execute(sql).fetchval()
 
-    def get_supported_versions(self, distro):
-        if distro == '': distro='%'
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(versions))), '[]')
-            from (select * from versions where distro LIKE ? order by id desc) as versions;"""
-        return self.c.execute(sql, distro).fetchval()
+    def api_get_versions(self):
+        sql = """select json_object_agg(distro, row_to_json(versions)) from versions group by (distro);"""
+        return self.c.execute(sql).fetchval()
 
     def get_supported_models(self, search='', distro='', version=''):
         search_like = '%' + search.lower() + '%'

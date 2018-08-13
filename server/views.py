@@ -90,7 +90,7 @@ def stats():
 @app.route("/api/distros")
 def api_distros():
     return app.response_class(
-            response=database.get_supported_distros(),
+            response=database.api_get_versions(),
             mimetype='application/json')
 
 @app.route("/api/versions")
