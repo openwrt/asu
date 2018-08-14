@@ -434,12 +434,12 @@ select
 images_table.id, image_hash, distro, version, target, subtarget, profile, manifest_table.hash
 as manifest_hash, defaults_table.hash as defaults_hash, worker.name as worker,
 build_date, sysupgrade, status, snapshot, build_seconds
-from profiles, images_table, manifest_table, sysupgrade_files, worker, defaults_table
+from profiles, manifest_table, sysupgrade_files, worker, images_table
+left join defaults_table on defaults_table.id = images_table.defaults_id
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_id = sysupgrade_files.id and
-images_table.defaults_id = defaults_table.id and
 images_table.worker_id = worker.id;
 
 create or replace function add_image(
@@ -566,7 +566,7 @@ left join defaults_table on defaults_table.id = image_requests_table.defaults_id
 left join images_table on images_table.id = image_requests_table.image_id
 where
     profiles.id = image_requests_table.profile_id and
-    packages_hashes_table.id = image_requests_table.packages_hash_id and
+    packages_hashes_table.id = image_requests_table.packages_hash_id;
 
 create or replace rule insert_image_requests AS
 ON insert TO image_requests DO INSTEAD

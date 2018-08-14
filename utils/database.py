@@ -126,21 +126,25 @@ class Database():
         self.c.execute(sql, distro, version, target, subtarget, profile)
         return json.dumps({"packages": self.c.fetchval().rstrip().split(" ")})
 
-    def outdated_images(self):
-        sql = """select image_hash from
-            images join manifest_upgrades using
-            (distro, version, target, subtarget, manifest_hash);"""
+    def del_image(self, image_hash):
+        sql = """delete from images where image_hash = ?;"""
+        self.c.execute(sql, image_hash)
+        self.commit()
+
+    def get_outdated_manifests(self):
+        sql = """select image_hash, file_path from images join images_download using (image_hash)
+            join manifest_upgrades using (distro, version, target, subtarget, manifest_hash);"""
         self.c.execute(sql)
         return self.c.fetchall()
 
-    def outdated_snapshots(self):
-        sql = """select image_hash from
-            where snapshot = 1 and build_date < NOW() - INTERVAL '1 day';"""
+    def get_outdated_snapshots(self):
+        sql = """select image_hash, file_path from images join images_download using (image_hash)
+            where snapshot = 'true' and build_date < NOW() - INTERVAL '1 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
 
-    def outdated_custom(self):
-        sql = """select image_hash from images
+    def get_outdated_customs(self):
+        sql = """select image_hash, file_path from images join images_download using (image_hash)
             where defaults_hash != '' and build_date < NOW() - INTERVAL '7 day';"""
         self.c.execute(sql)
         return self.c.fetchall()

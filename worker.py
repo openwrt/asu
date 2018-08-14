@@ -16,13 +16,34 @@ from utils.config import Config
 from utils.database import Database
 
 class GarbageCollector(threading.Thread):
-    def __init__(self, location, job, params):
+    def __init__(self):
         threading.Thread.__init__(self)
+        self.log = logging.getLogger(__name__)
+        self.config = Config()
+        self.database = Database(self.config)
+
+    def del_image(self, image):
+        self.log.debug("remove outdated image %s", image)
+        self.database.del_image(image["image_hash"])
+        print("removes ", image["file_path"])
+        #shutil.rmtree(image["file_path"])
 
     def run(self):
-        # remove oudated manifests
-        # remove outdated snapshot builds
-        # remove custom images older than 7 days
+        while True:
+            # remove outdated snapshot builds
+            for outdated_snapshot in self.database.get_outdated_snapshots():
+                self.del_image(outdated_snapshot)
+
+            # del custom images older than 7 days
+            for outdated_custom in self.database.get_outdated_customs():
+                self.del_image(outdated_custom)
+
+            # del oudated manifests
+            for outdated_manifest in self.database.get_outdated_manifests():
+                self.del_image(outdated_manifest)
+
+            # run every 6 hours
+            time.sleep(3600 * 6)
 
 class Worker(threading.Thread):
     def __init__(self, location, job, params):
@@ -279,27 +300,40 @@ class Worker(threading.Thread):
         else:
             self.log.warning("could not receive packages")
 
+class Boss( threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.log = logging.getLogger(__name__)
+        self.config = Config()
+        self.database = Database(self.config)
+
+    def run(self):
+        location = self.config.get("worker")[0]
+        while True:
+            image = self.database.get_build_job()
+            if image:
+                print(image)
+                worker = Worker(location, "image", image)
+                worker.run() # TODO no threading just yet
+            outdated_subtarget = self.database.get_subtarget_outdated()
+            if outdated_subtarget:
+                log.info("found outdated subtarget %s", outdated_subtarget)
+                worker = Worker(location, "info", outdated_subtarget)
+                worker.run()
+                worker = Worker(location, "package_list", outdated_subtarget)
+                worker.run()
+            time.sleep(5)
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     log = logging.getLogger(__name__)
-    config = Config()
-    database = Database(config)
-    location = config.get("worker")[0]
-    while True:
-        image = database.get_build_job()
-        if image:
-            print(image)
-            worker = Worker(location, "image", image)
-            worker.run() # TODO no threading just yet
-        outdated_subtarget = database.get_subtarget_outdated()
-        if outdated_subtarget:
-            print(outdated_subtarget)
-            log.info("found outdated subtarget %s", outdated_subtarget)
-            worker = Worker(location, "info", outdated_subtarget)
-            worker.run()
-            worker = Worker(location, "package_list", outdated_subtarget)
-            worker.run()
-        time.sleep(5)
+    log.info("start garbage collector")
+    gaco = GarbageCollector()
+    gaco.start()
+
+    log.info("start boss")
+    boss = Boss()
+    boss.start()
 
     # TODO reimplement
     #def diff_packages(self):
