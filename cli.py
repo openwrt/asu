@@ -22,27 +22,15 @@ class ServerCli():
         parser = argparse.ArgumentParser(description="CLI for update-server")
         parser.add_argument("-r", "--download-versions", action="store_true")
         parser.add_argument("-i", "--init-server", action="store_true")
-        parser.add_argument("-f", "--flush-snapshots", action="store_true")
         parser.add_argument("-p", "--parse-configs", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_versions"]:
             self.download_versions()
         if self.args["init_server"]:
             self.init_server()
-        if self.args["flush_snapshots"]:
-            self.flush_snapshots()
         if self.args["parse_configs"]:
             self.insert_board_rename()
             self.load_tables()
-
-    def flush_snapshots(self):
-        self.log.info("flush snapshots")
-        for distro in self.config.get("active_distros", "openwrt"):
-            download_folder = os.path.join(config.get_folder("download_folder"), distro, "snapshot")
-            if os.path.exists(download_folder):
-                self.log.info("remove snapshots of %s", distro)
-                rmtree(download_folder)
-        self.database.flush_snapshots()
 
     def download_versions(self):
         for distro in self.config.get("active_distros", "openwrt"):
@@ -59,7 +47,8 @@ class ServerCli():
                     "distro": distro,
                     "version": version,
                     "alias": version_config.get("version_alias", ""),
-                    "description": version_config.get("version_description", "")
+                    "description": version_config.get("version_description", ""),
+                    "snapshots": version_config.get("snapshots", False)
                     })
                 version_config = self.config.version(distro, version)
                 version_url = version_config.get("targets_url")

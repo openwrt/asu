@@ -12,7 +12,7 @@ class Database():
         self.log.info("log initialized")
         self.config = config
         self.log.info("config initialized")
-        connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={}".format(
+        connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={};BoolsAsChar=0".format(
                 self.config.get("database_type"),
                 self.config.get("database_address"),
                 self.config.get("database_name"),
@@ -139,7 +139,7 @@ class Database():
 
     def get_outdated_snapshots(self):
         sql = """select image_hash, file_path from images join images_download using (image_hash)
-            where snapshot = 'true' and build_date < NOW() - INTERVAL '1 day';"""
+            where snapshots = 'true' and build_date < NOW() - INTERVAL '1 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
 
