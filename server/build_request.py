@@ -108,7 +108,8 @@ class BuildRequest(Request):
 
     def return_queued(self):
         self.response_header["X-Imagebuilder-Status"] = "queue"
-        self.response_header['X-Build-Queue-Position'] = '1337' # TODO: currently not implemented
+        if "build_position" in self.request:
+            self.response_header['X-Build-Queue-Position'] = self.request["build_position"]
         self.response_json["request_hash"] = self.request["request_hash"]
 
         self.response_status = HTTPStatus.ACCEPTED # 202

@@ -557,10 +557,12 @@ select
     packages_hashes_table.hash as packages_hash,
     defaults_table.hash as defaults_hash,
     image_hash,
-    image_requests_table.status
+    image_requests_table.status,
+    image_requests_table.id - next_id as build_position
 from 
     profiles,
     packages_hashes_table,
+    (select min(id) as next_id from image_requests_table where status = 'requested') as next,
     image_requests_table
 left join defaults_table on defaults_table.id = image_requests_table.defaults_id
 left join images_table on images_table.id = image_requests_table.image_id
