@@ -23,10 +23,10 @@ class GarbageCollector(threading.Thread):
         self.database = Database(self.config)
 
     def del_image(self, image):
+        image_hash, image_path = image
         self.log.debug("remove outdated image %s", image)
-        self.database.del_image(image["image_hash"])
-        print("removes ", image["file_path"])
-        #shutil.rmtree(image["file_path"])
+        self.database.del_image(image_hash)
+        shutil.rmtree(image["file_path"])
 
     def run(self):
         while True:
