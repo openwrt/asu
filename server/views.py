@@ -104,7 +104,7 @@ def api_models():
     distro = request.args.get("distro", "")
     version = request.args.get("version", "")
     model_search = request.args.get("model_search", "")
-    if distro != "" and version != "" and model_search != "":
+    if distro != "" and version != "":
         return app.response_class(
                 response=database.get_supported_models(model_search, distro, version),
                 mimetype='application/json')
