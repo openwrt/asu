@@ -1,4 +1,4 @@
---drop schema public cascade; create schema public;
+drop schema public cascade; create schema public;
 
 create table if not exists worker (
     id serial primary key,
@@ -23,23 +23,31 @@ create table if not exists versions_table(
     name varchar(20) not null,
     alias varchar(20) default '',
     description text default '',
+    snapshots boolean default false,
     unique(distro_id, name),
     foreign key (distro_id) references distributions(id) ON DELETE CASCADE
 );
 
 
 create or replace view versions as
-select versions_table.id, distributions.name as distro, versions_table.name as version, versions_table.alias, versions_table.description
+select
+    versions_table.id,
+    distributions.name as distro,
+    versions_table.name as version,
+    versions_table.alias,
+    versions_table.description,
+    snapshots
 from distributions join versions_table on distributions.id = versions_table.distro_id;
 
-create or replace function add_versions(distro varchar, version varchar, alias varchar, description text) returns void as
+create or replace function add_versions(distro varchar, version varchar, alias varchar, description text, snapshots boolean) returns void as
 $$
 begin
-    insert into versions_table (distro_id, name, alias, description) values (
+    insert into versions_table (distro_id, name, alias, description, snapshots) values (
         (select id from distributions where distributions.name = add_versions.distro),
         add_versions.version,
         add_versions.alias,
-        add_versions.description
+        add_versions.description,
+        add_versions.snapshots
     ) on conflict do nothing;
 end
 $$ language 'plpgsql';
@@ -50,7 +58,8 @@ SELECT add_versions(
     NEW.distro,
     NEW.version,
     NEW.alias,
-    NEW.description
+    NEW.description,
+    NEW.snapshots
 );
 
 create table if not exists subtargets_table(
@@ -64,7 +73,15 @@ create table if not exists subtargets_table(
 );
 
 create or replace view subtargets as
-select subtargets_table.id, distro, version, target, subtarget, supported, last_sync
+select
+    subtargets_table.id,
+    distro,
+    version,
+    snapshots,
+    target,
+    subtarget,
+    supported,
+    last_sync
 from versions join subtargets_table on versions.id = subtargets_table.version_id;
 
 create or replace function add_subtargets(distro varchar, version varchar, target varchar, subtarget varchar) returns void as
@@ -115,7 +132,15 @@ create table if not exists profiles_table(
 );
 
 create or replace view profiles as
-select profiles_table.id, distro, version, target, subtarget, profile, model
+select
+    profiles_table.id,
+    distro,
+    version,
+    target,
+    subtarget,
+    snapshots,
+    profile,
+    model
 from subtargets, profiles_table
 where profiles_table.subtarget_id = subtargets.id;
 
@@ -425,22 +450,40 @@ create table if not exists images_table (
     sysupgrade_id integer references sysupgrade_files(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'untested',
     defaults_id integer references defaults_table(id) on delete cascade,
-    snapshot boolean,
+    vanilla boolean default false,
     build_seconds integer
 );
 
 create or replace view images as
 select
-images_table.id, image_hash, distro, version, target, subtarget, profile, manifest_table.hash
-as manifest_hash, defaults_table.hash as defaults_hash, worker.name as worker,
-build_date, sysupgrade, status, snapshot, build_seconds
-from profiles, manifest_table, sysupgrade_files, worker, images_table
+    images_table.id,
+    image_hash,
+    distro,
+    version,
+    target,
+    subtarget,
+    profile,
+    manifest_table.hash as manifest_hash,
+    defaults_table.hash as defaults_hash,
+    worker.name as worker,
+    build_date,
+    sysupgrade,
+    status,
+    vanilla,
+    build_seconds,
+    snapshots
+from profiles,
+    manifest_table,
+    sysupgrade_files,
+    worker,
+    images_table
 left join defaults_table on defaults_table.id = images_table.defaults_id
 where
-profiles.id = images_table.profile_id and
-images_table.manifest_id = manifest_table.id and
-images_table.sysupgrade_id = sysupgrade_files.id and
-images_table.worker_id = worker.id;
+    profiles.id = images_table.profile_id and
+    images_table.manifest_id = manifest_table.id and
+    images_table.sysupgrade_id = sysupgrade_files.id and
+    images_table.worker_id = worker.id
+;
 
 create or replace function add_image(
     image_hash varchar,
@@ -454,7 +497,7 @@ create or replace function add_image(
     worker varchar, 
     sysupgrade varchar,
     build_date timestamp,
-    snapshot boolean,
+    vanilla boolean,
     build_seconds decimal
 )
 returns void as
@@ -462,7 +505,7 @@ $$
 begin
     insert into sysupgrade_files (sysupgrade) values (add_image.sysupgrade) on conflict do nothing;
     insert into worker(name) values (add_image.worker) on conflict do nothing;
-    insert into images_table (image_hash, profile_id, manifest_id, defaults_id, worker_id, sysupgrade_id, build_date, snapshot, build_seconds) values (
+    insert into images_table (image_hash, profile_id, manifest_id, defaults_id, worker_id, sysupgrade_id, build_date, vanilla, build_seconds) values (
         add_image.image_hash,
         (select profiles.id from profiles where
             profiles.distro = add_image.distro and
@@ -479,7 +522,7 @@ begin
         (select sysupgrade_files.id from sysupgrade_files where
             sysupgrade_files.sysupgrade = add_image.sysupgrade),
         add_image.build_date,
-        add_image.snapshot,
+        add_image.vanilla,
         add_image.build_seconds)
     on conflict do nothing;
 end
@@ -499,7 +542,7 @@ SELECT add_image(
     NEW.worker,
     NEW.sysupgrade,
     NEW.build_date,
-    NEW.snapshot,
+    NEW.vanilla,
     NEW.build_seconds
 );
 
@@ -520,18 +563,22 @@ where old.id = images_table.id;
 create or replace view images_download as
 select
 id, image_hash,
-    (CASE defaults_hash
-    WHEN '' THEN
-	''
+    (CASE WHEN defaults_hash is null THEN
+        ''
     ELSE
-	'custom/' || defaults_hash || '/'
+        'custom/' || defaults_hash || '/'
     end)
     || distro || '/'
     || version || '/'
     || target || '/'
     || subtarget || '/'
-    || profile || '/'
-    || manifest_hash as file_path,
+    || profile || '/' ||
+    (CASE WHEN vanilla is true THEN
+	    'vanilla/'
+    ELSE
+        manifest_hash || '/'
+    end)
+    as file_path,
     sysupgrade
 from images;
 
