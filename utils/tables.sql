@@ -425,7 +425,7 @@ create table if not exists images_table (
     sysupgrade_id integer references sysupgrade_files(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'untested',
     defaults_id integer references defaults_table(id) on delete cascade,
-    vanilla boolean,
+    snapshot boolean,
     build_seconds integer
 );
 
@@ -433,13 +433,13 @@ create or replace view images as
 select
 images_table.id, image_hash, distro, version, target, subtarget, profile, manifest_table.hash
 as manifest_hash, defaults_table.hash as defaults_hash, worker.name as worker,
-build_date, sysupgrade, status, vanilla, build_seconds
-from profiles, images_table, manifest_table, sysupgrade_files, worker, defaults_table
+build_date, sysupgrade, status, snapshot, build_seconds
+from profiles, manifest_table, sysupgrade_files, worker, images_table
+left join defaults_table on defaults_table.id = images_table.defaults_id
 where
 profiles.id = images_table.profile_id and
 images_table.manifest_id = manifest_table.id and
 images_table.sysupgrade_id = sysupgrade_files.id and
-images_table.defaults_id = defaults_table.id and
 images_table.worker_id = worker.id;
 
 create or replace function add_image(
@@ -454,7 +454,7 @@ create or replace function add_image(
     worker varchar, 
     sysupgrade varchar,
     build_date timestamp,
-    vanilla boolean,
+    snapshot boolean,
     build_seconds decimal
 )
 returns void as
@@ -462,7 +462,7 @@ $$
 begin
     insert into sysupgrade_files (sysupgrade) values (add_image.sysupgrade) on conflict do nothing;
     insert into worker(name) values (add_image.worker) on conflict do nothing;
-    insert into images_table (image_hash, profile_id, manifest_id, defaults_id, worker_id, sysupgrade_id, build_date, vanilla, build_seconds) values (
+    insert into images_table (image_hash, profile_id, manifest_id, defaults_id, worker_id, sysupgrade_id, build_date, snapshot, build_seconds) values (
         add_image.image_hash,
         (select profiles.id from profiles where
             profiles.distro = add_image.distro and
@@ -479,7 +479,7 @@ begin
         (select sysupgrade_files.id from sysupgrade_files where
             sysupgrade_files.sysupgrade = add_image.sysupgrade),
         add_image.build_date,
-        add_image.vanilla,
+        add_image.snapshot,
         add_image.build_seconds)
     on conflict do nothing;
 end
@@ -499,7 +499,7 @@ SELECT add_image(
     NEW.worker,
     NEW.sysupgrade,
     NEW.build_date,
-    NEW.vanilla,
+    NEW.snapshot,
     NEW.build_seconds
 );
 
@@ -566,7 +566,7 @@ left join defaults_table on defaults_table.id = image_requests_table.defaults_id
 left join images_table on images_table.id = image_requests_table.image_id
 where
     profiles.id = image_requests_table.profile_id and
-    packages_hashes_table.id = image_requests_table.packages_hash_id and
+    packages_hashes_table.id = image_requests_table.packages_hash_id;
 
 create or replace rule insert_image_requests AS
 ON insert TO image_requests DO INSTEAD
