@@ -1,6 +1,7 @@
 import threading
 import glob
 import re
+from queue import Queue
 import shutil
 import tempfile
 import os
@@ -46,10 +47,10 @@ class GarbageCollector(threading.Thread):
             time.sleep(3600 * 6)
 
 class Worker(threading.Thread):
-    def __init__(self, location, job, params):
+    def __init__(self, location, job, queue):
         self.location = location
+        self.queue = queue
         self.job = job
-        self.params = params
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
@@ -57,24 +58,27 @@ class Worker(threading.Thread):
         self.log.info("config initialized")
         self.database = Database(self.config)
         self.log.info("database initialized")
-        self.version_config = self.config.version(
-                self.params["distro"], self.params["version"])
 
     def setup_meta(self):
-        os.makedirs(self.location, exist_ok=True)
         self.log.debug("setup meta")
-        cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
-        proc = subprocess.Popen(
-            cmdline.split(" "),
-            cwd=self.location,
-            stdout=subprocess.PIPE,
-            shell=False,
-        )
+        os.makedirs(self.location, exist_ok=True)
+        if not os.path.exists(self.location + "/meta"):
+            cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
+            proc = subprocess.Popen(
+                cmdline.split(" "),
+                cwd=self.location,
+                stdout=subprocess.PIPE,
+                shell=False,
+            )
 
-        _, errors = proc.communicate()
-        return_code = proc.returncode
+            _, errors = proc.communicate()
+            return_code = proc.returncode
 
-        return return_code
+            if return_code != 0:
+                self.log.error("failed to setup meta ImageBuilder")
+                exit()
+
+        self.log.info("meta ImageBuilder successfully setup")
 
     def setup(self):
         self.log.debug("setup")
@@ -209,26 +213,33 @@ class Worker(threading.Thread):
         return True
 
     def run(self):
-        if not os.path.exists(self.location + "/meta"):
-            if self.setup_meta():
-                self.log.error("failed to setup meta ImageBuilder")
-                exit()
-        self.setup()
-        if self.job == "image":
-            self.build()
-        elif self.job == "info":
-            self.parse_info()
-            if os.path.exists(os.path.join(
-                    self.location, "imagebuilder",
-                    self.params["distro"], self.params["version"],
-                    self.params["target"], self.params["subtarget"],
-                    "target/linux", self.params["target"],
-                    "base-files/lib/upgrade/platform.sh")):
-                self.log.info("%s target is supported", self.params["target"])
-                self.database.insert_supported(self.params)
-        elif self.job == "package_list":
-            self.parse_packages()
-            self.database.subtarget_synced(self.params)
+        self.setup_meta()
+
+        while True:
+            self.params = self.queue.get()
+            self.version_config = self.config.version(
+                    self.params["distro"], self.params["version"])
+            self.setup()
+            if self.job == "image":
+                self.build()
+            elif self.job == "update":
+                self.info()
+                self.package_list()
+
+    def info(self):
+        self.parse_info()
+        if os.path.exists(os.path.join(
+                self.location, "imagebuilder",
+                self.params["distro"], self.params["version"],
+                self.params["target"], self.params["subtarget"],
+                "target/linux", self.params["target"],
+                "base-files/lib/upgrade/platform.sh")):
+            self.log.info("%s target is supported", self.params["target"])
+            self.database.insert_supported(self.params)
+
+    def package_list(self):
+        self.parse_packages()
+        self.database.subtarget_synced(self.params)
 
     def run_meta(self, cmd):
         cmdline = ["sh", "meta", cmd ]
@@ -241,7 +252,6 @@ class Worker(threading.Thread):
 
         for key, value in self.params.items():
             env[key.upper()] = str(value) # TODO convert meta script to Makefile
-
 
         proc = subprocess.Popen(
             cmdline,
@@ -300,29 +310,55 @@ class Worker(threading.Thread):
         else:
             self.log.warning("could not receive packages")
 
-class Boss( threading.Thread):
+class Updater(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.log = logging.getLogger(__name__)
         self.config = Config()
         self.database = Database(self.config)
+        self.update_queue = Queue(1)
 
     def run(self):
-        location = self.config.get("worker")[0]
+        location = self.config.get("updater_dir", "updater")
+        Worker(location, None, None).setup_meta()
+        workers = []
+
+        # start all workers
+        for i in range(0, self.config.get("updater_threads", 4)):
+                worker = Worker(location, "update", self.update_queue)
+                worker.start()
+                workers.append(worker)
+
         while True:
-            image = self.database.get_build_job()
-            if image:
-                print(image)
-                worker = Worker(location, "image", image)
-                worker.run() # TODO no threading just yet
             outdated_subtarget = self.database.get_subtarget_outdated()
             if outdated_subtarget:
                 log.info("found outdated subtarget %s", outdated_subtarget)
-                worker = Worker(location, "info", outdated_subtarget)
-                worker.run()
-                worker = Worker(location, "package_list", outdated_subtarget)
-                worker.run()
-            time.sleep(5)
+                self.update_queue.put(outdated_subtarget)
+            else:
+                time.sleep(5)
+
+class Boss(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.log = logging.getLogger(__name__)
+        self.config = Config()
+        self.database = Database(self.config)
+        self.build_queue = Queue(1)
+
+    def run(self):
+        workers = []
+        for worker_location in self.config.get("workers"):
+            worker = Worker(worker_location, "image", self.build_queue)
+            worker.start()
+            workers.append(worker)
+
+        while True:
+            build_job = self.database.get_build_job()
+            if build_job:
+                self.log.info("found build job %s", build_job)
+                self.build_queue.put(build_job)
+            else:
+                time.sleep(5)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -334,6 +370,10 @@ if __name__ == '__main__':
     log.info("start boss")
     boss = Boss()
     boss.start()
+
+    log.info("start updater")
+    uper = Updater()
+    uper.start()
 
     # TODO reimplement
     #def diff_packages(self):
