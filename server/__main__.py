@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    log = logging.getLogger(__name__)
+    log = logging.getLogger("server")
     log.info("start garbage collector")
     gaco = GarbageCollector()
     gaco.start()
