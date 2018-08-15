@@ -52,9 +52,8 @@ class Database():
         self.insert_dict("versions", version)
 
     def insert_supported(self, p):
-        sql = """UPDATE subtargets SET supported = true
-            WHERE distro=? and version=? and target=?"""
-        self.c.execute(sql, p["distro"], p["version"], p["target"])
+        sql = """UPDATE subtargets SET supported = true WHERE distro=? and version=? and target=? and subtarget=?"""
+        self.c.execute(sql, p["distro"], p["version"], p["target"], p["subtarget"])
         self.commit()
 
     def get_versions(self, distro=None):
@@ -161,41 +160,15 @@ class Database():
         self.c.execute(sql, p["manifest_hash"], p["distro"], p["version"], p["target"], p["subtarget"])
         return self.c.fetchval()
 
-    def subtarget_outdated(self, distro, version, target, subtarget):
-        sql = """select 1 from subtargets
-            where distro = ? and
-            version = ? and
-            target = ? and
-            subtarget = ? and
-            last_sync < NOW() - INTERVAL '1 day';"""
-        self.c.execute(sql, distro, version, target, subtarget)
-        if self.c.rowcount == 1:
-            return True
-        else:
-            return False
-
     def get_subtarget_outdated(self):
-        sql = """select distro, version, target, subtarget
-            from subtargets
-            where
-            (last_sync < NOW() - INTERVAL '1 day')
-            or
-            last_sync < '1970-01-02'
-            order by (last_sync) asc limit 1;"""
+        sql = """UPDATE subtargets
+            SET last_sync = NOW()
+            where id = (select id  from subtargets
+            where last_sync < NOW() - INTERVAL '1 day'
+            order by (last_sync) asc limit 1)
+            returning distro, version, target, subtarget;"""
         self.c.execute(sql)
-        if self.c.rowcount == 1:
-            return self.as_dict()
-        else:
-            return False
-
-    def subtarget_synced(self, p):
-        sql = """update subtargets set last_sync = NOW()
-            where distro = ? and
-            version = ? and
-            target = ? and
-            subtarget = ?;"""
-        self.c.execute(sql, p["distro"], p["version"], p["target"], p["subtarget"])
-        self.commit()
+        return self.as_dict()
 
     # todo this should be improved somehow
     # currently the insert takes quite long as there are ~6000 packages
