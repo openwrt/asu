@@ -87,8 +87,6 @@ class Worker(threading.Thread):
             self.log.info("setup complete")
         else:
             self.log.error("failed to download imagebuilder \nstderr: %s\nstdout: %s", errors, output)
-            # this puts the imagebuilder back in the queue, tries again next day
-            self.database.subtarget_synced(self.params)
 
     def write_log(self, path, stdout=None, stderr=None):
         with open(path, "a") as log_file:
@@ -224,7 +222,7 @@ class Worker(threading.Thread):
                 self.build()
             elif self.job == "update":
                 self.info()
-                self.package_list()
+                self.parse_packages()
 
     def info(self):
         self.parse_info()
@@ -236,10 +234,6 @@ class Worker(threading.Thread):
                 "base-files/lib/upgrade/platform.sh")):
             self.log.info("%s target is supported", self.params["target"])
             self.database.insert_supported(self.params)
-
-    def package_list(self):
-        self.parse_packages()
-        self.database.subtarget_synced(self.params)
 
     def run_meta(self, cmd):
         cmdline = ["sh", "meta", cmd ]
