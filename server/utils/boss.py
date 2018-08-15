@@ -12,7 +12,7 @@ from utils.worker import Worker
 class Boss(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        self.log = logging.getLogger(__name__)
+        self.log = logging.getLogger("boss")
         self.config = Config()
         self.database = Database(self.config)
         self.build_queue = Queue(1)

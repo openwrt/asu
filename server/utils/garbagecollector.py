@@ -19,7 +19,7 @@ from utils.database import Database
 class GarbageCollector(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        self.log = logging.getLogger(__name__)
+        self.log = logging.getLogger("garbagecollector")
         self.config = Config()
         self.database = Database(self.config)
 
