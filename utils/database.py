@@ -168,6 +168,7 @@ class Database():
             order by (last_sync) asc limit 1)
             returning distro, version, target, subtarget;"""
         self.c.execute(sql)
+        self.commit()
         return self.as_dict()
 
     # todo this should be improved somehow
