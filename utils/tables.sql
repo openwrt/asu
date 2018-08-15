@@ -189,11 +189,21 @@ create table if not exists packages_available_table(
 
 create or replace view packages_available as
 select
-distro, version, target, subtarget, package_name, package_version
-from packages_names, packages_versions, subtargets, packages_available_table
-where subtargets.id = packages_available_table.subtarget_id
-    and packages_available_table.package_id = packages_names.id
-    and packages_available_table.version_id = packages_versions.id;
+    distro,
+    version,
+    target,
+    subtarget,
+    package_name,
+    package_version
+from
+    packages_names,
+    packages_versions,
+    subtargets,
+    packages_available_table
+where
+    subtargets.id = packages_available_table.subtarget_id and
+    packages_available_table.package_id = packages_names.id and
+    packages_available_table.version_id = packages_versions.id;
 
 create or replace function add_packages_available(distro varchar(20), version varchar(20), target varchar(20), subtarget varchar(20), package_name varchar(100), package_version varchar(100)) returns void as
 $$
@@ -279,9 +289,18 @@ create table if not exists packages_profile_table(
 
 create or replace view packages_profile as
 select
-distro, version, target, subtarget, profile, model,
-string_agg(packages_names.package_name, ' ') as packages
-from packages_names, packages_profile_table, subtargets, profiles_table
+distro,
+    version,
+    target,
+    subtarget,
+    profile,
+    model,
+    string_agg(packages_names.package_name, ' ') as packages
+from
+    packages_names,
+    packages_profile_table,
+    subtargets,
+    profiles_table
 where packages_profile_table.package = packages_names.id and packages_profile_table.profile_id = profiles_table.id and subtargets.id = profiles_table.subtarget_id
 group by (distro, version, target, subtarget, profile, model) ;
 
@@ -297,13 +316,12 @@ begin
     loop
         insert into packages_names (package_name) values (package) on conflict do nothing;
         insert into packages_profile_table values (
-            (select profiles_table.id from profiles_table, subtargets where
-                profiles_table.profile = add_packages_profile.profile and
-                profiles_table.subtarget_id = subtargets.id and
-                subtargets.distro = add_packages_profile.distro and
-                subtargets.version = add_packages_profile.version and
-                subtargets.target = add_packages_profile.target and
-                subtargets.subtarget = add_packages_profile.subtarget),
+            (select profiles.id from profiles where
+                profiles.distro = add_packages_profile.distro and
+                profiles.version = add_packages_profile.version and
+                profiles.target = add_packages_profile.target and
+                profiles.subtarget = add_packages_profile.subtarget and
+                profiles.profile = add_packages_profile.profile),
             (select id from packages_names where packages_names.package_name = package)
         ) on conflict do nothing;
     end loop;
@@ -572,12 +590,8 @@ id, image_hash,
     || version || '/'
     || target || '/'
     || subtarget || '/'
-    || profile || '/' ||
-    (CASE WHEN vanilla is true THEN
-	    'vanilla/'
-    ELSE
-        manifest_hash || '/'
-    end)
+    || profile || '/'
+    || manifest_hash || '/'
     as file_path,
     sysupgrade
 from images;
@@ -809,17 +823,25 @@ select distinct images.id, images.image_hash, distributions.alias, images.distro
 
 -- TODO check if this function is much to expensive
 create or replace view manifest_upgrades as
-select distro, version, target, subtarget, manifest_id, manifest_hash, json_object_agg(package_name, package_versions) as upgrades
-        from (
-                select
-                        distro, version, target, subtarget,
-                        manifest_id, manifest_hash,
-                        pa.package_name as package_name,
-                        array[pa.package_version, mp.package_version] as package_versions
-                from manifest_packages mp join packages_available pa using (package_name)
-                where
-                        pa.package_version != mp.package_version
-        ) as upgrades group by (distro, version, target, subtarget, manifest_id, manifest_hash);
+select
+    distro,
+    version,
+    target,
+    subtarget,
+    manifest_id,
+    manifest_hash,
+    json_object_agg(package_name,
+    package_versions) as upgrades
+    from (
+            select
+                    distro, version, target, subtarget,
+                    manifest_id, manifest_hash,
+                    pa.package_name as package_name,
+                    array[pa.package_version, mp.package_version] as package_versions
+            from manifest_packages mp join packages_available pa using (package_name)
+            where
+                    pa.package_version != mp.package_version
+    ) as upgrades group by (distro, version, target, subtarget, manifest_id, manifest_hash);
 
 
 create table if not exists upgrade_checks_table (
