@@ -8,6 +8,8 @@ sign_images: True
 server: "http://localhost:5000"
 server_user: root
 server_dir: /vagrant
+updater_dir: updater
+updater_threads: 4
 worker:
     - "/tmp/worker"
 active_distros:
