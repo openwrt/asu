@@ -57,6 +57,36 @@ respond to requests without rebuilding exiting images again.
 You can set this server in `/etc/config/attendedsysupgrade` after installation
 of a client.
 
+## Run your own server
+
+It's easy to run your own upgrade server! You can test it locally via Vagrant or
+setup a remote host with Ansible. The following information except you are
+familiar with the concept of Vagrant and/or Ansible.
+
+### Locally with Vagrant
+
+Run `vagrant up`, it will automatically run the Ansible playbook and configure
+the server. Afterwards login via `vagrant ssh` and start the server via the
+following command:
+
+    python3 server
+
+This spins up the following processes:
+
+* The server itself, reachable on `localhost:5000`.
+* A garbage collector which automatically removes outdated firmware images.
+* An updater, which manages update workers. It downloads all (!) activated.
+  ImageBuilders and parse supported profiles and available packages.
+* A boss which manages build workers. Currently only local support, eventually
+  also via SSH.
+
+### Remote via Ansible
+
+Create a hosts file and run `ansible-playbook site.yml -i hosts` to setup a
+server remotely. This also installs Nginx and serves unencrypted on port 80.
+Currently there is no `systemd` service file so run the `python3 server` in a
+`tmux` or `screen` session.
+
 ## API
 
 ### Upgrade check `/api/upgrade-check`
