@@ -1,7 +1,7 @@
 from http import HTTPStatus
 import logging
 
-from server.request import Request
+from request import Request
 from utils.common import get_hash
 
 class UpgradeCheck(Request):
