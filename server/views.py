@@ -4,12 +4,13 @@ import json
 import os
 from http import HTTPStatus
 
-from server.build_request import BuildRequest
-from server.upgrade_check import UpgradeCheck
-from server import app
+from build_request import BuildRequest
+from upgrade_check import UpgradeCheck
 
 from utils.config import Config
 from utils.database import Database
+
+app = Flask(__name__)
 
 config = Config()
 database = Database(config)

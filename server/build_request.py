@@ -2,7 +2,7 @@ from http import HTTPStatus
 from sys import getsizeof
 
 from utils.image import Image
-from server.request import Request
+from request import Request
 from utils.common import get_hash
 
 class BuildRequest(Request):

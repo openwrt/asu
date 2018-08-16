@@ -8,7 +8,7 @@ from utils.garbagecollector import GarbageCollector
 from utils.boss import Boss
 from utils.updater import Updater
 
-app = Flask(__name__)
+import views
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
