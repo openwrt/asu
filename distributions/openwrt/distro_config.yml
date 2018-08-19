@@ -1,7 +1,8 @@
 ---
 distro_alias: OpenWrt
-latest: "18.06.0"
+latest: "18.06.1"
 versions:
+  - 18.06.1
   - 18.06.0
   - snapshots
 vanilla:
