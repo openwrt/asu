@@ -69,9 +69,8 @@ class Database():
     # TODO this should be done via some postgres json magic
     # currently this is splitted back and forth but I'm hungry
     def insert_packages_hash(self, packages_hash, packages):
-        sql = "INSERT INTO packages_hashes (hash, packages) VALUES (?, ?)"
-        self.c.execute(sql, (packages_hash, " ".join(packages)))
-        self.commit()
+        self.insert_dict("packages_hashes", {
+            "hash": packages_hash, "packages": " ".join(packages) })
 
     def insert_profiles(self, params, packages_default, profiles):
         self.log.debug("insert packages_default")

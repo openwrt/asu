@@ -400,12 +400,12 @@ create table if not exists packages_hashes_link(
 );
 
 create or replace view packages_hashes as
-select packages_hashes_table.id, hash, string_agg(packages_names.package_name, ' ') as packages
-from packages_names, packages_hashes_table, packages_hashes_link
-where
-packages_hashes_table.id = packages_hashes_link.hash_id and
-packages_names.id = packages_hashes_link.package_id
-group by (packages_hashes_table.id, hash);
+select pht.id, hash, coalesce(string_agg(pn.package_name, ' '), '') as packages
+from packages_hashes_table pht
+        left join packages_hashes_link phl on pht.id = phl.hash_id
+        left join packages_names pn on phl.package_id = pn.id
+group by (pht.id, hash);
+
 
 create or replace function add_packages_hashes(hash varchar(20), packages text) returns void as
 $$
