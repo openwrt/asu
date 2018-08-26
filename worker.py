@@ -90,7 +90,10 @@ class Worker(threading.Thread):
 
     def write_log(self, path, stdout=None, stderr=None):
         with open(path, "a") as log_file:
-            log_file.write(pprint.pformat(self.params, indent=4, width=200))
+            log_file.write("### BUILD COMMAND:\n\n")
+            for key, value in self.params.items():
+                log_file.write("{}={}\n".format(key.upper(), str(value)))
+            log_file.write("sh meta\n")
             if stdout:
                 log_file.write("\n\n### STDOUT:\n\n" + stdout)
             if stderr:
