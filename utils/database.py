@@ -26,13 +26,6 @@ class Database():
     def commit(self):
         self.cnxn.commit()
 
-    def create_tables(self):
-        self.log.info("creating tables")
-        with open('tables.sql') as t:
-            self.c.execute(t.read())
-        self.commit()
-        self.log.info("created tables")
-
     def insert_defaults(self, defaults_hash, defaults):
         sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
         self.c.execute(sql, defaults_hash, defaults)
@@ -248,13 +241,6 @@ class Database():
             self.commit()
             return('', 0, request_hash, 'requested')
 
-    def request_imagebuilder(self, distro, version, target, subtarget):
-        sql = """INSERT INTO image_requests
-            (distro, version, target, subtarget, status)
-            VALUES (?, ?, ?, ?, ?)"""
-        self.c.execute(sql, distro, version, target, subtarget, "imagebuilder")
-        self.commit()
-
     # merge image_download table with images tables
     def get_image_path(self, image_hash):
         self.log.debug("get sysupgrade image for %s", image_hash)
@@ -299,27 +285,18 @@ class Database():
             self.c.execute(sql, manifest_hash, name, version)
         self.commit()
 
-    def get_build_job(self, distro='%', version='%', target='%', subtarget='%'):
-        self.log.debug("get build job %s %s %s %s", distro, version, target, subtarget)
+    def get_build_job(self):
         sql = """UPDATE image_requests
             SET status = 'building'
             FROM packages_hashes
             WHERE image_requests.packages_hash = packages_hashes.hash and
-                distro LIKE ? and
-                version LIKE ? and
-                target LIKE ? and
-                subtarget LIKE ? and
                 image_requests.id = (
                     SELECT MIN(id)
                     FROM image_requests
-                    WHERE status = 'requested' and
-                    distro LIKE ? and
-                    version LIKE ? and
-                    target LIKE ? and
-                    subtarget LIKE ?
+                    WHERE status = 'requested'
                 )
             RETURNING image_requests.id, request_hash, image_hash, distro, version, target, subtarget, profile, packages_hashes.packages, defaults_hash;"""
-        self.c.execute(sql, distro, version, target, subtarget, distro, version, target, subtarget)
+        self.c.execute(sql)
         self.commit()
         return self.as_dict()
 
@@ -331,15 +308,6 @@ class Database():
         self.c.execute(sql, status, image_request_hash)
         self.commit()
 
-    def worker_done_build(self, request_hash, image_hash, status):
-        self.log.info("done build job: rqst %s img %s status %s", request_hash, image_hash, status)
-        sql = """UPDATE image_requests SET
-            status = ?,
-            image_hash = ?
-            WHERE request_hash = ?;"""
-        self.c.execute(sql, status, image_hash, request_hash)
-        self.commit()
-
     def done_build_job(self, request_hash, image_hash, status="created"):
         self.log.info("done build job: rqst %s img %s status %s", request_hash, image_hash, status)
         sql = """UPDATE image_requests SET
@@ -349,101 +317,10 @@ class Database():
         self.c.execute(sql, status, image_hash, request_hash)
         self.commit()
 
-    def imagebuilder_status(self, distro, version, target, subtarget):
-        sql = """select 1 from worker_imagebuilder
-            WHERE distro=? and version=? and target=? and subtarget=?;"""
-        self.c.execute(sql, distro, version, target, subtarget)
-        if self.c.rowcount > 0:
-            return "ready"
-        else:
-            self.log.debug("add imagebuilder request")
-            sql = """insert into imagebuilder_requests
-                (distro, version, target, subtarget)
-                VALUES (?, ?, ?, ?)"""
-            self.c.execute(sql, distro, version, target, subtarget)
-            self.commit()
-            return 'requested'
-
-    def set_imagebuilder_status(self, distro, version, target, subtarget, status):
-        sql = """UPDATE imagebuilder SET status = ?
-            WHERE distro=? and version=? and target=? and subtarget=?"""
-        self.c.execute(sql, status, distro, version, target, subtarget)
-        self.commit()
-
-    def get_imagebuilder_request(self):
-        sql = """UPDATE imagebuilder
-            SET status = 'initialize'
-            WHERE status = 'requested' and id = (
-                SELECT MIN(id)
-                FROM imagebuilder
-                WHERE status = 'requested'
-                )
-            RETURNING distro, version, target, subtarget;"""
-        self.c.execute(sql)
-        if self.c.description:
-            self.commit()
-            return self.c.fetchone()
-        else:
-            return None
-
     def reset_build_requests(self):
         self.log.debug("reset building images")
         sql = "UPDATE image_requests SET status = 'requested' WHERE status = 'building'"
         self.c.execute(sql)
-        self.commit()
-
-    def worker_active_subtargets(self):
-        self.log.debug("worker active subtargets")
-        sql = """select distro, version, target, subtarget from worker_skills_subtargets, subtargets
-                where worker_skills_subtargets.subtarget_id = subtargets.id"""
-        self.c.execute(sql)
-        result = self.c.fetchall()
-        return result
-
-    def worker_needed(self, worker=False):
-        self.log.debug("get needed worker")
-        sql = """(select * from imagebuilder_requests union
-            select distro, version, target, subtarget
-                from worker_needed, subtargets
-                where worker_needed.subtarget_id = subtargets.id) limit 1"""
-        result = self.c.execute(sql).fetchone()
-        if not worker:
-            return result
-        else:
-            if result:
-                return "/".join(result)
-            else:
-                return ""
-
-    def worker_register(self, name, address, pubkey):
-        self.log.info("register worker %s %s", name, address)
-        sql = """INSERT INTO worker (name, address, heartbeat, public_key)
-            VALUES (?, ?, ?, ?)
-            RETURNING id;"""
-        self.c.execute(sql, name, address, datetime.datetime.now(), pubkey)
-        self.commit()
-        return self.c.fetchval()
-
-    def worker_destroy(self, worker_id):
-        self.log.info("destroy worker %s", worker_id)
-        sql = """delete from worker where id = ?"""
-        self.c.execute(sql, worker_id)
-        self.commit()
-
-    def worker_add_skill(self, worker_id, distro, version, target, subtarget, status):
-        self.log.info("register worker skill %s %s", worker_id, status)
-        sql = """INSERT INTO worker_skills
-            select ?, subtargets.id, ? from subtargets
-            WHERE distro = ? and version = ? and target LIKE ? and subtarget = ?;
-            delete from imagebuilder_requests
-            WHERE distro = ? and version = ? and target LIKE ? and subtarget = ?;"""
-        self.c.execute(sql, worker_id, status, distro, version, target, subtarget, distro, version, target, subtarget)
-        self.commit()
-
-    def worker_heartbeat(self, worker_id):
-        self.log.debug("heartbeat %s", worker_id)
-        sql = "UPDATE worker SET heartbeat = ? WHERE id = ?"
-        self.c.execute(sql, datetime.datetime.now(), worker_id)
         self.commit()
 
     def get_subtargets_supported(self):
@@ -487,22 +364,6 @@ class Database():
         sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and version like ? and target like ?;"""
         self.c.execute(sql, distro, version, target)
         return self.c.fetchval()
-
-    def get_images_list(self):
-        self.log.debug("get images list")
-        sql = "select * from images_list"
-        self.c.execute(sql)
-        result = self.c.fetchall()
-        return result
-
-    def get_fails_list(self):
-        self.log.debug("get fails list")
-        sql = """select distro, version, target, subtarget, profile, request_hash, hash packages_hash, status
-            from image_requests_table join profiles on image_requests_table.profile_id = profiles.id join packages_hashes on image_requests_table.packages_hash_id = packages_hashes.id
-            where status != 'created' """
-        self.c.execute(sql)
-        result = self.c.fetchall()
-        return result
 
     def get_image_info(self, image_hash):
         self.log.debug("get image info %s", image_hash)
@@ -551,30 +412,6 @@ class Database():
         self.c.execute(sql)
         return self.c.fetchval()
 
-    def flush_snapshots(self, distro="%", target="%", subtarget="%"):
-        self.log.debug("flush snapshots")
-        sql = """delete from images where
-            distro LIKE ? and
-            target LIKE ? and
-            subtarget LIKE ? and
-            version = 'snapshot';"""
-        self.c.execute(sql, distro, target, subtarget)
-
-        sql = """delete from image_requests where
-            distro LIKE ? and
-            target LIKE ? and
-            subtarget LIKE ? and
-            version = 'snapshot';"""
-        self.c.execute(sql, distro, target, subtarget)
-
-        sql = """update subtargets set last_sync = date('1970-01-01') where
-            distro LIKE ? and
-            target LIKE ? and
-            subtarget LIKE ? and
-            version = 'snapshot';"""
-        self.c.execute(sql, distro, target, subtarget)
-        self.commit()
-
     def insert_board_rename(self, distro, version, origname, newname):
         sql = "INSERT INTO board_rename (distro, version, origname, newname) VALUES (?, ?, ?, ?);"
         self.c.execute(sql, distro, version, origname, newname)
@@ -602,8 +439,3 @@ class Database():
             order by count desc;"""
         self.c.execute(sql)
         return self.c.fetchall()
-
-    def get_worker(self, worker_id):
-        sql = "select * from worker where id = ?"
-        self.c.execute(sql, worker_id)
-        return self.as_dict()

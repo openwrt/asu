@@ -349,13 +349,15 @@ class Boss(threading.Thread):
             worker.start()
             workers.append(worker)
 
+        self.log.info("Active workers are %s", workers)
+
         while True:
             build_job = self.database.get_build_job()
             if build_job:
-                self.log.info("found build job %s", build_job)
+                self.log.info("Found build job %s", build_job)
                 self.build_queue.put(build_job)
             else:
-                time.sleep(5)
+                time.sleep(10)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
