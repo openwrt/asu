@@ -196,3 +196,12 @@ versions, available devices and more. All responses are in `JSON` format.
 
 * `/api/packages_image?distro=&version=&target=&subtarget=&profile=` Get all
   default packages installed on an image
+
+### Request stats
+
+| request   | answer    |
+| ---       | ---       |
+| `/api/v1/stats/popular_packages` | Get list of most installed packages |
+| `/api/v1/stats/popular_targets` | Get list of most created targets |
+| `/api/v1/stats/images` | Return image build information |
+| `/api/v1/stats/packages` | Return number of known packages |

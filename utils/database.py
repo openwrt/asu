@@ -384,12 +384,12 @@ class Database():
         sql = "select packages from packages_hashes where hash = ?;"
         return self.c.execute(sql, packages_hash).fetchval()
 
-    def get_popular_subtargets(self):
-        self.log.debug("get popular subtargets")
+    def get_popular_targets(self):
+        self.log.debug("get popular targets")
         sql = """select count(*) as count, target, subtarget from images
             group by (target, subtarget)
             order by count desc
-            limit 10"""
+            limit 20"""
         self.c.execute(sql)
         result = self.c.fetchall()
         return result
@@ -398,13 +398,20 @@ class Database():
         self.log.debug("get images count")
         sql = "select count(*) as count from images;"
         self.c.execute(sql)
-        self.c.fetchval()
+        return self.c.fetchval()
 
     def get_images_total(self):
         self.log.debug("get images count")
         sql = "select last_value as total from image_requests_table_id_seq;"
         self.c.execute(sql)
         return self.c.fetchval()
+
+    def get_images_last(self):
+        sql = """select * from images
+            where defaults_hash is null
+            order by id
+            limit 20"""
+        return self.as_dict()
 
     def get_packages_count(self):
         self.log.debug("get packages count")
@@ -434,8 +441,8 @@ class Database():
         sql = """select name, count(name) as count
             from packages_hashes_link phl join packages_names pn
                 on phl.package_id = pn.id
-            where name not like '-%'
             group by name
-            order by count desc;"""
+            order by count desc
+            limit 50;"""
         self.c.execute(sql)
         return self.c.fetchall()

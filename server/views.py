@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from flask import Flask
-from flask import render_template, request, send_from_directory
+from flask import render_template, request, send_from_directory, redirect, jsonify
 import json
 import os
 from http import HTTPStatus
@@ -60,6 +60,11 @@ def api_upgrade_request(request_hash=None):
 
     return br.process_request(request_json, sysupgrade_requested=1)
 
+@app.route("/api/")
+@app.route("/stats")
+def api_redirect():
+    redirect("https://github.com/aparcar/attendedsysupgrade-server/")
+
 @app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
 @app.route("/api/build-request/<request_hash>", methods=['GET'])
@@ -79,13 +84,25 @@ def api_files_request(request_hash=None):
 def root_path():
     return render_template("index.html")
 
-@app.route("/stats")
-def stats():
-    return render_template("stats.html",
-            popular_subtargets=database.get_popular_subtargets(),
-            images_count=database.get_images_count(),
-            images_total=database.get_images_total(),
-            packages_count=database.get_packages_count())
+@app.route("/api/v1/stats/images/")
+def api_stats_images():
+    return jsonify({
+        "total": database.get_images_total(),
+        "stored": database.get_images_count(),
+        "last": database.get_images_last()
+        })
+
+@app.route("/api/v1/stats/packages")
+def api_stats_packages():
+    return jsonify(database_get_packages_count())
+
+@app.route("/api/v1/stats/popular_targets")
+def api_stats_popular_targets():
+    return jsonify(database.get_popular_targets())
+
+@app.route("/api/v1/stats/popular_packages")
+def api_stats_popular_packages():
+    return jsonify(database.get_popular_packages())
 
 @app.route("/api/distros")
 def api_distros():
