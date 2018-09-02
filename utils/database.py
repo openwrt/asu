@@ -393,14 +393,11 @@ class Database():
         return self.c.execute(sql, packages_hash).fetchval()
 
     def get_popular_targets(self):
-        self.log.debug("get popular targets")
-        sql = """select count(*) as count, target, subtarget from images
-            group by (target, subtarget)
-            order by count desc
-            limit 20"""
+        sql = """ select json_agg(popular_targets) from (select count(*) as
+        count, target, subtarget from images group by (target, subtarget) order
+        by count desc limit 20) as popular_targets;"""
         self.c.execute(sql)
-        result = self.c.fetchall()
-        return result
+        return self.c.fetchval()
 
     def get_images_count(self):
         self.log.debug("get images count")
@@ -414,12 +411,12 @@ class Database():
         self.c.execute(sql)
         return self.c.fetchval()
 
-    def get_images_last(self):
-        sql = """select * from images
-            where defaults_hash is null
-            order by id
-            limit 20"""
-        return self.as_dict()
+    # get latest 20 images created
+    def get_images_latest(self):
+        sql = """select json_agg(images_latest) from (select * from images
+        where defaults_hash is null order by id desc limit 20) as
+        images_latest;"""
+        return self.c.fetchval()
 
     def get_packages_count(self):
         self.log.debug("get packages count")
@@ -446,11 +443,9 @@ class Database():
         return self.c.fetchall()
 
     def get_popular_packages(self):
-        sql = """select name, count(name) as count
-            from packages_hashes_link phl join packages_names pn
-                on phl.package_id = pn.id
-            group by name
-            order by count desc
-            limit 50;"""
+        sql = """select json_agg(popular_packages) from (select package_name,
+        count(package_name) as count from packages_hashes_link phl join
+        packages_names pn on phl.package_id = pn.id group by package_name order
+        by count desc limit 50) as popular_packages;"""
         self.c.execute(sql)
-        return self.c.fetchall()
+        return self.c.fetchval()

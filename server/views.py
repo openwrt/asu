@@ -84,25 +84,31 @@ def api_files_request(request_hash=None):
 def root_path():
     return render_template("index.html")
 
-@app.route("/api/v1/stats/images/")
-def api_stats_images():
+@app.route("/api/v1/stats/images_count/")
+def api_stats_images_count():
     return jsonify({
         "total": database.get_images_total(),
-        "stored": database.get_images_count(),
-        "last": database.get_images_last()
+        "stored": database.get_images_count()
         })
 
-@app.route("/api/v1/stats/packages")
-def api_stats_packages():
-    return jsonify(database_get_packages_count())
+@app.route("/api/v1/stats/images_latest/")
+def api_stats_images_latest():
+    return mime_json(database.get_images_latest())
+
+# create response with mimetype set to json
+# usefull when json is directly created by postgresql
+def mime_json(response):
+    return app.response_class(
+            response=response,
+            mimetype='application/json')
 
 @app.route("/api/v1/stats/popular_targets")
 def api_stats_popular_targets():
-    return jsonify(database.get_popular_targets())
+    return mime_json(database.get_popular_targets())
 
 @app.route("/api/v1/stats/popular_packages")
 def api_stats_popular_packages():
-    return jsonify(database.get_popular_packages())
+    return mime_json(database.get_popular_packages())
 
 @app.route("/api/distros")
 def api_distros():
