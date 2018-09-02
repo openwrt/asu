@@ -359,8 +359,16 @@ create table if not exists manifest_packages_link (
 );
 
 create or replace view manifest_packages as
-select manifest_table.id as manifest_id, manifest_table.hash as manifest_hash, package_name, package_version
-from manifest_table, manifest_packages_link, packages_names, packages_versions
+select
+    manifest_table.id as manifest_id,
+    manifest_table.hash as manifest_hash,
+    package_name,
+    package_version
+from
+    manifest_table,
+    manifest_packages_link,
+    packages_names,
+    packages_versions
 where
 manifest_table.id = manifest_packages_link.manifest_id and
 packages_names.id = manifest_packages_link.name_id and
@@ -464,7 +472,7 @@ create table if not exists images_table (
     profile_id integer references profiles_table(id) ON DELETE CASCADE,
     manifest_id integer references manifest_table(id) ON DELETE CASCADE,
     worker_id integer references worker(id) ON DELETE CASCADE,
-    build_date timestamp,
+    build_date timestamp default now(),
     sysupgrade_id integer references sysupgrade_files(id) ON DELETE CASCADE,
     status varchar(20) DEFAULT 'untested',
     defaults_id integer references defaults_table(id) on delete cascade,
@@ -523,7 +531,16 @@ $$
 begin
     insert into sysupgrade_files (sysupgrade) values (add_image.sysupgrade) on conflict do nothing;
     insert into worker(name) values (add_image.worker) on conflict do nothing;
-    insert into images_table (image_hash, profile_id, manifest_id, defaults_id, worker_id, sysupgrade_id, build_date, vanilla, build_seconds) values (
+    insert into images_table (
+        image_hash,
+        profile_id,
+        manifest_id,
+        defaults_id,
+        worker_id,
+        sysupgrade_id,
+        vanilla,
+        build_seconds
+    ) values (
         add_image.image_hash,
         (select profiles.id from profiles where
             profiles.distro = add_image.distro and
@@ -539,7 +556,6 @@ begin
             worker.name = add_image.worker),
         (select sysupgrade_files.id from sysupgrade_files where
             sysupgrade_files.sysupgrade = add_image.sysupgrade),
-        add_image.build_date,
         add_image.vanilla,
         add_image.build_seconds)
     on conflict do nothing;
@@ -603,7 +619,8 @@ create table if not exists image_requests_table (
     packages_hash_id integer references packages_hashes_table(id) ON DELETE CASCADE,
     defaults_id integer references defaults_table(id) on delete cascade,
     image_id integer references images_table(id) ON DELETE CASCADE,
-    status varchar(20) DEFAULT 'requested'
+    status varchar(20) DEFAULT 'requested',
+    request_date timestamp default now()
 );
 
 create or replace view image_requests as
@@ -619,8 +636,10 @@ select
     defaults_table.hash as defaults_hash,
     image_hash,
     image_requests_table.status,
+    request_date,
+    snapshots,
     image_requests_table.id - next_id as build_position
-from 
+from
     profiles,
     packages_hashes_table,
     (select min(id) as next_id from image_requests_table where status = 'requested') as next,

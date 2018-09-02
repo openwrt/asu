@@ -117,9 +117,18 @@ class Database():
         self.c.execute(sql, distro, version, target, subtarget, profile)
         return json.dumps({"packages": self.c.fetchval().rstrip().split(" ")})
 
+    # removes an image entry based on image_hash
     def del_image(self, image_hash):
         sql = """delete from images where image_hash = ?;"""
         self.c.execute(sql, image_hash)
+        self.commit()
+
+    # removes all snapshot requests older than a day
+    def del_outdated_request(self,):
+        sql = """delete from image_requests where
+            snapshots = 'true' and
+            request_date < NOW() - interval '1 day'"""
+        self.c.execute(sql)
         self.commit()
 
     def get_outdated_manifests(self):
@@ -143,8 +152,8 @@ class Database():
     def manifest_outdated(self, p):
         sql = """select upgrades
                 from manifest_upgrades
-                where 
-                    manifest_hash = ? and 
+                where
+                    manifest_hash = ? and
                     distro = ? and
                     version = ? and
                     target = ? and
@@ -272,8 +281,7 @@ class Database():
             self.commit()
 
     def add_image(self, image):
-        image["build_seconds"] = 0 # not implemeted
-        image["build_date"] = datetime.datetime.now()
+        image["build_seconds"] = 0 # not yet implemeted
         self.insert_dict("images", image)
 
     def add_manifest_packages(self, manifest_hash, packages):
