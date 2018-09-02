@@ -416,6 +416,7 @@ class Database():
         sql = """select json_agg(images_latest) from (select * from images
         where defaults_hash is null order by id desc limit 20) as
         images_latest;"""
+        self.c.execute(sql)
         return self.c.fetchval()
 
     def get_packages_count(self):
