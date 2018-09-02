@@ -19,11 +19,6 @@ class Config():
             with open(os.path.join(self.get_folder("distro_folder"), distro, "distro_config.yml"), 'r') as ymlfile:
                 self.config[distro] = yaml.load(ymlfile)
 
-            if self.config.get(distro).get("versions"):
-                self.config[distro]["latest"] = self.config.get(distro).get("versions")[-1]
-            else:
-                self.config[distro]["latest"] = None
-
     # load configuration of distro and overlay it with custom version settings
     def version(self, distro, version):
         version_config = {}

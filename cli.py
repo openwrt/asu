@@ -23,6 +23,7 @@ class ServerCli():
         parser.add_argument("-r", "--download-versions", action="store_true")
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-p", "--parse-configs", action="store_true")
+        parser.add_argument("-w", "--create-worker", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_versions"]:
             self.download_versions()
@@ -31,6 +32,27 @@ class ServerCli():
         if self.args["parse_configs"]:
             self.insert_board_rename()
             self.load_tables()
+        if self.args["create_worker"]:
+            self.create_worker_image()
+
+    def create_worker_image(self):
+        self.log.info("build worker image")
+        packages = ["bash", "bzip2", "coreutils", "coreutils-stat",
+                "diffutils", "file", "gawk", "gcc", "getopt", "git",
+                "libncurses", "make", "patch", "perl", "perlbase-attributes",
+                "perlbase-findbin", "perlbase-getopt", "perlbase-thread",
+                "python-light", "tar", "unzip", "wget", "xz", "xzdiff",
+                "xzgrep", "xzless", "xz-utils", "zlib-dev"]
+        packages_hash = get_hash(" ".join(packages), 12)
+        self.database.insert_packages_hash(packages_hash, packages)
+        image = {
+            "distro": "openwrt",
+            "version": self.config.get("openwrt").get("latest"),
+            "target": "x86",
+            "subtarget": "64",
+            "package_hash": package_hash
+            }
+        self.database.add_build_job(image)
 
     def download_versions(self):
         for distro in self.config.get("active_distros", "openwrt"):
