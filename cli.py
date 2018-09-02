@@ -43,16 +43,21 @@ class ServerCli():
                 "perlbase-findbin", "perlbase-getopt", "perlbase-thread",
                 "python-light", "tar", "unzip", "wget", "xz", "xzdiff",
                 "xzgrep", "xzless", "xz-utils", "zlib-dev"]
-        packages_hash = get_hash(" ".join(packages), 12)
-        self.database.insert_packages_hash(packages_hash, packages)
-        image = {
+        image_params = {
             "distro": "openwrt",
             "version": self.config.get("openwrt").get("latest"),
             "target": "x86",
             "subtarget": "64",
-            "package_hash": package_hash
+            "board": "Default",
+            "packages": packages
             }
-        self.database.add_build_job(image)
+
+        params = json.dumps(image_params).encode('utf8')
+        req = urllib.request.Request(self.config.get("server") +
+                "/api/build-request", data=params,
+                headers={'content-type': 'application/json'} )
+        response = urllib.request.urlopen(req)
+        self.log.info("response: %s", response)
 
     def download_versions(self):
         for distro in self.config.get("active_distros", "openwrt"):
