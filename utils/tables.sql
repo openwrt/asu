@@ -638,7 +638,7 @@ select
     image_requests_table.status,
     request_date,
     snapshots,
-    image_requests_table.id - next_id as build_position
+    image_requests_table.id - next_id + 1 as build_position
 from
     profiles,
     packages_hashes_table,
