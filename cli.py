@@ -24,6 +24,7 @@ class ServerCli():
         parser.add_argument("-i", "--init-server", action="store_true")
         parser.add_argument("-p", "--parse-configs", action="store_true")
         parser.add_argument("-w", "--create-worker", action="store_true")
+        parser.add_argument("-a", "--create-all", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_versions"]:
             self.download_versions()
@@ -34,6 +35,24 @@ class ServerCli():
             self.load_tables()
         if self.args["create_worker"]:
             self.create_worker_image()
+        if self.args["create_all"]:
+            self.create_all_profiles()
+
+    def create_all_profiles(self):
+        for profile in self.database.get_all_profiles():
+            target, subtarget, board = profile
+            image_params = {
+                "distro": "openwrt",
+                "version": "18.06.1",
+                "target": target,
+                "subtarget": subtarget,
+                "board": board
+                }
+            params = json.dumps(image_params).encode('utf8')
+            req = urllib.request.Request(self.config.get("server") +
+                    "/api/build-request", data=params,
+                    headers={'content-type': 'application/json'} )
+            urllib.request.urlopen(req)
 
     def create_worker_image(self):
         self.log.info("build worker image")
