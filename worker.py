@@ -84,14 +84,6 @@ class Worker(threading.Thread):
 
         self.log.info("meta ImageBuilder successfully setup")
 
-    def setup(self):
-        self.log.debug("setup")
-        return_code, output, errors = self.run_meta("download")
-        if return_code == 0:
-            self.log.info("setup complete")
-        else:
-            self.log.error("failed to download imagebuilder \nstderr: %s\nstdout: %s", errors, output)
-
     def write_log(self, path, stdout=None, stderr=None):
         with open(path, "a") as log_file:
             log_file.write("### BUILD COMMAND:\n\n")
@@ -224,7 +216,6 @@ class Worker(threading.Thread):
             self.params = self.queue.get()
             self.version_config = self.config.version(
                     self.params["distro"], self.params["version"])
-            self.setup()
             if self.job == "image":
                 self.build()
             elif self.job == "update":
