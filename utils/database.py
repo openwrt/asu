@@ -425,6 +425,14 @@ class Database():
         self.c.execute(sql)
         return self.c.fetchval()
 
+    def get_fails_latest(self):
+        sql = """select json_agg(fails_latest) from (select * from
+        image_requests where status != 'created' and status != 'requested' and
+        status != 'building' and status != 'no_sysupgrade' and defaults_hash is
+        null order by id desc limit 50) as fails_latest;"""
+        self.c.execute(sql)
+        return self.c.fetchval()
+
     def get_packages_count(self):
         self.log.debug("get packages count")
         sql = "select count(*) as count from packages_names;"

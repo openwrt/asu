@@ -84,16 +84,20 @@ def api_files_request(request_hash=None):
 def root_path():
     return render_template("index.html")
 
-@app.route("/api/v1/stats/images_count/")
+@app.route("/api/v1/stats/images_count")
 def api_stats_images_count():
     return jsonify({
         "total": database.get_images_total(),
         "stored": database.get_images_count()
         })
 
-@app.route("/api/v1/stats/images_latest/")
+@app.route("/api/v1/stats/images_latest")
 def api_stats_images_latest():
     return mime_json(database.get_images_latest())
+
+@app.route("/api/v1/stats/fails_latest")
+def api_stats_fails_latest():
+    return mime_json(database.get_fails_latest())
 
 # create response with mimetype set to json
 # usefull when json is directly created by postgresql
