@@ -281,7 +281,6 @@ class Database():
             self.commit()
 
     def add_image(self, image):
-        image["build_seconds"] = 0 # not yet implemeted
         self.insert_dict("images", image)
 
     def add_manifest_packages(self, manifest_hash, packages):
@@ -389,13 +388,20 @@ class Database():
 
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)
-        sql = "select packages from packages_hashes where hash = ?;"
+        sql = "select package_name from packages_hashes where hash = ?;"
         return self.c.execute(sql, packages_hash).fetchval()
 
     def get_popular_targets(self):
-        sql = """ select json_agg(popular_targets) from (select count(*) as
-        count, target, subtarget from images group by (target, subtarget) order
-        by count desc limit 20) as popular_targets;"""
+        sql = """ select json_agg(popular_targets) from (
+                select
+                    count(*) as count,
+                    avg(build_seconds)::integer as build_seconds,
+                    target, subtarget
+                from images
+                group by (target, subtarget)
+                order by count desc
+                limit 20
+            ) as popular_targets;"""
         self.c.execute(sql)
         return self.c.fetchval()
 
