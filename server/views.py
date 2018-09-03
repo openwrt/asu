@@ -116,7 +116,7 @@ def api_stats_popular_packages():
 
 @app.route("/api/distros")
 def api_distros():
-    return mime_json(database.api_get_distros()
+    return mime_json(database.api_get_distros())
 
 @app.route("/api/versions")
 def api_versions():
