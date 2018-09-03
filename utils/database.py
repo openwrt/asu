@@ -392,7 +392,7 @@ class Database():
         return self.c.execute(sql, packages_hash).fetchval()
 
     def get_popular_targets(self):
-        sql = """ select json_agg(popular_targets) from (
+        sql = """select json_agg(popular_targets) from (
                 select
                     count(*) as count,
                     avg(build_seconds)::integer as build_seconds,
@@ -400,7 +400,7 @@ class Database():
                 from images
                 group by (target, subtarget)
                 order by count desc
-                limit 20
+                limit 50
             ) as popular_targets;"""
         self.c.execute(sql)
         return self.c.fetchval()
