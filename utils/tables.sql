@@ -477,7 +477,7 @@ create table if not exists images_table (
     status varchar(20) DEFAULT 'untested',
     defaults_id integer references defaults_table(id) on delete cascade,
     vanilla boolean default false,
-    build_seconds integer
+    build_seconds integer default 0
 );
 
 create or replace view images as

@@ -156,7 +156,12 @@ class Worker(threading.Thread):
                     self.params["FILES"] = build_dir + "/files/"
                     self.params["EXTRA_IMAGE_NAME"] += "-" + self.params["defaults_hash"][:6]
 
+                # download is already performed for manifest creation
+                self.params["NO_DOWNLOAD"] = "1"
+
+                build_start = time.time()
                 return_code, buildlog, errors = self.run_meta("image")
+                self.image.params["build_seconds"] = int(time.time() - build_start)
 
                 if return_code == 0:
                     # create folder in advance

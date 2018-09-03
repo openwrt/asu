@@ -83,6 +83,7 @@ class Image():
             "manifest_hash": self.params["manifest_hash"],
             "defaults_hash": self.params["defaults_hash"],
             "worker": self.params["worker"],
+            "build_seconds": self.params["build_seconds"],
             "sysupgrade": self.params["sysupgrade"]
         }
 
