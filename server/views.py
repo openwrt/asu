@@ -116,15 +116,11 @@ def api_stats_popular_packages():
 
 @app.route("/api/distros")
 def api_distros():
-    return app.response_class(
-            response=database.api_get_distros(),
-            mimetype='application/json')
+    return mime_json(database.api_get_distros()
 
 @app.route("/api/versions")
 def api_versions():
-    return app.response_class(
-            response=database.api_get_versions(),
-            mimetype='application/json')
+    return mime_json(database.api_get_versions())
 
 @app.route("/api/models")
 def api_models():
@@ -132,9 +128,7 @@ def api_models():
     version = request.args.get("version", "")
     model_search = request.args.get("model_search", "")
     if distro != "" and version != "":
-        return app.response_class(
-                response=database.get_supported_models(model_search, distro, version),
-                mimetype='application/json')
+        return mime_json(database.get_supported_models(model_search, distro, version))
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
@@ -147,23 +141,21 @@ def api_default_packages():
     subtarget = request.args.get("subtarget", "")
     profile = request.args.get("profile", "")
     if distro != "" and version != "" and target != "" and subtarget != "" and profile != "":
-        return app.response_class(
-                response=database.get_image_packages(distro, version, target, subtarget, profile),
-                mimetype='application/json')
+        return mime_json(database.get_image_packages(distro, version, target, subtarget, profile))
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
 @app.route("/api/image/<image_hash>")
 def api_image(image_hash):
-    return app.response_class(
-            response=database.get_image_info(image_hash),
-            mimetype='application/json')
+    return mime_json(database.get_image_info(image_hash))
+
+@app.route("/api/v1/packages_hash/<packages_hash>")
+def api_packages_hash(packages_hash):
+    return mime_json(database.get_packages_hash(packages_hash))
 
 @app.route("/api/manifest/<manifest_hash>")
 def api_manifest(manifest_hash):
-    return app.response_class(
-            response=database.get_manifest_info(manifest_hash),
-            mimetype='application/json')
+    return mime_json(database.get_manifest_info(manifest_hash))
 
 @app.route("/supported")
 def supported():
