@@ -1,9 +1,10 @@
 ---
 distro_alias: LEDE
-latest: "17.01.5"
+latest: "17.01.6"
 versions:
   - "17.01.4"
   - "17.01.5"
+  - "17.01.6"
 vanilla:
   - luci
 targets_url: https://downloads.lede-project.org/releases/
