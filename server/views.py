@@ -85,11 +85,9 @@ def root_path():
     return render_template("index.html")
 
 @app.route("/api/v1/stats/images_count")
-def api_stats_images_count():
-    return jsonify({
-        "total": database.get_images_total(),
-        "stored": database.get_images_count()
-        })
+@app.route("/api/v1/stats/image_stats")
+def api_stats_image_stats():
+    return mime_json(database.get_image_stats())
 
 @app.route("/api/v1/stats/images_latest")
 def api_stats_images_latest():

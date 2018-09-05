@@ -405,15 +405,12 @@ class Database():
         self.c.execute(sql)
         return self.c.fetchval()
 
-    def get_images_count(self):
-        self.log.debug("get images count")
-        sql = "select count(*) as count from images;"
-        self.c.execute(sql)
-        return self.c.fetchval()
-
-    def get_images_total(self):
-        self.log.debug("get images count")
-        sql = "select last_value as total from image_requests_table_id_seq;"
+    def get_image_stats(self):
+        self.log.debug("get image stats")
+        sql = """select to_json(image_stats) from (select total, stored, requested from
+                (select last_value as total from image_requests_table_id_seq) as total,
+                (select count(*) as stored from images) as stored,
+                (select count(*) as requested from image_requests where status = 'requested') as requested) as image_stats;"""
         self.c.execute(sql)
         return self.c.fetchval()
 
