@@ -1,4 +1,4 @@
-drop schema public cascade; create schema public;
+-- drop schema public cascade; create schema public;
 
 create table if not exists worker (
     id serial primary key,
@@ -489,6 +489,7 @@ select
     target,
     subtarget,
     profile,
+    model,
     manifest_table.hash as manifest_hash,
     defaults_table.hash as defaults_hash,
     worker.name as worker,
