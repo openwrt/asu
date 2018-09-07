@@ -374,7 +374,7 @@ class Database():
 
     def get_image_info(self, image_hash):
         self.log.debug("get image info %s", image_hash)
-        sql = "select row_to_json(images_info) from images_info where image_hash = ?"
+        sql = "select row_to_json(images) from images where image_hash = ?"
         return self.c.execute(sql, image_hash).fetchval()
 
     def get_manifest_info(self, manifest_hash, json=False):

@@ -827,19 +827,6 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
-create or replace view images_info as
-select distinct images.id, images.image_hash, distributions.alias, images.distro, images.version, profiles.model, profiles.profile, images.target, images.subtarget, manifest_hash, worker, build_date, build_seconds
-            from images
-        join profiles on
-            images.distro = profiles.distro and
-            images.version = profiles.version and
-            images.target = profiles.target and
-            images.subtarget = profiles.subtarget and
-            images.profile = profiles.profile
-        join distributions on
-            distributions.name = profiles.distro
-        order by id desc;
-
 -- TODO check if this function is much to expensive
 create or replace view manifest_upgrades as
 select
