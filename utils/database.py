@@ -63,7 +63,9 @@ class Database():
     # currently this is splitted back and forth but I'm hungry
     def insert_packages_hash(self, packages_hash, packages):
         self.insert_dict("packages_hashes", {
-            "hash": packages_hash, "packages": " ".join(packages) })
+            "hash": packages_hash,
+            "packages": " ".join(sorted(packages, reverse=True))
+        })
 
     def insert_profiles(self, params, packages_default, profiles):
         self.log.debug("insert packages_default")
