@@ -17,3 +17,4 @@ board_rename:
   tl-wdr4300: tl-wdr4300-v1
   tl-wr741: tl-wr741-v1
   raspberrypi,3-model-b: rpi-3
+  armada-385-linksys-rango: linksys-wrt3200acm
