@@ -16,3 +16,4 @@ board_rename:
   tl-wdr3500: tl-wdr3500-v1
   tl-wdr4300: tl-wdr4300-v1
   tl-wr741: tl-wr741-v1
+  armada-385-linksys-rango: linksys-wrt3200acm
