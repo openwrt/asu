@@ -1,5 +1,5 @@
 parent_distro: openwrt
-parent_version: "18.06.0"
+parent_version: "18.06.1"
 version_description: >
   Pre LibreMesh release based on OpenWrt 18.06
 repos: |
