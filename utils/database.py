@@ -69,12 +69,29 @@ class Database():
 
     def insert_profiles(self, params, packages_default, profiles):
         self.log.debug("insert packages_default")
+
+        # delete existing packages_default
+        sql = """delete from packages_default where
+            distro = ? and version = ? and target = ? and subtarget = ?"""
+        self.c.execute(sql, params["distro"], params["version"],
+            params["target"], params["subtarget"])
+
+        self.commit()
+
         self.insert_dict("packages_default", { **params, "packages": packages_default})
 
+        # delete existing packages_profile
+        sql = """delete from packages_profile where
+            distro = ? and version = ? and target = ? and subtarget = ?"""
+        self.c.execute(sql, params["distro"], params["version"],
+            params["target"], params["subtarget"])
+        self.commit()
         for profile in profiles:
             profile, model, packages = profile
             self.insert_dict("packages_profile",
-                    { **params, "profile": profile, "model": model, "packages": packages })
+                    { **params, "profile": profile, "model": model,
+                        "packages": packages }, False)
+        self.commit()
 
     def check_packages(self, image):
         sql = """select value as packages_unknown

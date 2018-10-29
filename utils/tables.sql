@@ -1,4 +1,4 @@
--- drop schema public cascade; create schema public;
+ drop schema public cascade; create schema public;
 
 create table if not exists worker (
     id serial primary key,
@@ -155,7 +155,13 @@ select
 from subtargets, profiles_table
 where profiles_table.subtarget_id = subtargets.id;
 
-create or replace function add_profiles(distro varchar(20), version varchar(20), target varchar(20), subtarget varchar(20), name varchar(50), model varchar(100)) returns void as
+create or replace function add_profiles(
+	distro varchar(20),
+	version varchar(20),
+	target varchar(20),
+	subtarget varchar(20),
+	name varchar(50),
+	model varchar(100)) returns void as
 $$
 begin
     insert into profiles_table (subtarget_id, profile, model) values (
@@ -180,6 +186,12 @@ SELECT add_profiles(
     NEW.profile,
     NEW.model
 );
+
+create or replace rule delete_profiles as
+on delete to profiles do instead
+delete from profiles_table
+where
+	old.id = profiles_table.id;
 
 create table if not exists packages_names(
     id serial primary key,
@@ -255,10 +267,27 @@ create table if not exists packages_default_table(
 );
 
 create or replace view packages_default as
-select distro, version, target, subtarget, string_agg(packages_names.package_name, ' ') as packages
-from subtargets, packages_default_table, packages_names
-where subtargets.id = packages_default_table.subtarget_id and packages_default_table.package = packages_names.id
-group by (distro, version, target, subtarget);
+select
+	subtargets.id as subtarget_id,
+	distro,
+	version,
+	target,
+	subtarget,
+	string_agg(packages_names.package_name, ' ') as packages
+from
+	subtargets,
+	packages_default_table,
+	packages_names
+where
+	subtargets.id = packages_default_table.subtarget_id and
+	packages_default_table.package = packages_names.id
+group by (subtargets.id, distro, version, target, subtarget);
+
+create or replace rule delete_packages_default as
+on delete to packages_default do instead
+delete from packages_default_table
+where
+	old.subtarget_id = packages_default_table.subtarget_id;
 
 create or replace function add_packages_default(distro varchar(20), version varchar(20), target varchar(20), subtarget varchar(20), packages text) returns void as
 $$
@@ -300,7 +329,8 @@ create table if not exists packages_profile_table(
 
 create or replace view packages_profile as
 select
-distro,
+    profiles_table.id as profile_id,
+    distro,
     version,
     target,
     subtarget,
@@ -312,8 +342,17 @@ from
     packages_profile_table,
     subtargets,
     profiles_table
-where packages_profile_table.package = packages_names.id and packages_profile_table.profile_id = profiles_table.id and subtargets.id = profiles_table.subtarget_id
-group by (distro, version, target, subtarget, profile, model) ;
+where
+	packages_profile_table.package = packages_names.id and
+	packages_profile_table.profile_id = profiles_table.id and
+	subtargets.id = profiles_table.subtarget_id
+group by (profiles_table.id, distro, version, target, subtarget, profile, model) ;
+
+create or replace rule delete_packages_profile as
+on delete to packages_profile do instead
+delete from packages_profile_table
+where 
+	old.profile_id = packages_profile_table.profile_id;
 
 create or replace function add_packages_profile(distro varchar(20), version varchar(20), target varchar(20), subtarget varchar(20), profile varchar(20), model varchar(50), packages text) returns void as
 $$
