@@ -5,6 +5,7 @@
   with_items:
     - git
     - nginx
+    - nginx-extras # required for fancyindex
     - postgresql
     - odbc-postgresql
     - unixodbc-dev
@@ -53,6 +54,9 @@
   become_user: "{{ server_user }}"
   template: src="{{ playbook_dir }}/{{ config_file }}" dest="{{ server_dir }}/config.yml"
 
+- name: setup database
+  include: postgres.yml
+
 - name: start and enable server
   service:
     name: asu-server
@@ -71,3 +75,4 @@
       dest: /etc/nginx/sites-available/default
   notify:
       - nginx reload
+
