@@ -8,7 +8,7 @@ create table if not exists worker (
     unique(name)
 );
 
-create table if not exists distributions (
+create table if not exists distributions_table (
     id serial primary key,
     name varchar(20) not null,
     alias varchar(20) default '',
@@ -16,6 +16,17 @@ create table if not exists distributions (
     description text default '',
     unique(name)
 );
+
+create or replace view distributions as
+select
+    id, name, alias, latest, description
+from distributions_table;
+
+create or replace rule insert_distributions AS
+ON insert TO distributions DO INSTEAD
+    insert into distributions_table (name, alias, latest, description) values (
+	NEW.name, NEW.alias, NEW.latest, NEW.description) on
+	conflict do nothing; 
 
 create table if not exists versions_table(
     id serial primary key,
@@ -25,7 +36,7 @@ create table if not exists versions_table(
     description text default '',
     snapshots boolean default false,
     unique(distro_id, name),
-    foreign key (distro_id) references distributions(id) ON DELETE CASCADE
+    foreign key (distro_id) references distributions_table(id) ON DELETE CASCADE
 );
 
 
@@ -736,7 +747,7 @@ CREATE TABLE IF NOT EXISTS transformations_table (
     package_id INTEGER NOT NULL,
     replacement_id INTEGER,
     context_id INTEGER,
-    FOREIGN KEY (distro_id) REFERENCES distributions(id),
+    FOREIGN KEY (distro_id) REFERENCES distributions_table(id),
     FOREIGN KEY (version_id) REFERENCES versions_table(id),
     FOREIGN KEY (package_id) REFERENCES packages_names(id)
 );
