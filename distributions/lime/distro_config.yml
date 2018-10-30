@@ -2,6 +2,7 @@
 distro_alias: "LibreMesh"
 parent_distro: "lede"
 parent_version: "17.01.5"
+latest: "17.06"
 versions:
   - "17.06"
   - "18.06.1"
