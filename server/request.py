@@ -35,7 +35,7 @@ class Request():
             self.request["version"] = self.request_json["version"]
             # check if version is valid
             if not self.request["version"] in self.config.get(self.request["distro"]).get("versions"):
-                self.response_json["error"] = "unknown version %s" % self.version
+                self.response_json["error"] = "unknown version %s" % self.request_json["version"]
                 self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
                 return self.respond()
         else:
