@@ -27,6 +27,9 @@ class BuildRequest(Request):
             if missing_params:
                 return self.respond()
 
+        # generic approach for https://github.com/aparcar/attendedsysupgrade-server/issues/91
+        self.request_json["board"] = self.request_json["board"].replace(",", "_")
+
         self.request_json["profile"] = self.request_json["board"] # TODO fix this workaround
 
         if "defaults" in self.request_json:
