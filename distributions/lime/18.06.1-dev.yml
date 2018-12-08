@@ -10,7 +10,7 @@ repos: |
   src/gz openwrt_packages http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/packages
   src/gz openwrt_telephony http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/telephony
   src imagebuilder file:packages
-  src/gz libremesh http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/libremesh
+  src/gz libremesh http://snapshots.libremesh.org/packages/
   src/gz libremap http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/libremap
   src/gz limeui http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/limeui
   src/gz profiles http://repo.libremesh.org/network-profiles/
