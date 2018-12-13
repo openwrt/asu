@@ -50,6 +50,11 @@
     src: asu-server.service
     dest: /etc/systemd/system/asu-server.service
 
+- name: copy worker service
+  template:
+    src: asu-worker.service
+    dest: /etc/systemd/system/asu-worker.service
+
 - name: copy config file
   become_user: "{{ server_user }}"
   template: src="{{ playbook_dir }}/{{ config_file }}" dest="{{ server_dir }}/config.yml"
@@ -60,6 +65,12 @@
 - name: start and enable server
   service:
     name: asu-server
+    state: started
+    enabled: true
+
+- name: start and enable worker
+  service:
+    name: asu-worker
     state: started
     enabled: true
 

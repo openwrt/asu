@@ -1,0 +1,15 @@
+[Unit]
+Description=ASU worker
+After=nginx.targe
+
+[Service]
+User={{ server_user }}
+Type=simple
+PIDFile=/run/asu-worker.pid
+RequiresMountsFor=/mnt/worker/
+WorkingDirectory={{ server_dir }}
+ExecStart=/usr/bin/python3 worker.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
