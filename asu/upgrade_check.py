@@ -1,8 +1,8 @@
 from http import HTTPStatus
 import logging
 
-from request import Request
-from utils.common import get_hash
+from asu.request import Request
+from asu.utils.common import get_hash
 
 class UpgradeCheck(Request):
     def __init__(self, config, db):

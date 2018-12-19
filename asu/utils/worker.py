@@ -11,44 +11,10 @@ import logging
 import time
 import pprint
 
-from utils.image import Image
-from utils.common import get_hash
-from utils.config import Config
-from utils.database import Database
-
-class GarbageCollector(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.log = logging.getLogger(__name__)
-        self.config = Config()
-        self.database = Database(self.config)
-
-    def del_image(self, image):
-        image_hash, image_path = image
-        self.log.debug("remove outdated image %s", image)
-        self.database.del_image(image_hash)
-        if os.path.exists(image_path):
-            shutil.rmtree(image_path)
-
-    def run(self):
-        while True:
-            # remove outdated snapshot builds
-            for outdated_snapshot in self.database.get_outdated_snapshots():
-                self.del_image(outdated_snapshot)
-
-            # del custom images older than 7 days
-            for outdated_custom in self.database.get_outdated_customs():
-                self.del_image(outdated_custom)
-
-            # del oudated manifests
-            for outdated_manifest in self.database.get_outdated_manifests():
-                self.del_image(outdated_manifest)
-
-            # del outdated snapshot requests
-            self.database.del_outdated_request()
-
-            # run every 6 hours
-            time.sleep(3600 * 6)
+from asu.utils.image import Image
+from asu.utils.common import get_hash
+from asu.utils.config import Config
+from asu.utils.database import Database
 
 class Worker(threading.Thread):
     def __init__(self, location, job, queue):
@@ -307,57 +273,6 @@ class Worker(threading.Thread):
         else:
             self.log.warning("could not receive packages")
 
-class Updater(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.log = logging.getLogger(__name__)
-        self.config = Config()
-        self.database = Database(self.config)
-        self.update_queue = Queue(1)
-
-    def run(self):
-        location = self.config.get("updater_dir", "updater")
-        Worker(location, None, None).setup_meta()
-        workers = []
-
-        # start all workers
-        for i in range(0, self.config.get("updater_threads", 4)):
-                worker = Worker(location, "update", self.update_queue)
-                worker.start()
-                workers.append(worker)
-
-        while True:
-            outdated_subtarget = self.database.get_subtarget_outdated()
-            if outdated_subtarget:
-                log.info("found outdated subtarget %s", outdated_subtarget)
-                self.update_queue.put(outdated_subtarget)
-            else:
-                time.sleep(5)
-
-class Boss(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.log = logging.getLogger(__name__)
-        self.config = Config()
-        self.database = Database(self.config)
-        self.build_queue = Queue(1)
-
-    def run(self):
-        workers = []
-        for worker_location in self.config.get("workers"):
-            worker = Worker(worker_location, "image", self.build_queue)
-            worker.start()
-            workers.append(worker)
-
-        self.log.info("Active workers are %s", workers)
-
-        while True:
-            build_job = self.database.get_build_job()
-            if build_job:
-                self.log.info("Found build job %s", build_job)
-                self.build_queue.put(build_job)
-            else:
-                time.sleep(10)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

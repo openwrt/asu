@@ -3,11 +3,11 @@ from queue import Queue
 import logging
 import time
 
-from utils.image import Image
-from utils.common import get_hash
-from utils.config import Config
-from utils.database import Database
-from utils.worker import Worker
+from asu.utils.image import Image
+from asu.utils.common import get_hash
+from asu.utils.config import Config
+from asu.utils.database import Database
+from asu.utils.worker import Worker
 
 class Updater(threading.Thread):
     def __init__(self):
@@ -31,7 +31,7 @@ class Updater(threading.Thread):
         while True:
             outdated_subtarget = self.database.get_subtarget_outdated()
             if outdated_subtarget:
-                self.log.info("found outdated subtarget %s", outdated_subtarget)
+                log.info("found outdated subtarget %s", outdated_subtarget)
                 self.update_queue.put(outdated_subtarget)
             else:
                 time.sleep(5)
