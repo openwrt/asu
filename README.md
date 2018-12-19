@@ -62,6 +62,10 @@ It's fairly easy to run your own *asu* server! You can test it locally via
 Vagrant or setup a remote host with Ansible. The following information except
 you are familiar with the concept of Vagrant and/or Ansible.
 
+The following packages are required:
+
+    python3-pip postgresql odbc-postgresql unixodbc-dev
+
 ### Locally with Vagrant
 
 Run `vagrant up`, it will automatically run the Ansible playbook and configure
