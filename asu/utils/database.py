@@ -4,7 +4,7 @@ import pyodbc
 import logging
 import json
 
-from utils.common import get_hash
+from asu.utils.common import get_hash
 
 class Database():
     def __init__(self, config):

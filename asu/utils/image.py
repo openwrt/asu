@@ -1,9 +1,9 @@
 import logging
 import os.path
 
-from utils.common import get_hash
-from utils.config import Config
-from utils.database import Database
+from asu.utils.common import get_hash
+from asu.utils.config import Config
+from asu.utils.database import Database
 
 class Image():
     def __init__(self, params):

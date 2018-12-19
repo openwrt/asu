@@ -3,12 +3,21 @@ from flask import render_template, request, send_from_directory, redirect, jsoni
 import json
 import os
 from http import HTTPStatus
+import logging
 
-from build_request import BuildRequest
-from upgrade_check import UpgradeCheck
+from asu.build_request import BuildRequest
+from asu.upgrade_check import UpgradeCheck
 
-from utils.config import Config
-from utils.database import Database
+from asu.utils.config import Config
+from asu.utils.database import Database
+from asu.utils.common import usign_init
+from asu.utils.garbagecollector import GarbageCollector
+from asu.utils.boss import Boss
+from asu.utils.updater import Updater
+
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger(__name__)
+log.info("start garbage collector")
 
 app = Flask(__name__)
 

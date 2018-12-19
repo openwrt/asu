@@ -11,15 +11,15 @@ import logging
 import time
 import pprint
 
-from utils.image import Image
-from utils.common import get_hash
-from utils.config import Config
-from utils.database import Database
+from asu.utils.image import Image
+from asu.utils.common import get_hash
+from asu.utils.config import Config
+from asu.utils.database import Database
 
 class GarbageCollector(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        self.log = logging.getLogger("garbagecollector")
+        self.log = logging.getLogger(__name__)
         self.config = Config()
         self.database = Database(self.config)
 
@@ -27,7 +27,8 @@ class GarbageCollector(threading.Thread):
         image_hash, image_path = image
         self.log.debug("remove outdated image %s", image)
         self.database.del_image(image_hash)
-        shutil.rmtree(image["file_path"])
+        if os.path.exists(image_path):
+            shutil.rmtree(image_path)
 
     def run(self):
         while True:
@@ -42,6 +43,9 @@ class GarbageCollector(threading.Thread):
             # del oudated manifests
             for outdated_manifest in self.database.get_outdated_manifests():
                 self.del_image(outdated_manifest)
+
+            # del outdated snapshot requests
+            self.database.del_outdated_request()
 
             # run every 6 hours
             time.sleep(3600 * 6)

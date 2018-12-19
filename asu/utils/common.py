@@ -7,7 +7,7 @@ import urllib
 from email.utils import parsedate
 from datetime import datetime
 
-from utils.config import Config
+from asu.utils.config import Config
 
 config = Config()
 

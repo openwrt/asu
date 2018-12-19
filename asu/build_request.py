@@ -1,9 +1,9 @@
 from http import HTTPStatus
 from sys import getsizeof
 
-from utils.image import Image
-from request import Request
-from utils.common import get_hash
+from asu.utils.image import Image
+from asu.utils.common import get_hash
+from asu.request import Request
 
 class BuildRequest(Request):
     def __init__(self, config, db):
