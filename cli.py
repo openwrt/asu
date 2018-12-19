@@ -7,9 +7,9 @@ import urllib.request
 import logging
 import argparse
 import os
-from utils.common import *
-from utils.database import Database
-from utils.config import Config
+from server.utils.common import *
+from server.utils.database import Database
+from server.utils.config import Config
 
 class ServerCli():
     def __init__(self):
