@@ -7,9 +7,9 @@ import urllib.request
 import logging
 import argparse
 import os
-from server.utils.common import *
-from server.utils.database import Database
-from server.utils.config import Config
+from asu.utils.common import *
+from asu.utils.database import Database
+from asu.utils.config import Config
 
 class ServerCli():
     def __init__(self):
@@ -25,11 +25,15 @@ class ServerCli():
         parser.add_argument("-p", "--parse-configs", action="store_true")
         parser.add_argument("-w", "--create-worker", action="store_true")
         parser.add_argument("-a", "--create-all", action="store_true")
+        parser.add_argument("-d", "--init-db", action="store_true")
         self.args = vars(parser.parse_args())
         if self.args["download_versions"]:
             self.download_versions()
         if self.args["init_server"]:
-            self.init_server()
+            self.init_db()
+            self.load_tables()
+            self.insert_board_rename()
+            self.download_versions()
         if self.args["parse_configs"]:
             self.insert_board_rename()
             self.load_tables()
@@ -37,6 +41,11 @@ class ServerCli():
             self.create_worker_image()
         if self.args["create_all"]:
             self.create_all_profiles()
+        if self.args["init_db"]:
+            self.init_db()
+
+    def init_db(self):
+        self.database.init_database()
 
     def create_all_profiles(self):
         for profile in self.database.get_all_profiles():

@@ -1,4 +1,4 @@
 - hosts: all
   become: True
   roles:
-    - server
+    - asu

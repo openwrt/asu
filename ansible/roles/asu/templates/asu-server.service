@@ -7,7 +7,7 @@ User={{ server_user }}
 Type=simple
 PIDFile=/run/update-server.pid
 WorkingDirectory={{ server_dir }}
-ExecStart=/usr/bin/gunicorn3 -w 20 -b 127.0.0.1:5000 server:app
+ExecStart=/usr/bin/gunicorn3 -b 127.0.0.1:5000 asu:app
 Restart=always
 
 [Install]
