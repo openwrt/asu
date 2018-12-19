@@ -2,7 +2,10 @@ ansible/*.retry
 ansible/host_vars/
 ansible/hosts
 *.log
+*.pyc
 imagebuilder/
+updater/
+download/
 gnupg/
 keys/
 **/__pycache__/
