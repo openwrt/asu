@@ -59,9 +59,9 @@ of a client.
 
 ## Run your own server
 
-It's easy to run your own upgrade server! You can test it locally via Vagrant or
-setup a remote host with Ansible. The following information except you are
-familiar with the concept of Vagrant and/or Ansible.
+It's fairly easy to run your own *asu* server! You can test it locally via
+Vagrant or setup a remote host with Ansible. The following information except
+you are familiar with the concept of Vagrant and/or Ansible.
 
 ### Locally with Vagrant
 
@@ -69,7 +69,11 @@ Run `vagrant up`, it will automatically run the Ansible playbook and configure
 the server. Afterwards login via `vagrant ssh` and start the server via the
 following command:
 
-    python3 server
+    cd /vagrant             # root of repository
+    pip3 install -e .       # install asu as editable
+    python3 cli.py -i       # initialize the server
+    export FLASK_APP=asu    # tell flask what to run
+    flask run               # run flask
 
 This spins up the following processes:
 
@@ -84,8 +88,10 @@ This spins up the following processes:
 
 Create a hosts file and run `ansible-playbook site.yml -i hosts` to setup a
 server remotely. This also installs Nginx and serves unencrypted on port 80.
-Currently there is no `systemd` service file so run the `python3 server` in a
-`tmux` or `screen` session.
+Enable the *asu* server and worker via the following two commands.
+
+    systemctl enable asu-server asu-worker
+    systemctl start asu-server asu-worker
 
 ## API
 

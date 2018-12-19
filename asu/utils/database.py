@@ -1,4 +1,5 @@
 import datetime
+import io
 from re import sub
 import pyodbc
 import logging
@@ -12,10 +13,12 @@ class Database():
         self.log.info("log initialized")
         self.config = config
         self.log.info("config initialized")
-        connection_string = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={};PORT={};BoolsAsChar=0".format(
+        self.connect()
+
+    def connect(self):
+        connection_string = "DRIVER={};SERVER={};DATABASE=postgres;UID={};PWD={};PORT={};BoolsAsChar=0".format(
                 self.config.get("database_type"),
                 self.config.get("database_address"),
-                self.config.get("database_name"),
                 self.config.get("database_user"),
                 self.config.get("database_pass"),
                 self.config.get("database_port"))
@@ -23,8 +26,15 @@ class Database():
         self.c = self.cnxn.cursor()
         self.log.info("database connected")
 
+
     def commit(self):
         self.cnxn.commit()
+
+    def init_database(self):
+        with io.open('./asu/utils/tables.sql', 'rt', encoding='utf8') as f: # TODO
+            self.c.execute(f.read())
+        self.commit()
+        self.log.info("database initialized")
 
     def insert_defaults(self, defaults_hash, defaults):
         sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
