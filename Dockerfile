@@ -5,6 +5,7 @@ python3-pip \
 odbc-postgresql \
 unixodbc-dev \
 gunicorn3 \
+git \
 && rm -rf /var/lib/apt/lists/*
 
 ADD . /asu
