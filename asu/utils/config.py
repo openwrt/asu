@@ -7,16 +7,18 @@ class Config():
     def __init__(self):
         self.config = {}
         self.config_file = "config.yml"
-
         if not os.path.exists(self.config_file):
-            print("Missing config.yml")
-            exit(1)
+            with open(os.path.dirname(os.path.abspath(__file__)) +
+                    "/config.yml.default", "r") as default_file:
+                with open("config.yml", "w") as config_file:
+                    config_file.write(default_file.read())
 
         with open(self.config_file, 'r') as ymlfile:
             self.config = yaml.load(ymlfile)
 
         for distro in self.get_distros():
-            with open(os.path.join(self.get_folder("distro_folder"), distro, "distro_config.yml"), 'r') as ymlfile:
+            with open(os.path.join(self.get_folder("distro_folder"), 
+                    distro, "distro_config.yml"), 'r') as ymlfile:
                 self.config[distro] = yaml.load(ymlfile)
 
     # load configuration of distro and overlay it with custom version settings
