@@ -14,6 +14,7 @@ class Database():
         self.config = config
         self.log.info("config initialized")
         self.connect()
+        self.init_database()
 
     def connect(self):
         connection_string = "DRIVER={};SERVER={};DATABASE=postgres;UID={};PWD={};PORT={};BoolsAsChar=0".format(
@@ -26,15 +27,23 @@ class Database():
         self.c = self.cnxn.cursor()
         self.log.info("database connected")
 
-
     def commit(self):
         self.cnxn.commit()
 
     def init_database(self):
-        with io.open('./asu/utils/tables.sql', 'rt', encoding='utf8') as f: # TODO
-            self.c.execute(f.read())
-        self.commit()
-        self.log.info("database initialized")
+        self.c.execute("select * from information_schema.tables where table_name='distributions'")
+        if not self.c.rowcount():
+            with io.open(self.config.root_dir + '/tables.sql', 'rt', encoding='utf8') as f:
+                self.c.execute(f.read())
+            from cli import ServerCli
+            sc = ServerCli()
+            sc.load_tables()
+            sc.insert_board_rename()
+            sc.download_versions()
+            self.log.info("database initialized")
+        else:
+            self.log.info("already initialized database")
+
 
     def insert_defaults(self, defaults_hash, defaults):
         sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"

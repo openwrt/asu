@@ -7,9 +7,9 @@ class Config():
     def __init__(self):
         self.config = {}
         self.config_file = "config.yml"
+        self.root_dir = os.path.dirname(os.path.abspath(__file__))
         if not os.path.exists(self.config_file):
-            with open(os.path.dirname(os.path.abspath(__file__)) +
-                    "/config.yml.default", "r") as default_file:
+            with open(self.root_dir + "/config.yml.default", "r") as default_file:
                 with open("config.yml", "w") as config_file:
                     config_file.write(default_file.read())
 
