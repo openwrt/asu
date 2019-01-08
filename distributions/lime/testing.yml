@@ -9,8 +9,7 @@ repos: |
   src/gz reboot_packages http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/packages
   src/gz reboot_telephony http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/telephony
   src imagebuilder file:packages
-  src/gz libremesh http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/libremesh
+  src/gz libremesh https://snapshots.libremesh.org/packages/
   src/gz libremap http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/libremap
   src/gz limeui http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/limeui
-  src/gz lm_routing http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/routing
-  src/gz lm_profiles http://repo.libremesh.org/network-profiles/
+  src/gz lm_profiles https://as-test.stephen304.com/network-profiles/
