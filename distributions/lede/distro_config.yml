@@ -2,8 +2,6 @@
 distro_alias: LEDE
 latest: "17.01.6"
 versions:
-  - "17.01.4"
-  - "17.01.5"
   - "17.01.6"
 vanilla:
   - luci
