@@ -13,5 +13,5 @@ repos: |
   src imagebuilder file:packages
   src/gz libremesh https://snapshots.libremesh.org/packages/
   src/gz libremap http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/libremap
-  src/gz limeui http://repo.libremesh.org/releases/17.06kk/packages/{{ pkg_arch }}/limeui
+  src/gz limeui http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/limeui
   src/gz profiles https://as-test.stephen304.com/network-profiles/
