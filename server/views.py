@@ -117,7 +117,7 @@ def api_distros():
     return mime_json(database.api_get_distros())
 
 @app.route("/api/distributions")
-def api_distros():
+def api_distributions():
     return mime_json(config.get_all())
 
 @app.route("/api/versions")
