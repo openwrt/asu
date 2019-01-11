@@ -8,7 +8,6 @@ repos: |
   src/gz openwrt_base http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/base
   src/gz openwrt_routing http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/routing
   src/gz openwrt_luci http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/luci
-  src/gz openwrt_routing http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/routing
   src/gz openwrt_packages http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/packages
   src/gz openwrt_telephony http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/telephony
   src imagebuilder file:packages
