@@ -1,4 +1,5 @@
 parent_distro: openwrt
+parent_version: snapshots
 snapshots: True
 version_description: >
   LibreMesh development branch on OpenWrt development branch
