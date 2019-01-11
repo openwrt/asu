@@ -11,7 +11,7 @@ services:
   server:
     build: .
     entrypoint:
-      - "gunicorn"
+      - "gunicorn3"
       - "asu:app"
   worker:
     build: .
