@@ -1,5 +1,6 @@
 import yaml
 import os.path
+import json
 import os
 from os import listdir, makedirs
 
@@ -78,7 +79,7 @@ class Config():
                             distros[distro]["versions"][version] = version_content
                 else:
                     distros[distro]["versions"][version] = {}
-        return distros
+        return json.dumps(distros)
 
     def get_distros(self):
         return(listdir(self.config.get("distro_folder")))

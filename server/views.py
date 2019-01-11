@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from flask import Flask
-from flask import render_template, request, send_from_directory, redirect, jsonify
+from flask import render_template, request, send_from_directory, redirect
 import json
 import os
 from http import HTTPStatus
