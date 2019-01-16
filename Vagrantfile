@@ -6,5 +6,5 @@ Vagrant.configure("2") do |config|
     ansible.playbook = "ansible/site.yml"
   end
   config.vm.provision "shell",
-    inline: "sudo apt install htop ranger vim tree bmon -y"
+    inline: "sudo apt install htop ranger vim tree bmon tmux curl -y"
 end
