@@ -3,14 +3,14 @@
   vars:
       ansible_ssh_pipelining: true
   postgresql_db:
-    name: "{{ database_name }}"
+    name: "asu"
 
 - name: ensure user has access to database
   become_user: postgres
   vars:
       ansible_ssh_pipelining: true
   postgresql_user:
-    db: "{{ database_name }}"
+    db: "asu"
     name: "{{ database_user }}"
     password: "{{ database_pass }}"
     priv: ALL
@@ -28,6 +28,6 @@
   vars:
       ansible_ssh_pipelining: true
   postgresql_db:
-    name: "{{ database_name }}"
+    name: "asu"
     state: restore
-    target: "{{ server_dir }}/utils/tables.sql"
+    target: "{{ server_dir }}/asu/utils/tables.sql"

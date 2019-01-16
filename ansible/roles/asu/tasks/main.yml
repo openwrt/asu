@@ -1,3 +1,8 @@
+- name: add server user
+  user:
+    name: "{{ server_user }}"
+    shell: /bin/bash
+
 - name: install required software
   package: name={{ item }} state=present
   with_items:
@@ -13,6 +18,9 @@
     - python3-flask
     - python3-setuptools
     - python3-pip
+    - python-setuptools # required due to ansible bug
+    - python-pip        # https://github.com/ansible/ansible/issues/47361
+    - gunicorn3
 
 - pip:
     executable: pip3
