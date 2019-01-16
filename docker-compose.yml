@@ -13,6 +13,8 @@ services:
     entrypoint:
       - "gunicorn3"
       - "asu:app"
+    ports:
+      - 5000
 
   worker:
     build: .
