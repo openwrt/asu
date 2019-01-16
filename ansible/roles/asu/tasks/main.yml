@@ -3,6 +3,25 @@
     name: "{{ server_user }}"
     shell: /bin/bash
 
+- name: check for specific config
+  local_action: stat path="{{ playbook_dir }}/host_vars/{{ inventory_hostname }}.yml"
+  register: specific_config
+  vars:
+    ansible_become: no
+
+- name: copy specific config
+  copy:
+    src: "{{ playbook_dir }}/host_vars/{{ inventory_hostname }}.yml"
+    dest: "{{ server_dir }}/config.yml"
+  when: specific_config.stat.islnk is defined
+
+- name: copy default config
+  copy:
+    src: "{{ playbook_dir }}/host_vars/default.yml"
+    dest: "{{ server_dir }}/config.yml"
+    follow: true
+  when: specific_config.stat.islnk is not defined
+
 - name: install required software
   package: name={{ item }} state=present
   with_items:
