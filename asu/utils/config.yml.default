@@ -19,7 +19,6 @@ active_distros:
 # database
 database_type: PostgreSQL Unicode
 database_address: localhost
-database_name: attendedsysupgrade
 database_user: postgres
 database_pass: changeme
 database_port: 5432

@@ -6,13 +6,14 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: changeme
-      POSTGRES_DB: attendedsysupgrade
+      POSTGRES_DB: asu
 
   server:
     build: .
     entrypoint:
       - "gunicorn3"
       - "asu:app"
+
   worker:
     build: .
     entrypoint:

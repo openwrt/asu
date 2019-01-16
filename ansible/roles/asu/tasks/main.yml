@@ -1,5 +1,3 @@
-- name: include vars
-  include_vars: "{{ playbook_dir }}/{{ config_file }}"
 - name: install required software
   package: name={{ item }} state=present
   with_items:
@@ -13,10 +11,11 @@
     - python-psycopg2
     - python3-yaml
     - python3-flask
+    - python3-setuptools
     - python3-pip
 
 - pip:
-    executable : pip3
+    executable: pip3
     name: pyodbc
 
 - name: install imagebuilder dependencies
@@ -54,10 +53,6 @@
   template:
     src: asu-worker.service
     dest: /etc/systemd/system/asu-worker.service
-
-- name: copy config file
-  become_user: "{{ server_user }}"
-  template: src="{{ playbook_dir }}/{{ config_file }}" dest="{{ server_dir }}/config.yml"
 
 - name: setup database
   include: postgres.yml
