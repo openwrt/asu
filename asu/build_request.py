@@ -36,7 +36,7 @@ class BuildRequest(Request):
             # check if the uci file exceeds the max file size. this should be
             # done as the uci-defaults are at least temporary stored in the
             # database to be passed to a worker
-            if getsizeof(self.request_json["defaults"]) > self.config.get("max_defaults_size", 0):
+            if getsizeof(self.request_json["defaults"]) > self.config.get("max_defaults_size", 1024):
                 self.response_json["error"] = "attached defaults exceed max size"
                 self.response_status = 420 # this error code is the best I could find
                 self.respond()

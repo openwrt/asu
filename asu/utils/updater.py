@@ -7,6 +7,9 @@ from asu.utils.config import Config
 from asu.utils.database import Database
 from asu.utils.worker import Worker
 
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger(__name__)
+
 class Updater(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
