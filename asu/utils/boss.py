@@ -3,8 +3,6 @@ from queue import Queue
 import logging
 import time
 
-from asu.utils.image import Image
-from asu.utils.common import get_hash
 from asu.utils.config import Config
 from asu.utils.database import Database
 from asu.utils.worker import Worker

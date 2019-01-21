@@ -8,7 +8,7 @@ gunicorn3 \
 git \
 && rm -rf /var/lib/apt/lists/*
 
-ADD . /asu
+COPY . /asu
 WORKDIR /asu
 
 RUN pip3 install -e .

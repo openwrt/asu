@@ -1,4 +1,3 @@
-import datetime
 import io
 from re import sub
 import pyodbc

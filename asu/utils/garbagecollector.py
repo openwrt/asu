@@ -1,18 +1,10 @@
 import threading
-import glob
-import re
-from queue import Queue
 import shutil
-import tempfile
 import os
 import os.path
-import subprocess
 import logging
 import time
-import pprint
 
-from asu.utils.image import Image
-from asu.utils.common import get_hash
 from asu.utils.config import Config
 from asu.utils.database import Database
 

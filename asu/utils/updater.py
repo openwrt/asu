@@ -3,8 +3,6 @@ from queue import Queue
 import logging
 import time
 
-from asu.utils.image import Image
-from asu.utils.common import get_hash
 from asu.utils.config import Config
 from asu.utils.database import Database
 from asu.utils.worker import Worker
@@ -24,6 +22,7 @@ class Updater(threading.Thread):
 
         # start all workers
         for i in range(0, self.config.get("updater_threads", 4)):
+                log.info("starting updater thread {}".format(i))
                 worker = Worker(location, "update", self.update_queue)
                 worker.start()
                 workers.append(worker)
