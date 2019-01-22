@@ -10,14 +10,18 @@ services:
 
   server:
     build: .
-    entrypoint:
-      - "gunicorn3"
-      - "asu:app"
+    command: sh -c './.wait-for db:5432 -- gunicorn3 asu:app'
+    volumes:
+      - "./config.yml:/asu/config.yml"
     ports:
       - 5000
+    depends_on:
+      - db
 
   worker:
     build: .
-    entrypoint:
-      - "python3"
-      - "worker.py"
+    command: sh -c './.wait-for db:5432 -- python3 worker.py'
+    volumes:
+      - "./config.yml:/asu/config.yml"
+    depends_on:
+      - db

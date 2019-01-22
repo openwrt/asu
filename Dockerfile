@@ -6,6 +6,8 @@ odbc-postgresql \
 unixodbc-dev \
 gunicorn3 \
 git \
+bash \
+netcat \
 && rm -rf /var/lib/apt/lists/*
 
 COPY . /asu
