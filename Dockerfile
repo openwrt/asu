@@ -15,4 +15,4 @@ WORKDIR /asu
 
 RUN pip3 install -e .
  
-EXPOSE 5000
+EXPOSE 8000
