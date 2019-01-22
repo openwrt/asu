@@ -37,9 +37,10 @@ Add CLI to perform sysupgrades.
 
 ### [Chef Online Builder](https://github.com/libremesh/chef)
 
-* https://chef.libremesh.org
+* https://chef.libremesh.org (running `master` branch of asu)
+* https://chef.aparcar.org (running `mixing` branch of asu)
 
-![Chef](https://screenshotscdn.firefoxusercontent.com/images/6f96a6e3-1999-47b8-a3c7-643b61b56a0c.png)
+![Chef](https://screenshotscdn.firefoxusercontent.com/images/73b438ed-3fce-4951-8589-0e7685175f77.png)
 
 ## Server
 
