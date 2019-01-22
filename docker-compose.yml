@@ -14,7 +14,7 @@ services:
     build: .
     command: sh -c './.wait-for db:5432 -- python3 cli.py -i &&  gunicorn3 asu:app'
     volumes:
-      - "./config.yml:/asu/config.yml"
+      - "./config.yml.docker:/asu/config.yml"
     ports:
       - 5000
     depends_on:
