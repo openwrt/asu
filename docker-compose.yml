@@ -7,10 +7,12 @@ services:
     environment:
       POSTGRES_PASSWORD: changeme
       POSTGRES_DB: asu
+    volumes:
+      - "./asu/utils/tables.sql:/docker-entrypoint-initdb.d/tables.sql"
 
   server:
     build: .
-    command: sh -c './.wait-for db:5432 -- gunicorn3 asu:app'
+    command: sh -c './.wait-for db:5432 -- python3 cli.py -i &&  gunicorn3 asu:app'
     volumes:
       - "./config.yml:/asu/config.yml"
     ports:
@@ -20,7 +22,7 @@ services:
 
   worker:
     build: .
-    command: sh -c './.wait-for db:5432 -- python3 worker.py'
+    command: sh -c './.wait-for server:5000 -t 300 -- python3 worker.py'
     volumes:
       - "./config.yml:/asu/config.yml"
     depends_on:

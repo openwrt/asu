@@ -30,10 +30,9 @@ class ServerCli():
         if self.args["download_versions"]:
             self.download_versions()
         if self.args["init_server"]:
-            self.init_db()
+            self.download_versions()
             self.load_tables()
             self.insert_board_rename()
-            self.download_versions()
         if self.args["parse_configs"]:
             self.insert_board_rename()
             self.load_tables()
@@ -43,9 +42,6 @@ class ServerCli():
             self.create_all_profiles()
         if self.args["init_db"]:
             self.init_db()
-
-    def init_db(self):
-        self.database.init_database()
 
     def create_all_profiles(self):
         for profile in self.database.get_all_profiles():

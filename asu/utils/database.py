@@ -14,7 +14,6 @@ class Database():
         self.config = config
         self.log.info("config initialized")
         self.connect()
-        self.init_database()
 
     def connect(self):
         connection_string = "DRIVER={};SERVER={};DATABASE=asu;UID={};PWD={};PORT={};BoolsAsChar=0".format(
@@ -29,24 +28,6 @@ class Database():
 
     def commit(self):
         self.cnxn.commit()
-
-    def init_database(self):
-        if not os.path.exists(".db_init"):
-            open(".db_init", "a").close()
-            self.c.execute("select * from information_schema.tables where table_name='distributions'")
-            if not self.c.rowcount == 1:
-                with io.open(self.config.root_dir + '/tables.sql', 'rt', encoding='utf8') as f:
-                    self.c.execute(f.read())
-                self.commit()
-                from cli import ServerCli
-                sc = ServerCli()
-                sc.download_versions()
-                sc.load_tables()
-                sc.insert_board_rename()
-                self.log.info("database initialized")
-            else:
-                self.log.info("already initialized database")
-
 
     def insert_defaults(self, defaults_hash, defaults):
         sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
