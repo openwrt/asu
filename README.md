@@ -59,42 +59,38 @@ of a client.
 ## Run your own server
 
 It's fairly easy to run your own *asu* server! You can test it locally via
-Vagrant or setup a remote host with Ansible. The following information except
-you are familiar with the concept of Vagrant and/or Ansible.
+Docker, Vagrant or setup a remote host with Ansible. The following information
+except you are familiar with the concept of Vagrant and/or Ansible.
 
-The following packages are required:
+### via Docker
 
-    python3-pip postgresql odbc-postgresql unixodbc-dev
+Make sure to have `docker` and `docker-compose` installed. Simply execute the
+server via the following command:
+
+    docker-compose up
+
+This will start a postgres container preseeded with the required database
+schema. Afterwards a server is started which performs an initial download of
+available versions and target/subtarget combinations. Once this is done the
+server itself is started via `gunicorn3`.
+
+A worker container waits for the server to come up (on port 5000) and will start
+builders, garbage collectors and an updater.
 
 ### Locally with Vagrant
 
-Run `vagrant up`, it will automatically run the Ansible playbook and configure
-the server. Afterwards login via `vagrant ssh` and start the server via the
-following command:
+Make sure your vagrant environment is setup and supports the used Debian 9 image
+(virtualbox/libvirt). Also [Ansible](https://ansible.com) is requred to setup
+the service. To start vagrant simply run the following command:
 
-    cd /vagrant             # root of repository
-    pip3 install -e .       # install asu as editable
-    python3 cli.py -i       # initialize the server
-    export FLASK_APP=asu    # tell flask what to run
-    flask run               # run flask
+    vagrant up
 
-This spins up the following processes:
+Ansible automatically starts to setup the postgres database, server and worker.
+Once installed two systemd services are running, called `asu-server` and
+`asu-worker`. Check their well beeing via `journalct -fu asu-*`.
 
-* The server itself, reachable on `localhost:5000`.
-* A garbage collector which automatically removes outdated firmware images.
-* An updater, which manages update workers. It downloads all (!) activated.
-  ImageBuilders and parse supported profiles and available packages.
-* A boss which manages build workers. Currently only local support, eventually
-  also via SSH.
-
-### Remote via Ansible
-
-Create a hosts file and run `ansible-playbook site.yml -i hosts` to setup a
-server remotely. This also installs Nginx and serves unencrypted on port 80.
-Enable the *asu* server and worker via the following two commands.
-
-    systemctl enable asu-server asu-worker
-    systemctl start asu-server asu-worker
+Ansible takes the configuration file from `./asu/utils/config.yml.default` or a
+specific one, if exists, from `./ansible/host_vars/<hostname>.yml`.
 
 ## API
 
