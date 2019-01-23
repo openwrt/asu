@@ -51,8 +51,8 @@ respond to requests without rebuilding exiting images again.
 
 ### Active server
 
-* [stephen304](https://as-test.stephen304.com/) **dev version**
-* [planetexpress](https://ledeupdate.planetexpress.cc)
+* [chef.libremesh,org](https://chef.libremesh.org)
+* [chef.aparcar,org](https://chef.aparcar.org)
 
 You can set this server in `/etc/config/attendedsysupgrade` after installation
 of a client.
