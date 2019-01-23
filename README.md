@@ -75,7 +75,7 @@ schema. Afterwards a server is started which performs an initial download of
 available versions and target/subtarget combinations. Once this is done the
 server itself is started via `gunicorn3`.
 
-A worker container waits for the server to come up (on port 5000) and will start
+A worker container waits for the server to come up (on port 8000) and will start
 builders, garbage collectors and an updater.
 
 ### Locally with Vagrant
