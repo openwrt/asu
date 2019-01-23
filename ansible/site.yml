@@ -1,4 +1,4 @@
-- hosts: asu-server
+- hosts: all
   become: True
   roles:
     - asu

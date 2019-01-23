@@ -1,17 +1,14 @@
-# ansible
-
-config_file: host_vars/default.yml
-
 # server
 dev: False
 sign_images: True
 server: "http://localhost:5000"
 server_user: root
 server_dir: /vagrant
-updater_dir: updater
+updater_dir: ./updater
 updater_threads: 4
 worker:
-    - "/tmp/worker"
+    - ./worker
+
 active_distros:
     - lime
     - openwrt
