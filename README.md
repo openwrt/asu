@@ -60,8 +60,8 @@ of a client.
 ## Run your own server
 
 It's fairly easy to run your own *asu* server! You can test it locally via
-Docker, Vagrant or setup a remote host with Ansible. The following information
-except you are familiar with the concept of Vagrant and/or Ansible.
+Docker, Vagrant or Ansible. The following steps except you are familiar
+with either Docker, Vagrant or Ansible.
 
 ### via Docker
 
@@ -78,7 +78,19 @@ server itself is started via `gunicorn3`.
 A worker container waits for the server to come up (on port 8000) and will start
 builders, garbage collectors and an updater.
 
-### Locally with Vagrant
+The folders `worker` and `updater` are created, caching downloaded
+ImageBuilders. You can change this behaviour in the `docker-compose.yml` file.
+
+### via Ansible
+
+Copy the configuration file from `./asu/utils/config.yml.default` to
+`./ansible/host_vars/<hostname>.yml`. Add the Ansible variables `ansible_host`
+and `ansible_user` to the top of the config file.
+
+Change all settings as you like, the config file is automatically copied to the
+host folder `<server_dir>/config.yml`.
+
+### via Vagrant
 
 Make sure your vagrant environment is setup and supports the used Debian 9 image
 (virtualbox/libvirt). Also [Ansible](https://ansible.com) is requred to setup
