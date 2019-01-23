@@ -1,20 +1,20 @@
 # server
-dev: False
 sign_images: True
-server: "http://localhost:5000"
+server: "http://localhost:8000"
 server_user: root
 server_dir: /asu/
 updater_dir: updater
 updater_threads: 4
 worker:
     - worker
+
 active_distros:
     - openwrt
+    - lime
 
 # database
 database_type: PostgreSQL Unicode
-database_address: db
-database_name: attendedsysupgrade
+database_address: db # postgres container is called db
 database_user: postgres
 database_pass: changeme
 database_port: 5432

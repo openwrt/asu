@@ -25,5 +25,7 @@ services:
     command: sh -c './.wait-for server:8000 -t 300 -- python3 worker.py'
     volumes:
       - "./config.yml.docker:/asu/config.yml"
+      - "./worker/:/asu/worker/"
+      - "./updater/:/asu/updater/"
     depends_on:
       - db
