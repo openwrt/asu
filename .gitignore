@@ -3,8 +3,8 @@ ansible/host_vars/
 ansible/hosts
 *.log
 *.pyc
-imagebuilder/
 updater/
+worker/
 download/
 gnupg/
 keys/
