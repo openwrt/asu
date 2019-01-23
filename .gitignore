@@ -1,6 +1,12 @@
 ansible/*.retry
 ansible/host_vars/
 ansible/hosts
+asu.egg-info/
+build/
+dist/
+tests/
+.vagrant/
+*.swp
 *.log
 *.pyc
 updater/
