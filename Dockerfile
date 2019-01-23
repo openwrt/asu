@@ -8,6 +8,7 @@ gunicorn3 \
 git \
 bash \
 netcat \
+wget \
 && rm -rf /var/lib/apt/lists/*
 
 COPY . /asu
