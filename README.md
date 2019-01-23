@@ -105,6 +105,60 @@ Once installed two systemd services are running, called `asu-server` and
 Ansible takes the configuration file from `./asu/utils/config.yml.default` or a
 specific one, if exists, from `./ansible/host_vars/<hostname>.yml`.
 
+## Development
+
+To hack on the server, please install it manually. The following steps give an
+(may incomplete) overview on the required steps. It's focused on Debian based
+system, feel free to add documentation for other systems.
+
+### Required packages
+
+The server requires the following packages
+
+    sudo apt install python3-pip odbc-postgresql unixodbc-dev gunicorn3 git bash wget postgresql
+
+To run the worker addiditonal packages are required, based on the [official
+wiki](https://openwrt.org/docs/guide-developer/quickstart-build-images)
+
+    sudo apt-get install subversion g++ zlib1g-dev build-essential git python rsync man-db
+    sudo apt-get install libncurses5-dev gawk gettext unzip file libssl-dev wget zip time
+
+### Setting up Postgresql
+
+Set a password for the `postgres` user and add it to `config.yml`. Preseed the
+database schema from `./asu/utils/tables.sql` to the database.
+
+### Install the server package
+
+Run `pip3` to install the package
+
+    pip3 install -e .
+
+This allows `gunicorn3` and `flask` to find the package.
+
+### Init server
+
+Once the database is up and running, let the server download all available
+targets from the server. This is done via the following command
+
+    python3 cli.py -i
+
+### Starting the server
+
+Either start the server in single thread mode via `flask` or via `gunicorn3`:
+
+    FLASK_APP=asu
+    flask run # runs on localhost:5000
+
+    gunicorn3 asu:app # runs on localhost:8000
+
+### Starting the worker
+
+Simply run the following command to run the worker, it will start multiple
+threads for updating, cleaning and building firmware images:
+
+    python3 worker.py
+
 ## API
 
 ### Upgrade check `/api/upgrade-check`
