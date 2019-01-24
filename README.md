@@ -171,7 +171,7 @@ this:
 | `version` | `17.01.0` | installed version |
 | `target` | `ar71xx` | |
 | `subtarget` | `generic` | |
-| `packages` | `{libuci-lua: 2017-04-12-c4df32b3-1, cgi-io: 3, ...}` | all user installed packages |
+| `installed` | `{libuci-lua: 2017-04-12-c4df32b3-1, cgi-io: 3, ...}` | all user installed packages |
 
 Most information can be retrieved via `ubus call system board`. Missing
 information can be gathered via the `rpcd-mod-rpcsys` package. `packages`
@@ -180,7 +180,7 @@ dependence are excluded as they've been automatically and dependencies may
 change between versions.
 
 It's also possible to check for a new version without sending packages by
-removing `packages` from the request.
+removing `installed` from the request.
 
 ### Response `status 200`
 
