@@ -863,7 +863,7 @@ $$ LANGUAGE sql;
 
 create or replace function transform(distro varchar, origversion varchar, targetversion varchar, origpackages varchar) returns table(packages varchar) as $$
 begin
-    return query select name
+    return query select package_name
         from unnest(transform_function(
             (select id from distributions where
                 distributions.name = transform.distro),
@@ -873,7 +873,7 @@ begin
             (select id from versions where
                 versions.distro = transform.distro and
                 versions.version = transform.targetversion),
-            (select array_agg(id) from packages_names, unnest(string_to_array(transform.origpackages, ' ')) as origpackages_rec where packages_name.package_name = origpackages_rec))) as result_ids
+            (select array_agg(id) from packages_names, unnest(string_to_array(transform.origpackages, ' ')) as origpackages_rec where packages_names.package_name = origpackages_rec))) as result_ids
             join packages_names on packages_names.id = result_ids;
 end
 $$ LANGUAGE 'plpgsql';
