@@ -84,4 +84,4 @@ class Config():
         return json.dumps(distros)
 
     def get_distros(self):
-        return(listdir(self.config.get("distro_folder")))
+        return self.config.get("active_distros", ["openwrt", "lime"])

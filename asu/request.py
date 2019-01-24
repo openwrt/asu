@@ -22,28 +22,23 @@ class Request():
         pass
 
     # these checks are relevant for upgrade and image reuqest
-    def check_bad_request(self):
-        # I'm considering a dict request is faster than asking the database
-        self.request["distro"] = self.request_json["distro"].lower()
-        if not self.request["distro"] in self.config.get_distros():
-            self.response_json["error"] = "unknown distribution %s" % self.distro
+    def check_bad_distro(self):
+        if not self.request_json["distro"].lower() in self.config.get_distros():
+            self.response_json["error"] = "unknown distribution {}".format(self.request_json["distro"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
-
-        # same here
-        if "version" in self.request_json:
-            self.request["version"] = self.request_json["version"]
-            # check if version is valid
-            if not self.request["version"] in self.config.get(self.request["distro"]).get("versions"):
-                self.response_json["error"] = "unknown version %s" % self.request_json["version"]
-                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
-                return self.respond()
         else:
-            # if no version is given fallback to latest version of distro
-            self.request["version"] = self.config.get(self.request["distro"]).get("latest")
+            self.request["distro"] =  self.request_json["distro"].lower()
+            return False
 
-        # all checks passed, not bad
-        return False
+    def check_bad_version(self):
+        if not self.request_json["version"] in self.config.get(self.request["distro"]).get("versions"):
+            self.response_json["error"] = "unknown version %s".format(self.request_json["version"])
+            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+            return self.respond()
+        else:
+            self.request["version"] = self.request_json["version"]
+            return False
 
     def check_bad_target(self):
         self.request["target"] = self.request_json["target"]
@@ -52,11 +47,11 @@ class Request():
         # check if sysupgrade is supported. If None is returned the subtarget isn't found
         sysupgrade_supported = self.database.sysupgrade_supported(self.request)
         if sysupgrade_supported == None:
-            self.response_json["error"] = "unknown target %s/%s" % (self.request["target"], self.request["subtarget"])
+            self.response_json["error"] = "unknown target/subtarget {}/{}".format(self.request["target"], self.request["subtarget"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
         elif not sysupgrade_supported and self.sysupgrade_requested:
-            self.response_json["error"] = "target currently not supported %s/%s" % (self.request["target"], self.request["subtarget"])
+            self.response_json["error"] = "target currently not supported {}/{}".format(self.request["target"], self.request["subtarget"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
 
@@ -82,14 +77,14 @@ class Request():
         return False
 
     # check packages by sending requested packages again postgres
-    def check_bad_packages(self):
+    def check_bad_packages(self, packages):
         # remove packages which doesn't exists but appear in the package list
         # upgrade_checks send a dict with package name & version while build
         # requests contain only an array
         if isinstance(self.request_json["packages"], dict):
-            packages_set = set(self.request_json["packages"].keys()) - set(["libc", "kernel"])
+            packages_set = set(packages.keys()) - set(["libc", "kernel"])
         else:
-            packages_set = set(self.request_json["packages"]) - set(["libc", "kernel"])
+            packages_set = set(packages) - set(["libc", "kernel"])
 
         self.request["packages"] = sorted(list(packages_set))
         packages_unknown = self.database.check_packages(self.request)
