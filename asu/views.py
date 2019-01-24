@@ -1,6 +1,6 @@
 from asu import app
 
-from flask import render_template, request, send_from_directory, redirect
+from flask import request, send_from_directory, redirect
 import json
 import os
 from http import HTTPStatus
@@ -77,10 +77,6 @@ def api_files_request(request_hash=None):
         request_json = { "request_hash": request_hash }
     return br.process_request(request_json)
 
-@app.route("/")
-def root_path():
-    return render_template("index.html")
-
 @app.route("/api/v1/stats/images_count")
 @app.route("/api/v1/stats/image_stats")
 def api_stats_image_stats():
@@ -127,7 +123,7 @@ def api_models():
     version = request.args.get("version", "")
     model_search = request.args.get("model_search", "")
     if distro != "" and version != "":
-        return mime_json(database.get_supported_models(model_search, distro, version))
+        return mime_json(database.get_supported_models_json(model_search, distro, version))
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
@@ -156,15 +152,6 @@ def api_packages_hash(packages_hash):
 def api_manifest(manifest_hash):
     return mime_json(database.get_manifest_info(manifest_hash))
 
-@app.route("/supported")
-def supported():
-    show_json = request.args.get('json', False)
-    if show_json:
-        distro = request.args.get('distro', '%')
-        version = request.args.get('version', '%')
-        target = request.args.get('target', '%')
-        supported = database.get_subtargets_json(distro, version, target)
-        return supported
-    else:
-        supported = database.get_subtargets_supported()
-        return render_template("supported.html", supported=supported)
+@app.route("/api/v1/supported")
+def api_supported():
+    return mime_json(database.get_supported_subtargets_json())

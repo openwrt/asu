@@ -352,19 +352,6 @@ class Database():
         self.c.execute(sql)
         self.commit()
 
-    def get_subtargets_supported(self):
-        self.log.debug("get subtargets supported")
-        sql = """select distro, version, target,
-                string_agg(subtarget, ', ') as subtargets
-                from subtargets
-                where supported = 'true'
-                group by (distro, version, target)
-                order by distro, version desc, target"""
-
-        self.c.execute(sql)
-        result = self.c.fetchall()
-        return result
-
     def api_get_distros(self):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]')
                 from (select * from distributions order by (alias)) as distributions;"""
@@ -376,7 +363,7 @@ class Database():
                 from (select * from versions order by (alias)) as versions;"""
         return self.c.execute(sql).fetchval()
 
-    def get_supported_models(self, search='', distro='', version=''):
+    def get_supported_models_json(self, search='', distro='', version=''):
         search_like = '%' + search.lower() + '%'
         if distro == '': distro = '%'
         if version == '': version = '%'
@@ -389,9 +376,9 @@ class Database():
 
         return response
 
-    def get_subtargets_json(self, distro='%', version='%', target='%'):
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where distro like ? and version like ? and target like ?;"""
-        self.c.execute(sql, distro, version, target)
+    def get_supported_subtargets_json(self):
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where supported = 'true';"""
+        self.c.execute(sql)
         return self.c.fetchval()
 
     def get_image_info(self, image_hash):
