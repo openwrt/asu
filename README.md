@@ -37,8 +37,7 @@ Add CLI to perform sysupgrades.
 
 ### [Chef Online Builder](https://github.com/libremesh/chef)
 
-* https://chef.libremesh.org (running `master` branch of asu)
-* https://chef.aparcar.org (running `mixing` branch of asu)
+* https://chef.libremesh.org
 
 ![Chef](https://screenshotscdn.firefoxusercontent.com/images/73b438ed-3fce-4951-8589-0e7685175f77.png)
 
@@ -52,7 +51,6 @@ respond to requests without rebuilding exiting images again.
 ### Active server
 
 * [chef.libremesh,org](https://chef.libremesh.org)
-* [chef.aparcar,org](https://chef.aparcar.org)
 
 You can set this server in `/etc/config/attendedsysupgrade` after installation
 of a client.
@@ -307,3 +305,11 @@ versions, available devices and more. All responses are in `JSON` format.
 | `/api/v1/stats/popular_targets` | Get list of most created targets |
 | `/api/v1/stats/images` | Return image build information |
 | `/api/v1/stats/packages` | Return number of known packages |
+
+## Donations
+
+This project cooperates with [LibreMesh][0], please consider a small donation at
+[open collective][1], directly supporting this project as well!
+
+[0]: https://libremesh.org
+[1]: https://opencollective.com/libremesh
