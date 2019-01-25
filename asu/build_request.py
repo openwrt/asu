@@ -59,9 +59,19 @@ class BuildRequest(Request):
 
         # if not perform various checks to see if the request is acutally valid
         # check for valid distro and version
-        bad_request = self.check_bad_request()
-        if bad_request:
-            return bad_request
+        if not "distro" in self.request_json:
+            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+            self.response_header["X-Missing-Param"] = "distro"
+            return self.respond()
+        else:
+            bad_request = self.check_bad_distro()
+            if bad_request: return bad_request
+
+        if not "version" in self.request_json:
+            self.request["version"] = self.config.get(self.request["distro"]).get("latest")
+        else:
+            bad_request = self.check_bad_version()
+            if bad_request: return bad_request
 
         # check for valid target and subtarget
         bad_target = self.check_bad_target()
