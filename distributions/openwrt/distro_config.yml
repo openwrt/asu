@@ -6,8 +6,8 @@ versions:
   - 18.06.1
   - 18.06.0
   - snapshots
-active_targets:
-  - ar71xx/generic
+#active_targets:
+#  - ar71xx/generic
 vanilla:
   - luci
 targets_url: https://downloads.openwrt.org/releases/
