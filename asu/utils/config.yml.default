@@ -1,7 +1,6 @@
 # server
 dev: False
 sign_images: True
-server: "http://localhost:5000"
 server_user: root
 server_dir: /vagrant
 updater_dir: ./updater
@@ -21,7 +20,6 @@ database_pass: changeme
 database_port: 5432
 
 # folder
-imagebuilder_folder: imagebuilder
 distro_folder: distributions
 download_folder: download
 tempdir: /tmp
