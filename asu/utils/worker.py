@@ -52,8 +52,8 @@ class Worker(threading.Thread):
         with open(path, "a") as log_file:
             log_file.write("### BUILD COMMAND:\n\n")
             for key, value in self.params.items():
-                log_file.write("{}={}\n".format(key.upper(), str(value)))
-            log_file.write("sh meta\n")
+                log_file.write('{}="{}"\n'.format(key.upper(), str(value)))
+            log_file.write("./meta image\n")
             if stdout:
                 log_file.write("\n\n### STDOUT:\n\n" + stdout)
             if stderr:
@@ -102,6 +102,7 @@ class Worker(threading.Thread):
             self.log.info("build image")
             with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_dir:
                 # now actually build the image with manifest hash as EXTRA_IMAGE_NAME
+                self.log.info("build image at %s", build_dir)
                 self.params["worker"] = self.location
                 self.params["BIN_DIR"] = build_dir
                 self.params["j"] = str(os.cpu_count())
@@ -173,6 +174,8 @@ class Worker(threading.Thread):
                     self.database.set_image_requests_status(self.params["request_hash"], 'build_fail')
                     self.write_log(fail_log_path, buildlog, errors)
                     return False
+        else:
+            self.log.info("image already there")
 
         self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
         self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], self.build_status)
