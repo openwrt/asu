@@ -79,9 +79,8 @@ class BuildRequest(Request):
             return bad_target
 
         # check for existing packages
-        bad_packages = self.check_bad_packages()
-        if bad_packages:
-            return bad_packages
+        bad_packages = self.check_bad_packages(self.request_json["packages"])
+        if bad_packages: return bad_packages
 
         # add package_hash to database
         self.database.insert_packages_hash(self.request["packages_hash"], self.request["packages"])
