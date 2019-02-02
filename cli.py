@@ -48,7 +48,7 @@ class ServerCli():
             target, subtarget, board = profile
             image_params = {
                 "distro": "openwrt",
-                "version": "18.06.1",
+                "version": self.config.get("openwrt").get("latest"),
                 "target": target,
                 "subtarget": subtarget,
                 "board": board
