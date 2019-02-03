@@ -1,17 +1,22 @@
  drop schema public cascade; create schema public;
 
+create table if not exists sysupgrades_table (
+    sysupgrade_id SERIAL PRIMARY KEY,
+    sysupgrade varchar(100) unique
+);
+
 create table if not exists defaults_table (
     defaults_id serial primary key,
-    hash varchar(64) unique,
+    defaults_hash varchar(64) unique,
     content text
 );
 
-create table if not exists worker (
+create table if not exists worker_table (
     worker_id serial primary key,
-    name varchar(100),
+    worker varchar(100),
     address varchar(100),
     public_key varchar(100),
-    unique(name)
+    unique(worker)
 );
 
 create table if not exists distros_table (
@@ -312,13 +317,13 @@ $$ LANGUAGE 'plpgsql';
 
 -- manifest
 
-create table if not exists manifest_table (
+create table if not exists manifests_table (
     manifest_id serial primary key,
     manifest_hash varchar(64) unique
 );
 
 create table if not exists manifest_packages_link (
-    manifest_id integer references manifest_table(manifest_id) ON DELETE CASCADE,
+    manifest_id integer references manifests_table(manifest_id) ON DELETE CASCADE,
     package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
     package_version_id integer references packages_versions(package_version_id) ON DELETE CASCADE,
     unique(manifest_id, package_name_id, package_version_id)
@@ -331,19 +336,19 @@ select
     package_name,
     package_version
 from
-    manifest_table
+    manifests_table
     join manifest_packages_link using (manifest_id)
     join packages_names using (package_name_id)
     join packages_versions using (package_version_id);
 
 create or replace rule insert_manifest_packages AS
 ON insert TO manifest_packages DO INSTEAD (
-    insert into manifest_table(manifest_hash) values (NEW.manifest_hash) on conflict do nothing;
+    insert into manifests_table(manifest_hash) values (NEW.manifest_hash) on conflict do nothing;
     insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
     insert into packages_versions (package_version) values (NEW.package_version) on conflict do nothing;
     insert into manifest_packages_link values (
-        (select manifest_id from manifest_table
-            where manifest_table.manifest_hash = NEW.manifest_hash),
+        (select manifest_id from manifests_table
+            where manifests_table.manifest_hash = NEW.manifest_hash),
         (select package_name_id from packages_names
             where packages_names.package_name = NEW.package_name),
         (select package_version_id from packages_versions
@@ -380,6 +385,95 @@ ON insert TO packages_hashes DO INSTEAD (
         (select package_name_id from packages_names where packages_names.package_name = NEW.package_name)
     ) on conflict do nothing;
 );
+
+-- images
+create table if not exists images_table (
+    image_id SERIAL PRIMARY KEY,
+    image_hash varchar(30) UNIQUE,
+    profile_id integer references profiles_table(profile_id) ON DELETE CASCADE,
+    manifest_id integer references manifests_table(manifest_id) ON DELETE CASCADE,
+    worker_id integer references worker_table(worker_id) ON DELETE CASCADE,
+    build_date timestamp default now(),
+    sysupgrade_id integer references sysupgrades_table(sysupgrade_id) ON DELETE CASCADE,
+    status varchar(20) DEFAULT 'untested',
+    defaults_id integer references defaults_table(defaults_id) on delete cascade,
+    vanilla boolean default false,
+    build_seconds integer default 0
+);
+
+create or replace view images as
+select
+    image_id,
+    image_hash,
+    distro,
+    distro_alias,
+    version,
+    version_alias,
+    target,
+    profile,
+    model,
+    manifest_hash,
+    defaults_hash,
+    worker,
+    build_date,
+    sysupgrade,
+    status,
+    vanilla,
+    build_seconds,
+    snapshots
+from images_table
+join profiles using (profile_id)
+join manifests_table using (manifest_id)
+join worker_table using (worker_id)
+left join defaults_table using (defaults_id)
+left join sysupgrades_table using (sysupgrade_id);
+
+create or replace rule insert_images AS
+ON insert TO images DO INSTEAD (
+    insert into sysupgrades_table (sysupgrade) values (NEW.sysupgrade) on conflict do nothing;
+    insert into worker_table(worker) values (NEW.worker) on conflict do nothing;
+    insert into images_table (
+        image_hash,
+        profile_id,
+        manifest_id,
+        defaults_id,
+        worker_id,
+        sysupgrade_id,
+        vanilla,
+        build_seconds
+    ) values (
+        NEW.image_hash,
+        (select profile_id from profiles where
+            profiles.distro = NEW.distro and
+            profiles.version = NEW.version and
+            profiles.target = NEW.target and
+            profiles.profile = NEW.profile),
+        (select manifest_id from manifests_table where
+            manifest_hash = NEW.manifest_hash),
+        (select defaults_id from defaults_table where
+            defaults_hash = NEW.defaults_hash),
+        (select worker_id from worker_table where
+            worker = NEW.worker),
+        (select sysupgrade_id from sysupgrades_table where
+            sysupgrade = NEW.sysupgrade),
+        NEW.vanilla,
+        NEW.build_seconds)
+    on conflict do nothing;
+);
+
+create or replace rule update_images AS
+ON update TO images DO INSTEAD
+update images_table set
+build_date = coalesce(NEW.build_date, build_date),
+status = coalesce(NEW.status, status)
+where images_table.image_hash = NEW.image_hash
+returning
+old.*;
+
+create or replace rule delete_images as
+on delete to images do instead
+delete from images_table
+where old.image_id = images_table.image_id;
 
 -- tests
 
@@ -423,143 +517,15 @@ values
     ('qwe', 'tmux'),
     ('qwe', 'bmon');
 
+insert into images
+    (image_hash, distro, version, target, profile, manifest_hash, defaults_hash, worker, sysupgrade)
+values
+    ('zui', 'openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'abc', '', 'worker0', 'firmware.bin');
 /*
 
 
 
-create table if not exists sysupgrade_files (
-    id SERIAL PRIMARY KEY,
-    sysupgrade varchar(100) unique
-);
 
-create table if not exists images_table (
-    id SERIAL PRIMARY KEY,
-    image_hash varchar(30) UNIQUE,
-    profile_id integer references profiles_table(id) ON DELETE CASCADE,
-    manifest_id integer references manifest_table(id) ON DELETE CASCADE,
-    worker_id integer references worker(id) ON DELETE CASCADE,
-    build_date timestamp default now(),
-    sysupgrade_id integer references sysupgrade_files(id) ON DELETE CASCADE,
-    status varchar(20) DEFAULT 'untested',
-    defaults_id integer references defaults_table(id) on delete cascade,
-    vanilla boolean default false,
-    build_seconds integer default 0
-);
-
-create or replace view images as
-select
-    images_table.id,
-    image_hash,
-    distro,
-    version,
-    target,
-    target,
-    profile,
-    model,
-    manifest_table.hash as manifest_hash,
-    defaults_table.hash as defaults_hash,
-    worker.name as worker,
-    build_date,
-    sysupgrade,
-    status,
-    vanilla,
-    build_seconds,
-    snapshots
-from profiles,
-    manifest_table,
-    sysupgrade_files,
-    worker,
-    images_table
-left join defaults_table on defaults_table.id = images_table.defaults_id
-where
-    profiles.id = images_table.profile_id and
-    images_table.manifest_id = manifest_table.id and
-    images_table.sysupgrade_id = sysupgrade_files.id and
-    images_table.worker_id = worker.id
-;
-
-create or replace function add_image(
-    image_hash varchar,
-    distro varchar,
-    version varchar,
-    target varchar,
-    target varchar,
-    profile varchar,
-    manifest_hash varchar,
-    defaults_hash varchar,
-    worker varchar, 
-    sysupgrade varchar,
-    build_date timestamp,
-    vanilla boolean,
-    build_seconds decimal
-)
-returns void as
-$$
-begin
-    insert into sysupgrade_files (sysupgrade) values (add_image.sysupgrade) on conflict do nothing;
-    insert into worker(name) values (add_image.worker) on conflict do nothing;
-    insert into images_table (
-        image_hash,
-        profile_id,
-        manifest_id,
-        defaults_id,
-        worker_id,
-        sysupgrade_id,
-        vanilla,
-        build_seconds
-    ) values (
-        add_image.image_hash,
-        (select profiles.id from profiles where
-            profiles.distro = add_image.distro and
-            profiles.version = add_image.version and
-            profiles.target = add_image.target and
-            profiles.target = add_image.target and
-            profiles.profile = add_image.profile),
-        (select manifest_table.id from manifest_table where
-            manifest_table.hash = add_image.manifest_hash),
-        (select defaults_table.id from defaults_table where
-            defaults_table.hash = add_image.defaults_hash),
-        (select worker.id from worker where
-            worker.name = add_image.worker),
-        (select sysupgrade_files.id from sysupgrade_files where
-            sysupgrade_files.sysupgrade = add_image.sysupgrade),
-        add_image.vanilla,
-        add_image.build_seconds)
-    on conflict do nothing;
-end
-$$ language 'plpgsql';
-
-create or replace rule insert_images AS
-ON insert TO images DO INSTEAD
-SELECT add_image(
-    NEW.image_hash,
-    NEW.distro,
-    NEW.version,
-    NEW.target,
-    NEW.target,
-    NEW.profile,
-    NEW.manifest_hash,
-    NEW.defaults_hash,
-    NEW.worker,
-    NEW.sysupgrade,
-    NEW.build_date,
-    NEW.vanilla,
-    NEW.build_seconds
-);
-
-create or replace rule update_images AS
-ON update TO images DO INSTEAD
-update images_table set
-build_date = coalesce(new.build_date, build_date),
-status = coalesce(NEW.status, status)
-where images_table.image_hash = NEW.image_hash
-returning
-old.*;
-
-create or replace rule delete_images as
-on delete to images do instead
-delete from images_table
-where old.id = images_table.id;
 
 create or replace view images_download as
 select
@@ -821,7 +787,7 @@ create table if not exists upgrade_checks_table (
     id SERIAL PRIMARY KEY,
     check_hash varchar(30) UNIQUE,
     target_id integer references targets_table(id) ON DELETE CASCADE,
-    manifest_id integer references manifest_table(id) ON DELETE CASCADE
+    manifest_id integer references manifests_table(id) ON DELETE CASCADE
 );
 
 create or replace view upgrade_checks as
@@ -845,8 +811,8 @@ insert into upgrade_checks_table (check_hash, target_id, manifest_id) values (
         targets.version = NEW.version and
         targets.target = NEW.target and
         targets.target = NEW.target),
-    (select manifest_table.id from manifest_table where
-        manifest_table.hash = NEW.manifest_hash))
+    (select manifests_table.id from manifests_table where
+        manifests_table.hash = NEW.manifest_hash))
 on conflict do nothing;
  drop schema public cascade; create schema public;
 
