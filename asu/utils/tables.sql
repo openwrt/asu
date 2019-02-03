@@ -395,7 +395,7 @@ create table if not exists images_table (
     worker_id integer references worker_table(worker_id) ON DELETE CASCADE,
     build_date timestamp default now(),
     sysupgrade_id integer references sysupgrades_table(sysupgrade_id) ON DELETE CASCADE,
-    status varchar(20) DEFAULT 'untested',
+    image_status varchar(20) DEFAULT 'untested',
     defaults_id integer references defaults_table(defaults_id) on delete cascade,
     vanilla boolean default false,
     build_seconds integer default 0
@@ -417,7 +417,7 @@ select
     worker,
     build_date,
     sysupgrade,
-    status,
+    image_status,
     vanilla,
     build_seconds,
     snapshots
@@ -465,15 +465,185 @@ create or replace rule update_images AS
 ON update TO images DO INSTEAD
 update images_table set
 build_date = coalesce(NEW.build_date, build_date),
-status = coalesce(NEW.status, status)
+image_status = coalesce(NEW.image_status, image_status)
 where images_table.image_hash = NEW.image_hash
 returning
 old.*;
 
 create or replace rule delete_images as
-on delete to images do instead
-delete from images_table
-where old.image_id = images_table.image_id;
+    on delete to images do instead
+    delete from images_table
+    where old.image_id = images_table.image_id;
+
+create or replace view images_download as
+select image_id, image_hash,
+    (CASE WHEN defaults_hash is null THEN
+        ''
+    ELSE
+        'custom/' || defaults_hash || '/'
+    end)
+    || distro || '/'
+    || version || '/'
+    || target || '/'
+    || target || '/'
+    || profile || '/'
+    || manifest_hash || '/'
+    as file_path,
+    sysupgrade
+from images;
+
+-- image requests
+
+create table if not exists requests_table (
+    request_id SERIAL PRIMARY KEY,
+    request_hash varchar(30) UNIQUE,
+    profile_id integer references profiles_table(profile_id) ON DELETE CASCADE,
+    packages_hash_id integer references packages_hashes_table(packages_hash_id) ON DELETE CASCADE,
+    defaults_id integer references defaults_table(defaults_id) on delete cascade,
+    image_id integer references images_table(image_id) ON DELETE CASCADE,
+    request_status varchar(20) DEFAULT 'requested',
+    request_date timestamp default now()
+);
+
+create or replace view requests as
+select
+    request_id,
+    request_hash,
+    distro,
+    version,
+    target,
+    profile,
+    packages_hash,
+    defaults_hash,
+    image_hash,
+    request_status,
+    request_date,
+    snapshots,
+    request_id - next_id  as build_position
+from
+    requests_table
+    join profiles using (profile_id)
+    join packages_hashes_table using (packages_hash_id)
+    left join defaults_table using (defaults_id)
+    left join images_table using (image_id),
+    (select min(request_id) as next_id from requests_table where request_status = 'requested') as next;
+
+create or replace rule insert_requests AS
+ON insert TO requests DO INSTEAD
+    insert into requests_table (
+        request_hash,
+        profile_id,
+        packages_hash_id,
+        defaults_id
+    ) values (
+        NEW.request_hash,
+        (select profile_id from profiles where
+            profiles.distro = NEW.distro and
+            profiles.version = NEW.version and
+            profiles.target = NEW.target and
+            profiles.profile = NEW.profile),
+        (select packages_hash_id from packages_hashes_table where
+            packages_hash = NEW.packages_hash),
+        (select defaults_id from defaults_table where
+            defaults_hash = NEW.defaults_hash)
+        )
+on conflict do nothing;
+
+create or replace rule update_requests AS
+ON update TO requests DO INSTEAD
+update requests_table set
+request_status = coalesce(NEW.request_status, request_status),
+image_id = coalesce((select image_id from images_table where
+        image_hash = NEW.image_hash), image_id)
+where request_hash = NEW.request_hash
+returning
+old.*;
+
+create or replace rule delete_requests as
+on delete to requests do instead
+    delete from requests_table
+    where old.request_id = requests_table.request_id;
+
+-- board rename
+
+CREATE TABLE IF NOT EXISTS board_rename_table (
+    version_id INTEGER NOT NULL,
+    origname varchar not null,
+    newname varchar not null,
+    FOREIGN KEY (version_id) REFERENCES versions_table(version_id),
+    unique(version_id, origname)
+);
+
+create or replace view board_rename as
+    select distro, version, origname, newname
+    from board_rename_table
+    join versions using (version_id);
+
+create or replace rule insert_board_rename AS
+ON insert TO board_rename DO INSTEAD (
+    insert into board_rename_table (version_id, origname, newname) values (
+        (select version_id from versions where
+            versions.distro = NEW.distro and
+            versions.version = NEW.version),
+        NEW.origname,
+        NEW.newname
+    ) on conflict do nothing;
+);
+
+-- transformations
+
+CREATE TABLE IF NOT EXISTS transformations_table (
+    distro_id INTEGER NOT NULL, -- unused?
+    version_id INTEGER NOT NULL,
+    package_id INTEGER NOT NULL,
+    replacement_id INTEGER,
+    context_id INTEGER,
+    FOREIGN KEY (distro_id) REFERENCES distros_table(distro_id),
+    FOREIGN KEY (version_id) REFERENCES versions_table(version_id),
+    FOREIGN KEY (package_id) REFERENCES packages_names(package_name_id),
+    FOREIGN KEY (replacement_id) REFERENCES packages_names(package_name_id),
+    FOREIGN KEY (context_id) REFERENCES packages_names(package_name_id)
+);
+
+create or replace view transformations as
+select
+    distro,
+    version,
+    p.package_name as package,
+    r.package_name as replacement,
+    c.package_name as context
+from transformations_table
+    join versions using (version_id)
+    join packages_names p on transformations_table.package_id = p.package_name_id
+    left join packages_names r on transformations_table.replacement_id = r.package_name_id
+    left join packages_names c on transformations_table.context_id = c.package_name_id;
+
+create or replace rule insert_transformations AS
+ON insert TO transformations DO INSTEAD (
+    insert into 
+        packages_names (package_name) 
+    values 
+        (NEW.package),
+    -- this avoids adding "empty" packages
+        (coalesce(NEW.replacement, 'busybox')),
+        (coalesce(NEW.context, 'busybox'))
+    on conflict do nothing;
+    insert into transformations_table
+        (distro_id, version_id, package_id, replacement_id, context_id)
+    values (
+        (select distro_id from distros where
+            distro = NEW.distro),
+        (select version_id from versions where
+            distro = NEW.distro and
+            version = NEW.version),
+        (select package_name_id from packages_names
+            where packages_names.package_name = NEW.package),
+        (select package_name_id from packages_names
+            where packages_names.package_name = NEW.replacement),
+        (select package_name_id from packages_names
+            where packages_names.package_name = NEW.context)
+    ) on conflict do nothing;
+);
 
 -- tests
 
@@ -521,104 +691,27 @@ insert into images
     (image_hash, distro, version, target, profile, manifest_hash, defaults_hash, worker, sysupgrade)
 values
     ('zui', 'openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'abc', '', 'worker0', 'firmware.bin');
+
+insert into requests
+    (request_hash, distro, version, target, profile, packages_hash, defaults_hash)
+values
+    ('asd', 'openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'qwe', '');
+
+insert into board_rename
+    (distro, version, origname, newname)
+values
+    ('openwrt', '18.06.2', 'wrongname', 'goodname');
+
+insert into transformations
+    (distro, version, package, replacement, context)
+values
+    ('openwrt', '18.06.2', 'tmux-legacy', 'tmux', ''),
+    ('openwrt', '18.06.2', 'tmux-mega', 'tmux-full', 'tmux-mega-addon'),
+    ('openwrt', '18.06.2', 'tmux-mega', '', '');
+
+
+
 /*
-
-
-
-
-
-create or replace view images_download as
-select
-id, image_hash,
-    (CASE WHEN defaults_hash is null THEN
-        ''
-    ELSE
-        'custom/' || defaults_hash || '/'
-    end)
-    || distro || '/'
-    || version || '/'
-    || target || '/'
-    || target || '/'
-    || profile || '/'
-    || manifest_hash || '/'
-    as file_path,
-    sysupgrade
-from images;
-
-create table if not exists image_requests_table (
-    id SERIAL PRIMARY KEY,
-    request_hash varchar(30) UNIQUE,
-    profile_id integer references profiles_table(id) ON DELETE CASCADE,
-    packages_hash_id integer references packages_hashes_table(id) ON DELETE CASCADE,
-    defaults_id integer references defaults_table(id) on delete cascade,
-    image_id integer references images_table(id) ON DELETE CASCADE,
-    status varchar(20) DEFAULT 'requested',
-    request_date timestamp default now()
-);
-
-create or replace view image_requests as
-select
-    image_requests_table.id,
-    request_hash,
-    distro,
-    version,
-    target,
-    target,
-    profile,
-    packages_hashes_table.hash as packages_hash,
-    defaults_table.hash as defaults_hash,
-    image_hash,
-    image_requests_table.status,
-    request_date,
-    snapshots,
-    image_requests_table.id - next_id + 1 as build_position
-from
-    profiles,
-    packages_hashes_table,
-    (select min(id) as next_id from image_requests_table where status = 'requested') as next,
-    image_requests_table
-left join defaults_table on defaults_table.id = image_requests_table.defaults_id
-left join images_table on images_table.id = image_requests_table.image_id
-where
-    profiles.id = image_requests_table.profile_id and
-    packages_hashes_table.id = image_requests_table.packages_hash_id;
-
-create or replace rule insert_image_requests AS
-ON insert TO image_requests DO INSTEAD
-insert into image_requests_table (
-    request_hash,
-    profile_id,
-    packages_hash_id,
-    defaults_id
-) values (
-    NEW.request_hash,
-    (select profiles.id from profiles where
-        profiles.distro = NEW.distro and
-        profiles.version = NEW.version and
-        profiles.target = NEW.target and
-        profiles.target = NEW.target and
-        profiles.profile = NEW.profile),
-    (select packages_hashes_table.id from packages_hashes_table where
-        packages_hashes_table.hash = NEW.packages_hash),
-    (select defaults_table.id from defaults_table where
-        defaults_table.hash = NEW.defaults_hash)
-    )
-on conflict do nothing;
-
-create or replace rule update_image_requests AS
-ON update TO image_requests DO INSTEAD
-update image_requests_table set
-status = coalesce(NEW.status, status),
-image_id = coalesce((select id from images_table where
-        images_table.image_hash = NEW.image_hash), image_id)
-where image_requests_table.request_hash = NEW.request_hash
-returning
-old.*;
-
-create or replace rule delete_image_requests as
-on delete to image_requests do instead
-delete from image_requests_table
-where old.id = image_requests_table.id;
 
 create or replace view image_requests_targets as
 select count(*) as requests, target_id
@@ -627,87 +720,7 @@ where profiles_table.id = image_requests_table.profile_id and status = 'requeste
 group by (target_id)
 order by requests desc;
 
-CREATE TABLE IF NOT EXISTS board_rename_table (
-    version_id INTEGER NOT NULL,
-    origname varchar not null,
-    newname varchar not null,
-    FOREIGN KEY (version_id) REFERENCES versions_table(id),
-    unique(version_id, origname)
-);
 
-create or replace view board_rename as
-select distro, version, origname, newname
-from board_rename_table
-join versions on versions.id = board_rename_table.version_id;
-
-create or replace function add_board_rename(distro varchar, version varchar, origname varchar, newname varchar) returns void as
-$$
-begin
-    insert into board_rename_table (version_id, origname, newname) values (
-        (select id from versions where
-            versions.distro = add_board_rename.distro and
-            versions.version = add_board_rename.version),
-        add_board_rename.origname,
-        add_board_rename.newname
-    ) on conflict do nothing;
-end
-$$ language 'plpgsql';
-
-create or replace rule insert_board_rename AS
-ON insert TO board_rename DO INSTEAD
-SELECT add_board_rename(
-    NEW.distro,
-    NEW.version,
-    NEW.origname,
-    NEW.newname
-);
-
-CREATE TABLE IF NOT EXISTS transformations_table (
-    distro_id INTEGER NOT NULL, -- unused?
-    version_id INTEGER NOT NULL,
-    package_id INTEGER NOT NULL,
-    replacement_id INTEGER,
-    context_id INTEGER,
-    FOREIGN KEY (distro_id) REFERENCES distros_table(id),
-    FOREIGN KEY (version_id) REFERENCES versions_table(id),
-    FOREIGN KEY (package_id) REFERENCES packages_names(id)
-);
-
-create or replace view transformations as
-select distro, version, p.package_name as package, r.package_name as replacement, c.package_name as context
-from transformations_table
-join versions on versions.id = transformations_table.version_id
-join packages_names p on transformations_table.package_id = p.id
-left join packages_names r on transformations_table.replacement_id = r.id
-left join packages_names c on transformations_table.context_id = c.id;
-
-create or replace function add_transformations(distro varchar, version varchar, package varchar, replacement varchar, context varchar) returns void as
-$$
-begin
-    -- evil hack to not insert Null names
-    insert into packages_names (name) values (add_transformations.package), (coalesce(add_transformations.replacement, 'busybox')), (coalesce(add_transformations.context, 'busybox')) on conflict do nothing;
-    insert into transformations_table (distro_id, version_id, package_id, replacement_id, context_id) values (
-        (select id from distros where
-            distros.name = add_transformations.distro),
-        (select id from versions where
-            versions.distro = add_transformations.distro and
-            versions.version = add_transformations.version),
-        (select id from packages_names where packages_name.package_name = add_transformations.package),
-        (select id from packages_names where packages_name.package_name = add_transformations.replacement),
-        (select id from packages_names where packages_name.package_name = add_transformations.context)
-    ) on conflict do nothing;
-end
-$$ language 'plpgsql';
-
-create or replace rule insert_transformations AS
-ON insert TO transformations DO INSTEAD
-SELECT add_transformations(
-    NEW.distro,
-    NEW.version,
-    NEW.package,
-    NEW.replacement,
-    NEW.context
-);
 
 CREATE OR REPLACE FUNCTION transform_function(distro_id INTEGER, origversion_id INTEGER, targetversion_id INTEGER, origpkgar INTEGER[])
 RETURNS INTEGER[] AS $$
@@ -815,93 +828,4 @@ insert into upgrade_checks_table (check_hash, target_id, manifest_id) values (
         manifests_table.hash = NEW.manifest_hash))
 on conflict do nothing;
  drop schema public cascade; create schema public;
-
-create table if not exists worker (
-    worker_id serial primary key,
-    name varchar(100),
-    address varchar(100),
-    public_key varchar(100),
-    unique(name)
-);
-
-create table if not exists distros_table (
-    distro_id serial primary key,
-    distro varchar(20) not null,
-    distro_alias varchar(20) default '',
-    distro_description text default '',
-    latest varchar(20),
-    unique(distro_name)
-);
-
-create or replace view distros as
-select
-    *
-from distros_table;
-
-create or replace rule insert_distros AS
-ON insert TO distros DO INSTEAD
-    insert into distros_table (
-        distro,
-        distro_alias,
-        distro_description,
-        latest) 
-    values (
-        NEW.distro,
-        NEW.distro_alias,
-        NEW.distro_description, 
-        NEW.latest)
-    on conflict do nothing; 
-
-create table if not exists versions_table(
-    version_id serial primary key,
-    distro_id integer not null,
-    version_name varchar(20) not null,
-    version_alias varchar(20) default '',
-    version_description text default '',
-    snapshots boolean default false,
-    unique(distro_id, version_name),
-    foreign key (distro_id) references distros_table(distro_id) ON DELETE CASCADE
-);
-
-create or replace view versions as
-select
-    version_id,
-    distro,
-    distro_alias,
-    version_name,
-    version_alias,
-    version_description,
-    snapshots
-from distros join versions_table using (distro_id);
-
-create or replace rule insert_versions AS
-ON insert TO versions DO INSTEAD
-    insert into versions_table (
-            distro_id,
-            version_name,
-            version_alias,
-            version_description,
-            snapshots)
-        values (
-            (select distro_id from distros where distro = NEW.distro),
-            NEW.version_name,
-            NEW.version_alias,
-            NEW.version_description,
-            NEW.snapshots
-        ) on conflict do nothing;
-
-create table if not exists targets_table(
-    target_id serial primary key,
-    version_id integer references versions(version_id),
-    target varchar(50),
-    supported boolean DEFAULT false,
-    last_sync timestamp default date('1970-01-01'),
-    unique(version_id, target)
-);
-
-create or replace view targets as
-select
-    * 
-from versions 
-join targets_table using (version_id);
 */
