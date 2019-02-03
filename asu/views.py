@@ -136,7 +136,12 @@ def api_default_packages():
     subtarget = request.args.get("subtarget", "")
     profile = request.args.get("profile", "")
     if distro != "" and version != "" and target != "" and subtarget != "" and profile != "":
-        return mime_json(database.get_image_packages(distro, version, target, subtarget, profile))
+        return mime_json(database.get_image_packages({
+            "distro": distro,
+            "version": version,
+            "target": target,
+            "subtarget": subtarget,
+            "profile": profile}))
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 

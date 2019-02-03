@@ -81,10 +81,7 @@ class Request():
         # remove packages which doesn't exists but appear in the package list
         # upgrade_checks send a dict with package name & version while build
         # requests contain only an array
-        if isinstance(packages, dict):
-            packages_set = set(packages.keys()) - set(["libc", "kernel"])
-        else:
-            packages_set = set(packages) - set(["libc", "kernel"])
+        packages_set = set(packages) - set(["libc", "kernel"])
 
         self.request["packages"] = sorted(list(packages_set))
         packages_unknown = self.database.check_packages(self.request)

@@ -43,7 +43,7 @@ class UpgradeCheck(Request):
         if not "installed" in self.request_json:
             return self.respond()
         else:
-            bad_request = self.check_bad_packages(self.request_json["installed"])
+            bad_request = self.check_bad_packages(self.request_json["installed"].keys())
             if bad_request: return bad_request
 
         self.outdated_version = self.request["version"]

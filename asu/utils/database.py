@@ -133,11 +133,20 @@ class Database():
             distro, version, target, subtarget, model)
         return self.c.fetchval()
 
-    def get_image_packages(self, distro, version, target, subtarget, profile, as_json=False):
-        self.log.debug("get_image_packages for %s/%s/%s/%s/%s", distro, version, target, subtarget, profile)
-        sql = "select packages from packages_image where distro = ? and version = ? and target = ? and subtarget = ? and profile = ?"
-        self.c.execute(sql, distro, version, target, subtarget, profile)
-        return json.dumps({"packages": self.c.fetchval().rstrip().split(" ")})
+    def get_image_packages(self, request, as_json=False):
+        sql = """select packages from packages_image
+            WHERE distro=? and version=? and target=? and subtarget=? and profile=? limit 1"""
+        self.c.execute(sql,
+                request["distro"],
+                request["version"],
+                request["target"],
+                request["subtarget"],
+                request["profile"])
+        response = self.c.fetchval().rstrip().split(" ")
+        if not as_json:
+            return response
+        else:
+            return json.dumps({"packages": response})
 
     # removes an image entry based on image_hash
     def del_image(self, image_hash):
