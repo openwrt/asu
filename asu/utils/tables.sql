@@ -733,6 +733,8 @@ $$ LANGUAGE 'plpgsql';
 
 -- inserts
 
+/*
+
 insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
 
 insert into versions (distro, version, snapshots) 
@@ -800,6 +802,8 @@ values ('openwrt', '18.06.2', 'tmux-light', 'tmux-full', 'tmux-mega-addon');
 insert into transformations (distro, version, package)
 values ('openwrt', '18.06.2', 'tmux-mega-addon');
 
+*/
+
 -- tests
 /*
 select packages_image('openwrt', '18.06.2', 'ar71xx/generic', 'v2'); 
@@ -810,41 +814,4 @@ select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light tmux-mega-addon');
 
 select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light');
 -- tmux
-*/
-/*
-
-
-
-create table if not exists upgrade_checks_table (
-    id SERIAL PRIMARY KEY,
-    check_hash varchar(30) UNIQUE,
-    target_id integer references targets_table(id) ON DELETE CASCADE,
-    manifest_id integer references manifests_table(id) ON DELETE CASCADE
-);
-
-create or replace view upgrade_checks as
-select
-uc.check_hash, s.distro, s.version, s.target, s.target, manifest_hash, mu.upgrades
-from upgrade_checks_table uc, distros d, targets s, manifest_upgrades mu where
-s.id = uc.target_id and
-s.distro = d.name and
-mu.manifest_id = uc.manifest_id and
-mu.distro = s.distro and
-mu.version = s.version and
-mu.target = s.target and
-mu.target = s.target;
-
-create or replace rule insert_upgrade_checks AS
-ON insert TO upgrade_checks DO INSTEAD
-insert into upgrade_checks_table (check_hash, target_id, manifest_id) values (
-    NEW.check_hash,
-    (select targets.id from targets where
-        targets.distro = NEW.distro and
-        targets.version = NEW.version and
-        targets.target = NEW.target and
-        targets.target = NEW.target),
-    (select manifests_table.id from manifests_table where
-        manifests_table.hash = NEW.manifest_hash))
-on conflict do nothing;
- drop schema public cascade; create schema public;
 */
