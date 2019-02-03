@@ -10,74 +10,76 @@ create table if not exists worker (
 
 create table if not exists distros_table (
     distro_id serial primary key,
-    name varchar(20) not null,
-    alias varchar(20) default '',
+    distro varchar(20) not null,
+    distro_alias varchar(20) default '',
+    distro_description text default '',
     latest varchar(20),
-    description text default '',
-    unique(name)
+    unique(distro)
 );
 
 create or replace view distros as
 select
-    distro_id, name, alias, latest, description
+    *
 from distros_table;
 
 create or replace rule insert_distros AS
-ON insert TO distros DO INSTEAD
-    insert into distros_table (name, alias, latest, description) values (
-	NEW.name, NEW.alias, NEW.latest, NEW.description) on
-	conflict do nothing; 
+ON insert TO distros DO INSTEAD (
+    insert into distros_table (
+        distro,
+        distro_alias,
+        distro_description,
+        latest) 
+    values (
+        NEW.distro,
+        NEW.distro_alias,
+        NEW.distro_description, 
+        NEW.latest)
+    on conflict do nothing; 
+);
 
 create table if not exists versions_table(
     version_id serial primary key,
     distro_id integer not null,
-    name varchar(20) not null,
-    alias varchar(20) default '',
-    description text default '',
+    version varchar(20) not null,
+    version_alias varchar(20) default '',
+    version_description text default '',
     snapshots boolean default false,
-    unique(distro_id, name),
+    unique(distro_id, version),
     foreign key (distro_id) references distros_table(distro_id) ON DELETE CASCADE
 );
-
 
 create or replace view versions as
 select
     version_id,
-    distros.name as distro,
-    distros.alias as distro_alias
-    versions_table.name as version,
-    versions_table.alias,
-    versions_table.description,
+    distro,
+    distro_alias,
+    version,
+    version_alias,
+    version_description,
     snapshots
-from distros join versions_tabel using (distro_id);
-
-create or replace function add_versions(distro varchar, version varchar, alias varchar, description text, snapshots boolean) returns void as
-$$
-begin
-    insert into versions_table (distro_id, name, alias, description, snapshots) values (
-        (select id from distros where distros.name = add_versions.distro),
-        add_versions.version,
-        add_versions.alias,
-        add_versions.description,
-        add_versions.snapshots
-    ) on conflict do nothing;
-end
-$$ language 'plpgsql';
+from distros join versions_table using (distro_id);
 
 create or replace rule insert_versions AS
-ON insert TO versions DO INSTEAD
-SELECT add_versions(
-    NEW.distro,
-    NEW.version,
-    NEW.alias,
-    NEW.description,
-    NEW.snapshots
+ON insert TO versions DO INSTEAD (
+    insert into versions_table (
+            distro_id,
+            version,
+            version_alias,
+            version_description,
+            snapshots)
+        values (
+            (select distro_id from distros where distro = NEW.distro),
+            NEW.version,
+            NEW.version_alias,
+            NEW.version_description,
+            NEW.snapshots
+        ) on conflict do nothing;
 );
 
 create table if not exists targets_table(
     target_id serial primary key,
-    version_id integer references versions(version_id),
-    name varchar(50),
+    version_id integer references versions_table(version_id),
+    target varchar(50),
     supported boolean DEFAULT false,
     last_sync timestamp default date('1970-01-01'),
     unique(version_id, target)
@@ -85,53 +87,38 @@ create table if not exists targets_table(
 
 create or replace view targets as
 select
-    target_id,
-    distro,
-    version,
-    snapshots,
-    name,
-    supported,
-    last_sync
-from versions join targets_table using (version_id);
-
-create or replace function add_targets(distro varchar, version varchar, name varchar) returns void as
-$$
-begin
-    insert into targets_table (version_id, name) values (
-        (select version_id 
-            from versions 
-            where versions.distro = add_targets.distro and 
-            versions.version = add_targets.version),
-        add_targets.name,
-    ) on conflict do nothing;
-end
-$$ language 'plpgsql';
+    * 
+from versions 
+join targets_table using (version_id);
 
 create or replace rule insert_targets AS
-ON insert TO targets DO INSTEAD
-SELECT add_targets(
-    NEW.distro,
-    NEW.version,
-    NEW.name
+ON insert TO targets DO INSTEAD (
+    insert into targets_table (version_id, target) values (
+        (select version_id from versions 
+            where versions.distro = NEW.distro and version = NEW.version),
+        NEW.target
+    ) on conflict do nothing;
 );
 
 create or replace rule update_targets AS
-ON update TO targets DO INSTEAD
-update targets_table set
-supported = coalesce(NEW.supported, supported),
-last_sync = coalesce(NEW.last_sync, last_sync)
-where targets_table.target_id =
-(select id from targets where
-    targets.distro = NEW.distro and
-    targets.version = NEW.version and
-    targets.name = NEW.name)
-returning
-old.*;
+ON update TO targets DO INSTEAD (
+    update targets_table set
+    supported = coalesce(NEW.supported, supported),
+    last_sync = coalesce(NEW.last_sync, last_sync)
+    where targets_table.target_id =
+    (select target_id from targets where
+        targets.distro = NEW.distro and
+        targets.version = NEW.version and
+        targets.target= NEW.target)
+    returning
+    old.*;
+);
 
 create or replace rule delete_targets as
-on delete to targets do instead
-delete from targets_table
-where old.target_id = targets_table.target_id;
+on delete to targets do instead (
+    delete from targets_table
+    where old.target_id = targets_table.target_id;
+);
 
 create table if not exists profiles_table(
     profile_id serial primary key,
@@ -143,66 +130,42 @@ create table if not exists profiles_table(
 
 create or replace view profiles as
 select
-    profile_id,
-    distro,
-    version,
-    target,
-    snapshots,
-    profile,
-    model
+    *
 from targets join profiles_table using (target_id);
 
-create or replace function add_profiles(
-	distro varchar(20),
-	version varchar(20),
-	target varchar(50),
-	name varchar(50),
-	model varchar(100)) returns void as
-$$
-begin
-    insert into profiles_table (target_id, profile, model) values (
-        (select id from targets where
-            targets.distro = add_profiles.distro and
-            targets.version = add_profiles.version and
-            targets.target = add_profiles.target),
-        name,
-        model
-    )  on conflict do nothing;
-end
-$$ language 'plpgsql';
-
 create or replace rule insert_profiles AS
-ON insert TO profiles DO INSTEAD
-SELECT add_profiles(
-    NEW.distro,
-    NEW.version,
-    NEW.target,
-    NEW.target,
-    NEW.profile,
-    NEW.model
+ON insert TO profiles DO INSTEAD (
+    insert into profiles_table (target_id, profile, model) values (
+        (select target_id from targets where
+            targets.distro = NEW.distro and
+            targets.version = NEW.version and
+            targets.target = NEW.target),
+        NEW.profile,
+        NEW.model
+    )  on conflict do nothing;
 );
 
 create or replace rule delete_profiles as
-on delete to profiles do instead
-delete from profiles_table
-where
-	old.id = profiles_table.id;
+on delete to profiles do instead (
+    delete from profiles_table
+    where old.profile_id = profiles_table.profile_id;
+);
 
 create table if not exists packages_names(
-    id serial primary key,
+    package_name_id serial primary key,
     package_name varchar(100) unique not null
 );
 
 create table if not exists packages_versions(
-    id serial primary key,
+    package_version_id serial primary key,
     package_version varchar(100) unique not null
 );
 
 create table if not exists packages_available_table(
-    target_id integer references targets_table(id) ON DELETE CASCADE,
-    package_id integer references packages_names(id) ON DELETE CASCADE,
-    version_id integer references packages_versions(id) ON DELETE CASCADE,
-    primary key(target_id, package_id)
+    target_id integer references targets_table(target_id) ON DELETE CASCADE,
+    package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
+    package_version_id integer references packages_versions(package_version_id) ON DELETE CASCADE,
+    primary key(target_id, package_name_id)
 );
 
 create or replace view packages_available as
@@ -210,55 +173,64 @@ select
     distro,
     version,
     target,
-    target,
     package_name,
     package_version
 from
-    packages_names,
-    packages_versions,
-    targets,
-    packages_available_table
-where
-    targets.id = packages_available_table.target_id and
-    packages_available_table.package_id = packages_names.id and
-    packages_available_table.version_id = packages_versions.id;
+    packages_available_table 
+    join targets using (target_id)
+    join packages_names using (package_name_id)
+    join packages_versions using (package_version_id);
 
+/*
 create or replace function add_packages_available(distro varchar(20), version varchar(20), target varchar(20), target varchar(20), package_name varchar(100), package_version varchar(100)) returns void as
 $$
 begin
     insert into packages_names (package_name) values (add_packages_available.package_name) on conflict do nothing;
     insert into packages_versions (package_version) values (add_packages_available.package_version) on conflict do nothing;
-    insert into packages_available_table values (
-        (select id from targets where
-            targets.distro = add_packages_available.distro and
-            targets.version = add_packages_available.version and
-            targets.target = add_packages_available.target),
-        (select id from packages_names where
-            packages_names.package_name = add_packages_available.package_name),
-        (select id from packages_versions where
-            packages_versions.package_version = add_packages_available.package_version)
-    ) on conflict (target_id, package_id) do update
-    set version_id = (select id from packages_versions where
-            packages_versions.package_version = add_packages_available.package_version);
 end
 $$ language 'plpgsql';
-
-create or replace rule insert_available_default AS
-ON insert TO packages_available DO INSTEAD
-SELECT add_packages_available(
-    NEW.distro,
-    NEW.version,
-    NEW.target,
-    NEW.target,
-    NEW.package_name,
-    NEW.package_version
+*/
+create or replace rule insert_available_packages AS
+ON insert TO packages_available DO INSTEAD (
+    insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
+    insert into packages_versions (package_version) values (NEW.package_version) on conflict do nothing;
+    insert into packages_available_table values (
+        (select target_id from targets where
+            targets.distro = NEW.distro and
+            targets.version = NEW.version and
+            targets.target = NEW.target),
+        (select package_name_id from packages_names where
+            packages_names.package_name = NEW.package_name),
+        (select package_version_id from packages_versions where
+            packages_versions.package_version = NEW.package_version)
+    ) on conflict (target_id, package_name_id) do update
+    set package_version_id = (select package_version_id from packages_versions where
+            packages_versions.package_version = NEW.package_version);
 );
 
 create table if not exists packages_default_table(
-    target_id integer references targets_table(id) ON DELETE CASCADE,
-    package integer references packages_names(id) ON DELETE CASCADE,
-    primary key(target_id, package)
+    target_id integer references targets_table(target_id) ON DELETE CASCADE,
+    package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
+    primary key(target_id, package_id)
 );
+
+insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
+insert into versions (distro, version, snapshots) values ('openwrt', '18.06.2', false);
+insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar71xx/generic');
+insert into profiles
+    (distro, version, target, profile, model) 
+values
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'cf-e355ac-v2', 'COMFAST CF-E355AC v2');
+insert into packages_available
+    (distro, version, target, package_name, package_version) 
+values
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'bmon', '1.0');
+
+/*
+
+
+
+
 
 create or replace view packages_default as
 select
@@ -266,15 +238,11 @@ select
 	distro,
 	version,
 	target,
-	target,
-	string_agg(packages_names.package_name, ' ') as packages
+    package_name
 from
-	targets join packages_default_table using (target_id),
-	packages_names
-where
-	targets.id = packages_default_table.target_id and
-	packages_default_table.package = packages_names.id
-group by (targets.id, distro, version, target, target);
+	targets 
+    join packages_default_table using (target_id)
+    join packages_names using (packages_name_id)
 
 create or replace rule delete_packages_default as
 on delete to packages_default do instead
@@ -315,31 +283,24 @@ SELECT add_packages_default(
 );
 
 create table if not exists packages_profile_table(
-    profile_id integer references profiles_table(id) ON DELETE CASCADE,
-    package integer references packages_names(id) ON DELETE CASCADE,
-    primary key(profile_id, package)
+    profile_id integer references profiles_table(profile_id) ON DELETE CASCADE,
+    package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
+    primary key(profile_id, package_name_id)
 );
 
 create or replace view packages_profile as
 select
-    profiles_table.id as profile_id,
+    profile_id,
     distro,
     version,
     target,
-    target,
     profile,
     model,
-    string_agg(packages_names.package_name, ' ') as packages
+    package_name
 from
-    packages_names,
     packages_profile_table,
-    targets,
-    profiles_table
-where
-	packages_profile_table.package = packages_names.id and
-	packages_profile_table.profile_id = profiles_table.id and
-	targets.id = profiles_table.target_id
-group by (profiles_table.id, distro, version, target, target, profile, model) ;
+    join profiles using (profile_id)
+    join packages_names using (package_name_id)
 
 create or replace rule delete_packages_profile as
 on delete to packages_profile do instead
@@ -925,3 +886,94 @@ insert into upgrade_checks_table (check_hash, target_id, manifest_id) values (
     (select manifest_table.id from manifest_table where
         manifest_table.hash = NEW.manifest_hash))
 on conflict do nothing;
+ drop schema public cascade; create schema public;
+
+create table if not exists worker (
+    worker_id serial primary key,
+    name varchar(100),
+    address varchar(100),
+    public_key varchar(100),
+    unique(name)
+);
+
+create table if not exists distros_table (
+    distro_id serial primary key,
+    distro varchar(20) not null,
+    distro_alias varchar(20) default '',
+    distro_description text default '',
+    latest varchar(20),
+    unique(distro_name)
+);
+
+create or replace view distros as
+select
+    *
+from distros_table;
+
+create or replace rule insert_distros AS
+ON insert TO distros DO INSTEAD
+    insert into distros_table (
+        distro,
+        distro_alias,
+        distro_description,
+        latest) 
+    values (
+        NEW.distro,
+        NEW.distro_alias,
+        NEW.distro_description, 
+        NEW.latest)
+    on conflict do nothing; 
+
+create table if not exists versions_table(
+    version_id serial primary key,
+    distro_id integer not null,
+    version_name varchar(20) not null,
+    version_alias varchar(20) default '',
+    version_description text default '',
+    snapshots boolean default false,
+    unique(distro_id, version_name),
+    foreign key (distro_id) references distros_table(distro_id) ON DELETE CASCADE
+);
+
+create or replace view versions as
+select
+    version_id,
+    distro,
+    distro_alias,
+    version_name,
+    version_alias,
+    version_description,
+    snapshots
+from distros join versions_table using (distro_id);
+
+create or replace rule insert_versions AS
+ON insert TO versions DO INSTEAD
+    insert into versions_table (
+            distro_id,
+            version_name,
+            version_alias,
+            version_description,
+            snapshots)
+        values (
+            (select distro_id from distros where distro = NEW.distro),
+            NEW.version_name,
+            NEW.version_alias,
+            NEW.version_description,
+            NEW.snapshots
+        ) on conflict do nothing;
+
+create table if not exists targets_table(
+    target_id serial primary key,
+    version_id integer references versions(version_id),
+    target varchar(50),
+    supported boolean DEFAULT false,
+    last_sync timestamp default date('1970-01-01'),
+    unique(version_id, target)
+);
+
+create or replace view targets as
+select
+    * 
+from versions 
+join targets_table using (version_id);
+*/
