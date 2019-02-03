@@ -1,5 +1,11 @@
  drop schema public cascade; create schema public;
 
+create table if not exists defaults_table (
+    defaults_id serial primary key,
+    hash varchar(64) unique,
+    content text
+);
+
 create table if not exists worker (
     worker_id serial primary key,
     name varchar(100),
@@ -181,15 +187,6 @@ from
     join packages_names using (package_name_id)
     join packages_versions using (package_version_id);
 
-/*
-create or replace function add_packages_available(distro varchar(20), version varchar(20), target varchar(20), target varchar(20), package_name varchar(100), package_version varchar(100)) returns void as
-$$
-begin
-    insert into packages_names (package_name) values (add_packages_available.package_name) on conflict do nothing;
-    insert into packages_versions (package_version) values (add_packages_available.package_version) on conflict do nothing;
-end
-$$ language 'plpgsql';
-*/
 create or replace rule insert_available_packages AS
 ON insert TO packages_available DO INSTEAD (
     insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
@@ -211,26 +208,8 @@ ON insert TO packages_available DO INSTEAD (
 create table if not exists packages_default_table(
     target_id integer references targets_table(target_id) ON DELETE CASCADE,
     package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
-    primary key(target_id, package_id)
+    primary key(target_id, package_name_id)
 );
-
-insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
-insert into versions (distro, version, snapshots) values ('openwrt', '18.06.2', false);
-insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar71xx/generic');
-insert into profiles
-    (distro, version, target, profile, model) 
-values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'cf-e355ac-v2', 'COMFAST CF-E355AC v2');
-insert into packages_available
-    (distro, version, target, package_name, package_version) 
-values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'bmon', '1.0');
-
-/*
-
-
-
-
 
 create or replace view packages_default as
 select
@@ -242,7 +221,7 @@ select
 from
 	targets 
     join packages_default_table using (target_id)
-    join packages_names using (packages_name_id)
+    join packages_names using (package_name_id);
 
 create or replace rule delete_packages_default as
 on delete to packages_default do instead
@@ -250,37 +229,21 @@ delete from packages_default_table
 where
 	old.target_id = packages_default_table.target_id;
 
-create or replace function add_packages_default(distro varchar(20), version varchar(20), target varchar(20), target varchar(20), packages text) returns void as
-$$
-declare
-package varchar(100);
-packages_array varchar(100)[] = string_to_array(packages, ' ');
-begin
-    FOREACH package IN array packages_array
-    loop
-        insert into packages_names (package_name) values (package) on conflict do nothing;
-        insert into packages_default_table values (
-            (select id from targets where
-                targets.distro = add_packages_default.distro and
-                targets.version = add_packages_default.version and
-                targets.target = add_packages_default.target and
-                targets.target = add_packages_default.target),
-            (select id from packages_names where
-                packages_names.package_name = package)
-        ) on conflict do nothing;
-    end loop;
-end
-$$ language 'plpgsql' ;
-
 create or replace rule insert_packages_default AS
-ON insert TO packages_default DO INSTEAD
-SELECT add_packages_default(
-    NEW.distro,
-    NEW.version,
-    NEW.target,
-    NEW.target,
-    NEW.packages
+ON insert TO packages_default DO INSTEAD (
+-- this shouldn't be required as the packages_available table is filled before     
+        insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
+        insert into packages_default_table values (
+            (select target_id from targets where
+                targets.distro = NEW.distro and
+                targets.version = NEW.version and
+                targets.target = NEW.target),
+            (select package_name_id from packages_names where
+                packages_names.package_name = NEW.package_name)
+        ) on conflict do nothing;
 );
+
+-- packages_profile
 
 create table if not exists packages_profile_table(
     profile_id integer references profiles_table(profile_id) ON DELETE CASCADE,
@@ -298,57 +261,85 @@ select
     model,
     package_name
 from
-    packages_profile_table,
+    packages_profile_table
     join profiles using (profile_id)
-    join packages_names using (package_name_id)
+    join packages_names using (package_name_id);
 
 create or replace rule delete_packages_profile as
 on delete to packages_profile do instead
-delete from packages_profile_table
-where 
-	old.profile_id = packages_profile_table.profile_id;
-
-create or replace function add_packages_profile(distro varchar(20), version varchar(20), target varchar(20), target varchar(20), profile varchar(20), model varchar(50), packages text) returns void as
-$$
-declare
-package varchar(100);
-packages_array varchar(100)[] = string_to_array(packages, ' ');
-begin
-    insert into profiles (distro, version, target, target, profile, model)
-    values (distro, version, target, target, profile, model);
-    FOREACH package IN array packages_array
-    loop
-        insert into packages_names (package_name) values (package) on conflict do nothing;
-        insert into packages_profile_table values (
-            (select profiles.id from profiles where
-                profiles.distro = add_packages_profile.distro and
-                profiles.version = add_packages_profile.version and
-                profiles.target = add_packages_profile.target and
-                profiles.target = add_packages_profile.target and
-                profiles.profile = add_packages_profile.profile),
-            (select id from packages_names where packages_names.package_name = package)
-        ) on conflict do nothing;
-    end loop;
-end
-$$ language 'plpgsql' ;
+    delete from packages_profile_table
+    where old.profile_id = packages_profile_table.profile_id;
 
 create or replace rule insert_packages_profile AS
-ON insert TO packages_profile DO INSTEAD
-SELECT add_packages_profile(
-    NEW.distro,
-    NEW.version,
-    NEW.target,
-    NEW.target,
-    NEW.profile,
-    NEW.model,
-    NEW.packages
+ON insert TO packages_profile DO INSTEAD (
+-- this shouldn't be required as the packages_available table is filled before     
+    insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
+    insert into packages_profile_table values (
+        (select profile_id from profiles where
+            profiles.distro = NEW.distro and
+            profiles.version = NEW.version and
+            profiles.target = NEW.target and
+            profiles.profile = NEW.profile),
+        (select package_name_id from packages_names where packages_names.package_name = NEW.package_name)
+    ) on conflict do nothing;
 );
 
-create table if not exists defaults_table (
-    id serial primary key,
-    hash varchar(64) unique,
-    content text
-);
+-- packages_image
+
+create or replace function packages_image(
+    distro varchar,
+    version varchar,
+    target varchar,
+    profile varchar) 
+    returns table(package_name varchar) as $$
+begin
+    return query select united.package_name from (
+        select packages_profile.package_name from packages_profile
+        where 
+            packages_profile.distro = packages_image.distro and
+            packages_profile.version = packages_image.version and
+            packages_profile.target = packages_image.target and
+            packages_profile.profile = packages_image.profile
+        union
+        select packages_default.package_name from packages_default
+        where 
+            packages_default.distro = packages_image.distro and
+            packages_default.version = packages_image.version and
+            packages_default.target = packages_image.target
+        ) as united;
+end
+$$ LANGUAGE 'plpgsql';
+
+insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
+
+insert into versions (distro, version, snapshots) values ('openwrt', '18.06.2', false);
+
+insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar71xx/generic');
+
+insert into profiles
+    (distro, version, target, profile, model) 
+values
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'Foobar v2');
+
+insert into packages_available
+    (distro, version, target, package_name, package_version) 
+values
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'bmon', '1.0');
+
+insert into packages_default
+    (distro, version, target, package_name) 
+values
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'bmon'),
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'vim');
+
+insert into packages_profile
+    (distro, version, target, profile, package_name) 
+values
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'tmux');
+
+/*
+
+
 
 create table if not exists manifest_table (
     id serial primary key,
@@ -445,25 +436,6 @@ SELECT add_packages_hashes(
     NEW.packages
 );
 
-create or replace view packages_image as
-select distinct
-packages_default.distro,
-packages_default.version,
-packages_default.target,
-packages_default.target,
-profiles.profile,
-packages_default.packages || ' ' || coalesce(packages_profile.packages, '') as packages
-from profiles join packages_default on
-packages_default.distro = profiles.distro and
-packages_default.version = profiles.version and
-packages_default.target = profiles.target and
-packages_default.target = profiles.target
-left join packages_profile on
-packages_profile.distro = profiles.distro and
-packages_profile.version = profiles.version and
-packages_profile.target = profiles.target and
-packages_profile.target = profiles.target and
-packages_profile.profile = profiles.profile;
 
 create table if not exists sysupgrade_files (
     id SERIAL PRIMARY KEY,
