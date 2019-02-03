@@ -645,11 +645,74 @@ ON insert TO transformations DO INSTEAD (
     ) on conflict do nothing;
 );
 
--- tests
+-- transform function
+
+CREATE OR REPLACE FUNCTION transform_function(
+    distro_id INTEGER,
+    origversion_id INTEGER,
+    targetversion_id INTEGER,
+    origpkgar INTEGER[])
+RETURNS INTEGER[] AS $$
+WITH origpkgs AS (SELECT unnest(transform_function.origpkgar) AS pkgnameid)
+SELECT ARRAY(
+    SELECT DISTINCT COALESCE(transform_functionq.replacement_id, transform_functionq.pkgnameid) FROM (
+        SELECT
+        origpkgs.pkgnameid AS pkgnameid,
+        transformations_table.package_id AS package_id,
+        MAX(transformations_table.replacement_id) AS replacement_id
+        FROM
+        origpkgs
+        LEFT OUTER JOIN
+        (
+            SELECT package_id, replacement_id, context_id FROM transformations_table WHERE
+            transformations_table.distro_id = transform_function.distro_id AND
+            transformations_table.version_id > transform_function.origversion_id AND
+            transformations_table.version_id <= transform_function.targetversion_id
+        ) AS transformations_table
+        ON (origpkgs.pkgnameid = transformations_table.package_id)
+        WHERE
+        transformations_table.package_id IS NULL OR (
+            origpkgs.pkgnameid = transformations_table.package_id AND (
+                transformations_table.context_id IS NULL OR EXISTS (
+                    SELECT origpkgs.pkgnameid FROM origpkgs WHERE origpkgs.pkgnameid = transformations_table.context_id
+                )
+                ) AND NOT (
+                origpkgs.pkgnameid = transformations_table.package_id AND transformations_table.replacement_id IS NULL
+            )
+        )
+        GROUP BY origpkgs.pkgnameid, transformations_table.package_id
+    ) AS transform_functionq
+)
+$$ LANGUAGE sql;
+
+create or replace function transform(distro varchar, origversion varchar, targetversion varchar, origpackages varchar) returns table(packages varchar) as $$
+begin
+    return query select package_name
+        from unnest(transform_function(
+            (select distro_id from distros where
+                distros.distro= transform.distro),
+            (select version_id from versions where
+                versions.distro = transform.distro and
+                versions.version = transform.origversion),
+            (select version_id from versions where
+                versions.distro = transform.distro and
+                versions.version = transform.targetversion),
+            (select array_agg(package_name_id)
+                from packages_names,
+                unnest(string_to_array(transform.origpackages, ' ')) as origpackages_rec 
+                where packages_names.package_name = origpackages_rec))) as result_ids
+            join packages_names on packages_names.package_name_id = result_ids;
+end
+$$ LANGUAGE 'plpgsql';
+
+-- inserts
 
 insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
 
-insert into versions (distro, version, snapshots) values ('openwrt', '18.06.2', false);
+insert into versions (distro, version, snapshots) 
+values
+    ('openwrt', '18.06.1', false),
+    ('openwrt', '18.06.2', false);
 
 insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar71xx/generic');
 
@@ -702,76 +765,27 @@ insert into board_rename
 values
     ('openwrt', '18.06.2', 'wrongname', 'goodname');
 
-insert into transformations
-    (distro, version, package, replacement, context)
-values
-    ('openwrt', '18.06.2', 'tmux-legacy', 'tmux', ''),
-    ('openwrt', '18.06.2', 'tmux-mega', 'tmux-full', 'tmux-mega-addon'),
-    ('openwrt', '18.06.2', 'tmux-mega', '', '');
+insert into transformations (distro, version, package, replacement)
+values ('openwrt', '18.06.2', 'tmux-light', 'tmux');
 
+insert into transformations (distro, version, package, replacement, context)
+values ('openwrt', '18.06.2', 'tmux-light', 'tmux-full', 'tmux-mega-addon');
 
+insert into transformations (distro, version, package)
+values ('openwrt', '18.06.2', 'tmux-mega-addon');
+
+-- tests
+
+select packages_image('openwrt', '18.06.2', 'ar71xx/generic', 'v2'); 
+-- bmon tmux vim
+
+select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light tmux-mega-addon');
+-- tmux-full
+
+select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light');
+-- tmux
 
 /*
-
-create or replace view image_requests_targets as
-select count(*) as requests, target_id
-from image_requests_table, profiles_table
-where profiles_table.id = image_requests_table.profile_id and status = 'requested'
-group by (target_id)
-order by requests desc;
-
-
-
-CREATE OR REPLACE FUNCTION transform_function(distro_id INTEGER, origversion_id INTEGER, targetversion_id INTEGER, origpkgar INTEGER[])
-RETURNS INTEGER[] AS $$
-WITH origpkgs AS (SELECT unnest(transform_function.origpkgar) AS pkgnameid)
-SELECT ARRAY(
-    SELECT DISTINCT COALESCE(transform_functionq.replacement_id, transform_functionq.pkgnameid) FROM (
-        SELECT
-        origpkgs.pkgnameid AS pkgnameid,
-        transformations_table.package_id AS package_id,
-        MAX(transformations_table.replacement_id) AS replacement_id
-        FROM
-        origpkgs
-        LEFT OUTER JOIN
-        (
-            SELECT package_id, replacement_id, context_id FROM transformations_table WHERE
-            transformations_table.distro_id = transform_function.distro_id AND
-            transformations_table.version_id > transform_function.origversion_id AND
-            transformations_table.version_id <= transform_function.targetversion_id
-        ) AS transformations_table
-        ON (origpkgs.pkgnameid = transformations_table.package_id)
-        WHERE
-        transformations_table.package_id IS NULL OR (
-            origpkgs.pkgnameid = transformations_table.package_id AND (
-                transformations_table.context_id IS NULL OR EXISTS (
-                    SELECT origpkgs.pkgnameid FROM origpkgs WHERE origpkgs.pkgnameid = transformations_table.context_id
-                )
-                ) AND NOT (
-                origpkgs.pkgnameid = transformations_table.package_id AND transformations_table.replacement_id IS NULL
-            )
-        )
-        GROUP BY origpkgs.pkgnameid, transformations_table.package_id
-    ) AS transform_functionq
-)
-$$ LANGUAGE sql;
-
-create or replace function transform(distro varchar, origversion varchar, targetversion varchar, origpackages varchar) returns table(packages varchar) as $$
-begin
-    return query select package_name
-        from unnest(transform_function(
-            (select id from distros where
-                distros.name = transform.distro),
-            (select id from versions where
-                versions.distro = transform.distro and
-                versions.version = transform.origversion),
-            (select id from versions where
-                versions.distro = transform.distro and
-                versions.version = transform.targetversion),
-            (select array_agg(id) from packages_names, unnest(string_to_array(transform.origpackages, ' ')) as origpackages_rec where packages_names.package_name = origpackages_rec))) as result_ids
-            join packages_names on packages_names.id = result_ids;
-end
-$$ LANGUAGE 'plpgsql';
 
 -- TODO check if this function is much to expensive
 create or replace view manifest_upgrades as
