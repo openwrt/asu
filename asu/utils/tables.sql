@@ -310,6 +310,79 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
+-- manifest
+
+create table if not exists manifest_table (
+    manifest_id serial primary key,
+    manifest_hash varchar(64) unique
+);
+
+create table if not exists manifest_packages_link (
+    manifest_id integer references manifest_table(manifest_id) ON DELETE CASCADE,
+    package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
+    package_version_id integer references packages_versions(package_version_id) ON DELETE CASCADE,
+    unique(manifest_id, package_name_id, package_version_id)
+);
+
+create or replace view manifest_packages as
+select
+    manifest_id,
+    manifest_hash,
+    package_name,
+    package_version
+from
+    manifest_table
+    join manifest_packages_link using (manifest_id)
+    join packages_names using (package_name_id)
+    join packages_versions using (package_version_id);
+
+create or replace rule insert_manifest_packages AS
+ON insert TO manifest_packages DO INSTEAD (
+    insert into manifest_table(manifest_hash) values (NEW.manifest_hash) on conflict do nothing;
+    insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
+    insert into packages_versions (package_version) values (NEW.package_version) on conflict do nothing;
+    insert into manifest_packages_link values (
+        (select manifest_id from manifest_table
+            where manifest_table.manifest_hash = NEW.manifest_hash),
+        (select package_name_id from packages_names
+            where packages_names.package_name = NEW.package_name),
+        (select package_version_id from packages_versions
+            where packages_versions.package_version = NEW.package_version)
+    ) on conflict do nothing;
+);
+
+-- packages_hashes
+
+create table if not exists packages_hashes_table (
+    packages_hash_id serial primary key,
+    packages_hash varchar(100) unique
+);
+
+create table if not exists packages_hashes_link(
+    packages_hash_id integer references packages_hashes_table(packages_hash_id) ON DELETE CASCADE,
+    package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
+    primary key(packages_hash_id, package_name_id)
+);
+
+create or replace view packages_hashes as
+    select packages_hash, package_name
+    from packages_hashes_link
+    join packages_hashes_table using (packages_hash_id)
+    join packages_names using (package_name_id);
+
+create or replace rule insert_packages_hashes AS
+ON insert TO packages_hashes DO INSTEAD (
+    insert into packages_hashes_table (packages_hash) values (NEW.packages_hash) on conflict do nothing;
+    insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
+    insert into packages_hashes_link values (
+        (select packages_hashes_table.packages_hash_id from packages_hashes_table where
+            packages_hashes_table.packages_hash = NEW.packages_hash),
+        (select package_name_id from packages_names where packages_names.package_name = NEW.package_name)
+    ) on conflict do nothing;
+);
+
+-- tests
+
 insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
 
 insert into versions (distro, version, snapshots) values ('openwrt', '18.06.2', false);
@@ -337,104 +410,21 @@ insert into packages_profile
 values
     ('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'tmux');
 
+insert into manifest_packages
+    (manifest_hash, package_name, package_version)
+values
+    ('abc', 'tmux', '1.0'),
+    ('abc', 'bmon', '5.0'),
+    ('abc', 'vim', '8.0');
+
+insert into packages_hashes
+    (packages_hash, package_name)
+values
+    ('qwe', 'tmux'),
+    ('qwe', 'bmon');
+
 /*
 
-
-
-create table if not exists manifest_table (
-    id serial primary key,
-    hash varchar(64) unique
-);
-
-create table if not exists manifest_packages_link (
-    manifest_id integer references manifest_table(id) ON DELETE CASCADE,
-    name_id integer references packages_names(id) ON DELETE CASCADE,
-    version_id integer references packages_versions(id) ON DELETE CASCADE,
-    unique(manifest_id, name_id, version_id)
-);
-
-create or replace view manifest_packages as
-select
-    manifest_table.id as manifest_id,
-    manifest_table.hash as manifest_hash,
-    package_name,
-    package_version
-from
-    manifest_table,
-    manifest_packages_link,
-    packages_names,
-    packages_versions
-where
-manifest_table.id = manifest_packages_link.manifest_id and
-packages_names.id = manifest_packages_link.name_id and
-packages_versions.id = manifest_packages_link.version_id;
-
-create or replace function add_manifest_packages(manifest_hash varchar(64), package_name varchar(100), package_version varchar(100)) returns void as
-$$
-declare
-begin
-    insert into packages_names (package_name) values (add_manifest_packages.package_name) on conflict do nothing;
-    insert into packages_versions (package_version) values (add_manifest_packages.package_version) on conflict do nothing;
-    insert into manifest_packages_link values (
-        (select id from manifest_table where manifest_table.hash = add_manifest_packages.manifest_hash),
-        (select id from packages_names where packages_names.package_name = add_manifest_packages.package_name),
-        (select id from packages_versions where packages_versions.package_version = add_manifest_packages.package_version)
-    ) on conflict do nothing;
-end
-$$ language 'plpgsql';
-
-create or replace rule insert_manifest_packages AS
-ON insert TO manifest_packages DO INSTEAD
-SELECT add_manifest_packages(
-    NEW.manifest_hash,
-    NEW.package_name,
-    NEW.package_version
-);
-
-create table if not exists packages_hashes_table (
-    id serial primary key,
-    hash varchar(100) unique
-);
-
-create table if not exists packages_hashes_link(
-    hash_id integer references packages_hashes_table(id) ON DELETE CASCADE,
-    package_id integer references packages_names(id) ON DELETE CASCADE,
-    primary key(hash_id, package_id)
-);
-
-create or replace view packages_hashes as
-select pht.id, hash, coalesce(string_agg(pn.package_name, ' '), '') as packages
-from packages_hashes_table pht
-        left join packages_hashes_link phl on pht.id = phl.hash_id
-        left join packages_names pn on phl.package_id = pn.id
-group by (pht.id, hash);
-
-
-create or replace function add_packages_hashes(hash varchar(20), packages text) returns void as
-$$
-declare
-package varchar(100);
-packages_array varchar(100)[] = string_to_array(packages, ' ');
-begin
-    insert into packages_hashes_table (hash) values (add_packages_hashes.hash) on conflict do nothing;
-    FOREACH package IN array packages_array
-    loop
-        insert into packages_names (package_name) values (package) on conflict do nothing;
-        insert into packages_hashes_link values (
-            (select packages_hashes_table.id from packages_hashes_table where
-                packages_hashes_table.hash = add_packages_hashes.hash),
-            (select id from packages_names where packages_names.package_name = package)
-        ) on conflict do nothing;
-    end loop;
-end
-$$ language 'plpgsql';
-
-create or replace rule insert_packages_hashes AS
-ON insert TO packages_hashes DO INSTEAD
-SELECT add_packages_hashes(
-    NEW.hash,
-    NEW.packages
-);
 
 
 create table if not exists sysupgrade_files (
