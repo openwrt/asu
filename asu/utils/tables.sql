@@ -208,6 +208,7 @@ ON insert TO packages_available DO INSTEAD (
     ) on conflict (target_id, package_name_id) do update
     set package_version_id = (select package_version_id from packages_versions where
             packages_versions.package_version = NEW.package_version);
+    
 );
 
 create table if not exists packages_default_table(
@@ -705,6 +706,31 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
+-- manifest upgrades
+
+-- TODO check if this function is much to expensive
+
+create or replace function manifest_upgrades (
+    distro varchar, version varchar, target varchar, manifest_hash varchar) 
+    returns table(upgrades json) as $$
+begin
+    return query select united.upgrades from (
+       select
+            json_object_agg(package_name, package_versions) as upgrades
+            from ( select
+                    pa.package_name as package_name,
+                    array[pa.package_version, mp.package_version] as package_versions
+                from manifest_packages mp 
+                join packages_available pa using (package_name)
+                where 
+                pa.distro = manifest_upgrades.distro and
+                pa.version = manifest_upgrades.version and
+                pa.target = manifest_upgrades.target and
+                pa.package_version != mp.package_version
+            ) as upgrades) as united;
+end
+$$ LANGUAGE 'plpgsql';
+
 -- inserts
 
 insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
@@ -724,7 +750,7 @@ values
 insert into packages_available
     (distro, version, target, package_name, package_version) 
 values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'bmon', '1.0');
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'vim', '9.0');
 
 insert into packages_default
     (distro, version, target, package_name) 
@@ -775,7 +801,7 @@ insert into transformations (distro, version, package)
 values ('openwrt', '18.06.2', 'tmux-mega-addon');
 
 -- tests
-
+/*
 select packages_image('openwrt', '18.06.2', 'ar71xx/generic', 'v2'); 
 -- bmon tmux vim
 
@@ -784,30 +810,9 @@ select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light tmux-mega-addon');
 
 select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light');
 -- tmux
-
+*/
 /*
 
--- TODO check if this function is much to expensive
-create or replace view manifest_upgrades as
-select
-    distro,
-    version,
-    target,
-    target,
-    manifest_id,
-    manifest_hash,
-    json_object_agg(package_name,
-    package_versions) as upgrades
-    from (
-            select
-                    distro, version, target, target,
-                    manifest_id, manifest_hash,
-                    pa.package_name as package_name,
-                    array[pa.package_version, mp.package_version] as package_versions
-            from manifest_packages mp join packages_available pa using (package_name)
-            where
-                    pa.package_version != mp.package_version
-    ) as upgrades group by (distro, version, target, target, manifest_id, manifest_hash);
 
 
 create table if not exists upgrade_checks_table (
