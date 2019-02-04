@@ -31,8 +31,8 @@ class ServerCli():
             self.download_versions()
         if self.args["init_server"]:
             self.download_versions()
-            self.load_tables()
-            self.insert_board_rename()
+#            self.load_tables()
+#            self.insert_board_rename()
         if self.args["parse_configs"]:
             self.insert_board_rename()
             self.load_tables()
@@ -84,21 +84,21 @@ class ServerCli():
         self.log.info("response: %s", response)
 
     def download_versions(self):
-        for distro in self.config.get("active_distros", "openwrt"):
+        for distro in self.config.get("active_distros", ["openwrt"]):
             # set distro alias like OpenWrt, fallback would be openwrt
-            self.database.insert_distro({
-                "name": distro,
-                "alias": self.config.get(distro).get("distro_alias", distro),
-                "description": self.config.get(distro).get("distro_description", ""),
+            self.database.insert_dict("distros", {
+                "distro": distro,
+                "distro_alias": self.config.get(distro).get("distro_alias", distro),
+                "distro_description": self.config.get(distro).get("distro_description", ""),
                 "latest": self.config.get(distro).get("latest")
                 })
             for version in self.config.get(distro).get("versions", []):
                 version_config = self.config.version(distro, version)
-                self.database.insert_version({
+                self.database.insert_dict("versions", {
                     "distro": distro,
                     "version": version,
-                    "alias": version_config.get("version_alias", ""),
-                    "description": version_config.get("version_description", ""),
+                    "version_alias": version_config.get("version_alias", version),
+                    "version_description": version_config.get("version_description", ""),
                     "snapshots": version_config.get("snapshots", False)
                     })
                 version_config = self.config.version(distro, version)
@@ -117,12 +117,7 @@ class ServerCli():
                     version_targets = version_targets - set(version_config.get("ignore_targets"))
                 
                 self.log.info("add %s/%s targets", distro, version)
-
-                # TODO do this at once instead of per target
-                for target in version_targets:
-                    self.log.debug("add %s/%s/%s", distro, version, target)
-                    self.database.insert_subtarget(distro, version, *target.split("/"))
-
+                self.database.insert_target(distro, version, version_targets)
 
     def insert_board_rename(self):
         for distro, version in self.database.get_versions():

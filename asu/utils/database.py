@@ -24,10 +24,17 @@ class Database():
                 self.config.get("database_port"))
         self.cnxn = pyodbc.connect(connection_string)
         self.c = self.cnxn.cursor()
+        self.c.fast_executemany = True
         self.log.info("database connected")
 
     def commit(self):
         self.cnxn.commit()
+
+    def insert_target(self, distro, version, targets):
+        sql = "INSERT INTO targets (distro, version, target) VALUES (?, ?, ?);"
+        self.c.executemany(sql,
+                list(map(lambda target: (distro, version, target) , targets)))
+        self.commit()
 
     def insert_defaults(self, defaults_hash, defaults):
         sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
@@ -38,14 +45,6 @@ class Database():
         sql = "select content from defaults_table where hash = ?"
         self.c.execute(sql, defaults_hash)
         return self.c.fetchval()
-
-    def insert_distro(self, distro):
-        self.log.info("insert distro %s", distro)
-        self.insert_dict("distributions", distro)
-
-    def insert_version(self, version):
-        self.log.info("insert version %s", version)
-        self.insert_dict("versions", version)
 
     def insert_supported(self, p):
         sql = """UPDATE subtargets SET supported = true WHERE distro=? and version=? and target=? and subtarget=?"""
@@ -215,10 +214,6 @@ class Database():
             response[name] = version
         return response
 
-    def insert_subtarget(self, distro, version, target, subtarget):
-        sql = "INSERT INTO subtargets (distro, version, target, subtarget) VALUES (?, ?, ?, ?);"
-        self.c.execute(sql, distro, version, target, subtarget)
-        self.commit()
 
     def get_subtargets(self, distro, version, target="%", subtarget="%"):
         self.log.debug("get_subtargets {} {} {} {}".format(distro, version, target, subtarget))
