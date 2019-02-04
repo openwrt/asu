@@ -52,7 +52,6 @@ class Image():
             self.params["distro"],
             self.params["version"],
             self.params["target"],
-            self.params["subtarget"],
             self.params["profile"],
             self.params["manifest_hash"]
             ])
@@ -64,7 +63,6 @@ class Image():
             self.params["distro"],
             self.params["version"],
             self.params["target"],
-            self.params["subtarget"],
             self.params["profile"],
             self.params["defaults_hash"]
             ]
@@ -77,7 +75,6 @@ class Image():
             "distro": self.params["distro"],
             "version": self.params["version"],
             "target": self.params["target"],
-            "subtarget": self.params["subtarget"],
             "profile": self.params["profile"],
             "image_hash": self.params["image_hash"],
             "manifest_hash": self.params["manifest_hash"],

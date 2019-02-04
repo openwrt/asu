@@ -70,6 +70,18 @@ class Worker(threading.Thread):
 
         self.image = Image(self.params)
 
+        packages_image = set(map(lambda x: x[0],
+            self.database.get_packages_image(self.params)))
+        self.log.debug("packages_image %s", packages_image)
+        packages_requested = set(map(lambda x: x[0],
+            self.database.get_packages_hash(self.params["packages_hash"])))
+        self.log.debug("packages_requested %s", packages_requested)
+        packages_remove = packages_image - packages_requested
+        self.log.debug("packages_remove %s", packages_remove)
+        packages_requested.update(set(map(lambda x: "-" + x, packages_remove)))
+        self.params["packages"] =  " ".join(packages_requested)
+        self.log.debug("packages param %s", self.params["packages"])
+
         # first determine the resulting manifest hash
         return_code, manifest_content, errors = self.run_meta("manifest")
 
@@ -102,7 +114,7 @@ class Worker(threading.Thread):
         self.build_status = "created"
 
         # check if image already exists
-        if not self.image.created():
+        if not self.image.created() or not self.database.image_exists(self.params["image_hash"]):
             self.log.info("build image")
             with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_dir:
                 # now actually build the image with manifest hash as EXTRA_IMAGE_NAME

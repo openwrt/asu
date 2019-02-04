@@ -11,7 +11,7 @@ insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar7
 insert into profiles
     (distro, version, target, profile, model) 
 values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'tl-wdr4300-v1', 'tl-wdr4300-v1');
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'tl-wdr4300-v1', 'TP-LINK TL-WDR4300 v1');
 
 insert into packages_available
     (distro, version, target, package_name, package_version) 
@@ -35,6 +35,8 @@ insert into packages_hashes
     (packages_hash, package_name)
 values
     ('qwe', 'tmux'),
+    ('qwe', '-dnsmasq'),
+    ('qwe', '-opkg'),
     ('qwe', 'bmon');
 
 insert into images

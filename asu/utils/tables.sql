@@ -288,7 +288,7 @@ on delete to packages_profile do instead
 create or replace rule insert_packages_profile AS
 ON insert TO packages_profile DO INSTEAD (
     insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
-    insert into packages_profile_table values (
+    insert into packages_profile_table (profile_id, package_name_id) values (
         (select profile_id from profiles where
             profiles.distro = NEW.distro and
             profiles.version = NEW.version and

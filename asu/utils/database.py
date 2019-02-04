@@ -140,11 +140,16 @@ class Database():
             distro, version, target, subtarget, model)
         return self.c.fetchval()
 
-    def get_image_packages(self, distro, version, target, subtarget, profile, as_json=False):
-        self.log.debug("get_image_packages for %s/%s/%s/%s/%s", distro, version, target, subtarget, profile)
-        sql = "select packages from packages_image where distro = ? and version = ? and target = ? and subtarget = ? and profile = ?"
-        self.c.execute(sql, distro, version, target, subtarget, profile)
-        return json.dumps({"packages": self.c.fetchval().rstrip().split(" ")})
+    def get_packages_image(self, request, as_json=False):
+        sql = "select packages_image(?, ?, ?, ?);"
+        self.c.execute(sql,
+                request["distro"], request["version"],
+                request["target"], request["profile"])
+        response = self.c.fetchall()
+        if not as_json:
+            return response
+        else:
+            return json.dumps({"packages": response})
 
     # removes an image entry based on image_hash
     def del_image(self, image_hash):
@@ -317,25 +322,13 @@ class Database():
 
     def set_image_requests_status(self, image_request_hash, status):
         self.log.info("set image {} status to {}".format(image_request_hash, status))
-        sql = """UPDATE image_requests
-            SET status = ?
-            WHERE request_hash = ?;"""
+        sql = """UPDATE requests SET request_status = ?  WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_request_hash)
-        self.commit()
 
     def done_build_job(self, request_hash, image_hash, status="created"):
         self.log.info("done build job: rqst %s img %s status %s", request_hash, image_hash, status)
-        sql = """UPDATE image_requests SET
-            status = ?,
-            image_hash = ?
-            WHERE request_hash = ?;"""
+        sql = """UPDATE requests SET request_status = ?, image_hash = ?  WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_hash, request_hash)
-        self.commit()
-
-    def reset_build_requests(self):
-        self.log.debug("reset building images")
-        sql = "UPDATE image_requests SET status = 'requested' WHERE status = 'building'"
-        self.c.execute(sql)
         self.commit()
 
     def api_get_distros(self):
@@ -383,8 +376,8 @@ class Database():
 
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)
-        sql = "select package_name from packages_hashes where hash = ?;"
-        return self.c.execute(sql, packages_hash).fetchval()
+        sql = "select package_name from packages_hashes where packages_hash = ?;"
+        return self.c.execute(sql, packages_hash).fetchall()
 
     def get_popular_targets(self):
         sql = """select json_agg(popular_targets) from (
@@ -447,6 +440,9 @@ class Database():
         sql = "INSERT INTO transformations (distro, version, package, replacement, context) VALUES (?, ?, ?, ?, ?);"
         self.c.execute(sql, distro, version, package, replacement, context)
         self.commit()
+
+    def image_exists(self, image_hash):
+        return self.c.execute("select 1 from images where image_hash = ?", image_hash).fetchone()
 
     # TODO broken
     def transform_packages(self, distro, orig_version, dest_version, packages):
