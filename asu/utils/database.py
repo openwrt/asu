@@ -34,9 +34,11 @@ class Database():
 
     def insert_target(self, distro, version, targets):
         sql = "insert into targets (distro, version, target) values (?, ?, ?);"
+        self.cnxn.autocommit = False
         self.c.executemany(sql,
                 list(map(lambda target: (distro, version, target) , targets)))
         self.commit()
+        self.cnxn.autocommit = True
 
     def insert_defaults(self, defaults_hash, defaults):
         sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
@@ -67,8 +69,11 @@ class Database():
     # currently this is splitted back and forth but I'm hungry
     def insert_packages_hash(self, packages_hash, packages):
         sql = "insert into packages_hashes (packages_hash, package_name) values (?, ?);"
+        self.cnxn.autocommit = False
         self.c.executemany(sql,
                 list(map(lambda package_name: (packages_hash, package_name) , packages)))
+        self.commit()
+        self.cnxn.autocommit = True
 
     def insert_profiles(self, distro, version, target, packages_default, profiles):
         # delete existing packages_default
@@ -77,19 +82,26 @@ class Database():
         self.c.execute(sql, distro, version, target)
 
         sql = "insert into packages_default (distro, version, target, package_name) values (?, ?, ?, ?);"
+
+        self.cnxn.autocommit = False
         self.c.executemany(sql,
             list(map(lambda package_name: (distro, version, target,
                 package_name), packages_default)))
+        self.commit()
+        self.cnxn.autocommit = True
 
         # delete existing packages_profile
         sql = """delete from packages_profile where
             distro = ? and version = ? and target = ?"""
         self.c.execute(sql, distro, version, target)
 
+        self.cnxn.autocommit = False
         sql = """select insert_packages_profile (?, ?, ?, ?, ?, ?);"""
         self.c.executemany(sql, 
             list(map(lambda profile: (distro, version, target,  profile[0],
                 profile[1], profile[2]), profiles)))
+        self.commit()
+        self.cnxn.autocommit = True
 
     def check_packages(self, image):
         sql = """select value as packages_unknown
@@ -179,7 +191,8 @@ class Database():
         return self.c.fetchval()
 
     def get_outdated_target(self):
-        return self.c.execute("select * from outdated_target()").fetchone()
+        self.c.execute("select * from outdated_target()")
+        return self.as_dict()
 
     def insert_packages_available(self, distro, version, target, packages):
         self.cnxn.autocommit = False
@@ -290,26 +303,16 @@ class Database():
 
     def add_manifest_packages(self, manifest_hash, packages):
         self.log.debug("add manifest packages")
-        sql = """INSERT INTO manifest_table (hash) VALUES (?) ON CONFLICT DO NOTHING;"""
-        self.c.execute(sql, manifest_hash)
-        for name, version in packages.items():
-            sql = """INSERT INTO manifest_packages (manifest_hash, package_name, package_version) VALUES (?, ?, ?);"""
-            self.c.execute(sql, manifest_hash, name, version)
+        self.cnxn.autocommit = False
+        sql = """insert into manifest_packages (manifest_hash, package_name, package_version)
+            values (?, ?, ?);"""
+        self.c.executemany(sql,
+                list(map(lambda package: (manifest_hash, package[0], package[1]) , packages)))
         self.commit()
+        self.cnxn.autocommit = True
 
     def get_build_job(self):
-        sql = """UPDATE image_requests
-            SET status = 'building'
-            FROM packages_hashes
-            WHERE image_requests.packages_hash = packages_hashes.hash and
-                image_requests.id = (
-                    SELECT MIN(id)
-                    FROM image_requests
-                    WHERE status = 'requested'
-                )
-            RETURNING image_requests.id, request_hash, image_hash, distro, version, target, subtarget, profile, packages_hashes.packages, defaults_hash;"""
-        self.c.execute(sql)
-        self.commit()
+        self.c.execute("select * from get_build_job()")
         return self.as_dict()
 
     def set_image_requests_status(self, image_request_hash, status):

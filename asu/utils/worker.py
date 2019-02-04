@@ -31,7 +31,7 @@ class Worker(threading.Thread):
         self.log.debug("setup meta")
         os.makedirs(self.location, exist_ok=True)
         if not os.path.exists(self.location + "/meta"):
-            cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git . && git checkout ng"
+            cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
             proc = subprocess.Popen(
                 cmdline.split(" "),
                 cwd=self.location,
@@ -44,6 +44,7 @@ class Worker(threading.Thread):
 
             if return_code != 0:
                 self.log.error("failed to setup meta ImageBuilder")
+                print(errors)
                 exit()
 
         self.log.info("meta ImageBuilder successfully setup")
@@ -76,11 +77,13 @@ class Worker(threading.Thread):
             self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
 
             manifest_pattern = r"(.+) - (.+)\n"
-            manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
+            manifest_packages = re.findall(manifest_pattern, manifest_content)
             self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
             self.log.info("successfully parsed manifest")
         else:
             self.log.error("couldn't determine manifest")
+            print(manifest_content)
+            print(errors)
             self.write_log(fail_log_path, stderr=errors)
             self.database.set_image_requests_status(self.params["request_hash"], "manifest_fail")
             return False

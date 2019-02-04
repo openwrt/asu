@@ -11,3 +11,5 @@ select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light');
 -- select * from outdated_target();
 
 select insert_packages_profile('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'Foobar v2', 'tmux vim bmon');
+
+-- select * from get_build_job();

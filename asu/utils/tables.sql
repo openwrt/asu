@@ -769,3 +769,33 @@ begin
         unnest(string_to_array( insert_packages_profile.packages, ' '));
 end
 $$ LANGUAGE 'plpgsql';
+
+create or replace function get_build_job() returns table(
+    request_id integer,
+    request_hash varchar,
+    image_hash varchar,
+    distro varchar,
+    version varchar,
+    target varchar,
+    profile varchar,
+    packages_hash varchar,
+    defaults_hash varchar) 
+    as $$
+begin
+    return query
+        UPDATE requests SET request_status = 'building' WHERE
+            requests.request_id = (
+                SELECT MIN(requests.request_id) FROM requests WHERE
+                    request_status = 'requested')
+        RETURNING 
+            requests.request_id,
+			requests.request_hash,
+			requests.image_hash,
+			requests.distro,
+			requests.version,
+			requests.target,
+			requests.profile,
+			requests.packages_hash,
+			requests.defaults_hash;
+end
+$$ LANGUAGE 'plpgsql';

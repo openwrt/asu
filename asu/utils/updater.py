@@ -34,9 +34,6 @@ class Updater(threading.Thread):
             outdated_subtarget = self.database.get_outdated_target()
             if outdated_subtarget:
                 log.info("found outdated subtarget %s", outdated_subtarget)
-                self.update_queue.put({
-                    "distro": outdated_subtarget.distro,
-                    "version": outdated_subtarget.version,
-                    "target": outdated_subtarget.target })
+                self.update_queue.put(outdated_subtarget)
             else:
                 time.sleep(5)

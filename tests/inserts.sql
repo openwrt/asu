@@ -11,7 +11,7 @@ insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar7
 insert into profiles
     (distro, version, target, profile, model) 
 values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'Foobar v2');
+    ('openwrt', '18.06.2', 'ar71xx/generic', 'tl-wdr4300-v1', 'tl-wdr4300-v1');
 
 insert into packages_available
     (distro, version, target, package_name, package_version) 
@@ -40,12 +40,12 @@ values
 insert into images
     (image_hash, distro, version, target, profile, manifest_hash, defaults_hash, worker, sysupgrade)
 values
-    ('zui', 'openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'abc', '', 'worker0', 'firmware.bin');
+    ('zui', 'openwrt', '18.06.2', 'ar71xx/generic', 'tl-wdr4300-v1', 'abc', '', 'worker0', 'firmware.bin');
 
 insert into requests
     (request_hash, distro, version, target, profile, packages_hash, defaults_hash)
 values
-    ('asd', 'openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'qwe', '');
+    ('asd', 'openwrt', '18.06.2', 'ar71xx/generic', 'tl-wdr4300-v1', 'qwe', '');
 
 insert into board_rename
     (distro, version, origname, newname)
