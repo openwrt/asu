@@ -536,7 +536,7 @@ select
 from
     requests_table
     join profiles using (profile_id)
-    join packages_hashes_table using (packages_hash_id)
+    left join packages_hashes_table using (packages_hash_id)
     left join defaults_table using (defaults_id)
     left join images_table using (image_id),
     (select min(request_id) as next_id from requests_table where request_status = 'requested') as next;

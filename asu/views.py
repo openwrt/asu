@@ -16,7 +16,6 @@ database = Database(config)
 uc = UpgradeCheck(config, database)
 br = BuildRequest(config, database)
 
-@app.route("/update-request", methods=['POST'])
 @app.route("/api/upgrade-check", methods=['POST'])
 @app.route("/api/upgrade-check/<request_hash>", methods=['GET'])
 def api_upgrade_check(request_hash=None):
@@ -31,17 +30,11 @@ def api_upgrade_check(request_hash=None):
         request_json = { "request_hash": request_hash }
     return uc.process_request(request_json)
 
-# direct link to download a specific image based on hash
-@app.route("/download/<path:image_path>/<path:image_name>")
-def download_image(image_path, image_name):
-    return send_from_directory(directory=os.path.join(config.get_folder("download_folder"), image_path), filename=image_name)
-
 # request methos for individual image
 # uses post methos to receive build information
 
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
-@app.route("/image-request", methods=['POST']) # legacy
 @app.route("/api/upgrade-request", methods=['POST'])
 @app.route("/api/upgrade-request/<request_hash>", methods=['GET'])
 def api_upgrade_request(request_hash=None):
@@ -57,12 +50,12 @@ def api_upgrade_request(request_hash=None):
 
     return br.process_request(request_json, sysupgrade_requested=1)
 
+@app.route("/")
 @app.route("/api/")
-@app.route("/stats")
+@app.route("/stats/")
 def api_redirect():
-    redirect("https://github.com/aparcar/attendedsysupgrade-server/")
+    return redirect("https://github.com/aparcar/attendedsysupgrade-server/")
 
-@app.route("/build-request", methods=['POST']) # legacy
 @app.route("/api/build-request", methods=['POST'])
 @app.route("/api/build-request/<request_hash>", methods=['GET'])
 def api_files_request(request_hash=None):

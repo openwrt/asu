@@ -23,9 +23,11 @@ class BuildRequest(Request):
                 return self.return_status()
         else:
             # required params for a build request
-            missing_params = self.check_missing_params(["distro", "version", "target", "subtarget", "board"])
+            missing_params = self.check_missing_params(["distro", "version", "target"])
             if missing_params:
                 return self.respond()
+
+        #TODO check for profile or board
 
         # generic approach for https://github.com/aparcar/attendedsysupgrade-server/issues/91
         self.request_json["board"] = self.request_json["board"].replace(",", "_")
@@ -49,7 +51,7 @@ class BuildRequest(Request):
 
         # if found return instantly the status
         if request_database:
-            self.log.debug("found image in database: %s", request_database["status"])
+            self.log.debug("found image in database: %s", request_database["request_status"])
             self.request = request_database
             return self.return_status()
         else:
@@ -73,35 +75,38 @@ class BuildRequest(Request):
             bad_request = self.check_bad_version()
             if bad_request: return bad_request
 
-        # check for valid target and subtarget
+        # check for valid target
         bad_target = self.check_bad_target()
         if bad_target:
             return bad_target
 
         # check for existing packages
-        bad_packages = self.check_bad_packages()
+        bad_packages = self.check_bad_packages(self.request_json["packages"])
         if bad_packages:
             return bad_packages
 
+        print("hash", self.request["packages_hash"])
+        print("packages", self.request["packages"])
         # add package_hash to database
-        self.database.insert_packages_hash(self.request["packages_hash"], self.request["packages"])
+        if self.request["packages"]: 
+            self.database.insert_packages_hash(self.request["packages_hash"], self.request["packages"])
 
         # now some heavy guess work is done to figure out the profile
         # eventually this could be simplified if upstream unifirm the profiles/boards
         if "board" in self.request_json:
             self.log.debug("board in request, search for %s", self.request_json["board"])
-            self.request["profile"] = self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], self.request_json["board"])
+            self.request["profile"] = self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request_json["board"])
 
         if not self.request["profile"]:
             if "model" in self.request_json:
                 self.log.debug("model in request, search for %s", self.request_json["model"])
-                self.request["profile"] = self.database.check_model(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], self.request_json["model"])
+                self.request["profile"] = self.database.check_model(self.request["distro"], self.request["version"], self.request["target"], self.request_json["model"])
                 self.log.debug("model search found profile %s", self.request["profile"])
 
         if not self.request["profile"]:
-            if self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], "Generic"):
+            if self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], "Generic"):
                 self.request["profile"] = "Generic"
-            elif self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], self.request["subtarget"], "generic"):
+            elif self.database.check_profile(self.request["distro"], self.request["version"], self.request["target"], "generic"):
                 self.request["profile"] = "generic"
             else:
                 self.response_json["error"] = "unknown device, please check model and board params"
@@ -130,7 +135,7 @@ class BuildRequest(Request):
 
     def return_status(self):
         # image created, return all desired information
-        if self.request["status"] == "created":
+        if self.request["request_status"] == "created":
             image_path = self.database.get_image_path(self.request["image_hash"])
             self.response_json["sysupgrade"] = "/download/{}/{}".format(image_path["file_path"], image_path["sysupgrade"])
             self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(image_path["file_path"], self.request["image_hash"])
@@ -140,7 +145,7 @@ class BuildRequest(Request):
 
             self.response_status = HTTPStatus.OK # 200
 
-        elif self.request["status"] == "no_sysupgrade":
+        elif self.request["request_status"] == "no_sysupgrade":
             if self.sysupgrade_requested:
                 # no sysupgrade found but requested, let user figure out what to do
                 self.response_json["error"] = "No sysupgrade file produced, may not supported by model."
@@ -159,18 +164,18 @@ class BuildRequest(Request):
             self.respond()
 
         # image request passed validation and is queued
-        elif self.request["status"] == "requested":
+        elif self.request["request_status"] == "requested":
             self.return_queued()
 
         # image is currently building
-        elif self.request["status"] == "building":
+        elif self.request["request_status"] == "building":
             self.response_header["X-Imagebuilder-Status"] = "building"
             self.response_json["request_hash"] = self.request["request_hash"]
 
             self.response_status = HTTPStatus.ACCEPTED # 202
 
         # build failed, see build log for details
-        elif self.request["status"] == "build_fail":
+        elif self.request["request_status"] == "build_fail":
             self.response_json["error"] = "ImageBuilder faild to create image"
             self.response_json["log"] = "/download/faillogs/faillog-{}.txt".format(self.request["request_hash"])
             self.response_json["request_hash"] = self.request["request_hash"]
@@ -178,7 +183,7 @@ class BuildRequest(Request):
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR # 500
 
         # likely to many package where requested
-        elif self.request["status"] == "imagesize_fail":
+        elif self.request["request_status"] == "imagesize_fail":
             self.response_json["error"] = "No firmware created due to image size. Try again with less packages selected."
             self.response_json["log"] = "/download/faillogs/faillog-{}.txt".format(self.request["request_hash"])
             self.response_json["request_hash"] = self.request["request_hash"]
@@ -187,7 +192,7 @@ class BuildRequest(Request):
 
         # something happend with is not yet covered in here
         else:
-            self.response_json["error"] = self.request["status"]
+            self.response_json["error"] = self.request["request_status"]
             self.response_json["log"] = "/download/faillogs/faillog-{}.txt".format(self.request["request_hash"])
 
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR

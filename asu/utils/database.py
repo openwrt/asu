@@ -111,33 +111,32 @@ class Database():
                     pa.distro = ? and
                     pa.version = ? and
                     pa.target = ? and
-                    pa.subtarget = ? and
                     pa.package_name = pr)"""
         # the re.sub() replaces leading - which may appear in package request to
         # explicitly remove packages installed per default
         self.c.execute(sql, json.dumps([sub(r'^-?', '', p) for p in image["packages"]]),
-                image["distro"], image["version"], image["target"], image["subtarget"])
+                image["distro"], image["version"], image["target"])
         return self.c.fetchone()
 
     def sysupgrade_supported(self, image):
-        self.c.execute("""SELECT supported from subtargets WHERE distro=? and version=? and target=? and subtarget = ? LIMIT 1;""",
-            image["distro"], image["version"], image["target"], image["subtarget"])
+        self.c.execute("""SELECT supported from targets WHERE distro=? and version=? and target=? LIMIT 1;""",
+            image["distro"], image["version"], image["target"])
         return self.c.fetchval()
 
-    def check_profile(self, distro, version, target, subtarget, profile):
-        self.log.debug("check_profile %s/%s/%s/%s/%s", distro, version, target, subtarget, profile)
+    def check_profile(self, distro, version, target, profile):
+        self.log.debug("check_profile %s/%s/%s/%s", distro, version, target, profile)
         self.c.execute("""SELECT profile FROM profiles
-            WHERE distro=? and version=? and target=? and subtarget = ? and profile = coalesce(
-                (select newname from board_rename where distro = ? and version = ? and target = ? and subtarget = ? and origname = ?), ?)
+            WHERE distro=? and version=? and target=? and profile = coalesce(
+                (select newname from board_rename where distro = ? and version = ? and target = ? and origname = ?), ?)
             LIMIT 1;""",
-            distro, version, target, subtarget, distro, version, target, subtarget, profile, profile)
+            distro, version, target, distro, version, target, profile, profile)
         return self.c.fetchval()
 
-    def check_model(self, distro, version, target, subtarget, model):
-        self.log.debug("check_model %s/%s/%s/%s/%s", distro, version, target, subtarget, model)
+    def check_model(self, distro, version, target, model):
+        self.log.debug("check_model %s/%s/%s/%s", distro, version, target, model)
         self.c.execute("""SELECT profile FROM profiles
-            WHERE distro=? and version=? and target=? and subtarget = ? and lower(model) = lower(?);""",
-            distro, version, target, subtarget, model)
+            WHERE distro=? and version=? and target=? and lower(model) = lower(?);""",
+            distro, version, target, model)
         return self.c.fetchval()
 
     def get_packages_image(self, request, as_json=False):
@@ -210,12 +209,12 @@ class Database():
         self.commit()
         self.cnxn.autocommit = True
 
-    def get_packages_available(self, distro, version, target, subtarget):
-        self.log.debug("get_available_packages for %s/%s/%s/%s", distro, version, target, subtarget)
+    def get_packages_available(self, distro, version, target):
+        self.log.debug("get_available_packages for %s/%s/%s", distro, version, target)
         self.c.execute("""SELECT name, version
             FROM packages_available
-            WHERE distro=? and version=? and target=? and subtarget=?;""",
-            distro, version, target, subtarget)
+            WHERE distro=? and version=? and target=?;""",
+            distro, version, target)
         response = {}
         for name, version in self.c.fetchall():
             response[name] = version
@@ -229,14 +228,14 @@ class Database():
 
     # check for image_hash or request_hash depending on length
     # TODO make it less confusing
-    def check_build_request_hash(self, request_hash):
-        if len(request_hash) == 12:
+    def check_build_request_hash(self, requested_hash):
+        if len(requested_hash) == 12:
             self.log.debug("check_build_request_hash request_hash")
-            sql = "select * from image_requests where request_hash = ?"
+            sql = "select * from requests where request_hash = ?"
         else:
             self.log.debug("check_build_request_hash image_hash")
-            sql = "select * from image_requests where image_hash = ?"
-        self.c.execute(sql, request_hash)
+            sql = "select * from images where image_hash = ?"
+        self.c.execute(sql, requested_hash)
         return self.as_dict()
 
     # returns upgrade requests responses cached in database
@@ -254,7 +253,7 @@ class Database():
     # inserts an image to the build queue
     def add_build_job(self, image):
         self.log.info("add build job %s", image)
-        self.insert_dict("image_requests", image)
+        self.insert_dict("requests", image)
 
     def check_build_request(self, request):
         request_array = request.as_array()
