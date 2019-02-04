@@ -31,8 +31,8 @@ class ServerCli():
             self.download_versions()
         if self.args["init_server"]:
             self.download_versions()
-#            self.load_tables()
-#            self.insert_board_rename()
+            self.load_tables()
+            self.insert_board_rename()
         if self.args["parse_configs"]:
             self.insert_board_rename()
             self.load_tables()
@@ -127,7 +127,7 @@ class ServerCli():
                     self.log.info("insert board_rename {} {} {} {}".format(distro, version, origname, newname))
                     self.database.insert_board_rename(distro, version, origname, newname)
 
-    def insert_replacements(self, distro, version, transformations):
+    def insert_transformations(self, distro, version, transformations):
         for package, action in transformations.items():
             if not action:
                 # drop package
@@ -156,14 +156,14 @@ class ServerCli():
 
     def load_tables(self):
         for distro, version in self.database.get_versions():
-            version = str(version)
-            version_replacements_path = os.path.join("distributions", distro, (version + ".yml"))
-            if os.path.exists(version_replacements_path):
-                with open(version_replacements_path, "r") as version_replacements_file:
-                    replacements = yaml.load(version_replacements_file.read())
-                    if replacements:
-                        if "transformations" in replacements:
-                            self.insert_replacements(distro, version, replacements["transformations"])
+            self.log.debug("load tables %s %s", distro, version)
+            version_transformations_path = os.path.join("distributions", distro, (version + ".yml"))
+            if os.path.exists(version_transformations_path):
+                with open(version_transformations_path, "r") as version_transformations_file:
+                    transformations = yaml.load(version_transformations_file.read())
+                    if transformations:
+                        if "transformations" in transformations:
+                            self.insert_transformations(distro, version, transformations["transformations"])
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

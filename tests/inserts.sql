@@ -24,11 +24,6 @@ values
     ('openwrt', '18.06.2', 'ar71xx/generic', 'bmon'),
     ('openwrt', '18.06.2', 'ar71xx/generic', 'vim');
 
-insert into packages_profile
-    (distro, version, target, profile, package_name) 
-values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'tmux');
-
 insert into manifest_packages
     (manifest_hash, package_name, package_version)
 values

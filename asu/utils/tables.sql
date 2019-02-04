@@ -248,7 +248,6 @@ where
 
 create or replace rule insert_packages_default AS
 ON insert TO packages_default DO INSTEAD (
--- this shouldn't be required as the packages_available table is filled before     
         insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
         insert into packages_default_table values (
             (select target_id from targets where
@@ -288,7 +287,6 @@ on delete to packages_profile do instead
 
 create or replace rule insert_packages_profile AS
 ON insert TO packages_profile DO INSTEAD (
--- this shouldn't be required as the packages_available table is filled before     
     insert into packages_names (package_name) values (NEW.package_name) on conflict do nothing;
     insert into packages_profile_table values (
         (select profile_id from profiles where
@@ -739,3 +737,35 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
+create or replace function outdated_target () 
+    returns table(distro varchar, version varchar, target varchar) as $$
+begin
+    return query
+        UPDATE targets
+             SET last_sync = NOW()
+             where target_id =
+                (select target_id  from targets where
+                    last_sync < NOW() - INTERVAL '1 day'
+                    order by (last_sync) asc limit 1)
+             returning targets.distro, targets.version, targets.target;
+end
+$$ LANGUAGE 'plpgsql';
+
+create or replace function insert_packages_profile(
+    distro varchar, version varchar, target varchar, profile varchar, model varchar, packages varchar) 
+    returns void as $$
+begin
+    insert into profiles (distro, version, target, profile, model) values (
+        insert_packages_profile.distro,
+        insert_packages_profile.version,
+        insert_packages_profile.target,
+        insert_packages_profile.profile,
+        insert_packages_profile.model);
+    insert into packages_profile(distro, version, target, profile, package_name) select
+        insert_packages_profile.distro,
+        insert_packages_profile.version,
+        insert_packages_profile.target,
+        insert_packages_profile.profile,
+        unnest(string_to_array( insert_packages_profile.packages, ' '));
+end
+$$ LANGUAGE 'plpgsql';

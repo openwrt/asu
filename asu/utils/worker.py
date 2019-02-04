@@ -199,7 +199,6 @@ class Worker(threading.Thread):
         if os.path.exists(os.path.join(
                 self.location, "imagebuilder",
                 self.params["distro"], self.params["version"],
-                self.params["target"], self.params["subtarget"],
                 "target/linux", self.params["target"],
                 "base-files/lib/upgrade/platform.sh")):
             self.log.info("%s target is supported", self.params["target"])
@@ -241,21 +240,21 @@ class Worker(threading.Thread):
 
         if return_code == 0:
             default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
-            default_packages = re.match(default_packages_pattern, output, re.M).group(2)
+            default_packages = re.match(default_packages_pattern, output,
+                    re.M).group(2).split()
             logging.debug("default packages: %s", default_packages)
 
             profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
             profiles = re.findall(profiles_pattern, output)
             if not profiles:
                 profiles = []
-            self.database.insert_profiles({
-                "distro": self.params["distro"],
-                "version": self.params["version"],
-                "target": self.params["target"],
-                "subtarget": self.params["subtarget"]},
-                default_packages, profiles)
+            self.database.insert_profiles( self.params["distro"],
+                    self.params["version"], self.params["target"],
+                    default_packages, profiles)
         else:
             logging.error("could not receive profiles")
+            print(output)
+            print(errors)
             return False
 
     def parse_packages(self):
@@ -266,13 +265,13 @@ class Worker(threading.Thread):
         if return_code == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.log.info("found {} packages".format(len(packages)))
-            self.database.insert_packages_available({
-                "distro": self.params["distro"],
-                "version": self.params["version"],
-                "target": self.params["target"],
-                "subtarget": self.params["subtarget"]}, packages)
+            self.database.insert_packages_available(
+                    self.params["distro"], self.params["version"],
+                    self.params["target"], packages)
         else:
             self.log.warning("could not receive packages")
+            print(output)
+            print(errors)
 
 
 if __name__ == '__main__':

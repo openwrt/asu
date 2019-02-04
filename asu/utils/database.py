@@ -4,6 +4,7 @@ import pyodbc
 import logging
 import json
 import os.path
+import time
 
 from asu.utils.common import get_hash
 
@@ -23,6 +24,7 @@ class Database():
                 self.config.get("database_pass"),
                 self.config.get("database_port"))
         self.cnxn = pyodbc.connect(connection_string)
+        self.cnxn.autocommit = True
         self.c = self.cnxn.cursor()
         self.c.fast_executemany = True
         self.log.info("database connected")
@@ -31,7 +33,7 @@ class Database():
         self.cnxn.commit()
 
     def insert_target(self, distro, version, targets):
-        sql = "INSERT INTO targets (distro, version, target) VALUES (?, ?, ?);"
+        sql = "insert into targets (distro, version, target) values (?, ?, ?);"
         self.c.executemany(sql,
                 list(map(lambda target: (distro, version, target) , targets)))
         self.commit()
@@ -64,36 +66,30 @@ class Database():
     # TODO this should be done via some postgres json magic
     # currently this is splitted back and forth but I'm hungry
     def insert_packages_hash(self, packages_hash, packages):
-        self.insert_dict("packages_hashes", {
-            "hash": packages_hash,
-            "packages": " ".join(sorted(packages, reverse=True))
-        })
+        sql = "insert into packages_hashes (packages_hash, package_name) values (?, ?);"
+        self.c.executemany(sql,
+                list(map(lambda package_name: (packages_hash, package_name) , packages)))
 
-    def insert_profiles(self, params, packages_default, profiles):
-        self.log.debug("insert packages_default")
-
+    def insert_profiles(self, distro, version, target, packages_default, profiles):
         # delete existing packages_default
         sql = """delete from packages_default where
-            distro = ? and version = ? and target = ? and subtarget = ?"""
-        self.c.execute(sql, params["distro"], params["version"],
-            params["target"], params["subtarget"])
+            distro = ? and version = ? and target = ?"""
+        self.c.execute(sql, distro, version, target)
 
-        self.commit()
-
-        self.insert_dict("packages_default", { **params, "packages": packages_default})
+        sql = "insert into packages_default (distro, version, target, package_name) values (?, ?, ?, ?);"
+        self.c.executemany(sql,
+            list(map(lambda package_name: (distro, version, target,
+                package_name), packages_default)))
 
         # delete existing packages_profile
         sql = """delete from packages_profile where
-            distro = ? and version = ? and target = ? and subtarget = ?"""
-        self.c.execute(sql, params["distro"], params["version"],
-            params["target"], params["subtarget"])
-        self.commit()
-        for profile in profiles:
-            profile, model, packages = profile
-            self.insert_dict("packages_profile",
-                    { **params, "profile": profile, "model": model,
-                        "packages": packages }, False)
-        self.commit()
+            distro = ? and version = ? and target = ?"""
+        self.c.execute(sql, distro, version, target)
+
+        sql = """select insert_packages_profile (?, ?, ?, ?, ?, ?);"""
+        self.c.executemany(sql, 
+            list(map(lambda profile: (distro, version, target,  profile[0],
+                profile[1], profile[2]), profiles)))
 
     def check_packages(self, image):
         sql = """select value as packages_unknown
@@ -182,26 +178,19 @@ class Database():
         self.c.execute(sql, p["manifest_hash"], p["distro"], p["version"], p["target"], p["subtarget"])
         return self.c.fetchval()
 
-    def get_subtarget_outdated(self):
-        sql = """UPDATE subtargets
-            SET last_sync = NOW()
-            where id = (select id  from subtargets
-            where last_sync < NOW() - INTERVAL '1 day'
-            order by (last_sync) asc limit 1)
-            returning distro, version, target, subtarget;"""
-        self.c.execute(sql)
-        self.commit()
-        return self.as_dict()
+    def get_outdated_target(self):
+        return self.c.execute("select * from outdated_target()").fetchone()
 
-    # todo this should be improved somehow
-    # currently the insert takes quite long as there are ~6000 packages
-    def insert_packages_available(self, params, packages):
-        self.log.debug("insert packages available")
-        for package in packages:
-            name, version = package
-            self.insert_dict("packages_available",
-                { **params, "package_name": name, "package_version": version }, False)
+    def insert_packages_available(self, distro, version, target, packages):
+        self.cnxn.autocommit = False
+        sql = """insert into packages_available(
+            distro, version, target, package_name, package_version)
+            values (?, ?, ?, ?, ?);"""
+        self.c.executemany(sql,
+            list(map(lambda package: (distro, version, target,
+                package[0], package[1]) , packages)))
         self.commit()
+        self.cnxn.autocommit = True
 
     def get_packages_available(self, distro, version, target, subtarget):
         self.log.debug("get_available_packages for %s/%s/%s/%s", distro, version, target, subtarget)
@@ -213,7 +202,6 @@ class Database():
         for name, version in self.c.fetchall():
             response[name] = version
         return response
-
 
     def get_subtargets(self, distro, version, target="%", subtarget="%"):
         self.log.debug("get_subtargets {} {} {} {}".format(distro, version, target, subtarget))
