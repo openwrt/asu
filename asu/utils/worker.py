@@ -31,7 +31,7 @@ class Worker(threading.Thread):
         self.log.debug("setup meta")
         os.makedirs(self.location, exist_ok=True)
         if not os.path.exists(self.location + "/meta"):
-            cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
+            cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git . && git checkout ng"
             proc = subprocess.Popen(
                 cmdline.split(" "),
                 cwd=self.location,
@@ -64,7 +64,8 @@ class Worker(threading.Thread):
         self.log.debug("create and parse manifest")
 
         # fail path in case of erros
-        fail_log_path = self.config.get_folder("download_folder") + "/faillogs/faillog-{}.txt".format(self.params["request_hash"])
+        fail_log_path = self.config.get_folder("download_folder") + \
+                "/faillogs/faillog-{}.txt".format(self.params["request_hash"])
 
         self.image = Image(self.params)
 
@@ -195,12 +196,33 @@ class Worker(threading.Thread):
                 self.parse_packages()
 
     def info(self):
-        self.parse_info()
+        self.log.debug("parse info")
+
+        return_code, output, errors = self.run_meta("info")
+
+        if return_code == 0:
+            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
+            default_packages = re.match(default_packages_pattern, output,
+                    re.M).group(2).split()
+            logging.debug("default packages: %s", default_packages)
+
+            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
+            profiles = re.findall(profiles_pattern, output)
+            if not profiles:
+                profiles = []
+            self.database.insert_profiles( self.params["distro"],
+                    self.params["version"], self.params["target"],
+                    default_packages, profiles)
+        else:
+            logging.error("could not receive profiles")
+            print(output)
+            print(errors)
+            return False
+        # check if device supports sysupgrades
         if os.path.exists(os.path.join(
-                self.location, "imagebuilder",
-                self.params["distro"], self.params["version"],
-                "target/linux", self.params["target"],
-                "base-files/lib/upgrade/platform.sh")):
+                self.location, "imagebuilder", self.params["distro"],
+                self.params["version"], self.params["target"], "target/linux",
+                self.params["target"], "base-files/lib/upgrade/platform.sh")):
             self.log.info("%s target is supported", self.params["target"])
             self.database.insert_supported(self.params)
 
@@ -233,30 +255,6 @@ class Worker(threading.Thread):
         return (return_code, output, errors)
 
 
-    def parse_info(self):
-        self.log.debug("parse info")
-
-        return_code, output, errors = self.run_meta("info")
-
-        if return_code == 0:
-            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
-            default_packages = re.match(default_packages_pattern, output,
-                    re.M).group(2).split()
-            logging.debug("default packages: %s", default_packages)
-
-            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
-            profiles = re.findall(profiles_pattern, output)
-            if not profiles:
-                profiles = []
-            self.database.insert_profiles( self.params["distro"],
-                    self.params["version"], self.params["target"],
-                    default_packages, profiles)
-        else:
-            logging.error("could not receive profiles")
-            print(output)
-            print(errors)
-            return False
-
     def parse_packages(self):
         self.log.info("receive packages")
 
@@ -288,13 +286,3 @@ if __name__ == '__main__':
     log.info("start updater")
     uper = Updater()
     uper.start()
-
-    # TODO reimplement
-    #def diff_packages(self):
-    #    profile_packages = self.vanilla_packages
-    #    for package in self.packages:
-    #        if package in profile_packages:
-    #            profile_packages.remove(package)
-    #    for remove_package in profile_packages:
-    #        self.packages.append("-" + remove_package)
-
