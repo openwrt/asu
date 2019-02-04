@@ -4,7 +4,6 @@ ansible/hosts
 asu.egg-info/
 build/
 dist/
-tests/
 .vagrant/
 *.swp
 *.log

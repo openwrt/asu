@@ -1,16 +1,17 @@
- drop schema public cascade; create schema public;
-
+-- contains the names of the sysupgrade files
 create table if not exists sysupgrades_table (
     sysupgrade_id SERIAL PRIMARY KEY,
     sysupgrade varchar(100) unique
 );
 
+-- contains uci defaults added to the image
 create table if not exists defaults_table (
     defaults_id serial primary key,
     defaults_hash varchar(64) unique,
     content text
 );
 
+-- contains workers
 create table if not exists worker_table (
     worker_id serial primary key,
     worker varchar(100),
@@ -19,6 +20,7 @@ create table if not exists worker_table (
     unique(worker)
 );
 
+-- contains known distributions
 create table if not exists distros_table (
     distro_id serial primary key,
     distro varchar(20) not null,
@@ -29,25 +31,26 @@ create table if not exists distros_table (
 );
 
 create or replace view distros as
-select
-    *
-from distros_table;
+    select * from distros_table;
 
 create or replace rule insert_distros AS
 ON insert TO distros DO INSTEAD (
     insert into distros_table (
-        distro,
-        distro_alias,
-        distro_description,
-        latest) 
+        distro, distro_alias, distro_description, latest) 
     values (
-        NEW.distro,
-        NEW.distro_alias,
-        NEW.distro_description, 
-        NEW.latest)
+        NEW.distro, NEW.distro_alias, NEW.distro_description, NEW.latest)
     on conflict do nothing; 
 );
 
+create or replace rule update_distros AS
+ON update TO distros DO INSTEAD
+    update distros_table set
+    distro_alias = coalesce(NEW.distro_alias, distro_alias),
+    distro_description = coalesce(NEW.distro_description, distro_description),
+    latest = coalesce(NEW.latest, latest)
+    where distros_table.distro = NEW.distro;
+
+-- contains known versions
 create table if not exists versions_table(
     version_id serial primary key,
     distro_id integer not null,
@@ -87,6 +90,17 @@ ON insert TO versions DO INSTEAD (
         ) on conflict do nothing;
 );
 
+create or replace rule update_versions AS
+ON update TO versions DO INSTEAD
+    update versions_table set
+    version_alias = coalesce(NEW.version_alias, version_alias),
+    version_description = coalesce(NEW.version_description, version_description)
+    where versions_table.version_id =
+        (select version_id from versions where
+            versions.distro = NEW.distro and
+            versions.version = NEW.version);
+
+-- contains known targets
 create table if not exists targets_table(
     target_id serial primary key,
     version_id integer references versions_table(version_id),
@@ -97,10 +111,8 @@ create table if not exists targets_table(
 );
 
 create or replace view targets as
-select
-    * 
-from versions 
-join targets_table using (version_id);
+    select * from versions 
+    join targets_table using (version_id);
 
 create or replace rule insert_targets AS
 ON insert TO targets DO INSTEAD (
@@ -140,9 +152,7 @@ create table if not exists profiles_table(
 );
 
 create or replace view profiles as
-select
-    *
-from targets join profiles_table using (target_id);
+    select * from targets join profiles_table using (target_id);
 
 create or replace rule insert_profiles AS
 ON insert TO profiles DO INSTEAD (
@@ -211,6 +221,7 @@ ON insert TO packages_available DO INSTEAD (
     
 );
 
+-- contains default packages of target
 create table if not exists packages_default_table(
     target_id integer references targets_table(target_id) ON DELETE CASCADE,
     package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
@@ -249,8 +260,7 @@ ON insert TO packages_default DO INSTEAD (
         ) on conflict do nothing;
 );
 
--- packages_profile
-
+-- contain extra packages installed for profile
 create table if not exists packages_profile_table(
     profile_id integer references profiles_table(profile_id) ON DELETE CASCADE,
     package_name_id integer references packages_names(package_name_id) ON DELETE CASCADE,
@@ -290,8 +300,7 @@ ON insert TO packages_profile DO INSTEAD (
     ) on conflict do nothing;
 );
 
--- packages_image
-
+-- function combines target and profile packages
 create or replace function packages_image(
     distro varchar,
     version varchar,
@@ -316,8 +325,7 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
--- manifest
-
+-- contains manifests aka combination of package names and versions
 create table if not exists manifests_table (
     manifest_id serial primary key,
     manifest_hash varchar(64) unique
@@ -357,8 +365,7 @@ ON insert TO manifest_packages DO INSTEAD (
     ) on conflict do nothing;
 );
 
--- packages_hashes
-
+-- contains hashes of package requests
 create table if not exists packages_hashes_table (
     packages_hash_id serial primary key,
     packages_hash varchar(100) unique
@@ -387,7 +394,7 @@ ON insert TO packages_hashes DO INSTEAD (
     ) on conflict do nothing;
 );
 
--- images
+-- contains created images
 create table if not exists images_table (
     image_id SERIAL PRIMARY KEY,
     image_hash varchar(30) UNIQUE,
@@ -476,6 +483,7 @@ create or replace rule delete_images as
     delete from images_table
     where old.image_id = images_table.image_id;
 
+-- view to select image path based on image_hash
 create or replace view images_download as
 select image_id, image_hash,
     (CASE WHEN defaults_hash is null THEN
@@ -493,8 +501,7 @@ select image_id, image_hash,
     sysupgrade
 from images;
 
--- image requests
-
+-- contains build requests
 create table if not exists requests_table (
     request_id SERIAL PRIMARY KEY,
     request_hash varchar(30) UNIQUE,
@@ -502,6 +509,13 @@ create table if not exists requests_table (
     packages_hash_id integer references packages_hashes_table(packages_hash_id) ON DELETE CASCADE,
     defaults_id integer references defaults_table(defaults_id) on delete cascade,
     image_id integer references images_table(image_id) ON DELETE CASCADE,
+    /*
+        requested -> will be build
+        manifest_fail -> package selection fail
+        no_sysupgrade -> no sysupgrade found but build ok
+        build_fail -> build failed
+        imagesize_fail -> to many packages selected
+    */
     request_status varchar(20) DEFAULT 'requested',
     request_date timestamp default now()
 );
@@ -565,8 +579,7 @@ on delete to requests do instead
     delete from requests_table
     where old.request_id = requests_table.request_id;
 
--- board rename
-
+-- contains rename mapping for boards
 CREATE TABLE IF NOT EXISTS board_rename_table (
     version_id INTEGER NOT NULL,
     origname varchar not null,
@@ -591,8 +604,7 @@ ON insert TO board_rename DO INSTEAD (
     ) on conflict do nothing;
 );
 
--- transformations
-
+-- contains package transformations between versions
 CREATE TABLE IF NOT EXISTS transformations_table (
     distro_id INTEGER NOT NULL, -- unused?
     version_id INTEGER NOT NULL,
@@ -647,7 +659,6 @@ ON insert TO transformations DO INSTEAD (
 );
 
 -- transform function
-
 CREATE OR REPLACE FUNCTION transform_function(
     distro_id INTEGER,
     origversion_id INTEGER,
@@ -706,10 +717,7 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
--- manifest upgrades
-
--- TODO check if this function is much to expensive
-
+-- function checks if a manifest is outdated
 create or replace function manifest_upgrades (
     distro varchar, version varchar, target varchar, manifest_hash varchar) 
     returns table(upgrades json) as $$
@@ -731,87 +739,3 @@ begin
 end
 $$ LANGUAGE 'plpgsql';
 
--- inserts
-
-/*
-
-insert into distros (distro, distro_alias, latest) values ('openwrt', 'OpenWrt', '18.06.2');
-
-insert into versions (distro, version, snapshots) 
-values
-    ('openwrt', '18.06.1', false),
-    ('openwrt', '18.06.2', false);
-
-insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar71xx/generic');
-
-insert into profiles
-    (distro, version, target, profile, model) 
-values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'Foobar v2');
-
-insert into packages_available
-    (distro, version, target, package_name, package_version) 
-values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'vim', '9.0');
-
-insert into packages_default
-    (distro, version, target, package_name) 
-values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'bmon'),
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'vim');
-
-insert into packages_profile
-    (distro, version, target, profile, package_name) 
-values
-    ('openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'tmux');
-
-insert into manifest_packages
-    (manifest_hash, package_name, package_version)
-values
-    ('abc', 'tmux', '1.0'),
-    ('abc', 'bmon', '5.0'),
-    ('abc', 'vim', '8.0');
-
-insert into packages_hashes
-    (packages_hash, package_name)
-values
-    ('qwe', 'tmux'),
-    ('qwe', 'bmon');
-
-insert into images
-    (image_hash, distro, version, target, profile, manifest_hash, defaults_hash, worker, sysupgrade)
-values
-    ('zui', 'openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'abc', '', 'worker0', 'firmware.bin');
-
-insert into requests
-    (request_hash, distro, version, target, profile, packages_hash, defaults_hash)
-values
-    ('asd', 'openwrt', '18.06.2', 'ar71xx/generic', 'v2', 'qwe', '');
-
-insert into board_rename
-    (distro, version, origname, newname)
-values
-    ('openwrt', '18.06.2', 'wrongname', 'goodname');
-
-insert into transformations (distro, version, package, replacement)
-values ('openwrt', '18.06.2', 'tmux-light', 'tmux');
-
-insert into transformations (distro, version, package, replacement, context)
-values ('openwrt', '18.06.2', 'tmux-light', 'tmux-full', 'tmux-mega-addon');
-
-insert into transformations (distro, version, package)
-values ('openwrt', '18.06.2', 'tmux-mega-addon');
-
-*/
-
--- tests
-/*
-select packages_image('openwrt', '18.06.2', 'ar71xx/generic', 'v2'); 
--- bmon tmux vim
-
-select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light tmux-mega-addon');
--- tmux-full
-
-select transform('openwrt', '18.06.1', '18.06.2', 'tmux-light');
--- tmux
-*/
