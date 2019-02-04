@@ -494,7 +494,7 @@ select image_id, image_hash,
     || target || '/'
     || target || '/'
     || profile || '/'
-    || manifest_hash || '/'
+    || manifest_hash
     as file_path,
     sysupgrade
 from images;
