@@ -2,14 +2,19 @@ from asu import app
 
 from flask import request, send_from_directory, redirect
 import json
+import click
+import logging
 import os
 from http import HTTPStatus
+import urllib.request
 
 from asu.build_request import BuildRequest
 from asu.upgrade_check import UpgradeCheck
 from asu.utils.config import Config
+from asu.utils.common import get_hash
 from asu.utils.database import Database
 
+log = logging.getLogger(__name__)
 config = Config()
 database = Database(config)
 
@@ -148,3 +153,132 @@ def api_manifest(manifest_hash):
 @app.route("/api/v1/supported")
 def api_supported():
     return mime_json(database.get_supported_subtargets_json())
+
+@app.cli.command()
+def load_database():
+    fetch_targets()
+    load_tables()
+    insert_board_rename()
+
+@app.cli.command()
+def fetch_targets():
+    for distro in config.get("active_distros", ["openwrt"]):
+        # set distro alias like OpenWrt, fallback would be openwrt
+        database.insert_dict("distros", {
+            "distro": distro,
+            "distro_alias": config.get(distro).get("distro_alias", distro),
+            "distro_description": config.get(distro).get("distro_description", ""),
+            "latest": config.get(distro).get("latest")
+            })
+        for version in config.get(distro).get("versions", []):
+            version_config = config.version(distro, version)
+            database.insert_dict("versions", {
+                "distro": distro,
+                "version": version,
+                "version_alias": version_config.get("version_alias", version),
+                "version_description": version_config.get("version_description", ""),
+                "snapshots": version_config.get("snapshots", False)
+                })
+            version_config = config.version(distro, version)
+            version_url = version_config.get("targets_url")
+            # use parent_version for ImageBuilder if exists
+            version_imagebuilder = version_config.get("parent_version", version)
+
+            version_targets = set(json.loads(urllib.request.urlopen(
+                "{}/{}/targets?json-targets".format(version_url,
+                    version_imagebuilder)).read().decode('utf-8')))
+
+            if version_config.get("active_targets"):
+                version_targets = version_targets & set(version_config.get("active_targets"))
+
+            if version_config.get("ignore_targets"):
+                version_targets = version_targets - set(version_config.get("ignore_targets"))
+            
+            log.info("add %s/%s targets", distro, version)
+            database.insert_target(distro, version, version_targets)
+
+@app.cli.command()
+def build_all():
+    for profile in database.get_all_profiles(
+            "openwrt", config.get("openwrt").get("latest")):
+        target, profile = profile
+        params = {
+            "distro": "openwrt",
+            "version": config.get("openwrt").get("latest"),
+            "target": target,
+            "profile": profile
+            }
+        database.insert_dict("requests", params)
+
+@app.cli.command()
+def build_worker():
+    log.info("build worker image")
+    packages = sorted(list(set(
+        ["bash", "bzip2", "coreutils", "coreutils-stat", "diffutils", "file",
+            "gawk", "gcc", "getopt", "git", "libncurses", "make", "patch",
+            "perl", "perlbase-attributes", "perlbase-findbin",
+            "perlbase-getopt", "perlbase-thread", "python-light", "tar",
+            "unzip", "wget", "xz", "xzdiff", "xzgrep", "xzless", "xz-utils",
+            "zlib-dev"])))
+
+    packages_hash = get_hash(" ".join(packages), 12)
+    database.insert_packages_hash(packages_hash, packages)
+
+    params = {
+        "distro": "openwrt",
+        "version": config.get("openwrt").get("latest"),
+        "target": "x86/64",
+        "profile": "Default",
+        "packages_hash": packages_hash
+        }
+
+    print(params)
+
+    database.insert_dict("requests", params)
+
+def insert_board_rename():
+    for distro, version in database.get_versions():
+        version_config = config.version(distro, version)
+        if "board_rename" in version_config:
+            for origname, newname in version_config["board_rename"].items():
+                log.info("insert board_rename {} {} {} {}".format(distro, version, origname, newname))
+                database.insert_board_rename(distro, version, origname, newname)
+
+def insert_transformations(distro, version, transformations):
+    for package, action in transformations.items():
+        if not action:
+            # drop package
+            #print("drop", package)
+            database.insert_transformation(distro, version, package, None, None)
+        elif isinstance(action, str):
+            # replace package
+            #print("replace", package, "with", action)
+            database.insert_transformation(distro, version, package, action, None)
+        elif isinstance(action, dict):
+            for choice, context in action.items():
+                if context is True:
+                    # set default
+                    #print("default", choice)
+                    database.insert_transformation(distro, version, package, choice, None)
+                elif context is False:
+                    # possible choice
+                    #print("choice", choice)
+                    # TODO
+                    pass
+                elif isinstance(context, list):
+                    for dependencie in context:
+                        # if context package exists
+                        #print("dependencie", dependencie, "for", choice)
+                        database.insert_transformation(distro, version, package, choice, dependencie)
+
+def load_tables():
+    for distro, version in database.get_versions():
+        log.debug("load tables %s %s", distro, version)
+        version_transformations_path = os.path.join("distributions", distro, (version + ".yml"))
+        if os.path.exists(version_transformations_path):
+            with open(version_transformations_path, "r") as version_transformations_file:
+                transformations = yaml.load(version_transformations_file.read())
+                if transformations:
+                    if "transformations" in transformations:
+                        insert_transformations(distro, version, transformations["transformations"])
+

@@ -370,10 +370,9 @@ class Database():
         self.c.execute(sql)
         return self.c.fetchval()
 
-    def get_all_profiles(self):
-        sql = """select target, subtarget, profile from profiles where distro =
-        'openwrt' and version = '18.06.1' and profile != 'Default';"""
-        self.c.execute(sql)
+    def get_all_profiles(self, distro, version):
+        sql = """select target, profile from profiles where distro = ? and version = ?"""
+        self.c.execute(sql, distro, version)
         return self.c.fetchall()
 
     # get latest 20 images created
