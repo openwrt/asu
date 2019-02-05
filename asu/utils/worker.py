@@ -237,7 +237,8 @@ class Worker(threading.Thread):
         if os.path.exists(os.path.join(
                 self.location, "imagebuilder", self.params["distro"],
                 self.params["version"], self.params["target"], "target/linux",
-                self.params["target"], "base-files/lib/upgrade/platform.sh")):
+                self.params["target"].split("/")[0],
+                "base-files/lib/upgrade/platform.sh")):
             self.log.info("%s target is supported", self.params["target"])
             self.database.insert_supported(self.params)
 
