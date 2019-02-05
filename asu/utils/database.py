@@ -116,7 +116,7 @@ class Database():
         # explicitly remove packages installed per default
         self.c.execute(sql, json.dumps([sub(r'^-?', '', p) for p in image["packages"]]),
                 image["distro"], image["version"], image["target"])
-        return self.c.fetchone()
+        return self.as_array()
 
     def sysupgrade_supported(self, image):
         self.c.execute("""SELECT supported from targets WHERE distro=? and version=? and target=? LIMIT 1;""",
@@ -279,7 +279,10 @@ class Database():
         self.c.execute(sql, image_hash)
         return self.as_dict()
 
-    # TODO check if there is a native way to do this
+    def as_array(self):
+        return list(map(lambda x: x[0], self.c.fetchall()))
+
+    # https://github.com/mkleehammer/pyodbc/issues/171
     def as_dict(self):
         if self.c.rowcount == 1:
             response = dict(zip([column[0] for column in self.c.description], self.c.fetchone()))
@@ -288,7 +291,6 @@ class Database():
         else:
             return {}
 
-    # TODO check is this must be removed
     # this is dangerours if used for user input. check all everything before calling this
     def insert_dict(self, table, data, commit=True):
         columns = []
@@ -301,9 +303,6 @@ class Database():
         self.c.execute(sql, values)
         if commit:
             self.commit()
-
-    def add_image(self, image):
-        self.insert_dict("images", image)
 
     def add_manifest_packages(self, manifest_hash, packages):
         self.log.debug("add manifest packages")

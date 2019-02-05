@@ -50,7 +50,7 @@ class UpgradeCheck(Request):
         self.request["version"] = self.response_json["version"]
 
         # check if packages exists in new version
-        bad_request = self.check_bad_packages(self.request_json["installed"])
+        bad_request = self.check_bad_packages(self.request_json["installed"].keys())
         if bad_request: return bad_request
 
 

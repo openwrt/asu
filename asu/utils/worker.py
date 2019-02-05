@@ -183,7 +183,7 @@ class Worker(threading.Thread):
                         self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
 
                     self.write_log(success_log_path, buildlog)
-                    self.database.add_image(self.image.get_params())
+                    self.database.insert_dict("images", self.image.get_params())
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
