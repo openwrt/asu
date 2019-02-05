@@ -51,6 +51,7 @@ respond to requests without rebuilding exiting images again.
 ### Active server
 
 * [chef.libremesh,org](https://chef.libremesh.org)
+* [as-test.stephen304.com](https://as-test.stephen304.com) **unstable dev server**
 
 You can set this server in `/etc/config/attendedsysupgrade` after installation
 of a client.
