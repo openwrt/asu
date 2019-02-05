@@ -90,7 +90,8 @@ class Worker(threading.Thread):
 
             manifest_pattern = r"(.+) - (.+)\n"
             manifest_packages = re.findall(manifest_pattern, manifest_content)
-            self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
+            self.database.add_manifest_packages(
+                    self.image.params["manifest_hash"], manifest_packages)
             self.log.info("successfully parsed manifest")
         else:
             self.log.error("couldn't determine manifest")
@@ -165,7 +166,8 @@ class Worker(threading.Thread):
                     sysupgrade = None
 
                     for sysupgrade_file in possible_sysupgrade_files:
-                        sysupgrade = glob.glob(self.image.params["dir"] + "/" + sysupgrade_file)
+                        sysupgrade = glob.glob(
+                                self.image.params["dir"] + "/" + sysupgrade_file)
                         if sysupgrade:
                             break
 
@@ -173,7 +175,8 @@ class Worker(threading.Thread):
                         self.log.debug("sysupgrade not found")
                         if buildlog.find("too big") != -1:
                             self.log.warning("created image was to big")
-                            self.database.set_image_requests_status(self.params["request_hash"], "imagesize_fail")
+                            self.database.set_image_requests_status(
+                                    self.params["request_hash"], "imagesize_fail")
                             self.write_log(fail_log_path, buildlog, errors)
                             return False
                         else:
@@ -187,14 +190,17 @@ class Worker(threading.Thread):
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
-                    self.database.set_image_requests_status(self.params["request_hash"], 'build_fail')
+                    self.database.set_image_requests_status(
+                            self.params["request_hash"], 'build_fail')
                     self.write_log(fail_log_path, buildlog, errors)
                     return False
         else:
             self.log.info("image already there")
 
-        self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
-        self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], self.build_status)
+        self.log.info("link request %s to image %s",
+                self.params["request_hash"], self.params["image_hash"])
+        self.database.done_build_job(self.params["request_hash"],
+                self.image.params["image_hash"], self.build_status)
         return True
 
     def run(self):

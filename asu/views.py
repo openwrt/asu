@@ -11,7 +11,7 @@ import urllib.request
 from asu.build_request import BuildRequest
 from asu.upgrade_check import UpgradeCheck
 from asu.utils.config import Config
-from asu.utils.common import get_hash
+from asu.utils.common import get_hash, get_packages_hash, get_request_hash
 from asu.utils.database import Database
 
 log = logging.getLogger(__name__)
@@ -213,26 +213,25 @@ def build_all():
 @app.cli.command()
 def build_worker():
     log.info("build worker image")
-    packages = sorted(list(set(
-        ["bash", "bzip2", "coreutils", "coreutils-stat", "diffutils", "file",
-            "gawk", "gcc", "getopt", "git", "libncurses", "make", "patch",
-            "perl", "perlbase-attributes", "perlbase-findbin",
+    packages = ["bash", "bzip2", "coreutils", "coreutils-stat", "diffutils",
+            "file", "gawk", "gcc", "getopt", "git", "libncurses", "make",
+            "patch", "perl", "perlbase-attributes", "perlbase-findbin",
             "perlbase-getopt", "perlbase-thread", "python-light", "tar",
             "unzip", "wget", "xz", "xzdiff", "xzgrep", "xzless", "xz-utils",
-            "zlib-dev"])))
+            "zlib-dev"]
 
-    packages_hash = get_hash(" ".join(packages), 12)
+    packages_hash = get_packages_hash(packages)
     database.insert_packages_hash(packages_hash, packages)
 
     params = {
         "distro": "openwrt",
         "version": config.get("openwrt").get("latest"),
         "target": "x86/64",
-        "profile": "Default",
+        "profile": "Generic",
         "packages_hash": packages_hash
         }
 
-    print(params)
+    params["request_hash"] = get_request_hash(params)
 
     database.insert_dict("requests", params)
 
