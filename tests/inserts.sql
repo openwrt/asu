@@ -6,7 +6,11 @@ values
     ('openwrt', '18.06.1', false),
     ('openwrt', '18.06.2', false);
 
-insert into targets (distro, version, target) values ('openwrt', '18.06.2', 'ar71xx/generic');
+insert into targets
+    (distro, version, target)
+values 
+    ('openwrt', '18.06.1', 'ar71xx/generic'),
+    ('openwrt', '18.06.2', 'ar71xx/generic');
 
 insert into profiles
     (distro, version, target, profile, model) 

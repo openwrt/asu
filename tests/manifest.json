@@ -1,0 +1,54 @@
+{ 
+    "distro": "openwrt",
+    "target": "ar71xx/generic",
+    "version": "18.06.1",
+    "installed": { "libpthread" : "1.1.16-1", "ubusd" : "2017-02-18-34c6e818-1",
+        "libjson-c" : "0.12.1-0", "libuci-lua" : "2018-01-01-141b64ef-1",
+        "kmod-nls-base" : "4.4.92-1", "busybox" : "1.25.1-4", "ubox" :
+        "2017-03-10-16f7e161-1", "kmod-mac80211" : "4.4.92+2017-01-31-3",
+        "kmod-nf-nat" : "4.4.92-1", "iptables" : "1.4.21-3", "luci-proto-ppp" :
+        "git-18.201.27126-7bf0367-1", "kmod-ipt-conntrack" : "4.4.92-1",
+        "hostapd-common" : "2016-12-19-ad02e79d-7", "libubox" :
+        "2018-01-07-1dafcd78-1", "kmod-ath" : "4.4.92+2017-01-31-3", "firewall"
+        : "2017-05-27-a4d98aea-1", "luci-app-firewall" :
+        "git-18.201.27126-7bf0367-1", "uhttpd-mod-ubus" :
+        "2017-11-04-a235636a-1", "kmod-usb-core" : "4.4.92-1",
+        "kmod-lib-crc-ccitt" : "4.4.92-1", "odhcp6c" : "2017-01-30-c13b6a05-2",
+        "kmod-nf-ipt6" : "4.4.92-1", "libip6tc" : "1.4.21-3", "netifd" :
+        "2017-01-25-650758b1-1", "luci-lib-nixio" :
+        "git-18.201.27126-7bf0367-1", "libnl-tiny" : "0.1-5", "kmod-ppp" :
+        "4.4.92-1", "uhttpd" : "2017-11-04-a235636a-1", "base-files" :
+        "173.1-r3560-79f57e422d", "liblua" : "5.1.5-1", "kmod-ath9k" :
+        "4.4.92+2017-01-31-3", "rpcd" : "2018-05-13-82062195-1", "ppp" :
+        "2.4.7-12", "ip6tables" : "1.4.21-3", "kmod-gpio-button-hotplug" :
+        "4.4.92-2", "luci-lib-jsonc" : "git-18.201.27126-7bf0367-1",
+        "kmod-pppox" : "4.4.92-1", "usign" : "2015-07-04-ef641914-1",
+        "libubus-lua" : "2017-02-18-34c6e818-1", "kmod-ip6tables" : "4.4.92-1",
+        "uci" : "2018-01-01-141b64ef-1", "luci" : "git-18.201.27126-7bf0367-1",
+        "libuci" : "2018-01-01-141b64ef-1", "swconfig" : "11", "libiwinfo-lua" :
+        "2016-09-21-fd9e17be-1", "iw" : "4.9-1", "procd" :
+        "2017-08-08-66be6a23-1", "kmod-nf-ipt" : "4.4.92-1", "fstools" :
+        "2017-06-30-bdcb075f-1", "dropbear" : "2017.75-4", "ppp-mod-pppoe" :
+        "2.4.7-12", "dnsmasq" : "2.78-6", "odhcpd" : "2018-05-27-59339a76-4",
+        "kmod-nf-conntrack" : "4.4.92-1", "lede-keyring" :
+        "2017-01-20-a50b7529-1", "luci-lib-ip" : "git-18.201.27126-7bf0367-1",
+        "fwtool" : "1", "libc" : "1.1.16-1", "ubus" : "2017-02-18-34c6e818-1",
+        "opkg" : "2017-03-23-1d0263bb-1", "luci-proto-ipv6" :
+        "git-18.201.27126-7bf0367-1", "kmod-pppoe" : "4.4.92-1",
+        "luci-mod-admin-full" : "git-18.201.27126-7bf0367-1", "libiwinfo" :
+        "2016-09-21-fd9e17be-1", "libuclient" : "2017-11-02-4b87d831-1", "lua" :
+        "5.1.5-1", "kmod-usb-ledtrig-usbport" : "4.4.92-1",
+        "luci-theme-bootstrap" : "git-18.201.27126-7bf0367-1", "uclient-fetch" :
+        "2017-11-02-4b87d831-1", "jshn" : "2018-01-07-1dafcd78-1", "libubus" :
+        "2017-02-18-34c6e818-1", "kmod-ipt-nat" : "4.4.92-1", "libblobmsg-json"
+        : "2018-01-07-1dafcd78-1", "luci-base" : "git-18.201.27126-7bf0367-1",
+        "uboot-envtools" : "2015.10-1", "kernel" :
+        "4.4.92-1-45d282495a15974d60f8edb091d0e2a9", "mtd" : "23",
+        "kmod-cfg80211" : "4.4.92+2017-01-31-3", "jsonfilter" :
+        "2016-07-02-dea067ad-1", "kmod-usb2" : "4.4.92-1", "wpad-mini" :
+        "2016-12-19-ad02e79d-7", "kmod-nf-conntrack6" : "4.4.92-1", "libxtables"
+        : "1.4.21-3", "kmod-ath9k-common" : "4.4.92+2017-01-31-3",
+        "kmod-ipt-core" : "4.4.92-1", "libgcc" : "5.4.0-1", "logd" :
+        "2017-03-10-16f7e161-1", "kmod-slhc" : "4.4.92-1", "libjson-script" :
+        "2018-01-07-1dafcd78-1", "libip4tc" : "1.4.21-0" }
+}

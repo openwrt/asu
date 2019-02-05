@@ -21,11 +21,6 @@ class BuildRequest(Request):
                 return self.respond()
             else:
                 return self.return_status()
-        else:
-            # required params for a build request
-            missing_params = self.check_missing_params(["distro", "version", "target"])
-            if missing_params:
-                return self.respond()
 
         #TODO check for profile or board
 

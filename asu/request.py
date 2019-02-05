@@ -65,16 +65,6 @@ class Request():
         response.headers.extend(self.response_header)
         return response
 
-    def check_missing_params(self, params):
-        for param in params:
-            if not param in self.request_json:
-                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
-                self.response_header["X-Missing-Param"] = param
-                return self.respond()
-
-        # all checks passed, not bad
-        return False
-
     # check packages by sending requested packages again postgres
     def check_bad_packages(self, packages):
         # remove packages which doesn't exists but appear in the package list

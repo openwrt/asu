@@ -182,16 +182,9 @@ class Database():
         self.c.execute(sql)
         return self.c.fetchall()
 
-    def manifest_outdated(self, p):
-        sql = """select upgrades
-                from manifest_upgrades
-                where
-                    manifest_hash = ? and
-                    distro = ? and
-                    version = ? and
-                    target = ? and
-                    subtarget = ?;"""
-        self.c.execute(sql, p["manifest_hash"], p["distro"], p["version"], p["target"], p["subtarget"])
+    def get_manifest_upgrades(self, p):
+        sql = "select manifest_upgrades(?, ?, ?, ?)"
+        self.c.execute(sql, p["distro"], p["version"], p["target"], json.dumps(p["manifest"]))
         return self.c.fetchval()
 
     def get_outdated_target(self):
