@@ -43,7 +43,6 @@ class Database():
     def insert_defaults(self, defaults_hash, defaults):
         sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
         self.c.execute(sql, defaults_hash, defaults)
-        self.commit()
 
     def get_defaults(self, defaults_hash):
         sql = "select content from defaults_table where hash = ?"
@@ -51,9 +50,8 @@ class Database():
         return self.c.fetchval()
 
     def insert_supported(self, p):
-        sql = """UPDATE subtargets SET supported = true WHERE distro=? and version=? and target=? and subtarget=?"""
-        self.c.execute(sql, p["distro"], p["version"], p["target"], p["subtarget"])
-        self.commit()
+        sql = """UPDATE targets SET supported = true WHERE distro=? and version=? and target=?"""
+        self.c.execute(sql, p["distro"], p["version"], p["target"])
 
     def get_versions(self, distro=None):
         if not distro:
@@ -154,19 +152,16 @@ class Database():
     def del_image(self, image_hash):
         sql = """delete from images where image_hash = ?;"""
         self.c.execute(sql, image_hash)
-        self.commit()
 
     # removes all snapshot requests older than a day
     def del_outdated_request(self,):
-        sql = """delete from image_requests where
-            snapshots = 'true' and
-            request_date < NOW() - interval '1 day'"""
-        self.c.execute(sql)
-        self.commit()
+        self.c.execute("""delete from requests where
+            snapshots = 'true' and request_date < NOW() - interval '1 day'""")
 
+    # TODO reimplement
     def get_outdated_manifests(self):
         sql = """select image_hash, file_path from images join images_download using (image_hash)
-            join manifest_upgrades using (distro, version, target, subtarget, manifest_hash);"""
+            join manifest_upgrades using (distro, version, target, manifest_hash);"""
         self.c.execute(sql)
         return self.c.fetchall()
 
@@ -248,23 +243,6 @@ class Database():
         self.log.info("add build job %s", image)
         self.insert_dict("requests", image)
 
-    def check_build_request(self, request):
-        request_array = request.as_array()
-        request_hash = get_hash(" ".join(request_array), 12)
-        self.log.debug("check_request")
-        sql = "select image_hash, id, request_hash, status from image_requests where request_hash = ?"
-        self.c.execute(sql, request_hash)
-        if self.c.rowcount == 1:
-            return self.c.fetchone()
-        else:
-            self.log.debug("add build job")
-            sql = """INSERT INTO image_requests
-                (request_hash, distro, version, target, subtarget, profile, packages_hash)
-                VALUES (?, ?, ?, ?, ?, ?, ?)"""
-            self.c.execute(sql, request_hash, *request_array)
-            self.commit()
-            return('', 0, request_hash, 'requested')
-
     # merge image_download table with images tables
     def get_image_path(self, image_hash):
         self.log.debug("get sysupgrade image for %s", image_hash)
@@ -320,7 +298,6 @@ class Database():
         self.log.info("done build job: rqst %s img %s status %s", request_hash, image_hash, status)
         sql = """UPDATE requests SET request_status = ?, image_hash = ?  WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_hash, request_hash)
-        self.commit()
 
     def api_get_distros(self):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(distributions))), '[]')
@@ -424,20 +401,16 @@ class Database():
     def insert_board_rename(self, distro, version, origname, newname):
         sql = "INSERT INTO board_rename (distro, version, origname, newname) VALUES (?, ?, ?, ?);"
         self.c.execute(sql, distro, version, origname, newname)
-        self.commit()
 
     def insert_transformation(self, distro, version, package, replacement, context):
         self.log.info("insert %s/%s ", distro, version)
         sql = "INSERT INTO transformations (distro, version, package, replacement, context) VALUES (?, ?, ?, ?, ?);"
         self.c.execute(sql, distro, version, package, replacement, context)
-        self.commit()
 
     def image_exists(self, image_hash):
         return self.c.execute("select 1 from images where image_hash = ?", image_hash).fetchone()
 
-    # TODO broken
     def transform_packages(self, distro, orig_version, dest_version, packages):
-        self.log.debug("transform packages {} {} {} {}".format(distro, orig_version, dest_version, packages))
         sql = "select transform(?, ?, ?, ?)"
         self.c.execute(sql, distro, orig_version, dest_version, packages)
         return self.c.fetchall()
