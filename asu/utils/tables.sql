@@ -36,10 +36,10 @@ create or replace view distros as
 create or replace rule insert_distros AS
 ON insert TO distros DO INSTEAD (
     insert into distros_table (
-        distro, distro_alias, distro_description, latest) 
+        distro, distro_alias, distro_description, latest)
     values (
         NEW.distro, NEW.distro_alias, NEW.distro_description, NEW.latest)
-    on conflict do nothing; 
+    on conflict do nothing;
 );
 
 create or replace rule update_distros AS
@@ -218,7 +218,6 @@ ON insert TO packages_available DO INSTEAD (
     ) on conflict (target_id, package_name_id) do update
     set package_version_id = (select package_version_id from packages_versions where
             packages_versions.package_version = NEW.package_version);
-    
 );
 
 -- contains default packages of target
@@ -764,7 +763,7 @@ begin
                     array[pa.package_version, mp.package_version] as package_versions
                 from (select key as package_name, value as package_version
                     from json_each_text(manifest_upgrades.manifest)) as mp
-                join packages_available pa using (package_name) where 
+                join packages_available pa using (package_name) where
                     pa.distro = manifest_upgrades.distro and
                     pa.version = manifest_upgrades.version and
                     pa.target = manifest_upgrades.target and
@@ -774,7 +773,7 @@ end
 $$ LANGUAGE 'plpgsql';
 
 create or replace function insert_packages_profile(
-    distro varchar, version varchar, target varchar, profile varchar, model varchar, packages varchar) 
+    distro varchar, version varchar, target varchar, profile varchar, model varchar, packages text)
     returns void as $$
 begin
     insert into profiles (distro, version, target, profile, model) values (
@@ -801,7 +800,7 @@ create or replace function get_build_job() returns table(
     target varchar,
     profile varchar,
     packages_hash varchar,
-    defaults_hash varchar) 
+    defaults_hash varchar)
     as $$
 begin
     return query
@@ -809,7 +808,7 @@ begin
             requests.request_id = (
                 SELECT MIN(requests.request_id) FROM requests WHERE
                     request_status = 'requested')
-        RETURNING 
+        RETURNING
             requests.request_id,
 			requests.request_hash,
 			requests.image_hash,
