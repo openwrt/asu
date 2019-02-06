@@ -154,7 +154,7 @@ def api_manifest(manifest_hash):
 
 @app.route("/api/v1/supported")
 def api_supported():
-    return mime_json(database.get_supported_subtargets_json())
+    return mime_json(database.get_supported_targets_json())
 
 @app.cli.command()
 def load_database():

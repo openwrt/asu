@@ -204,11 +204,11 @@ class Database():
             response[name] = version
         return response
 
-    def get_subtargets(self, distro, version, target="%", subtarget="%"):
-        self.log.debug("get_subtargets {} {} {} {}".format(distro, version, target, subtarget))
-        return self.c.execute("""SELECT target, subtarget, supported FROM subtargets
-            WHERE distro = ? and version = ? and target LIKE ? and subtarget LIKE ?;""",
-            distro, version, target, subtarget).fetchall()
+    def get_targets(self, distro, version, target="%"):
+        self.log.debug("get_targets {} {} {}".format(distro, version, target))
+        return self.c.execute("""SELECT target, supported FROM targets
+            WHERE distro = ? and version = ? and target LIKE ?;""",
+            distro, version, target).fetchall()
 
     # check for image_hash or request_hash depending on length
     # TODO make it less confusing
@@ -221,18 +221,6 @@ class Database():
             sql = "select * from images where image_hash = ?"
         self.c.execute(sql, requested_hash)
         return self.as_dict()
-
-    # returns upgrade requests responses cached in database
-    def check_upgrade_check_hash(self, check_hash):
-        self.log.debug("check_upgrade_hash")
-        sql = "select * from upgrade_checks where check_hash = ?"
-        self.c.execute(sql, check_hash)
-        return self.as_dict()
-
-    def insert_upgrade_check(self, p):
-        sql = """insert into upgrade_checks (check_hash, distro, version, target, subtarget, manifest_hash) values (?, ?, ?, ?, ?, ?);"""
-        self.c.execute(sql, p["check_hash"], p["distro"], p["version"], p["target"], p["subtarget"], p["manifest_hash"])
-        self.commit()
 
     # inserts an image to the build queue
     def add_build_job(self, image):
@@ -316,13 +304,13 @@ class Database():
         sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE ? and distro LIKE ? and version LIKE ?;"""
         response = self.c.execute(sql, search_like, distro, version).fetchval()
         if response == "[]":
-            sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where (lower(target) LIKE ? or lower(subtarget) LIKE ? or lower(profile) LIKE ?)and distro LIKE ? and version LIKE ?;"""
+            sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where (lower(target) LIKE ? or lower(profile) LIKE ?)and distro LIKE ? and version LIKE ?;"""
             response = self.c.execute(sql, search_like, search_like, search_like, distro, version).fetchval()
 
         return response
 
-    def get_supported_subtargets_json(self):
-        sql = """select coalesce(array_to_json(array_agg(row_to_json(subtargets))), '[]') from subtargets where supported = 'true';"""
+    def get_supported_targets_json(self):
+        sql = """select coalesce(array_to_json(array_agg(row_to_json(targets))), '[]') from targets where supported = 'true';"""
         self.c.execute(sql)
         return self.c.fetchval()
 
@@ -350,10 +338,9 @@ class Database():
         sql = """select json_agg(popular_targets) from (
                 select
                     count(*) as count,
-                    avg(build_seconds)::integer as build_seconds,
-                    target, subtarget
+                    avg(build_seconds)::integer as build_seconds, target
                 from images
-                group by (target, subtarget)
+                group by (target)
                 order by count desc
                 limit 50
             ) as popular_targets;"""
