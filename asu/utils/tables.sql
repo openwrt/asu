@@ -491,7 +491,6 @@ select image_id, image_hash,
     || distro || '/'
     || version || '/'
     || target || '/'
-    || target || '/'
     || profile || '/'
     || manifest_hash
     as file_path,

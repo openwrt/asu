@@ -23,9 +23,11 @@ def get_packages_hash(packages):
 
 def get_request_hash(request):
     if "packages" in request:
-        request["packages_hash"] = get_packages_hash(request["packages"])
+        if request["packages"]:
+            request["packages_hash"] = get_packages_hash(request["packages"])
     if "defaults" in request:
-        request["defaults_hash"] = get_hash(request["defaults"], 32)
+        if request["defaults"]:
+            request["defaults_hash"] = get_hash(request["defaults"], 32)
     request_array = [
         request["distro"],
         request["version"],

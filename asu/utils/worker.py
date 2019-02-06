@@ -70,17 +70,19 @@ class Worker(threading.Thread):
 
         self.image = Image(self.params)
 
-        packages_image = set(map(lambda x: x[0],
-            self.database.get_packages_image(self.params)))
-        self.log.debug("packages_image %s", packages_image)
-        packages_requested = set(map(lambda x: x[0],
-            self.database.get_packages_hash(self.params["packages_hash"])))
-        self.log.debug("packages_requested %s", packages_requested)
-        packages_remove = packages_image - packages_requested
-        self.log.debug("packages_remove %s", packages_remove)
-        packages_requested.update(set(map(lambda x: "-" + x, packages_remove)))
-        self.params["packages"] =  " ".join(packages_requested)
-        self.log.debug("packages param %s", self.params["packages"])
+        if self.params["packages_hash"]:
+            packages_image = set(self.database.get_packages_image(self.params))
+            self.log.debug("packages_image %s", packages_image)
+            packages_requested = set(self.database.get_packages_hash(
+                self.params["packages_hash"]))
+            self.log.debug("packages_requested %s", packages_requested)
+            packages_remove = packages_image - packages_requested
+            self.log.debug("packages_remove %s", packages_remove)
+            packages_requested.update(set(map(lambda x: "-" + x, packages_remove)))
+            self.params["packages"] =  " ".join(packages_requested)
+            self.log.debug("packages param %s", self.params["packages"])
+        else:
+            self.log.debug("build package with default packages")
 
         # first determine the resulting manifest hash
         return_code, manifest_content, errors = self.run_meta("manifest")

@@ -1,6 +1,6 @@
 from asu import app
 
-from flask import request, send_from_directory, redirect
+from flask import request, send_from_directory, redirect, jsonify
 import json
 import click
 import logging
@@ -126,15 +126,17 @@ def api_models():
         return "[]", HTTPStatus.BAD_REQUEST
 
 @app.route("/api/packages_image")
-@app.route("/api/default_packages")
 def api_default_packages():
     distro = request.args.get("distro", "")
     version = request.args.get("version", "")
     target = request.args.get("target", "")
-    subtarget = request.args.get("subtarget", "")
     profile = request.args.get("profile", "")
-    if distro != "" and version != "" and target != "" and subtarget != "" and profile != "":
-        return mime_json(database.get_image_packages(distro, version, target, subtarget, profile))
+    if distro and version and target and profile:
+        return jsonify(database.get_packages_image({
+            "distro": distro,
+            "version": version,
+            "target": target,
+            "profile": profile}))
     else:
         return "[]", HTTPStatus.BAD_REQUEST
 
@@ -193,7 +195,7 @@ def fetch_targets():
 
             if version_config.get("ignore_targets"):
                 version_targets = version_targets - set(version_config.get("ignore_targets"))
-            
+
             log.info("add %s/%s targets", distro, version)
             database.insert_target(distro, version, version_targets)
 

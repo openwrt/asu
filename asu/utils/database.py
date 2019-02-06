@@ -41,11 +41,11 @@ class Database():
         self.cnxn.autocommit = True
 
     def insert_defaults(self, defaults_hash, defaults):
-        sql = "insert into defaults_table (hash, content) values (?, ?) on conflict do nothing"
+        sql = "insert into defaults_table (defaults_hash, content) values (?, ?) on conflict do nothing"
         self.c.execute(sql, defaults_hash, defaults)
 
     def get_defaults(self, defaults_hash):
-        sql = "select content from defaults_table where hash = ?"
+        sql = "select content from defaults_table where defaults_hash = ?"
         self.c.execute(sql, defaults_hash)
         return self.c.fetchval()
 
@@ -142,11 +142,7 @@ class Database():
         self.c.execute(sql,
                 request["distro"], request["version"],
                 request["target"], request["profile"])
-        response = self.c.fetchall()
-        if not as_json:
-            return response
-        else:
-            return json.dumps({"packages": response})
+        return self.as_array()
 
     # removes an image entry based on image_hash
     def del_image(self, image_hash):
@@ -241,6 +237,8 @@ class Database():
     # inserts an image to the build queue
     def add_build_job(self, image):
         self.log.info("add build job %s", image)
+        if "packages" in image:
+            image.pop("packages")
         self.insert_dict("requests", image)
 
     # merge image_download table with images tables
@@ -345,7 +343,8 @@ class Database():
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)
         sql = "select package_name from packages_hashes where packages_hash = ?;"
-        return self.c.execute(sql, packages_hash).fetchall()
+        self.c.execute(sql, packages_hash)
+        return self.as_array()
 
     def get_popular_targets(self):
         sql = """select json_agg(popular_targets) from (
@@ -364,9 +363,9 @@ class Database():
     def get_image_stats(self):
         self.log.debug("get image stats")
         sql = """select to_json(image_stats) from (select total, stored, requested from
-                (select last_value as total from image_requests_table_id_seq) as total,
+                (select last_value as total from requests_table_id_seq) as total,
                 (select count(*) as stored from images) as stored,
-                (select count(*) as requested from image_requests where status = 'requested') as requested) as image_stats;"""
+                (select count(*) as requested from requests where request_status = 'requested') as requested) as image_stats;"""
         self.c.execute(sql)
         return self.c.fetchval()
 
