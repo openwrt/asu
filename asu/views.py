@@ -209,6 +209,7 @@ def build_all():
             "target": target,
             "profile": profile
             }
+        params["request_hash"] = get_request_hash(params)
         database.insert_dict("requests", params)
 
 @app.cli.command()
