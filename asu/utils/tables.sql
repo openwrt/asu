@@ -740,7 +740,7 @@ create or replace function outdated_target ()
          where target_id =
             (select target_id  from targets where
                 last_sync < NOW() - INTERVAL ''1 day''
-                order by (last_sync) asc limit 1)
+                order by last_sync asc, snapshots asc limit 1)
          returning targets.distro, targets.version, targets.target;
 ' LANGUAGE 'sql';
 
