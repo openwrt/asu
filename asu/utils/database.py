@@ -363,7 +363,7 @@ class Database():
     def get_image_stats(self):
         self.log.debug("get image stats")
         sql = """select to_json(image_stats) from (select total, stored, requested from
-                (select last_value as total from requests_table_id_seq) as total,
+                (select last_value as total from images_table_image_id_seq) as total,
                 (select count(*) as stored from images) as stored,
                 (select count(*) as requested from requests where request_status = 'requested') as requested) as image_stats;"""
         self.c.execute(sql)
