@@ -296,14 +296,8 @@ class Database():
         search_like = '%' + search.lower() + '%'
         if distro == '': distro = '%'
         if version == '': version = '%'
-
         sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE ? and distro LIKE ? and version LIKE ?;"""
-        response = self.c.execute(sql, search_like, distro, version).fetchval()
-        if response == "[]":
-            sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where (lower(target) LIKE ? or lower(profile) LIKE ?)and distro LIKE ? and version LIKE ?;"""
-            response = self.c.execute(sql, search_like, search_like, search_like, distro, version).fetchval()
-
-        return response
+        return  self.c.execute(sql, search_like, distro, version).fetchval()
 
     def get_supported_targets_json(self):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(targets))), '[]') from targets where supported = 'true';"""
