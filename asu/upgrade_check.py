@@ -62,9 +62,11 @@ class UpgradeCheck(Request):
             # the 17.01 release as it became part of the kernel. this functions
             # checks for these changes and tell the client what packages to
             # request in the build request
-            self.response_json["packages"] = [package[0] for package in self.database.transform_packages(
-                self.request["distro"], self.outdated_version, self.request["version"],
-                " ".join(self.request_json["installed"].keys()))]
+            self.response_json["packages"] = self.database.transform_packages(
+                    self.request["distro"],
+                    self.outdated_version,
+                    self.request["version"],
+                    " ".join(self.request_json["installed"].keys()))
             self.response_status = HTTPStatus.OK # 200
         else:
             self.response_status = HTTPStatus.NO_CONTENT # 204
@@ -78,7 +80,7 @@ class UpgradeCheck(Request):
 
         if "version" in self.response_json or "get_upgrades" in self.response_json:
             # TODO this result in double jsonifying
-            # problem is postgres gives back perfect json while the rest of the 
+            # problem is postgres gives back perfect json while the rest of the
             # json response is a dict, until it's decoded in the end
             self.response_json["upgrades"] = json.loads(self.database.get_manifest_upgrades(self.request))
 

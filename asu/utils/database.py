@@ -411,7 +411,7 @@ class Database():
     def transform_packages(self, distro, orig_version, dest_version, packages):
         sql = "select transform(?, ?, ?, ?)"
         self.c.execute(sql, distro, orig_version, dest_version, packages)
-        return self.c.fetchall()
+        return self.as_array()
 
     def get_popular_packages(self):
         sql = """select json_agg(popular_packages) from (select package_name,
