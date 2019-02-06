@@ -14,7 +14,7 @@ class BuildRequest(Request):
 
         # if request_hash is available check the database directly
         if "request_hash" in self.request_json:
-            self.request = self.database.check_build_request_hash(
+            self.request = self.database.check_request_hash(
                     self.request_json["request_hash"])
 
             if not self.request:
@@ -31,7 +31,7 @@ class BuildRequest(Request):
         self.request_json["profile"] = self.request_json["board"] # TODO fix this workaround
 
         request_hash = get_request_hash(self.request_json)
-        request_database = self.database.check_build_request_hash(request_hash)
+        request_database = self.database.check_request_hash(request_hash)
 
         # if found return instantly the status
         if request_database:

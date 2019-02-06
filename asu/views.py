@@ -75,7 +75,6 @@ def api_files_request(request_hash=None):
         request_json = { "request_hash": request_hash }
     return br.process_request(request_json)
 
-@app.route("/api/v1/stats/images_count")
 @app.route("/api/v1/stats/image_stats")
 def api_stats_image_stats():
     return mime_json(database.get_image_stats())

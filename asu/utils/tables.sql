@@ -478,23 +478,6 @@ create or replace rule delete_images as
     delete from images_table
     where old.image_id = images_table.image_id;
 
--- view to select image path based on image_hash
-create or replace view images_download as
-select image_id, image_hash,
-    (CASE WHEN defaults_hash is null THEN
-        ''
-    ELSE
-        'custom/' || defaults_hash || '/'
-    end)
-    || distro || '/'
-    || version || '/'
-    || target || '/'
-    || profile || '/'
-    || manifest_hash
-    as file_path,
-    sysupgrade
-from images;
-
 -- contains build requests
 create table if not exists requests_table (
     request_id SERIAL PRIMARY KEY,
@@ -572,6 +555,23 @@ create or replace rule delete_requests as
 on delete to requests do instead
     delete from requests_table
     where old.request_id = requests_table.request_id;
+
+-- view to select image path based on image_hash
+create or replace view images_download as
+select image_id, image_hash,
+    (CASE WHEN defaults_hash is null THEN
+        ''
+    ELSE
+        'custom/' || defaults_hash || '/'
+    end)
+    || distro || '/'
+    || version || '/'
+    || target || '/'
+    || profile || '/'
+    || manifest_hash
+    as file_path,
+    sysupgrade
+from images;
 
 -- contains rename mapping for boards
 CREATE TABLE IF NOT EXISTS board_rename_table (

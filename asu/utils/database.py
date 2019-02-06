@@ -212,14 +212,10 @@ class Database():
 
     # check for image_hash or request_hash depending on length
     # TODO make it less confusing
-    def check_build_request_hash(self, requested_hash):
-        if len(requested_hash) == 12:
-            self.log.debug("check_build_request_hash request_hash")
-            sql = "select * from requests where request_hash = ?"
-        else:
-            self.log.debug("check_build_request_hash image_hash")
-            sql = "select * from images where image_hash = ?"
-        self.c.execute(sql, requested_hash)
+    def check_request_hash(self, request_hash):
+        self.log.debug("check_build_request_hash request_hash")
+        sql = "select * from requests where request_hash = ?"
+        self.c.execute(sql, request_hash)
         return self.as_dict()
 
     # inserts an image to the build queue
@@ -352,9 +348,9 @@ class Database():
         sql = """select to_json(image_stats) from (select total, stored, requested from
                 (select last_value as total from images_table_image_id_seq) as total,
                 (select count(*) as stored from images) as stored,
-                (select count(*) as requested from requests where request_status = 'requested') as requested) as image_stats;"""
-        self.c.execute(sql)
-        return self.c.fetchval()
+                (select count(*) as requested from requests
+                    where request_status = 'requested') as requested) as image_stats;"""
+        return self.c.execute(sql).fetchval()
 
     def get_all_profiles(self, distro, version):
         sql = """select target, profile from profiles where distro = ? and version = ?"""
