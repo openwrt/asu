@@ -302,25 +302,23 @@ create or replace function packages_image(
     distro varchar,
     version varchar,
     target varchar,
-    profile varchar) 
-    returns table(package_name varchar) as $$
-begin
-    return query select united.package_name from (
+    profile varchar)
+    returns table(package_name varchar) as '
+    select united.package_name from (
         select packages_profile.package_name from packages_profile
-        where 
+        where
             packages_profile.distro = packages_image.distro and
             packages_profile.version = packages_image.version and
             packages_profile.target = packages_image.target and
             packages_profile.profile = packages_image.profile
         union
         select packages_default.package_name from packages_default
-        where 
+        where
             packages_default.distro = packages_image.distro and
             packages_default.version = packages_image.version and
             packages_default.target = packages_image.target
         ) as united;
-end
-$$ LANGUAGE 'plpgsql';
+' LANGUAGE 'sql';
 
 -- contains manifests aka combination of package names and versions
 create table if not exists manifests_table (
@@ -693,9 +691,13 @@ SELECT ARRAY(
 )
 $$ LANGUAGE sql;
 
-create or replace function transform(distro varchar, origversion varchar, targetversion varchar, origpackages varchar) returns table(packages varchar) as $$
-begin
-    return query select package_name
+create or replace function transform(
+        distro varchar,
+		origversion varchar,
+		targetversion varchar,
+		origpackages varchar
+    ) returns table(packages varchar) as '
+    select package_name
         from unnest(transform_function(
             (select distro_id from distros where
                 distros.distro= transform.distro),
@@ -707,54 +709,46 @@ begin
                 versions.version = transform.targetversion),
             (select array_agg(package_name_id)
                 from packages_names,
-                unnest(string_to_array(transform.origpackages, ' ')) as origpackages_rec 
+                unnest(string_to_array(transform.origpackages, '' '')) as origpackages_rec
                 where packages_names.package_name = origpackages_rec))) as result_ids
             join packages_names on packages_names.package_name_id = result_ids;
-end
-$$ LANGUAGE 'plpgsql';
+' LANGUAGE 'sql';
 
 -- function checks if a manifest is outdated
 create or replace function manifest_upgrades (
-    distro varchar, version varchar, target varchar, manifest json) 
-    returns table(upgrades json) as $$
-begin
-    return query select united.upgrades from (
-       select
-            json_object_agg(package_name, package_versions) as upgrades
-            from ( select
-                    pa.package_name as package_name,
-                    array[pa.package_version, mp.package_version] as package_versions
-                from (select key as package_name, value as package_version
-                    from json_each_text(manifest_upgrades.manifest)) as mp
-                join packages_available pa using (package_name) where 
-                    pa.distro = manifest_upgrades.distro and
-                    pa.version = manifest_upgrades.version and
-                    pa.target = manifest_upgrades.target and
-                    pa.package_version != mp.package_version
-            ) as upgrades) as united;
-end
-$$ LANGUAGE 'plpgsql';
+    distro varchar, version varchar, target varchar, manifest json)
+    returns table(upgrades json) as '
+    select united.upgrades from (
+        select json_object_agg(package_name, package_versions) as upgrades from (
+        select
+            pa.package_name as package_name,
+            array[pa.package_version, mp.package_version] as package_versions
+        from (select key as package_name, value as package_version
+        from json_each_text(manifest_upgrades.manifest)) as mp
+        join packages_available pa using (package_name) where
+            pa.distro = manifest_upgrades.distro and
+            pa.version = manifest_upgrades.version and
+            pa.target = manifest_upgrades.target and
+            pa.package_version != mp.package_version
+        ) as upgrades) as united;
+' LANGUAGE 'sql';
 
-create or replace function outdated_target () 
-    returns table(distro varchar, version varchar, target varchar) as $$
-begin
-    return query
-        UPDATE targets
-             SET last_sync = NOW()
-             where target_id =
-                (select target_id  from targets where
-                    last_sync < NOW() - INTERVAL '1 day'
-                    order by (last_sync) asc limit 1)
-             returning targets.distro, targets.version, targets.target;
-end
-$$ LANGUAGE 'plpgsql';
+create or replace function outdated_target ()
+    returns table(distro varchar, version varchar, target varchar) as '
+    UPDATE targets
+         SET last_sync = NOW()
+         where target_id =
+            (select target_id  from targets where
+                last_sync < NOW() - INTERVAL ''1 day''
+                order by (last_sync) asc limit 1)
+         returning targets.distro, targets.version, targets.target;
+' LANGUAGE 'sql';
 
 -- function checks if a manifest is outdated
 create or replace function manifest_upgrades (
-    distro varchar, version varchar, target varchar, manifest json) 
-    returns table(upgrades json) as $$
-begin
-    return query select united.upgrades from (
+    distro varchar, version varchar, target varchar, manifest json)
+    returns table(upgrades json) as '
+    select united.upgrades from (
        select
             json_object_agg(package_name, package_versions) as upgrades
             from ( select
@@ -768,13 +762,11 @@ begin
                     pa.target = manifest_upgrades.target and
                     pa.package_version != mp.package_version
             ) as upgrades) as united;
-end
-$$ LANGUAGE 'plpgsql';
+' LANGUAGE 'sql';
 
 create or replace function insert_packages_profile(
     distro varchar, version varchar, target varchar, profile varchar, model varchar, packages text)
-    returns void as $$
-begin
+    returns void as '
     insert into profiles (distro, version, target, profile, model) values (
         insert_packages_profile.distro,
         insert_packages_profile.version,
@@ -786,9 +778,8 @@ begin
         insert_packages_profile.version,
         insert_packages_profile.target,
         insert_packages_profile.profile,
-        unnest(string_to_array( insert_packages_profile.packages, ' '));
-end
-$$ LANGUAGE 'plpgsql';
+        unnest(string_to_array( insert_packages_profile.packages, '' ''));
+' LANGUAGE 'sql';
 
 create or replace function get_build_job() returns table(
     request_id integer,
@@ -800,22 +791,19 @@ create or replace function get_build_job() returns table(
     profile varchar,
     packages_hash varchar,
     defaults_hash varchar)
-    as $$
-begin
-    return query
-        UPDATE requests SET request_status = 'building' WHERE
-            requests.request_id = (
-                SELECT MIN(requests.request_id) FROM requests WHERE
-                    request_status = 'requested')
-        RETURNING
-            requests.request_id,
-			requests.request_hash,
-			requests.image_hash,
-			requests.distro,
-			requests.version,
-			requests.target,
-			requests.profile,
-			requests.packages_hash,
-			requests.defaults_hash;
-end
-$$ LANGUAGE 'plpgsql';
+    as '
+    UPDATE requests SET request_status = ''building'' WHERE
+        requests.request_id = (
+            SELECT MIN(requests.request_id) FROM requests WHERE
+                request_status = ''requested'')
+    RETURNING
+        requests.request_id,
+        requests.request_hash,
+        requests.image_hash,
+        requests.distro,
+        requests.version,
+        requests.target,
+        requests.profile,
+        requests.packages_hash,
+        requests.defaults_hash;
+' LANGUAGE 'sql';
