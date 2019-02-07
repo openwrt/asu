@@ -12,7 +12,9 @@ services:
 
   server:
     build: .
-    command: sh -c './.wait-for db:5432 -- python3 cli.py -i && gunicorn3 -b 0.0.0.0:8000 asu:app'
+    environment:
+      - FLASK_APP=asu
+    command: sh -c './.wait-for db:5432 -- flask fetch-targets && gunicorn3 -b 0.0.0.0:8000 asu:app'
     volumes:
       - "./config.yml.docker:/asu/config.yml"
     ports:
