@@ -42,16 +42,15 @@ class Request():
 
     def check_bad_target(self):
         self.request["target"] = self.request_json["target"]
-        self.request["subtarget"] = self.request_json["subtarget"]
 
         # check if sysupgrade is supported. If None is returned the subtarget isn't found
         sysupgrade_supported = self.database.sysupgrade_supported(self.request)
         if sysupgrade_supported == None:
-            self.response_json["error"] = "unknown target/subtarget {}/{}".format(self.request["target"], self.request["subtarget"])
+            self.response_json["error"] = "unknown target {}".format(self.request["target"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
         elif not sysupgrade_supported and self.sysupgrade_requested:
-            self.response_json["error"] = "target currently not supported {}/{}".format(self.request["target"], self.request["subtarget"])
+            self.response_json["error"] = "target currently not supported {}".format(self.request["target"])
             self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
             return self.respond()
 
@@ -65,16 +64,6 @@ class Request():
                 mimetype='application/json')
         response.headers.extend(self.response_header)
         return response
-
-    def check_missing_params(self, params):
-        for param in params:
-            if not param in self.request_json:
-                self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
-                self.response_header["X-Missing-Param"] = param
-                return self.respond()
-
-        # all checks passed, not bad
-        return False
 
     # check packages by sending requested packages again postgres
     def check_bad_packages(self, packages):
@@ -90,7 +79,8 @@ class Request():
         if packages_unknown:
             logging.warning("could not find packages %s", packages_unknown)
             self.response_header["X-Unknown-Package"] = ", ".join(packages_unknown)
-            self.response_json["error"] = "could not find packages '{}' for requested target".format(packages_unknown)
+            self.response_json["error"] = \
+                    "could not find packages: {}".format(", ".join(packages_unknown))
             self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 422
             return self.respond()
 

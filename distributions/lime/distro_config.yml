@@ -1,34 +1,24 @@
 ---
 distro_alias: "LibreMesh"
+
+# LibreMesh is based on OpenWrt, so use their ImageBuidlers
 parent_distro: "openwrt"
-parent_version: "18.06.1"
+
+# Use the following parent version
+parent_version: "18.06.2"
+
 latest: "testing"
+
 versions:
   - "testing"
   - "unstable"
+
 active_targets:
-    - ar71xx/generic
-    - ramips/rt305x
-    - ramips/rt3883
-    - ramips/mt7620
-    - ramips/mt7621
-    - ramips/mt7628
-    - ramips/mt7688
-    - lantiq/xrx200
-    - lantiq/xway
-    - x86/generic
-    - x86/64
-    - x86/geode
-    - mvebu/generic
-    - ipq806x/generic
-    - brcm2708/bcm2708
-    - brcm2708/bcm2709
-    - brcm2708/bcm2710
-    - octeon/generic
-    - sunxi/generic
-    - mediatek/generic
-    - arm64/generic
-    - armvirt/generic
+  - ar71xx/generic
+  - x86/64
+  - ramips/mt7621
+
+# additional description to show in the user interfaces
 distro_description: >
   LibreMesh is a modular framework for creating OpenWrt-based firmwares for
   wireless mesh nodes. Several communities around the world use LibreMesh as the

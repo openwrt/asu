@@ -3,9 +3,22 @@ distro_alias: LEDE
 latest: "17.01.6"
 versions:
   - "17.01.6"
+  - "17.01.5"
+  - "17.01.4"
+  - "17.01.3"
+  - "17.01.2"
+  - "17.01.1"
+  - "17.01.0"
 vanilla:
   - luci
+
+active_targets:
+  - ar71xx/generic
+  - x86/64
+  - ramips/mt7621
+
 targets_url: https://downloads.lede-project.org/releases/
+
 board_rename:
   nanostation-m: ubnt-nano-m
   nanostation-m-xw: ubnt-nano-m-xw

@@ -1,16 +1,36 @@
 ---
+# an alias for the distribution to beautify user interfaces
 distro_alias: OpenWrt
+
+# latest release available, used for responses to upgrade requests
 latest: "18.06.2"
+
+# a list of all active versions
 versions:
   - 18.06.2
   - 18.06.1
   - 18.06.0
   - snapshots
-#active_targets:
-#  - ar71xx/generic
+
+# only imagebuilders of the following are downloaded
+active_targets:
+  - ar71xx/generic
+  - x86/64
+  - ramips/mt7621
+
+# also possible to blacklist broken/unwanted targets
+# ignore_targets:
+#   - example/broken
+
+# additional packages to be installed per default
 vanilla:
   - luci
+
+# url to imagebuilders
 targets_url: https://downloads.openwrt.org/releases/
+
+# some images local board_name don't match the ones used by the image builder
+# see https://github.com/aparcar/attendedsysupgrade-server/issues/132
 board_rename:
   nanostation-m: ubnt-nano-m
   nanostation-m-xw: ubnt-nano-m-xw

@@ -44,6 +44,7 @@ class Worker(threading.Thread):
 
             if return_code != 0:
                 self.log.error("failed to setup meta ImageBuilder")
+                print(errors)
                 exit()
 
         self.log.info("meta ImageBuilder successfully setup")
@@ -75,10 +76,24 @@ class Worker(threading.Thread):
         self.log.debug("create and parse manifest")
 
         # fail path in case of erros
-        fail_log_path = self.config.get_folder("download_folder") +
-            "/faillogs/faillog-{}.txt".format(self.params["request_hash"])
+        fail_log_path = self.config.get_folder("download_folder") + \
+                "/faillogs/faillog-{}.txt".format(self.params["request_hash"])
 
         self.image = Image(self.params)
+
+        if self.params["packages_hash"]:
+            packages_image = set(self.database.get_packages_image(self.params))
+            self.log.debug("packages_image %s", packages_image)
+            packages_requested = set(self.database.get_packages_hash(
+                self.params["packages_hash"]))
+            self.log.debug("packages_requested %s", packages_requested)
+            packages_remove = packages_image - packages_requested
+            self.log.debug("packages_remove %s", packages_remove)
+            packages_requested.update(set(map(lambda x: "-" + x, packages_remove)))
+            self.params["packages"] =  " ".join(packages_requested)
+            self.log.debug("packages param %s", self.params["packages"])
+        else:
+            self.log.debug("build package with default packages")
 
         # first determine the resulting manifest hash
         return_code, manifest_content, errors = self.run_meta("manifest")
@@ -87,13 +102,16 @@ class Worker(threading.Thread):
             self.image.params["manifest_hash"] = get_hash(manifest_content, 15)
 
             manifest_pattern = r"(.+) - (.+)\n"
-            manifest_packages = dict(re.findall(manifest_pattern, manifest_content))
-            self.database.add_manifest_packages(self.image.params["manifest_hash"], manifest_packages)
+            manifest_packages = re.findall(manifest_pattern, manifest_content)
+            self.database.add_manifest_packages(
+                    self.image.params["manifest_hash"], manifest_packages)
             self.log.info("successfully parsed manifest")
         else:
             self.log.error("couldn't determine manifest")
+            print(manifest_content)
+            print(errors)
             self.write_log(fail_log_path, stderr=errors)
-            self.database.set_image_requests_status(self.params["request_hash"], "manifest_fail")
+            self.database.set_requests_status(self.params["request_hash"], "manifest_fail")
             return False
 
         # set directory where image is stored on server
@@ -110,7 +128,7 @@ class Worker(threading.Thread):
         self.build_status = "created"
 
         # check if image already exists
-        if not self.image.created():
+        if not self.image.created() or not self.database.image_exists(self.params["image_hash"]):
             self.log.info("build image")
             with tempfile.TemporaryDirectory(dir=self.config.get_folder("tempdir")) as build_dir:
                 # now actually build the image with manifest hash as EXTRA_IMAGE_NAME
@@ -161,7 +179,8 @@ class Worker(threading.Thread):
                     sysupgrade = None
 
                     for sysupgrade_file in possible_sysupgrade_files:
-                        sysupgrade = glob.glob(self.image.params["dir"] + "/" + sysupgrade_file)
+                        sysupgrade = glob.glob(
+                                self.image.params["dir"] + "/" + sysupgrade_file)
                         if sysupgrade:
                             break
 
@@ -169,7 +188,8 @@ class Worker(threading.Thread):
                         self.log.debug("sysupgrade not found")
                         if buildlog.find("too big") != -1:
                             self.log.warning("created image was to big")
-                            self.database.set_image_requests_status(self.params["request_hash"], "imagesize_fail")
+                            self.database.set_requests_status(
+                                    self.params["request_hash"], "imagesize_fail")
                             self.write_log(fail_log_path, buildlog, errors)
                             return False
                         else:
@@ -179,18 +199,21 @@ class Worker(threading.Thread):
                         self.image.params["sysupgrade"] = os.path.basename(sysupgrade[0])
 
                     self.write_log(success_log_path, buildlog)
-                    self.database.add_image(self.image.get_params())
+                    self.database.insert_dict("images", self.image.get_params())
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
-                    self.database.set_image_requests_status(self.params["request_hash"], 'build_fail')
+                    self.database.set_requests_status(
+                            self.params["request_hash"], 'build_fail')
                     self.write_log(fail_log_path, buildlog, errors)
                     return False
         else:
             self.log.info("image already there")
 
-        self.log.info("link request %s to image %s", self.params["request_hash"], self.params["image_hash"])
-        self.database.done_build_job(self.params["request_hash"], self.image.params["image_hash"], self.build_status)
+        self.log.info("link request %s to image %s",
+                self.params["request_hash"], self.params["image_hash"])
+        self.database.done_build_job(self.params["request_hash"],
+                self.image.params["image_hash"], self.build_status)
         return True
 
     def run(self):
@@ -207,12 +230,33 @@ class Worker(threading.Thread):
                 self.parse_packages()
 
     def info(self):
-        self.parse_info()
+        self.log.debug("parse info")
+
+        return_code, output, errors = self.run_meta("info")
+
+        if return_code == 0:
+            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
+            default_packages = re.match(default_packages_pattern, output,
+                    re.M).group(2).split()
+            logging.debug("default packages: %s", default_packages)
+
+            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
+            profiles = re.findall(profiles_pattern, output)
+            if not profiles:
+                profiles = []
+            self.database.insert_profiles( self.params["distro"],
+                    self.params["version"], self.params["target"],
+                    default_packages, profiles)
+        else:
+            logging.error("could not receive profiles")
+            print(output)
+            print(errors)
+            return False
+        # check if device supports sysupgrades
         if os.path.exists(os.path.join(
-                self.location, "imagebuilder",
-                self.params["distro"], self.params["version"],
-                self.params["target"], self.params["subtarget"],
-                "target/linux", self.params["target"],
+                self.location, "imagebuilder", self.params["distro"],
+                self.params["version"], self.params["target"], "target/linux",
+                self.params["target"].split("/")[0],
                 "base-files/lib/upgrade/platform.sh")):
             self.log.info("%s target is supported", self.params["target"])
             self.database.insert_supported(self.params)
@@ -248,30 +292,6 @@ class Worker(threading.Thread):
         return (return_code, output, errors)
 
 
-    def parse_info(self):
-        self.log.debug("parse info")
-
-        return_code, output, errors = self.run_meta("info")
-
-        if return_code == 0:
-            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
-            default_packages = re.match(default_packages_pattern, output, re.M).group(2)
-            logging.debug("default packages: %s", default_packages)
-
-            profiles_pattern = r"(.+):\n    (.+)\n    Packages: (.*)\n"
-            profiles = re.findall(profiles_pattern, output)
-            if not profiles:
-                profiles = []
-            self.database.insert_profiles({
-                "distro": self.params["distro"],
-                "version": self.params["version"],
-                "target": self.params["target"],
-                "subtarget": self.params["subtarget"]},
-                default_packages, profiles)
-        else:
-            logging.error("could not receive profiles")
-            return False
-
     def parse_packages(self):
         self.log.info("receive packages")
 
@@ -280,13 +300,13 @@ class Worker(threading.Thread):
         if return_code == 0:
             packages = re.findall(r"(.+?) - (.+?) - .*\n", output)
             self.log.info("found {} packages".format(len(packages)))
-            self.database.insert_packages_available({
-                "distro": self.params["distro"],
-                "version": self.params["version"],
-                "target": self.params["target"],
-                "subtarget": self.params["subtarget"]}, packages)
+            self.database.insert_packages_available(
+                    self.params["distro"], self.params["version"],
+                    self.params["target"], packages)
         else:
             self.log.warning("could not receive packages")
+            print(output)
+            print(errors)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -302,5 +322,3 @@ if __name__ == '__main__':
     log.info("start updater")
     uper = Updater()
     uper.start()
-
-

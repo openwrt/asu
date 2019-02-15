@@ -18,6 +18,26 @@ def get_hash(string, length):
     response_hash = h.hexdigest()[:length]
     return response_hash
 
+def get_packages_hash(packages):
+    return get_hash(" ".join(sorted(list(set(packages)))), 12)
+
+def get_request_hash(request):
+    if "packages" in request:
+        if request["packages"]:
+            request["packages_hash"] = get_packages_hash(request["packages"])
+    if "defaults" in request:
+        if request["defaults"]:
+            request["defaults_hash"] = get_hash(request["defaults"], 32)
+    request_array = [
+        request["distro"],
+        request["version"],
+        request["target"],
+        request["profile"],
+        request.get("defaults_hash", ""),
+        request.get("packages_hash", "")
+        ]
+    return get_hash(" ".join(request_array), 12)
+
 def get_statuscode(url):
     """get statuscode of a url"""
     try:

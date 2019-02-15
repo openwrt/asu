@@ -26,11 +26,10 @@ class Image():
         # sort and deduplicate requested packages
         if "packages" in self.params:
             self.params["packages"] = sorted(list(set(self.params["packages"])))
+            self.params["packages_hash"] = get_hash(" ".join(self.params["packages"]), 12)
         else:
             self.params["packages"] = ""
-
-        # calculate hash of packages
-        self.params["packages_hash"] = get_hash(" ".join(self.params["packages"]), 12)
+            self.params["packages_hash"] = ""
 
 
     # write buildlog.txt to image dir
@@ -52,7 +51,6 @@ class Image():
             self.params["distro"],
             self.params["version"],
             self.params["target"],
-            self.params["subtarget"],
             self.params["profile"],
             self.params["manifest_hash"]
             ])
@@ -64,7 +62,6 @@ class Image():
             self.params["distro"],
             self.params["version"],
             self.params["target"],
-            self.params["subtarget"],
             self.params["profile"],
             self.params["defaults_hash"]
             ]
@@ -77,7 +74,6 @@ class Image():
             "distro": self.params["distro"],
             "version": self.params["version"],
             "target": self.params["target"],
-            "subtarget": self.params["subtarget"],
             "profile": self.params["profile"],
             "image_hash": self.params["image_hash"],
             "manifest_hash": self.params["manifest_hash"],

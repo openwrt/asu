@@ -11,7 +11,5 @@ repos: |
   src/gz openwrt_packages http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/packages
   src/gz openwrt_telephony http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/telephony
   src imagebuilder file:packages
-  src/gz libremesh https://chef.libremesh.org/snapshots/packages/
-  src/gz libremap http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/libremap
-  src/gz limeui http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/limeui
-  src/gz profiles https://as-test.stephen304.com/network-profiles/
+  src/gz libremesh http://chef.libremesh.org/snapshots/packages/
+  src/gz profiles http://chef.libremesh.org/network-profiles/

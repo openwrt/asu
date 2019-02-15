@@ -12,7 +12,11 @@ services:
 
   server:
     build: .
-    command: sh -c './.wait-for db:5432 -- python3 cli.py -i && gunicorn3 -b 0.0.0.0:8000 asu:app'
+    environment:
+      - FLASK_APP=asu
+      -  LC_ALL=C.UTF-8
+      -  LANG=C.UTF-8
+    command: sh -c 'sh wait-for db:5432 -- flask fetch-targets && gunicorn3 -b 0.0.0.0:8000 asu:app'
     volumes:
       - "./config.yml.docker:/asu/config.yml"
     ports:
@@ -22,7 +26,10 @@ services:
 
   worker:
     build: .
-    command: sh -c './.wait-for server:8000 -t 300 -- python3 worker.py'
+    environment:
+      -  LC_ALL=C.UTF-8
+      -  LANG=C.UTF-8
+    command: sh -c 'sh wait-for server:8000 -t 300 -- python3 worker.py'
     volumes:
       - "./config.yml.docker:/asu/config.yml"
       - "./worker/:/asu/worker/"
