@@ -339,11 +339,14 @@ class Database():
 
     def get_image_stats(self):
         self.log.debug("get image stats")
-        sql = """select to_json(image_stats) from (select total, stored, requested from
-                (select last_value as total from images_table_image_id_seq) as total,
-                (select count(*) as stored from images) as stored,
-                (select count(*) as requested from requests
-                    where request_status = 'requested') as requested) as image_stats;"""
+        sql = """select to_json(image_stats) from
+                    (select total, stored, requested from
+                        (select last_value as total from
+                            images_table_image_id_seq) as total,
+                        (select count(*) as stored from images) as stored,
+                        (select count(*) as requested from requests where
+                            request_status = 'requested') as requested)
+                    as image_stats;"""
         return self.c.execute(sql).fetchval()
 
     def get_all_profiles(self, distro, version):
@@ -365,9 +368,9 @@ class Database():
         sql = """select json_agg(fails_latest) from
             (select * from requests where
                 request_status != 'created' and
-                status != 'requested' and
-                status != 'building' and
-                status != 'no_sysupgrade' and
+                request_status != 'requested' and
+                request_status != 'building' and
+                request_status != 'no_sysupgrade' and
                 defaults_hash is null
                 order by id desc limit 50)
             as fails_latest;"""
