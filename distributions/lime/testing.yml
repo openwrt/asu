@@ -1,14 +1,20 @@
-parent_distro: openwrt
-parent_version: "18.06.1"
+# a version description for user interfaces
 version_description: >
-  Pre LibreMesh release based on OpenWrt 18.06
+  Pre LibreMesh release based on OpenWrt 18.06.x
+
+# replaces the default repositories of the ImageBuilder
+# the following replacements work
+#   {{ ib_version }} - actual ImageBuilder version
+#   {{ target }} - the requested target
+#   {{ pkg_arch }} - package architecture of the target
+#   {{ version }} - version of the distributions
 repos: |
-  src/gz reboot_core http://downloads.openwrt.org/releases/{{ ib_version }}/targets/{{ target }}/{{ subtarget }}/packages
-  src/gz reboot_base http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/base
-  src/gz reboot_routing http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/routing
-  src/gz reboot_luci http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/luci
-  src/gz reboot_packages http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/packages
-  src/gz reboot_telephony http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/telephony
+  src/gz openwrt_core http://downloads.openwrt.org/releases/{{ ib_version }}/targets/{{ target }}/packages
+  src/gz openwrt_base http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/base
+  src/gz openwrt_routing http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/routing
+  src/gz openwrt_luci http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/luci
+  src/gz openwrt_packages http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/packages
+  src/gz openwrt_telephony http://downloads.openwrt.org/releases/{{ ib_version }}/packages/{{ pkg_arch }}/telephony
   src imagebuilder file:packages
   src/gz libremesh http://chef.libremesh.org/snapshots/packages/
   src/gz lm_profiles http://chef.libremesh.org/network-profiles/
