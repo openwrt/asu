@@ -354,16 +354,17 @@ class Database():
         self.c.execute(sql, distro, version)
         return self.c.fetchall()
 
-    # get latest 20 images created
+    # get latest 50 images created
     def get_images_latest(self):
         sql = """select json_agg(images_latest) from
             (select * from images where
                 defaults_hash is null
-                order by id desc limit 20)
+                order by image_id desc limit 50)
             as images_latest;"""
         self.c.execute(sql)
         return self.c.fetchval()
 
+    # get latest 50 images failed to build
     def get_fails_latest(self):
         sql = """select json_agg(fails_latest) from
             (select * from requests where
@@ -372,7 +373,7 @@ class Database():
                 request_status != 'building' and
                 request_status != 'no_sysupgrade' and
                 defaults_hash is null
-                order by id desc limit 50)
+                order by request_id desc limit 50)
             as fails_latest;"""
         self.c.execute(sql)
         return self.c.fetchval()
