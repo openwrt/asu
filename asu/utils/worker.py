@@ -100,7 +100,7 @@ class Worker(threading.Thread):
             print(manifest_content)
             print(errors)
             self.write_log(fail_log_path, stderr=errors)
-            self.database.set_image_requests_status(self.params["request_hash"], "manifest_fail")
+            self.database.set_requests_status(self.params["request_hash"], "manifest_fail")
             return False
 
         # set directory where image is stored on server
@@ -177,7 +177,7 @@ class Worker(threading.Thread):
                         self.log.debug("sysupgrade not found")
                         if buildlog.find("too big") != -1:
                             self.log.warning("created image was to big")
-                            self.database.set_image_requests_status(
+                            self.database.set_requests_status(
                                     self.params["request_hash"], "imagesize_fail")
                             self.write_log(fail_log_path, buildlog, errors)
                             return False
@@ -192,7 +192,7 @@ class Worker(threading.Thread):
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
-                    self.database.set_image_requests_status(
+                    self.database.set_requests_status(
                             self.params["request_hash"], 'build_fail')
                     self.write_log(fail_log_path, buildlog, errors)
                     return False

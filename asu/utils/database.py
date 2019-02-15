@@ -271,8 +271,8 @@ class Database():
         self.c.execute("select * from get_build_job()")
         return self.as_dict()
 
-    def set_image_requests_status(self, image_request_hash, status):
-        self.log.info("set image {} status to {}".format(image_request_hash, status))
+    def set_requests_status(self, image_request_hash, status):
+        self.log.info("set request {} status to {}".format(image_request_hash, status))
         sql = """UPDATE requests SET request_status = ?  WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_request_hash)
 
@@ -353,17 +353,24 @@ class Database():
 
     # get latest 20 images created
     def get_images_latest(self):
-        sql = """select json_agg(images_latest) from (select * from images
-        where defaults_hash is null order by id desc limit 20) as
-        images_latest;"""
+        sql = """select json_agg(images_latest) from
+            (select * from images where
+                defaults_hash is null
+                order by id desc limit 20)
+            as images_latest;"""
         self.c.execute(sql)
         return self.c.fetchval()
 
     def get_fails_latest(self):
-        sql = """select json_agg(fails_latest) from (select * from
-        image_requests where status != 'created' and status != 'requested' and
-        status != 'building' and status != 'no_sysupgrade' and defaults_hash is
-        null order by id desc limit 50) as fails_latest;"""
+        sql = """select json_agg(fails_latest) from
+            (select * from requests where
+                request_status != 'created' and
+                status != 'requested' and
+                status != 'building' and
+                status != 'no_sysupgrade' and
+                defaults_hash is null
+                order by id desc limit 50)
+            as fails_latest;"""
         self.c.execute(sql)
         return self.c.fetchval()
 
