@@ -1,148 +1,148 @@
-    import io
-    from re import sub
-    import pyodbc
-    import logging
-    import json
-    import os.path
-    import time
+import io
+from re import sub
+import pyodbc
+import logging
+import json
+import os.path
+import time
 
-    from asu.utils.common import get_hash
+from asu.utils.common import get_hash
 
-    class Database():
-        def __init__(self, config):
-            self.log = logging.getLogger(__name__)
-            self.log.info("log initialized")
-            self.config = config
-            self.log.info("config initialized")
-            self.connect()
+class Database():
+    def __init__(self, config):
+        self.log = logging.getLogger(__name__)
+        self.log.info("log initialized")
+        self.config = config
+        self.log.info("config initialized")
+        self.connect()
 
-        def connect(self):
-            connection_string = "DRIVER={};SERVER={};DATABASE=asu;UID={};PWD={};PORT={};BoolsAsChar=0".format(
-                    self.config.get("database_type"),
-                    self.config.get("database_address"),
-                    self.config.get("database_user"),
-                    self.config.get("database_pass"),
-                    self.config.get("database_port"))
-            self.cnxn = pyodbc.connect(connection_string)
-            self.cnxn.autocommit = True
-            self.c = self.cnxn.cursor()
-            self.c.fast_executemany = True
-            self.log.info("database connected")
+    def connect(self):
+        connection_string = "DRIVER={};SERVER={};DATABASE=asu;UID={};PWD={};PORT={};BoolsAsChar=0".format(
+                self.config.get("database_type"),
+                self.config.get("database_address"),
+                self.config.get("database_user"),
+                self.config.get("database_pass"),
+                self.config.get("database_port"))
+        self.cnxn = pyodbc.connect(connection_string)
+        self.cnxn.autocommit = True
+        self.c = self.cnxn.cursor()
+        self.c.fast_executemany = True
+        self.log.info("database connected")
 
-        def commit(self):
-            self.cnxn.commit()
+    def commit(self):
+        self.cnxn.commit()
 
-        def insert_target(self, distro, version, targets):
-            sql = "insert into targets (distro, version, target) values (?, ?, ?);"
-            self.cnxn.autocommit = False
-            self.c.executemany(sql,
-                    list(map(lambda target: (distro, version, target) , targets)))
-            self.commit()
-            self.cnxn.autocommit = True
+    def insert_target(self, distro, version, targets):
+        sql = "insert into targets (distro, version, target) values (?, ?, ?);"
+        self.cnxn.autocommit = False
+        self.c.executemany(sql,
+                list(map(lambda target: (distro, version, target) , targets)))
+        self.commit()
+        self.cnxn.autocommit = True
 
-        def insert_defaults(self, defaults_hash, defaults):
-            sql = "insert into defaults_table (defaults_hash, content) values (?, ?) on conflict do nothing"
-            self.c.execute(sql, defaults_hash, defaults)
+    def insert_defaults(self, defaults_hash, defaults):
+        sql = "insert into defaults_table (defaults_hash, content) values (?, ?) on conflict do nothing"
+        self.c.execute(sql, defaults_hash, defaults)
 
-        def get_defaults(self, defaults_hash):
-            sql = "select content from defaults_table where defaults_hash = ?"
-            self.c.execute(sql, defaults_hash)
-            return self.c.fetchval()
+    def get_defaults(self, defaults_hash):
+        sql = "select content from defaults_table where defaults_hash = ?"
+        self.c.execute(sql, defaults_hash)
+        return self.c.fetchval()
 
-        def insert_supported(self, p):
-            sql = """UPDATE targets SET supported = true WHERE distro=? and version=? and target=?"""
-            self.c.execute(sql, p["distro"], p["version"], p["target"])
+    def insert_supported(self, p):
+        sql = """UPDATE targets SET supported = true WHERE distro=? and version=? and target=?"""
+        self.c.execute(sql, p["distro"], p["version"], p["target"])
 
-        def get_versions(self, distro=None):
-            if not distro:
-                return self.c.execute("select distro, version from versions").fetchall()
-            else:
-                versions = self.c.execute("select version from versions WHERE distro=?", (distro, )).fetchall()
-                respond = []
-                for version in versions:
-                    respond.append(version[0])
-                return respond
+    def get_versions(self, distro=None):
+        if not distro:
+            return self.c.execute("select distro, version from versions").fetchall()
+        else:
+            versions = self.c.execute("select version from versions WHERE distro=?", (distro, )).fetchall()
+            respond = []
+            for version in versions:
+                respond.append(version[0])
+            return respond
 
-        # TODO this should be done via some postgres json magic
-        # currently this is splitted back and forth but I'm hungry
-        def insert_packages_hash(self, packages_hash, packages):
-            sql = "insert into packages_hashes (packages_hash, package_name) values (?, ?);"
-            self.cnxn.autocommit = False
-            self.c.executemany(sql,
-                    list(map(lambda package_name: (packages_hash, package_name) , packages)))
-            self.commit()
-            self.cnxn.autocommit = True
+    # TODO this should be done via some postgres json magic
+    # currently this is splitted back and forth but I'm hungry
+    def insert_packages_hash(self, packages_hash, packages):
+        sql = "insert into packages_hashes (packages_hash, package_name) values (?, ?);"
+        self.cnxn.autocommit = False
+        self.c.executemany(sql,
+                list(map(lambda package_name: (packages_hash, package_name) , packages)))
+        self.commit()
+        self.cnxn.autocommit = True
 
-        def insert_profiles(self, distro, version, target, packages_default, profiles):
-            # delete existing packages_default
-            sql = """delete from packages_default where
-                distro = ? and version = ? and target = ?"""
-            self.c.execute(sql, distro, version, target)
+    def insert_profiles(self, distro, version, target, packages_default, profiles):
+        # delete existing packages_default
+        sql = """delete from packages_default where
+            distro = ? and version = ? and target = ?"""
+        self.c.execute(sql, distro, version, target)
 
-            sql = "insert into packages_default (distro, version, target, package_name) values (?, ?, ?, ?);"
+        sql = "insert into packages_default (distro, version, target, package_name) values (?, ?, ?, ?);"
 
-            self.cnxn.autocommit = False
-            self.c.executemany(sql,
-                list(map(lambda package_name: (distro, version, target,
-                    package_name), packages_default)))
-            self.commit()
-            self.cnxn.autocommit = True
+        self.cnxn.autocommit = False
+        self.c.executemany(sql,
+            list(map(lambda package_name: (distro, version, target,
+                package_name), packages_default)))
+        self.commit()
+        self.cnxn.autocommit = True
 
-            # delete existing packages_profile
-            sql = """delete from packages_profile where
-                distro = ? and version = ? and target = ?"""
-            self.c.execute(sql, distro, version, target)
+        # delete existing packages_profile
+        sql = """delete from packages_profile where
+            distro = ? and version = ? and target = ?"""
+        self.c.execute(sql, distro, version, target)
 
-            self.cnxn.autocommit = False
-            sql = """select insert_packages_profile (?, ?, ?, ?, ?, ?);"""
-            self.c.executemany(sql, 
-                list(map(lambda profile: (distro, version, target,  profile[0],
-                    profile[1], profile[2]), profiles)))
-            self.commit()
-            self.cnxn.autocommit = True
+        self.cnxn.autocommit = False
+        sql = """select insert_packages_profile (?, ?, ?, ?, ?, ?);"""
+        self.c.executemany(sql, 
+            list(map(lambda profile: (distro, version, target,  profile[0],
+                profile[1], profile[2]), profiles)))
+        self.commit()
+        self.cnxn.autocommit = True
 
-        def check_packages(self, image):
-            sql = """select value as packages_unknown
-                from json_array_elements_text(?) as pr
-                where not exists (
-                    select 1 from packages_available pa where
-                        pa.distro = ? and
-                        pa.version = ? and
-                        pa.target = ? and
-                        pa.package_name = pr)"""
-            # the re.sub() replaces leading - which may appear in package request to
-            # explicitly remove packages installed per default
-            self.c.execute(sql, json.dumps([sub(r'^-?', '', p) for p in image["packages"]]),
-                    image["distro"], image["version"], image["target"])
-            return self.as_array()
-
-        def sysupgrade_supported(self, image):
-            self.c.execute("""SELECT supported from targets WHERE distro=? and version=? and target=? LIMIT 1;""",
+    def check_packages(self, image):
+        sql = """select value as packages_unknown
+            from json_array_elements_text(?) as pr
+            where not exists (
+                select 1 from packages_available pa where
+                    pa.distro = ? and
+                    pa.version = ? and
+                    pa.target = ? and
+                    pa.package_name = pr)"""
+        # the re.sub() replaces leading - which may appear in package request to
+        # explicitly remove packages installed per default
+        self.c.execute(sql, json.dumps([sub(r'^-?', '', p) for p in image["packages"]]),
                 image["distro"], image["version"], image["target"])
-            return self.c.fetchval()
+        return self.as_array()
 
-        def check_profile(self, distro, version, target, profile):
-            self.log.debug("check_profile %s/%s/%s/%s", distro, version, target, profile)
-            self.c.execute("""SELECT profile FROM profiles
-                WHERE distro=? and version=? and target=? and profile = coalesce(
-                    (select newname from board_rename where distro = ? and version = ? and target = ? and origname = ?), ?)
-                LIMIT 1;""",
-                distro, version, target, distro, version, target, profile, profile)
-            return self.c.fetchval()
+    def sysupgrade_supported(self, image):
+        self.c.execute("""SELECT supported from targets WHERE distro=? and version=? and target=? LIMIT 1;""",
+            image["distro"], image["version"], image["target"])
+        return self.c.fetchval()
 
-        def check_model(self, distro, version, target, model):
-            self.log.debug("check_model %s/%s/%s/%s", distro, version, target, model)
-            self.c.execute("""SELECT profile FROM profiles
-                WHERE distro=? and version=? and target=? and lower(model) = lower(?);""",
-                distro, version, target, model)
-            return self.c.fetchval()
+    def check_profile(self, distro, version, target, profile):
+        self.log.debug("check_profile %s/%s/%s/%s", distro, version, target, profile)
+        self.c.execute("""SELECT profile FROM profiles
+            WHERE distro=? and version=? and target=? and profile = coalesce(
+                (select newname from board_rename where distro = ? and version = ? and target = ? and origname = ?), ?)
+            LIMIT 1;""",
+            distro, version, target, distro, version, target, profile, profile)
+        return self.c.fetchval()
 
-        def get_packages_image(self, request, as_json=False):
-            sql = "select packages_image(?, ?, ?, ?);"
-            self.c.execute(sql,
-                    request["distro"], request["version"],
-                    request["target"], request["profile"])
-            return self.as_array()
+    def check_model(self, distro, version, target, model):
+        self.log.debug("check_model %s/%s/%s/%s", distro, version, target, model)
+        self.c.execute("""SELECT profile FROM profiles
+            WHERE distro=? and version=? and target=? and lower(model) = lower(?);""",
+            distro, version, target, model)
+        return self.c.fetchval()
+
+    def get_packages_image(self, request, as_json=False):
+        sql = "select packages_image(?, ?, ?, ?);"
+        self.c.execute(sql,
+                request["distro"], request["version"],
+                request["target"], request["profile"])
+        return self.as_array()
 
     # removes an image entry based on image_hash
     def del_image(self, image_hash):
