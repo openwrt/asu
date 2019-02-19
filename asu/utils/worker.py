@@ -60,17 +60,6 @@ class Worker(threading.Thread):
             if stderr:
                 log_file.write("\n\n### STDERR:\n\n" + stderr)
 
-    def diff_packages(self):
-        # TODO rework the database
-        image_packages = set(self.database.get_image_packages(self.params))
-        self.log.debug("image_packages %s", image_packages)
-        remove_packages = image_packages - set(self.params["packages"].split(" "))
-        self.log.debug("remove_packages %s", remove_packages)
-        for remove_package in remove_packages:
-            self.params["packages"] = self.params["packages"] + " -" + remove_package
-        self.log.debug("params[packages] %s", self.params["packages"])
-        return self.params["packages"]
-
     # build image
     def build(self):
         self.log.debug("create and parse manifest")
@@ -271,8 +260,6 @@ class Worker(threading.Thread):
             self.params["REPOS"] = self.version_config["repos"]
 
         for key, value in self.params.items():
-            if key == "packages":
-                value = self.diff_packages()
             env[key.upper()] = str(value) # TODO convert meta script to Makefile
 
         proc = subprocess.Popen(
