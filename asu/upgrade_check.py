@@ -89,7 +89,7 @@ class UpgradeCheck(Request):
 
         self.request["manifest"] = self.request_json["installed"]
 
-        if "version" in self.response_json or "upgrade_packages" in self.response_json:
+        if "version" in self.response_json or "upgrade_packages" in self.request_json:
             # TODO this result in double jsonifying
             # problem is postgres gives back perfect json while the rest of the
             # json response is a dict, until it's decoded in the end
