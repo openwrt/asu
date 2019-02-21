@@ -96,6 +96,8 @@ class UpgradeCheck(Request):
             self.response_json["upgrades"] = json.loads(
                 self.database.get_manifest_upgrades(self.request)
             )
+            if self.response_json["upgrades"] != "":
+                self.response_status = HTTPStatus.OK  # 200
 
         # finally respond
         return self.respond()
