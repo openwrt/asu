@@ -2,7 +2,7 @@ import yaml
 import os.path
 import json
 import os
-from os import listdir, makedirs
+from os import makedirs
 
 
 class Config:
@@ -11,7 +11,9 @@ class Config:
         self.config_file = "config.yml"
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
         if not os.path.exists(self.config_file):
-            with open(self.root_dir + "/config.yml.default", "r") as default_file:
+            with open(
+                self.root_dir + "/config.yml.default", "r"
+            ) as default_file:
                 with open("config.yml", "w") as config_file:
                     config_file.write(default_file.read())
 
@@ -21,7 +23,9 @@ class Config:
         for distro in self.get_distros():
             with open(
                 os.path.join(
-                    self.get_folder("distro_folder"), distro, "distro_config.yml"
+                    self.get_folder("distro_folder"),
+                    distro,
+                    "distro_config.yml",
                 ),
                 "r",
             ) as ymlfile:
@@ -45,7 +49,8 @@ class Config:
         # if distro is based on another distro, load these settings as well
         if "parent_version" in version_config:
             parent_config = self.version(
-                version_config["parent_distro"], version_config["parent_version"]
+                version_config["parent_distro"],
+                version_config["parent_version"],
             )
 
             parent_config.update(version_config)
@@ -85,7 +90,9 @@ class Config:
                     with open(version_path, "r") as version_file:
                         version_content = yaml.load(version_file.read())
                         if version_content:
-                            distros[distro]["versions"][version] = version_content
+                            distros[distro]["versions"][
+                                version
+                            ] = version_content
                 else:
                     distros[distro]["versions"][version] = {}
         return json.dumps(distros)

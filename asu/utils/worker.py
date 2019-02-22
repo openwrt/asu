@@ -32,7 +32,9 @@ class Worker(threading.Thread):
         self.log.debug("setup meta")
         os.makedirs(self.location, exist_ok=True)
         if not os.path.exists(self.location + "/meta"):
-            cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
+            cmdline = (
+                "git clone https://github.com/aparcar/meta-imagebuilder.git ."
+            )
             proc = subprocess.Popen(
                 cmdline.split(" "),
                 cwd=self.location,
@@ -81,7 +83,9 @@ class Worker(threading.Thread):
             self.log.debug("packages_requested %s", packages_requested)
             packages_remove = packages_image - packages_requested
             self.log.debug("packages_remove %s", packages_remove)
-            packages_requested.update(set(map(lambda x: "-" + x, packages_remove)))
+            packages_requested.update(
+                set(map(lambda x: "-" + x, packages_remove))
+            )
             self.params["packages"] = " ".join(packages_requested)
             self.log.debug("packages param %s", self.params["packages"])
         else:
@@ -119,9 +123,9 @@ class Worker(threading.Thread):
         )
 
         # set log path in case of success
-        success_log_path = self.image.params["dir"] + "/buildlog-{}.txt".format(
-            self.params["image_hash"]
-        )
+        success_log_path = self.image.params[
+            "dir"
+        ] + "/buildlog-{}.txt".format(self.params["image_hash"])
 
         # set build_status ahead, if stuff goes wrong it will be changed
         self.build_status = "created"
@@ -134,13 +138,15 @@ class Worker(threading.Thread):
             with tempfile.TemporaryDirectory(
                 dir=self.config.get_folder("tempdir")
             ) as build_dir:
-                # now actually build the image with manifest hash as EXTRA_IMAGE_NAME
+                # now actually build the image with manifest hash as
+                # EXTRA_IMAGE_NAME
                 self.log.info("build image at %s", build_dir)
                 self.params["worker"] = self.location
                 self.params["BIN_DIR"] = build_dir
                 self.params["j"] = str(os.cpu_count())
                 self.params["EXTRA_IMAGE_NAME"] = self.params["manifest_hash"]
-                # if uci defaults are added, at least at parts of the hash to time image name
+                # if uci defaults are added, at least at parts of the hash to
+                # time image name
                 if self.params["defaults_hash"]:
                     defaults_dir = build_dir + "/files/etc/uci-defaults/"
                     # create folder to store uci defaults
@@ -167,7 +173,9 @@ class Worker(threading.Thread):
 
                 build_start = time.time()
                 return_code, buildlog, errors = self.run_meta("image")
-                self.image.params["build_seconds"] = int(time.time() - build_start)
+                self.image.params["build_seconds"] = int(
+                    time.time() - build_start
+                )
 
                 if return_code == 0:
                     # create folder in advance
@@ -176,10 +184,13 @@ class Worker(threading.Thread):
                     self.log.debug(os.listdir(build_dir))
 
                     for filename in os.listdir(build_dir):
-                        if os.path.exists(self.image.params["dir"] + "/" + filename):
+                        if os.path.exists(
+                            self.image.params["dir"] + "/" + filename
+                        ):
                             break
                         shutil.move(
-                            build_dir + "/" + filename, self.image.params["dir"]
+                            build_dir + "/" + filename,
+                            self.image.params["dir"],
                         )
 
                     # possible sysupgrade names, ordered by likeliness
@@ -221,7 +232,9 @@ class Worker(threading.Thread):
                         )
 
                     self.write_log(success_log_path, buildlog)
-                    self.database.insert_dict("images", self.image.get_params())
+                    self.database.insert_dict(
+                        "images", self.image.get_params()
+                    )
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
@@ -267,7 +280,9 @@ class Worker(threading.Thread):
         if return_code == 0:
             default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
             default_packages = (
-                re.match(default_packages_pattern, output, re.M).group(2).split()
+                re.match(default_packages_pattern, output, re.M)
+                .group(2)
+                .split()
             )
             logging.debug("default packages: %s", default_packages)
 
@@ -313,7 +328,9 @@ class Worker(threading.Thread):
             self.params["REPOS"] = self.version_config["repos"]
 
         for key, value in self.params.items():
-            env[key.upper()] = str(value)  # TODO convert meta script to Makefile
+            env[key.upper()] = str(
+                value
+            )  # TODO convert meta script to Makefile
 
         proc = subprocess.Popen(
             cmdline,
@@ -349,19 +366,3 @@ class Worker(threading.Thread):
             self.log.warning("could not receive packages")
             print(output)
             print(errors)
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    log = logging.getLogger(__name__)
-    log.info("start garbage collector")
-    gaco = GarbageCollector()
-    gaco.start()
-
-    log.info("start boss")
-    boss = Boss()
-    boss.start()
-
-    log.info("start updater")
-    uper = Updater()
-    uper.start()

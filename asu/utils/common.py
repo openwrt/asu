@@ -9,9 +9,10 @@ from datetime import datetime
 
 from asu.utils.config import Config
 
+
 config = Config()
 
-# return hash of string in defined length
+
 def get_hash(string, length):
     h = hashlib.sha256()
     h.update(bytes(string, "utf-8"))
@@ -80,7 +81,7 @@ def usign_init(comment=None):
             shell=False,
             stderr=subprocess.STDOUT,
         )
-        output, erros = proc.communicate()
+        output, errors = proc.communicate()
         return_code = proc.returncode
         if not return_code == 0:
             print("output", output)

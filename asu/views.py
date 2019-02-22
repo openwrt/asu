@@ -1,18 +1,19 @@
 from asu import app
 
-from flask import request, send_from_directory, redirect, jsonify
+from flask import request, redirect, jsonify
 import json
-import click
 import logging
 import os
 from http import HTTPStatus
 import urllib.request
+import yaml
 
 from asu.build_request import BuildRequest
 from asu.upgrade_check import UpgradeCheck
 from asu.utils.config import Config
-from asu.utils.common import get_hash, get_packages_hash, get_request_hash
+from asu.utils.common import get_packages_hash, get_request_hash
 from asu.utils.database import Database
+
 
 log = logging.getLogger(__name__)
 config = Config()
@@ -28,7 +29,7 @@ def api_upgrade_check(request_hash=None):
     if request.method == "POST":
         try:
             request_json = json.loads(request.get_data().decode("utf-8"))
-        except:
+        except json.JSONDecodeError:
             return "[]", HTTPStatus.BAD_REQUEST
     else:
         if not request_hash:
@@ -48,7 +49,7 @@ def api_upgrade_request(request_hash=None):
     if request.method == "POST":
         try:
             request_json = json.loads(request.get_data().decode("utf-8"))
-        except:
+        except json.JSONDecodeError:
             return "[]", HTTPStatus.BAD_REQUEST
     else:
         if not request_hash:
@@ -71,7 +72,7 @@ def api_files_request(request_hash=None):
     if request.method == "POST":
         try:
             request_json = json.loads(request.get_data().decode("utf-8"))
-        except:
+        except json.JSONDecodeError:
             return "[]", HTTPStatus.BAD_REQUEST
     else:
         if not request_hash:
@@ -196,7 +197,9 @@ def fetch_targets():
             {
                 "distro": distro,
                 "distro_alias": config.get(distro).get("distro_alias", distro),
-                "distro_description": config.get(distro).get("distro_description", ""),
+                "distro_description": config.get(distro).get(
+                    "distro_description", ""
+                ),
                 "latest": config.get(distro).get("latest"),
             },
         )
@@ -207,7 +210,9 @@ def fetch_targets():
                 {
                     "distro": distro,
                     "version": version,
-                    "version_alias": version_config.get("version_alias", version),
+                    "version_alias": version_config.get(
+                        "version_alias", version
+                    ),
                     "version_description": version_config.get(
                         "version_description", ""
                     ),
@@ -217,7 +222,9 @@ def fetch_targets():
             version_config = config.version(distro, version)
             version_url = version_config.get("targets_url")
             # use parent_version for ImageBuilder if exists
-            version_imagebuilder = version_config.get("parent_version", version)
+            version_imagebuilder = version_config.get(
+                "parent_version", version
+            )
 
             version_targets = set(
                 json.loads(
@@ -321,7 +328,9 @@ def insert_board_rename():
                         distro, version, origname, newname
                     )
                 )
-                database.insert_board_rename(distro, version, origname, newname)
+                database.insert_board_rename(
+                    distro, version, origname, newname
+                )
 
 
 def insert_transformations(distro, version, transformations):
@@ -329,11 +338,15 @@ def insert_transformations(distro, version, transformations):
         if not action:
             # drop package
             # print("drop", package)
-            database.insert_transformation(distro, version, package, None, None)
+            database.insert_transformation(
+                distro, version, package, None, None
+            )
         elif isinstance(action, str):
             # replace package
             # print("replace", package, "with", action)
-            database.insert_transformation(distro, version, package, action, None)
+            database.insert_transformation(
+                distro, version, package, action, None
+            )
         elif isinstance(action, dict):
             for choice, context in action.items():
                 if context is True:
@@ -366,7 +379,9 @@ def load_tables():
             with open(
                 version_transformations_path, "r"
             ) as version_transformations_file:
-                transformations = yaml.load(version_transformations_file.read())
+                transformations = yaml.load(
+                    version_transformations_file.read()
+                )
                 if transformations:
                     if "transformations" in transformations:
                         insert_transformations(

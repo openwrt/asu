@@ -30,4 +30,7 @@ class Version(Base):
     distro = relationship("Distro", back_populates="distro")
 
     def __repr__(self):
-        return "<Version(distro='%s', version='%s')>" % (self.name, self.distro)
+        return "<Version(distro='%s', version='%s')>" % (
+            self.name,
+            self.distro,
+        )

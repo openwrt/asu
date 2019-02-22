@@ -1,7 +1,6 @@
 from http import HTTPStatus
 from sys import getsizeof
 
-from asu.utils.image import Image
 from asu.utils.common import get_hash, get_packages_hash, get_request_hash
 from asu.request import Request
 
@@ -27,8 +26,11 @@ class BuildRequest(Request):
 
         # TODO check for profile or board
 
-        # generic approach for https://github.com/aparcar/attendedsysupgrade-server/issues/91
-        self.request_json["board"] = self.request_json["board"].replace(",", "_")
+        # generic approach for
+        # https://github.com/aparcar/attendedsysupgrade-server/issues/91
+        self.request_json["board"] = self.request_json["board"].replace(
+            ",", "_"
+        )
 
         self.request_json["profile"] = self.request_json[
             "board"
@@ -40,7 +42,8 @@ class BuildRequest(Request):
         # if found return instantly the status
         if request_database:
             self.log.debug(
-                "found image in database: %s", request_database["request_status"]
+                "found image in database: %s",
+                request_database["request_status"],
             )
             self.request = request_database
             return self.return_status()
@@ -51,7 +54,7 @@ class BuildRequest(Request):
         # if not perform various checks to see if the request is acutally valid
 
         # validate distro and version
-        if not "distro" in self.request_json:
+        if "distro" not in self.request_json:
             self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
             self.response_header["X-Missing-Param"] = "distro"
             return self.respond()
@@ -60,10 +63,10 @@ class BuildRequest(Request):
             if bad_request:
                 return bad_request
 
-        if not "version" in self.request_json:
-            self.request["version"] = self.config.get(self.request["distro"]).get(
-                "latest"
-            )
+        if "version" not in self.request_json:
+            self.request["version"] = self.config.get(
+                self.request["distro"]
+            ).get("latest")
         else:
             bad_request = self.check_bad_version()
             if bad_request:
@@ -77,13 +80,15 @@ class BuildRequest(Request):
         # validate attached defaults
         if "defaults" in self.request_json:
             if self.request_json["defaults"]:
-                # check if the uci file exceeds the max file size. this should be
-                # done as the uci-defaults are at least temporary stored in the
-                # database to be passed to a worker
+                # check if the uci file exceeds the max file size. this should
+                # be done as the uci-defaults are at least temporary stored in
+                # the database to be passed to a worker
                 if getsizeof(self.request_json["defaults"]) > self.config.get(
                     "max_defaults_size", 1024
                 ):
-                    self.response_json["error"] = "attached defaults exceed max size"
+                    self.response_json[
+                        "error"
+                    ] = "attached defaults exceed max size"
                     self.response_status = (
                         420
                     )  # this error code is the best I could find
@@ -93,13 +98,16 @@ class BuildRequest(Request):
                         self.request_json["defaults"], 32
                     )
                     self.database.insert_defaults(
-                        self.request["defaults_hash"], self.request_json["defaults"]
+                        self.request["defaults_hash"],
+                        self.request_json["defaults"],
                     )
 
         # add package_hash to database
         if "packages" in self.request_json:
             # check for existing packages
-            bad_packages = self.check_bad_packages(self.request_json["packages"])
+            bad_packages = self.check_bad_packages(
+                self.request_json["packages"]
+            )
             if bad_packages:
                 return bad_packages
             self.request["packages_hash"] = get_packages_hash(
@@ -110,7 +118,8 @@ class BuildRequest(Request):
             )
 
         # now some heavy guess work is done to figure out the profile
-        # eventually this could be simplified if upstream unifirm the profiles/boards
+        # eventually this could be simplified if upstream unifirm the
+        # profiles/boards
         if "board" in self.request_json:
             self.log.debug(
                 "board in request, search for %s", self.request_json["board"]
@@ -125,7 +134,8 @@ class BuildRequest(Request):
         if not self.request["profile"]:
             if "model" in self.request_json:
                 self.log.debug(
-                    "model in request, search for %s", self.request_json["model"]
+                    "model in request, search for %s",
+                    self.request_json["model"],
                 )
                 self.request["profile"] = self.database.check_model(
                     self.request["distro"],
@@ -133,7 +143,9 @@ class BuildRequest(Request):
                     self.request["target"],
                     self.request_json["model"],
                 )
-                self.log.debug("model search found profile %s", self.request["profile"])
+                self.log.debug(
+                    "model search found profile %s", self.request["profile"]
+                )
 
         if not self.request["profile"]:
             if self.database.check_profile(
@@ -176,12 +188,16 @@ class BuildRequest(Request):
     def return_status(self):
         # image created, return all desired information
         if self.request["request_status"] == "created":
-            image_path = self.database.get_image_path(self.request["image_hash"])
+            image_path = self.database.get_image_path(
+                self.request["image_hash"]
+            )
             self.response_json["sysupgrade"] = image_path["sysupgrade"]
             self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(
                 image_path["file_path"], self.request["image_hash"]
             )
-            self.response_json["files"] = "/json/{}/".format(image_path["file_path"])
+            self.response_json["files"] = "/json/{}/".format(
+                image_path["file_path"]
+            )
             self.response_json["request_hash"] = self.request["request_hash"]
             self.response_json["image_hash"] = self.request["image_hash"]
 
@@ -189,22 +205,30 @@ class BuildRequest(Request):
 
         elif self.request["request_status"] == "no_sysupgrade":
             if self.sysupgrade_requested:
-                # no sysupgrade found but requested, let user figure out what to do
+                # no sysupgrade found but requested,
+                # let user figure out what # to do
                 self.response_json[
                     "error"
                 ] = "No sysupgrade file produced, may not supported by model."
 
                 self.response_status = HTTPStatus.NOT_IMPLEMENTED  # 501
             else:
-                # no sysupgrade found but not requested, factory image is likely from interest
-                image_path = self.database.get_image_path(self.request["image_hash"])
+                # no sysupgrade found but not requested, factory image is
+                # likely from interest
+                image_path = self.database.get_image_path(
+                    self.request["image_hash"]
+                )
                 self.response_json["files"] = "/json/{}/".format(
                     image_path["file_path"]
                 )
-                self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(
+                self.response_json[
+                    "log"
+                ] = "/download/{}/buildlog-{}.txt".format(
                     image_path["file_path"], self.request["image_hash"]
                 )
-                self.response_json["request_hash"] = self.request["request_hash"]
+                self.response_json["request_hash"] = self.request[
+                    "request_hash"
+                ]
                 self.response_json["image_hash"] = self.request["image_hash"]
 
                 self.response_status = HTTPStatus.OK  # 200
@@ -225,7 +249,9 @@ class BuildRequest(Request):
         # build failed, see build log for details
         elif self.request["request_status"] == "build_fail":
             self.response_json["error"] = "ImageBuilder faild to create image"
-            self.response_json["log"] = "/download/faillogs/faillog-{}.txt".format(
+            self.response_json[
+                "log"
+            ] = "/download/faillogs/faillog-{}.txt".format(
                 self.request["request_hash"]
             )
             self.response_json["request_hash"] = self.request["request_hash"]
@@ -236,8 +262,10 @@ class BuildRequest(Request):
         elif self.request["request_status"] == "imagesize_fail":
             self.response_json[
                 "error"
-            ] = "No firmware created due to image size. Try again with less packages selected."
-            self.response_json["log"] = "/download/faillogs/faillog-{}.txt".format(
+            ] = "Image size exceeds device storage. Retry with less packages"
+            self.response_json[
+                "log"
+            ] = "/download/faillogs/faillog-{}.txt".format(
                 self.request["request_hash"]
             )
             self.response_json["request_hash"] = self.request["request_hash"]
@@ -247,7 +275,9 @@ class BuildRequest(Request):
         # something happend with is not yet covered in here
         else:
             self.response_json["error"] = self.request["request_status"]
-            self.response_json["log"] = "/download/faillogs/faillog-{}.txt".format(
+            self.response_json[
+                "log"
+            ] = "/download/faillogs/faillog-{}.txt".format(
                 self.request["request_hash"]
             )
 
