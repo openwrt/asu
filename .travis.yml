@@ -1,12 +1,13 @@
 language: python
 python:
   - "3.6"
+  - "3.7"
 # command to install dependencies
 install:
   - pip install flake8 pytest coverage pytest-cov codacy-coverage
 # command to run tests
 script:
   - python3 -m flake8 --exclude=asu/__init__.py
-  - python3 -m pytest --cov=cayennelpp
+  - python3 -m pytest --cov=asu
   - python3 -m coverage xml
   - python3 -m codacy -r coverage.xml
