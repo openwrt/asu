@@ -10,6 +10,7 @@ from asu.utils.worker import Worker
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
+
 class Updater(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -25,10 +26,10 @@ class Updater(threading.Thread):
 
         # start all workers
         for i in range(0, self.config.get("updater_threads", 4)):
-                log.info("starting updater thread {}".format(i))
-                worker = Worker(location, "update", self.update_queue)
-                worker.start()
-                workers.append(worker)
+            log.info("starting updater thread {}".format(i))
+            worker = Worker(location, "update", self.update_queue)
+            worker.start()
+            workers.append(worker)
 
         while True:
             outdated_subtarget = self.database.get_outdated_target()

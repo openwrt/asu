@@ -5,7 +5,8 @@ from asu.utils.common import get_hash
 from asu.utils.config import Config
 from asu.utils.database import Database
 
-class Image():
+
+class Image:
     def __init__(self, params):
         self.config = Config()
         self.log = logging.getLogger(__name__)
@@ -26,11 +27,12 @@ class Image():
         # sort and deduplicate requested packages
         if "packages" in self.params:
             self.params["packages"] = sorted(list(set(self.params["packages"])))
-            self.params["packages_hash"] = get_hash(" ".join(self.params["packages"]), 12)
+            self.params["packages_hash"] = get_hash(
+                " ".join(self.params["packages"]), 12
+            )
         else:
             self.params["packages"] = ""
             self.params["packages_hash"] = ""
-
 
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
@@ -47,13 +49,15 @@ class Image():
             path_array.append("custom")
             path_array.append(self.params["defaults_hash"])
 
-        path_array.extend([
-            self.params["distro"],
-            self.params["version"],
-            self.params["target"],
-            self.params["profile"],
-            self.params["manifest_hash"]
-            ])
+        path_array.extend(
+            [
+                self.params["distro"],
+                self.params["version"],
+                self.params["target"],
+                self.params["profile"],
+                self.params["manifest_hash"],
+            ]
+        )
         self.params["dir"] = "/".join(path_array)
 
     # return params of array in specific order
@@ -63,8 +67,8 @@ class Image():
             self.params["version"],
             self.params["target"],
             self.params["profile"],
-            self.params["defaults_hash"]
-            ]
+            self.params["defaults_hash"],
+        ]
         if extra:
             as_array.append(self.params[extra])
         return as_array
@@ -80,7 +84,7 @@ class Image():
             "defaults_hash": self.params["defaults_hash"],
             "worker": self.params["worker"],
             "build_seconds": self.params["build_seconds"],
-            "sysupgrade": self.params["sysupgrade"]
+            "sysupgrade": self.params["sysupgrade"],
         }
 
     def created(self):

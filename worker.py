@@ -3,6 +3,7 @@ from asu.utils.boss import Boss
 from asu.utils.updater import Updater
 
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 

@@ -7,6 +7,7 @@ from asu.utils.config import Config
 from asu.utils.database import Database
 from asu.utils.worker import Worker
 
+
 class Boss(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)

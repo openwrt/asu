@@ -3,7 +3,8 @@ import logging
 import json
 from flask import Response
 
-class Request():
+
+class Request:
     def __init__(self, config, database):
         self.config = config
         self.database = database
@@ -24,17 +25,23 @@ class Request():
     # these checks are relevant for upgrade and image reuqest
     def check_bad_distro(self):
         if not self.request_json["distro"].lower() in self.config.get_distros():
-            self.response_json["error"] = "unknown distribution {}".format(self.request_json["distro"])
-            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+            self.response_json["error"] = "unknown distribution {}".format(
+                self.request_json["distro"]
+            )
+            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
             return self.respond()
         else:
-            self.request["distro"] =  self.request_json["distro"].lower()
+            self.request["distro"] = self.request_json["distro"].lower()
             return False
 
     def check_bad_version(self):
-        if not self.request_json["version"] in self.config.get(self.request["distro"]).get("versions"):
-            self.response_json["error"] = "unknown version %s".format(self.request_json["version"])
-            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+        if not self.request_json["version"] in self.config.get(
+            self.request["distro"]
+        ).get("versions"):
+            self.response_json["error"] = "unknown version %s".format(
+                self.request_json["version"]
+            )
+            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
             return self.respond()
         else:
             self.request["version"] = self.request_json["version"]
@@ -46,12 +53,16 @@ class Request():
         # check if sysupgrade is supported. If None is returned the subtarget isn't found
         sysupgrade_supported = self.database.sysupgrade_supported(self.request)
         if sysupgrade_supported == None:
-            self.response_json["error"] = "unknown target {}".format(self.request["target"])
-            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+            self.response_json["error"] = "unknown target {}".format(
+                self.request["target"]
+            )
+            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
             return self.respond()
         elif not sysupgrade_supported and self.sysupgrade_requested:
-            self.response_json["error"] = "target currently not supported {}".format(self.request["target"])
-            self.response_status = HTTPStatus.PRECONDITION_FAILED # 412
+            self.response_json["error"] = "target currently not supported {}".format(
+                self.request["target"]
+            )
+            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
             return self.respond()
 
         # all checks passed, not bad
@@ -59,9 +70,12 @@ class Request():
 
     def respond(self, json_content=False):
         response = Response(
-                response=(self.response_json if json_content else json.dumps(self.response_json)),
-                status=self.response_status,
-                mimetype='application/json')
+            response=(
+                self.response_json if json_content else json.dumps(self.response_json)
+            ),
+            status=self.response_status,
+            mimetype="application/json",
+        )
         response.headers.extend(self.response_header)
         return response
 
@@ -79,9 +93,10 @@ class Request():
         if packages_unknown:
             logging.warning("could not find packages %s", packages_unknown)
             self.response_header["X-Unknown-Package"] = ", ".join(packages_unknown)
-            self.response_json["error"] = \
-                    "could not find packages: {}".format(", ".join(packages_unknown))
-            self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY # 422
+            self.response_json["error"] = "could not find packages: {}".format(
+                ", ".join(packages_unknown)
+            )
+            self.response_status = HTTPStatus.UNPROCESSABLE_ENTITY  # 422
             return self.respond()
 
         # all checks passed, not bad

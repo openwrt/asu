@@ -82,10 +82,10 @@ class UpgradeCheck(Request):
         else:
             self.response_status = HTTPStatus.NO_CONTENT  # 204
 
-        manifest_content = ""
-        for package, version in sorted(self.request_json["installed"].items()):
-            manifest_content += "{} - {}\n".format(package, version)
-        self.request["manifest_hash"] = get_hash(manifest_content, 15)
+        # manifest_content = ""
+        # for package, version in sorted(self.request_json["installed"].items()):
+        #     manifest_content += "{} - {}\n".format(package, version)
+        # self.request["manifest_hash"] = get_hash(manifest_content, 15)
 
         self.request["manifest"] = self.request_json["installed"]
 

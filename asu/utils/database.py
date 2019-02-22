@@ -8,7 +8,8 @@ import time
 
 from asu.utils.common import get_hash
 
-class Database():
+
+class Database:
     def __init__(self, config):
         self.log = logging.getLogger(__name__)
         self.log.info("log initialized")
@@ -18,11 +19,12 @@ class Database():
 
     def connect(self):
         connection_string = "DRIVER={};SERVER={};DATABASE=asu;UID={};PWD={};PORT={};BoolsAsChar=0".format(
-                self.config.get("database_type"),
-                self.config.get("database_address"),
-                self.config.get("database_user"),
-                self.config.get("database_pass"),
-                self.config.get("database_port"))
+            self.config.get("database_type"),
+            self.config.get("database_address"),
+            self.config.get("database_user"),
+            self.config.get("database_pass"),
+            self.config.get("database_port"),
+        )
         self.cnxn = pyodbc.connect(connection_string)
         self.cnxn.autocommit = True
         self.c = self.cnxn.cursor()
@@ -35,8 +37,9 @@ class Database():
     def insert_target(self, distro, version, targets):
         sql = "insert into targets (distro, version, target) values (?, ?, ?);"
         self.cnxn.autocommit = False
-        self.c.executemany(sql,
-                list(map(lambda target: (distro, version, target) , targets)))
+        self.c.executemany(
+            sql, list(map(lambda target: (distro, version, target), targets))
+        )
         self.commit()
         self.cnxn.autocommit = True
 
@@ -57,7 +60,9 @@ class Database():
         if not distro:
             return self.c.execute("select distro, version from versions").fetchall()
         else:
-            versions = self.c.execute("select version from versions WHERE distro=?", (distro, )).fetchall()
+            versions = self.c.execute(
+                "select version from versions WHERE distro=?", (distro,)
+            ).fetchall()
             respond = []
             for version in versions:
                 respond.append(version[0])
@@ -68,8 +73,9 @@ class Database():
     def insert_packages_hash(self, packages_hash, packages):
         sql = "insert into packages_hashes (packages_hash, package_name) values (?, ?);"
         self.cnxn.autocommit = False
-        self.c.executemany(sql,
-                list(map(lambda package_name: (packages_hash, package_name) , packages)))
+        self.c.executemany(
+            sql, list(map(lambda package_name: (packages_hash, package_name), packages))
+        )
         self.commit()
         self.cnxn.autocommit = True
 
@@ -82,9 +88,15 @@ class Database():
         sql = "insert into packages_default (distro, version, target, package_name) values (?, ?, ?, ?);"
 
         self.cnxn.autocommit = False
-        self.c.executemany(sql,
-            list(map(lambda package_name: (distro, version, target,
-                package_name), packages_default)))
+        self.c.executemany(
+            sql,
+            list(
+                map(
+                    lambda package_name: (distro, version, target, package_name),
+                    packages_default,
+                )
+            ),
+        )
         self.commit()
         self.cnxn.autocommit = True
 
@@ -95,9 +107,22 @@ class Database():
 
         self.cnxn.autocommit = False
         sql = """select insert_packages_profile (?, ?, ?, ?, ?, ?);"""
-        self.c.executemany(sql, 
-            list(map(lambda profile: (distro, version, target,  profile[0],
-                profile[1], profile[2]), profiles)))
+        self.c.executemany(
+            sql,
+            list(
+                map(
+                    lambda profile: (
+                        distro,
+                        version,
+                        target,
+                        profile[0],
+                        profile[1],
+                        profile[2],
+                    ),
+                    profiles,
+                )
+            ),
+        )
         self.commit()
         self.cnxn.autocommit = True
 
@@ -112,36 +137,63 @@ class Database():
                     pa.package_name = pr)"""
         # the re.sub() replaces leading - which may appear in package request to
         # explicitly remove packages installed per default
-        self.c.execute(sql, json.dumps([sub(r'^-?', '', p) for p in image["packages"]]),
-                image["distro"], image["version"], image["target"])
+        self.c.execute(
+            sql,
+            json.dumps([sub(r"^-?", "", p) for p in image["packages"]]),
+            image["distro"],
+            image["version"],
+            image["target"],
+        )
         return self.as_array()
 
     def sysupgrade_supported(self, image):
-        self.c.execute("""SELECT supported from targets WHERE distro=? and version=? and target=? LIMIT 1;""",
-            image["distro"], image["version"], image["target"])
+        self.c.execute(
+            """SELECT supported from targets WHERE distro=? and version=? and target=? LIMIT 1;""",
+            image["distro"],
+            image["version"],
+            image["target"],
+        )
         return self.c.fetchval()
 
     def check_profile(self, distro, version, target, profile):
         self.log.debug("check_profile %s/%s/%s/%s", distro, version, target, profile)
-        self.c.execute("""SELECT profile FROM profiles
+        self.c.execute(
+            """SELECT profile FROM profiles
             WHERE distro=? and version=? and target=? and profile = coalesce(
                 (select newname from board_rename where distro = ? and version = ? and target = ? and origname = ?), ?)
             LIMIT 1;""",
-            distro, version, target, distro, version, target, profile, profile)
+            distro,
+            version,
+            target,
+            distro,
+            version,
+            target,
+            profile,
+            profile,
+        )
         return self.c.fetchval()
 
     def check_model(self, distro, version, target, model):
         self.log.debug("check_model %s/%s/%s/%s", distro, version, target, model)
-        self.c.execute("""SELECT profile FROM profiles
+        self.c.execute(
+            """SELECT profile FROM profiles
             WHERE distro=? and version=? and target=? and lower(model) = lower(?);""",
-            distro, version, target, model)
+            distro,
+            version,
+            target,
+            model,
+        )
         return self.c.fetchval()
 
     def get_packages_image(self, request, as_json=False):
         sql = "select packages_image(?, ?, ?, ?);"
-        self.c.execute(sql,
-                request["distro"], request["version"],
-                request["target"], request["profile"])
+        self.c.execute(
+            sql,
+            request["distro"],
+            request["version"],
+            request["target"],
+            request["profile"],
+        )
         return self.as_array()
 
     # removes an image entry based on image_hash
@@ -151,8 +203,10 @@ class Database():
 
     # removes all snapshot requests older than a day
     def del_outdated_request(self,):
-        self.c.execute("""delete from requests where
-            snapshots = 'true' and request_date < NOW() - interval '1 day'""")
+        self.c.execute(
+            """delete from requests where
+            snapshots = 'true' and request_date < NOW() - interval '1 day'"""
+        )
 
     # TODO reimplement
     def get_outdated_manifests(self):
@@ -175,7 +229,9 @@ class Database():
 
     def get_manifest_upgrades(self, p):
         sql = "select manifest_upgrades(?, ?, ?, ?)"
-        self.c.execute(sql, p["distro"], p["version"], p["target"], json.dumps(p["manifest"]))
+        self.c.execute(
+            sql, p["distro"], p["version"], p["target"], json.dumps(p["manifest"])
+        )
         return self.c.fetchval() or "{}"
 
     def get_outdated_target(self):
@@ -187,18 +243,28 @@ class Database():
         sql = """insert into packages_available(
             distro, version, target, package_name, package_version)
             values (?, ?, ?, ?, ?);"""
-        self.c.executemany(sql,
-            list(map(lambda package: (distro, version, target,
-                package[0], package[1]) , packages)))
+        self.c.executemany(
+            sql,
+            list(
+                map(
+                    lambda package: (distro, version, target, package[0], package[1]),
+                    packages,
+                )
+            ),
+        )
         self.commit()
         self.cnxn.autocommit = True
 
     def get_packages_available(self, distro, version, target):
         self.log.debug("get_available_packages for %s/%s/%s", distro, version, target)
-        self.c.execute("""SELECT name, version
+        self.c.execute(
+            """SELECT name, version
             FROM packages_available
             WHERE distro=? and version=? and target=?;""",
-            distro, version, target)
+            distro,
+            version,
+            target,
+        )
         response = {}
         for name, version in self.c.fetchall():
             response[name] = version
@@ -206,9 +272,13 @@ class Database():
 
     def get_targets(self, distro, version, target="%"):
         self.log.debug("get_targets {} {} {}".format(distro, version, target))
-        return self.c.execute("""SELECT target, supported FROM targets
+        return self.c.execute(
+            """SELECT target, supported FROM targets
             WHERE distro = ? and version = ? and target LIKE ?;""",
-            distro, version, target).fetchall()
+            distro,
+            version,
+            target,
+        ).fetchall()
 
     # check for image_hash or request_hash depending on length
     # TODO make it less confusing
@@ -238,7 +308,9 @@ class Database():
     # https://github.com/mkleehammer/pyodbc/issues/171
     def as_dict(self):
         if self.c.rowcount == 1:
-            response = dict(zip([column[0] for column in self.c.description], self.c.fetchone()))
+            response = dict(
+                zip([column[0] for column in self.c.description], self.c.fetchone())
+            )
             self.log.debug(response)
             return response
         else:
@@ -251,8 +323,9 @@ class Database():
         for key, value in data.items():
             columns.append(key)
             values.append(value)
-        sql = 'insert into {} ({}) values ({})'.format(
-                table, ', '.join(columns), "?" + ",?" * (len(values) - 1))
+        sql = "insert into {} ({}) values ({})".format(
+            table, ", ".join(columns), "?" + ",?" * (len(values) - 1)
+        )
         self.c.execute(sql, values)
         if commit:
             self.commit()
@@ -262,8 +335,12 @@ class Database():
         self.cnxn.autocommit = False
         sql = """insert into manifest_packages (manifest_hash, package_name, package_version)
             values (?, ?, ?);"""
-        self.c.executemany(sql,
-                list(map(lambda package: (manifest_hash, package[0], package[1]) , packages)))
+        self.c.executemany(
+            sql,
+            list(
+                map(lambda package: (manifest_hash, package[0], package[1]), packages)
+            ),
+        )
         self.commit()
         self.cnxn.autocommit = True
 
@@ -277,7 +354,9 @@ class Database():
         self.c.execute(sql, status, image_request_hash)
 
     def done_build_job(self, request_hash, image_hash, status="created"):
-        self.log.info("done build job: rqst %s img %s status %s", request_hash, image_hash, status)
+        self.log.info(
+            "done build job: rqst %s img %s status %s", request_hash, image_hash, status
+        )
         sql = """UPDATE requests SET request_status = ?, image_hash = ?  WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_hash, request_hash)
 
@@ -287,17 +366,19 @@ class Database():
         return self.c.execute(sql).fetchval()
 
     def api_get_versions(self):
-#        sql = """select json_build_object(distro, json_agg(versions)) from versions group by (distro);"""
+        #        sql = """select json_build_object(distro, json_agg(versions)) from versions group by (distro);"""
         sql = """select coalesce(array_to_json(array_agg(row_to_json(versions))), '[]')
                 from (select * from versions order by (alias)) as versions;"""
         return self.c.execute(sql).fetchval()
 
-    def get_supported_models_json(self, search='', distro='', version=''):
-        search_like = '%' + search.lower() + '%'
-        if distro == '': distro = '%'
-        if version == '': version = '%'
+    def get_supported_models_json(self, search="", distro="", version=""):
+        search_like = "%" + search.lower() + "%"
+        if distro == "":
+            distro = "%"
+        if version == "":
+            version = "%"
         sql = """select coalesce(array_to_json(array_agg(row_to_json(profiles))), '[]') from profiles where lower(model) LIKE ? and distro LIKE ? and version LIKE ?;"""
-        return  self.c.execute(sql, search_like, distro, version).fetchval()
+        return self.c.execute(sql, search_like, distro, version).fetchval()
 
     def get_supported_targets_json(self):
         sql = """select coalesce(array_to_json(array_agg(row_to_json(targets))), '[]') from targets where supported = 'true';"""
@@ -350,7 +431,9 @@ class Database():
         return self.c.execute(sql).fetchval()
 
     def get_all_profiles(self, distro, version):
-        sql = """select target, profile from profiles where distro = ? and version = ?"""
+        sql = (
+            """select target, profile from profiles where distro = ? and version = ?"""
+        )
         self.c.execute(sql, distro, version)
         return self.c.fetchall()
 
@@ -394,7 +477,9 @@ class Database():
         self.c.execute(sql, distro, version, package, replacement, context)
 
     def image_exists(self, image_hash):
-        return self.c.execute("select 1 from images where image_hash = ?", image_hash).fetchone()
+        return self.c.execute(
+            "select 1 from images where image_hash = ?", image_hash
+        ).fetchone()
 
     def transform_packages(self, distro, orig_version, dest_version, packages):
         sql = "select transform(?, ?, ?, ?)"
