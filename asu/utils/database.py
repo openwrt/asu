@@ -176,7 +176,7 @@ class Database():
     def get_manifest_upgrades(self, p):
         sql = "select manifest_upgrades(?, ?, ?, ?)"
         self.c.execute(sql, p["distro"], p["version"], p["target"], json.dumps(p["manifest"]))
-        return self.c.fetchval()
+        return self.c.fetchval() or "{}"
 
     def get_outdated_target(self):
         self.c.execute("select * from outdated_target()")
