@@ -2,7 +2,6 @@ language: python
 
 python:
   - "3.6"
-  - "3.7"
 
 services:
   - postgresql
@@ -14,5 +13,6 @@ before_script:
   - psql -c 'create database asu;' -U postgres
 
 script:
+  - pip install -e .
   - flake8 --exclude=asu/__init__.py
   - pytest -c pytest.ini

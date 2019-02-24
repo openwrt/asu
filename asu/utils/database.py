@@ -13,13 +13,14 @@ class Database:
         self.connect()
 
     def connect(self):
-        connection_string = \
-            """DRIVER={};SERVER={};DATABASE=asu;UID={};PWD={};PORT={};BoolsAsChar=0""".format(
-            self.config.get("database_type"),
-            self.config.get("database_address"),
-            self.config.get("database_user"),
-            self.config.get("database_pass"),
-            self.config.get("database_port"),
+        connection_string = (
+            "DRIVER={};".format(self.config.get("database_type"))
+            + "SERVER={};".format(self.config.get("database_address"))
+            + "DATABASE=asu;"
+            + "UID={};".format(self.config.get("database_user"))
+            + "PWD={};".format(self.config.get("database_pass"))
+            + "PORT={};".format(self.config.get("database_port"))
+            + "BoolsAsChar=0"
         )
         self.cnxn = pyodbc.connect(connection_string)
         self.cnxn.autocommit = True
