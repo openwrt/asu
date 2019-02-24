@@ -18,3 +18,4 @@ repos: |
   src imagebuilder file:packages
   src/gz libremesh http://chef.libremesh.org/snapshots/packages/
   src/gz lm_profiles http://chef.libremesh.org/network-profiles/
+  src/gz libremap http://repo.libremesh.org/releases/17.06/packages/{{ pkg_arch }}/libremap
