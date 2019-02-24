@@ -1,16 +1,16 @@
 language: python
 
 addons:
+  postgresql: "10"
   apt:
     packages:
+    - postgresql-10
+    - postgresql-client-10
     - odbc-postgresql
     - unixodbc-dev
 
 python:
   - "3.6"
-
-services:
-  - postgresql
 
 install:
   - pip install flake8 pytest
