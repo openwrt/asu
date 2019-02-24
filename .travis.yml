@@ -14,7 +14,7 @@ python:
   - "3.6"
 
 install:
-  - pip install flake8 pytest
+  - pip install flake8 pytest coverage "pytest-cov<2.6.0" codacy-coverage
 
 before_script:
   - psql -c "CREATE DATABASE asu;" -U postgres
@@ -24,4 +24,6 @@ before_script:
 script:
   - pip install -e .
   - flake8 --exclude=asu/__init__.py
-  - pytest -c pytest.ini
+  - pytest -c pytest.ini -cov=asu
+  - python3 -m coverage xml
+  - python3 -m codacy -r coverage.xml
