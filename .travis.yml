@@ -24,6 +24,6 @@ before_script:
 script:
   - pip install -e .
   - flake8 --exclude=asu/__init__.py
-  - pytest -c pytest.ini -cov=asu
+  - pytest -c pytest.ini --cov=asu
   - python3 -m coverage xml
   - python3 -m codacy -r coverage.xml
