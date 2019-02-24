@@ -1,5 +1,11 @@
 language: python
 
+addons:
+  apt:
+    packages:
+    - odbc-postgresql
+    - unixodbc-dev
+
 python:
   - "3.6"
 
@@ -10,7 +16,9 @@ install:
   - pip install flake8 pytest
 
 before_script:
-  - psql -c 'create database asu;' -U postgres
+  - psql -c "CREATE DATABASE asu;" -U postgres
+  - psql -c "ALTER USER postgres WITH PASSWORD 'changeme';" -U postgres
+  - psql asu < ./asu/utils/tables.sql -U postgres
 
 script:
   - pip install -e .
