@@ -87,6 +87,9 @@ class UpgradeCheck(Request):
             )
             self.response_status = HTTPStatus.OK  # 200
         else:
+            self.response_json["packages"] = self.request_json[
+                "installed"
+            ].keys()
             self.response_status = HTTPStatus.NO_CONTENT  # 204
 
         manifest_content = ""
