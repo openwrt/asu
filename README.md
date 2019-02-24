@@ -1,5 +1,7 @@
 # Attendedsysupgrade Server for OpenWrt (GSoC 2017)
 
+[![Build Status](https://travis-ci.com/aparcar/attendedsysupgrade-server.svg?branch=master)](https://travis-ci.com/aparcar/attendedsysupgrade-server)
+
 This project intends to simplify the sysupgrade process of devices running
 OpenWrt or distributions based on the former like LibreMesh. The provided tools
 here offer an easy way to reflash the router with a new version or package
