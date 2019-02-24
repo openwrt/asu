@@ -1,11 +1,18 @@
 language: python
+
 python:
   - "3.6"
   - "3.7"
-# command to install dependencies
+
+services:
+  - postgresql
+
 install:
   - pip install flake8 pytest
-# command to run tests
+
+before_script:
+  - psql -c 'create database asu;' -U postgres
+
 script:
   - flake8 --exclude=asu/__init__.py
-  - pytest
+  - pytest -c pytest.ini
