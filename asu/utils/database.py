@@ -13,13 +13,8 @@ class Database:
         self.connect()
 
     def connect(self):
-        connection_string = """DRIVER={};
-               SERVER={};
-               DATABASE=asu;
-               UID={};
-               PWD={};
-               PORT={};
-               BoolsAsChar=0""".format(
+        connection_string = \
+            """DRIVER={};SERVER={};DATABASE=asu;UID={};PWD={};PORT={};BoolsAsChar=0""".format(
             self.config.get("database_type"),
             self.config.get("database_address"),
             self.config.get("database_user"),
@@ -31,6 +26,7 @@ class Database:
         self.c = self.cnxn.cursor()
         self.c.fast_executemany = True
         self.log.info("database connected")
+        return True
 
     def commit(self):
         self.cnxn.commit()
