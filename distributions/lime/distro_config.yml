@@ -12,6 +12,7 @@ latest: "testing"
 versions:
   - "testing"
   - "unstable"
+  - "aparcar"
 
 active_targets:
   - ar71xx/generic
@@ -21,6 +22,6 @@ active_targets:
 # additional description to show in the user interfaces
 distro_description: >
   LibreMesh is a modular framework for creating OpenWrt-based firmwares for
-  wireless mesh nodes. Several communities around the world use LibreMesh as the
-  foundation of their local mesh firmwares.
+  wireless mesh nodes. Several communities around the world use LibreMesh as
+  the foundation of their local mesh firmwares.
 
