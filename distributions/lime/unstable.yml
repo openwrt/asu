@@ -4,7 +4,7 @@ snapshots: True
 version_description: >
   LibreMesh development branch on OpenWrt development branch
 repos: |
-  src/gz openwrt_core http://downloads.openwrt.org/snapshots/targets/{{ target }}/{{ subtarget }}/packages
+  src/gz openwrt_core http://downloads.openwrt.org/snapshots/targets/{{ target }}/packages
   src/gz openwrt_base http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/base
   src/gz openwrt_luci http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/luci
   src/gz openwrt_routing http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/routing
