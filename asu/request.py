@@ -41,7 +41,7 @@ class Request:
         if not self.request_json["version"] in self.config.get(
             self.request["distro"]
         ).get("versions"):
-            self.response_json["error"] = "unknown version %s".format(
+            self.response_json["error"] = "unknown version {}".format(
                 self.request_json["version"]
             )
             self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
