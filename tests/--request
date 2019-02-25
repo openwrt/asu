@@ -1,7 +1,0 @@
-HTTP/1.1 100 Continue
-
-HTTP/1.0 412 PRECONDITION FAILED
-Connection: close
-Server: Werkzeug/0.14.1 Python/3.7.2
-Date: Tue, 05 Feb 2019 00:52:50 GMT
-

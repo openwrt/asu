@@ -20,5 +20,5 @@ COPY . /asu
 WORKDIR /asu
 
 RUN pip3 install -e .
- 
+
 EXPOSE 8000
