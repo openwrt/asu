@@ -188,6 +188,7 @@ class BuildRequest(Request):
     def return_status(self):
         # image created, return all desired information
         if self.request["request_status"] == "created":
+            self.database.cache_hit(self.request["image_hash"])
             image_path = self.database.get_image_path(
                 self.request["image_hash"]
             )

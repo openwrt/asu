@@ -397,6 +397,11 @@ class Database:
         self.c.execute("select * from get_build_job()")
         return self.as_dict()
 
+    def cache_hit(self, image_hash):
+        self.log.debug("cache hit for %s", image_hash)
+        sql = "UPDATE images SET cache_hits = cache_hits + 1 WHERE image_hash = ?;"
+        self.c.execute(sql, image_hash)
+
     def set_requests_status(self, image_request_hash, status):
         self.log.info(
             "set request {} status to {}".format(image_request_hash, status)

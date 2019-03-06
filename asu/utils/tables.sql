@@ -401,7 +401,8 @@ create table if not exists images_table (
     image_status varchar(20) DEFAULT 'untested',
     defaults_id integer references defaults_table(defaults_id) on delete cascade,
     vanilla boolean default false,
-    build_seconds integer default 0
+    build_seconds integer default 0,
+    cache_hits integer default 0
 );
 
 create or replace view images as
@@ -424,6 +425,7 @@ select
     vanilla,
     build_seconds,
     snapshots,
+    cache_hits,
     (CASE WHEN defaults_hash is null THEN
         ''
     ELSE
