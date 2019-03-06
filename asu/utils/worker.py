@@ -197,6 +197,7 @@ class Worker(threading.Thread):
                     possible_sysupgrade_files = [
                         "*-squashfs-sysupgrade.bin",
                         "*-squashfs-sysupgrade.tar",
+                        "*-squashfs-nand-sysupgrade.bin",
                         "*-squashfs.trx",
                         "*-squashfs.chk",
                         "*-squashfs.bin",
