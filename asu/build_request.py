@@ -205,6 +205,7 @@ class BuildRequest(Request):
             self.response_status = HTTPStatus.OK  # 200
 
         elif self.request["request_status"] == "no_sysupgrade":
+            self.database.cache_hit(self.request["image_hash"])
             if self.sysupgrade_requested:
                 # no sysupgrade found but requested,
                 # let user figure out what # to do
