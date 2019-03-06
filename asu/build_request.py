@@ -260,6 +260,20 @@ class BuildRequest(Request):
 
             self.response_status = HTTPStatus.INTERNAL_SERVER_ERROR  # 500
 
+        # creation of manifest failed, package conflict
+        elif self.request["request_status"] == "manifest_fail":
+            self.response_json[
+                "error"
+            ] = "Incompatible package selection. See build log for details"
+            self.response_json[
+                "log"
+            ] = "/download/faillogs/faillog-{}.txt".format(
+                self.request["request_hash"]
+            )
+            self.response_json["request_hash"] = self.request["request_hash"]
+
+            self.response_status = HTTPStatus.CONFLICT  # 409
+
         # likely to many package where requested
         elif self.request["request_status"] == "imagesize_fail":
             self.response_json[
