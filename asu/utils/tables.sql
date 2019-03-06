@@ -482,6 +482,7 @@ ON update TO images DO INSTEAD
 update images_table set
 build_date = coalesce(NEW.build_date, build_date),
 image_status = coalesce(NEW.image_status, image_status)
+cache_hits = coalesce(NEW.cache_hits, cache_hits)
 where images_table.image_hash = NEW.image_hash
 returning
 old.*;
