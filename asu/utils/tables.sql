@@ -423,7 +423,18 @@ select
     image_status,
     vanilla,
     build_seconds,
-    snapshots
+    snapshots,
+    (CASE WHEN defaults_hash is null THEN
+        ''
+    ELSE
+        'custom/' || defaults_hash || '/'
+    end)
+    || distro || '/'
+    || version || '/'
+    || target || '/'
+    || profile || '/'
+    || manifest_hash
+    as files
 from images_table
 join profiles using (profile_id)
 join manifests_table using (manifest_id)
