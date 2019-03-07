@@ -1,16 +1,4 @@
-import urllib.request
 import hashlib
-import os
-import os.path
-import subprocess
-import urllib
-from email.utils import parsedate
-from datetime import datetime
-
-from asu.utils.config import Config
-
-
-config = Config()
 
 
 def get_hash(string, length):
