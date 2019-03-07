@@ -11,7 +11,7 @@ latest: "testing"
 
 versions:
   - "testing"
-  - "unstable"
+  - "master"
   - "aparcar"
 
 active_targets:

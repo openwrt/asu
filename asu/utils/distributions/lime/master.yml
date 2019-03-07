@@ -1,8 +1,9 @@
 parent_distro: openwrt
 parent_version: snapshots
 snapshots: True
+version_alias: unstable development
 version_description: >
-  LibreMesh development branch on OpenWrt development branch
+  LibreMesh master branch on OpenWrt development branch
 repos: |
   src/gz openwrt_core http://downloads.openwrt.org/snapshots/targets/{{ target }}/packages
   src/gz openwrt_base http://downloads.openwrt.org/snapshots/packages/{{ pkg_arch }}/base
