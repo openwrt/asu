@@ -14,9 +14,48 @@ versions:
 
 # only imagebuilders of the following are downloaded
 active_targets:
+  - apm821xx/nand
   - ar71xx/generic
-  - x86/64
+  - ar71xx/mikrotik
+  - ar71xx/nand
+  - ar71xx/tiny
+  - ath25/generic
+  - ath79/generic
+  - ath79/nand
+  - ath79/tiny
+  - bcm53xx/generic
+  - brcm2708/brcm2708
+  - brcm2708/brcm2709
+  - brcm2708/brcm2710
+  - brcm47xx/generic
+  - brcm47xx/legacy
+  - brcm47xx/mips74k
+  - brcm63xx/generic
+  - brcm63xx/smp
+  - gemini/generic
+  - ipq40xx/generic
+  - ipq806x/generic
+  - kirkwood/generic
+  - lantiq/xrx200
+  - lantiq/xway
+  - mcs814x/generic
+  - mpc85xx/generic
+  - mpc85xx/p1020
+  - mvevu/cortexa53
+  - mvevu/cortexa72
+  - mvevu/cortexa9
+  - octeon/generic
+  - oxnas/ox820
+  - ramips/mt7620
   - ramips/mt7621
+  - ramips/mt76x8
+  - ramips/rt3883
+  - ramips/rt305x
+  - ramips/rt288x
+  - sunxi/cortexa53
+  - sunxi/cortexa7
+  - sunxi/cortexa8
+  - x86/64
 
 # also possible to blacklist broken/unwanted targets
 # ignore_targets:
