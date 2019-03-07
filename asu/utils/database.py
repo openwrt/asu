@@ -66,9 +66,7 @@ class Database:
 
     def get_versions(self, distro=None):
         if not distro:
-            return self.c.execute(
-                "select distro, version from versions"
-            ).fetchall()
+            return self.c.execute("select distro, version from versions").fetchall()
         else:
             versions = self.c.execute(
                 "select version from versions WHERE distro=?", (distro,)
@@ -85,20 +83,12 @@ class Database:
             (packages_hash, package_name) values (?, ?);"""
         self.cnxn.autocommit = False
         self.c.executemany(
-            sql,
-            list(
-                map(
-                    lambda package_name: (packages_hash, package_name),
-                    packages,
-                )
-            ),
+            sql, list(map(lambda package_name: (packages_hash, package_name), packages))
         )
         self.commit()
         self.cnxn.autocommit = True
 
-    def insert_profiles(
-        self, distro, version, target, packages_default, profiles
-    ):
+    def insert_profiles(self, distro, version, target, packages_default, profiles):
         # delete existing packages_default
         sql = """delete from packages_default where
             distro = ? and version = ? and target = ?"""
@@ -112,12 +102,7 @@ class Database:
             sql,
             list(
                 map(
-                    lambda package_name: (
-                        distro,
-                        version,
-                        target,
-                        package_name,
-                    ),
+                    lambda package_name: (distro, version, target, package_name),
                     packages_default,
                 )
             ),
@@ -182,9 +167,7 @@ class Database:
         return self.c.fetchval()
 
     def check_profile(self, distro, version, target, profile):
-        self.log.debug(
-            "check_profile %s/%s/%s/%s", distro, version, target, profile
-        )
+        self.log.debug("check_profile %s/%s/%s/%s", distro, version, target, profile)
         self.c.execute(
             """SELECT profile FROM profiles
             WHERE distro=? and version=? and target=? and profile = coalesce(
@@ -204,9 +187,7 @@ class Database:
         return self.c.fetchval()
 
     def check_model(self, distro, version, target, model):
-        self.log.debug(
-            "check_model %s/%s/%s/%s", distro, version, target, model
-        )
+        self.log.debug("check_model %s/%s/%s/%s", distro, version, target, model)
         self.c.execute(
             """SELECT profile FROM profiles
                 WHERE distro=? and version=? and target=? and
@@ -268,11 +249,7 @@ class Database:
     def get_manifest_upgrades(self, p):
         sql = "select manifest_upgrades(?, ?, ?, ?)"
         self.c.execute(
-            sql,
-            p["distro"],
-            p["version"],
-            p["target"],
-            json.dumps(p["manifest"]),
+            sql, p["distro"], p["version"], p["target"], json.dumps(p["manifest"])
         )
         return self.c.fetchval() or "{}"
 
@@ -289,13 +266,7 @@ class Database:
             sql,
             list(
                 map(
-                    lambda package: (
-                        distro,
-                        version,
-                        target,
-                        package[0],
-                        package[1],
-                    ),
+                    lambda package: (distro, version, target, package[0], package[1]),
                     packages,
                 )
             ),
@@ -304,9 +275,7 @@ class Database:
         self.cnxn.autocommit = True
 
     def get_packages_available(self, distro, version, target):
-        self.log.debug(
-            "get_available_packages for %s/%s/%s", distro, version, target
-        )
+        self.log.debug("get_available_packages for %s/%s/%s", distro, version, target)
         self.c.execute(
             """SELECT name, version
             FROM packages_available
@@ -359,10 +328,7 @@ class Database:
     def as_dict(self):
         if self.c.rowcount == 1:
             response = dict(
-                zip(
-                    [column[0] for column in self.c.description],
-                    self.c.fetchone(),
-                )
+                zip([column[0] for column in self.c.description], self.c.fetchone())
             )
             self.log.debug(response)
             return response
@@ -392,10 +358,7 @@ class Database:
         self.c.executemany(
             sql,
             list(
-                map(
-                    lambda package: (manifest_hash, package[0], package[1]),
-                    packages,
-                )
+                map(lambda package: (manifest_hash, package[0], package[1]), packages)
             ),
         )
         self.commit()
@@ -412,18 +375,13 @@ class Database:
         self.c.execute(sql, image_hash)
 
     def set_requests_status(self, image_request_hash, status):
-        self.log.info(
-            "set request {} status to {}".format(image_request_hash, status)
-        )
+        self.log.info("set request {} status to {}".format(image_request_hash, status))
         sql = "UPDATE requests SET request_status = ? WHERE request_hash = ?;"
         self.c.execute(sql, status, image_request_hash)
 
     def done_build_job(self, request_hash, image_hash, status="created"):
         self.log.info(
-            "done build job: rqst %s img %s status %s",
-            request_hash,
-            image_hash,
-            status,
+            "done build job: rqst %s img %s status %s", request_hash, image_hash, status
         )
         sql = """UPDATE requests SET request_status = ?, image_hash = ?
             WHERE request_hash = ?;"""
@@ -476,9 +434,7 @@ class Database:
 
     def get_packages_hash(self, packages_hash):
         self.log.debug("get packages_hash %s", packages_hash)
-        sql = (
-            "select package_name from packages_hashes where packages_hash = ?;"
-        )
+        sql = "select package_name from packages_hashes where packages_hash = ?;"
         self.c.execute(sql, packages_hash)
         return self.as_array()
 
@@ -548,9 +504,7 @@ class Database:
             VALUES (?, ?, ?, ?);"""
         self.c.execute(sql, distro, version, origname, newname)
 
-    def insert_transformation(
-        self, distro, version, package, replacement, context
-    ):
+    def insert_transformation(self, distro, version, package, replacement, context):
         self.log.info("insert %s/%s ", distro, version)
         sql = """INSERT INTO transformations
             (distro, version, package, replacement, context) VALUES

@@ -23,23 +23,21 @@ class UpgradeCheck(Request):
             self.log.debug("passed distro check")
 
         if "version" not in self.request_json:
-            self.response_json["version"] = self.config.get(
-                self.request["distro"]
-            ).get("latest")
+            self.response_json["version"] = self.config.get(self.request["distro"]).get(
+                "latest"
+            )
             return self.respond()
         else:
             bad_request = self.check_bad_version()
             if bad_request:
                 return bad_request
             self.log.debug("passed version check")
-            if self.config.version(
-                self.request["distro"], self.request["version"]
-            ).get("snapshots", False):
+            if self.config.version(self.request["distro"], self.request["version"]).get(
+                "snapshots", False
+            ):
                 self.response_json["version"] = self.request["version"]
             else:
-                latest_version = self.config.get(self.request["distro"]).get(
-                    "latest"
-                )
+                latest_version = self.config.get(self.request["distro"]).get("latest")
                 if latest_version != self.request["version"]:
                     self.response_json["version"] = latest_version
                 else:
@@ -56,9 +54,7 @@ class UpgradeCheck(Request):
         if "installed" not in self.request_json:
             return self.respond()
         else:
-            bad_request = self.check_bad_packages(
-                self.request_json["installed"].keys()
-            )
+            bad_request = self.check_bad_packages(self.request_json["installed"].keys())
             if bad_request:
                 return bad_request
 
@@ -66,9 +62,7 @@ class UpgradeCheck(Request):
         self.request["version"] = self.request_json["version"]
 
         # check if packages exists in new version
-        bad_request = self.check_bad_packages(
-            self.request_json["installed"].keys()
-        )
+        bad_request = self.check_bad_packages(self.request_json["installed"].keys())
         if bad_request:
             return bad_request
 
@@ -87,9 +81,7 @@ class UpgradeCheck(Request):
             )
             self.response_status = HTTPStatus.OK  # 200
         else:
-            self.response_json["packages"] = list(
-                self.request_json["installed"].keys()
-            )
+            self.response_json["packages"] = list(self.request_json["installed"].keys())
             self.response_status = HTTPStatus.NO_CONTENT  # 204
 
         manifest_content = ""
@@ -99,10 +91,7 @@ class UpgradeCheck(Request):
 
         self.request["manifest"] = self.request_json["installed"]
 
-        if (
-            "version" in self.response_json
-            or "upgrade_packages" in self.request_json
-        ):
+        if "version" in self.response_json or "upgrade_packages" in self.request_json:
             # TODO this result in double jsonifying
             # problem is postgres gives back perfect json while the rest of the
             # json response is a dict, until it's decoded in the end

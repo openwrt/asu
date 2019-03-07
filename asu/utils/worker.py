@@ -32,9 +32,7 @@ class Worker(threading.Thread):
         self.log.debug("setup meta")
         os.makedirs(self.location, exist_ok=True)
         if not os.path.exists(self.location + "/meta"):
-            cmdline = (
-                "git clone https://github.com/aparcar/meta-imagebuilder.git ."
-            )
+            cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
             proc = subprocess.Popen(
                 cmdline.split(" "),
                 cwd=self.location,
@@ -83,9 +81,7 @@ class Worker(threading.Thread):
             self.log.debug("packages_requested %s", packages_requested)
             packages_remove = packages_image - packages_requested
             self.log.debug("packages_remove %s", packages_remove)
-            packages_requested.update(
-                set(map(lambda x: "-" + x, packages_remove))
-            )
+            packages_requested.update(set(map(lambda x: "-" + x, packages_remove)))
             self.params["packages"] = " ".join(packages_requested)
             self.log.debug("packages param %s", self.params["packages"])
         else:
@@ -123,9 +119,9 @@ class Worker(threading.Thread):
         )
 
         # set log path in case of success
-        success_log_path = self.image.params[
-            "dir"
-        ] + "/buildlog-{}.txt".format(self.params["image_hash"])
+        success_log_path = self.image.params["dir"] + "/buildlog-{}.txt".format(
+            self.params["image_hash"]
+        )
 
         # set build_status ahead, if stuff goes wrong it will be changed
         self.build_status = "created"
@@ -155,12 +151,11 @@ class Worker(threading.Thread):
                     defaults_content = self.database.get_defaults(
                         self.params["defaults_hash"]
                     )
+                    # TODO check if special encoding is required
                     with open(
                         defaults_dir + "99-server-defaults", "w"
                     ) as defaults_file:
-                        defaults_file.write(
-                            defaults_content
-                        )  # TODO check if special encoding is required
+                        defaults_file.write(defaults_content)
 
                     # tell ImageBuilder to integrate files
                     self.params["FILES"] = build_dir + "/files/"
@@ -173,9 +168,7 @@ class Worker(threading.Thread):
 
                 build_start = time.time()
                 return_code, buildlog, errors = self.run_meta("image")
-                self.image.params["build_seconds"] = int(
-                    time.time() - build_start
-                )
+                self.image.params["build_seconds"] = int(time.time() - build_start)
 
                 if return_code == 0:
                     # create folder in advance
@@ -184,13 +177,10 @@ class Worker(threading.Thread):
                     self.log.debug(os.listdir(build_dir))
 
                     for filename in os.listdir(build_dir):
-                        if os.path.exists(
-                            self.image.params["dir"] + "/" + filename
-                        ):
+                        if os.path.exists(self.image.params["dir"] + "/" + filename):
                             break
                         shutil.move(
-                            build_dir + "/" + filename,
-                            self.image.params["dir"],
+                            build_dir + "/" + filename, self.image.params["dir"]
                         )
 
                     # possible sysupgrade names, ordered by likeliness
@@ -233,9 +223,7 @@ class Worker(threading.Thread):
                         )
 
                     self.write_log(success_log_path, buildlog)
-                    self.database.insert_dict(
-                        "images", self.image.get_params()
-                    )
+                    self.database.insert_dict("images", self.image.get_params())
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
@@ -281,9 +269,7 @@ class Worker(threading.Thread):
         if return_code == 0:
             default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
             default_packages = (
-                re.match(default_packages_pattern, output, re.M)
-                .group(2)
-                .split()
+                re.match(default_packages_pattern, output, re.M).group(2).split()
             )
             logging.debug("default packages: %s", default_packages)
 
@@ -329,9 +315,7 @@ class Worker(threading.Thread):
             self.params["REPOS"] = self.version_config["repos"]
 
         for key, value in self.params.items():
-            env[key.upper()] = str(
-                value
-            )  # TODO convert meta script to Makefile
+            env[key.upper()] = str(value)  # TODO convert meta script to Makefile
 
         proc = subprocess.Popen(
             cmdline,

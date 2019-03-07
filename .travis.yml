@@ -23,7 +23,7 @@ before_script:
 
 script:
   - pip install -e .
-  - flake8 --exclude=asu/__init__.py
+  - flake8 --exclude=asu/__init__.py --max-line-length=88
   - pytest -c pytest.ini --cov=asu
   - python3 -m coverage xml
   - python3 -m codacy -r coverage.xml

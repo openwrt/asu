@@ -24,10 +24,7 @@ class Request:
 
     # these checks are relevant for upgrade and image reuqest
     def check_bad_distro(self):
-        if (
-            not self.request_json["distro"].lower()
-            in self.config.get_distros()
-        ):
+        if not self.request_json["distro"].lower() in self.config.get_distros():
             self.response_json["error"] = "unknown distribution {}".format(
                 self.request_json["distro"]
             )
@@ -63,9 +60,7 @@ class Request:
             self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
             return self.respond()
         elif not sysupgrade_supported and self.sysupgrade_requested:
-            self.response_json[
-                "error"
-            ] = "target currently not supported {}".format(
+            self.response_json["error"] = "target currently not supported {}".format(
                 self.request["target"]
             )
             self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
@@ -77,9 +72,7 @@ class Request:
     def respond(self, json_content=False):
         response = Response(
             response=(
-                self.response_json
-                if json_content
-                else json.dumps(self.response_json)
+                self.response_json if json_content else json.dumps(self.response_json)
             ),
             status=self.response_status,
             mimetype="application/json",
@@ -92,9 +85,7 @@ class Request:
         # remove packages which doesn't exists but appear in the package list
         # upgrade_checks send a dict with package name & version while build
         # requests contain only an array
-        packages_set = set(packages) - set(
-            ["libc", "kernel", "libgcc", "libgcc1"]
-        )
+        packages_set = set(packages) - set(["libc", "kernel", "libgcc", "libgcc1"])
 
         self.request["packages"] = sorted(list(packages_set))
         packages_unknown = self.database.check_packages(self.request)
@@ -102,9 +93,7 @@ class Request:
         # if list is not empty there where some unknown packages found
         if packages_unknown:
             logging.warning("could not find packages %s", packages_unknown)
-            self.response_header["X-Unknown-Package"] = ", ".join(
-                packages_unknown
-            )
+            self.response_header["X-Unknown-Package"] = ", ".join(packages_unknown)
             self.response_json["error"] = "could not find packages: {}".format(
                 ", ".join(packages_unknown)
             )
