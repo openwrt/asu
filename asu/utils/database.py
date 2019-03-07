@@ -2,6 +2,7 @@ from re import sub
 import pyodbc
 import logging
 import json
+import os.path
 
 
 class Database:
@@ -31,6 +32,13 @@ class Database:
 
     def commit(self):
         self.cnxn.commit()
+
+    def init_db(self):
+        self.log.info("database init")
+        utils_folder = os.path.dirname(os.path.abspath(__file__))
+        with open(utils_folder + "/tables.sql", "r") as tables_file:
+            self.c.execute(tables_file.read())
+        self.log.info("database init successful")
 
     def insert_target(self, distro, version, targets):
         sql = "insert into targets (distro, version, target) values (?, ?, ?);"

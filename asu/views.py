@@ -7,6 +7,7 @@ import os
 from http import HTTPStatus
 import urllib.request
 import yaml
+import click
 
 from asu.build_request import BuildRequest
 from asu.upgrade_check import UpgradeCheck
@@ -182,6 +183,18 @@ def api_supported():
 
 
 @app.cli.command()
+def initdb():
+    database.init_db()
+
+
+@app.cli.command()
+def loaddb():
+    fetch_targets()
+    load_tables()
+    insert_board_rename()
+
+
+@app.cli.command()
 def run_worker():
     from asu.utils.garbagecollector import GarbageCollector
     from asu.utils.boss import Boss
@@ -205,14 +218,6 @@ def run_worker():
     uper.start()
 
 
-@app.cli.command()
-def load_database():
-    fetch_targets()
-    load_tables()
-    insert_board_rename()
-
-
-@app.cli.command()
 def fetch_targets():
     for distro in config.get("active_distros", ["openwrt"]):
         # set distro alias like OpenWrt, fallback would be openwrt
