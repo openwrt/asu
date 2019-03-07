@@ -182,6 +182,30 @@ def api_supported():
 
 
 @app.cli.command()
+def run_worker():
+    from asu.utils.garbagecollector import GarbageCollector
+    from asu.utils.boss import Boss
+    from asu.utils.updater import Updater
+
+    import logging
+
+    logging.basicConfig(level=logging.DEBUG)
+    log = logging.getLogger(__name__)
+
+    log.info("start garbage collector")
+    gaco = GarbageCollector()
+    gaco.start()
+
+    log.info("start boss")
+    boss = Boss()
+    boss.start()
+
+    log.info("start updater")
+    uper = Updater()
+    uper.start()
+
+
+@app.cli.command()
 def load_database():
     fetch_targets()
     load_tables()
@@ -197,9 +221,7 @@ def fetch_targets():
             {
                 "distro": distro,
                 "distro_alias": config.get(distro).get("distro_alias", distro),
-                "distro_description": config.get(distro).get(
-                    "distro_description", ""
-                ),
+                "distro_description": config.get(distro).get("distro_description", ""),
                 "latest": config.get(distro).get("latest"),
             },
         )
@@ -210,9 +232,7 @@ def fetch_targets():
                 {
                     "distro": distro,
                     "version": version,
-                    "version_alias": version_config.get(
-                        "version_alias", version
-                    ),
+                    "version_alias": version_config.get("version_alias", version),
                     "version_description": version_config.get(
                         "version_description", ""
                     ),
@@ -222,9 +242,7 @@ def fetch_targets():
             version_config = config.version(distro, version)
             version_url = version_config.get("targets_url")
             # use parent_version for ImageBuilder if exists
-            version_imagebuilder = version_config.get(
-                "parent_version", version
-            )
+            version_imagebuilder = version_config.get("parent_version", version)
 
             version_targets = set(
                 json.loads(
@@ -328,9 +346,7 @@ def insert_board_rename():
                         distro, version, origname, newname
                     )
                 )
-                database.insert_board_rename(
-                    distro, version, origname, newname
-                )
+                database.insert_board_rename(distro, version, origname, newname)
 
 
 def insert_transformations(distro, version, transformations):
@@ -338,15 +354,11 @@ def insert_transformations(distro, version, transformations):
         if not action:
             # drop package
             # print("drop", package)
-            database.insert_transformation(
-                distro, version, package, None, None
-            )
+            database.insert_transformation(distro, version, package, None, None)
         elif isinstance(action, str):
             # replace package
             # print("replace", package, "with", action)
-            database.insert_transformation(
-                distro, version, package, action, None
-            )
+            database.insert_transformation(distro, version, package, action, None)
         elif isinstance(action, dict):
             for choice, context in action.items():
                 if context is True:
@@ -379,9 +391,7 @@ def load_tables():
             with open(
                 version_transformations_path, "r"
             ) as version_transformations_file:
-                transformations = yaml.load(
-                    version_transformations_file.read()
-                )
+                transformations = yaml.load(version_transformations_file.read())
                 if transformations:
                     if "transformations" in transformations:
                         insert_transformations(
