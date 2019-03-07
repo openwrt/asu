@@ -14,6 +14,7 @@ setup(
     maintainer_email="mail@aparcar.org",
     description="Create sysupgrade images for OpenWrt on demand",
     long_description=readme,
+    long_description_content_type="text/markdown",
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
