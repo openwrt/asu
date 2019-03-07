@@ -7,7 +7,6 @@ import os
 from http import HTTPStatus
 import urllib.request
 import yaml
-import click
 
 from asu.build_request import BuildRequest
 from asu.upgrade_check import UpgradeCheck
