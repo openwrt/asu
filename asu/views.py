@@ -183,11 +183,13 @@ def api_supported():
 
 @app.cli.command()
 def initdb():
+    """Initiate database with tables.sql"""
     database.init_db()
 
 
 @app.cli.command()
 def loaddb():
+    """Fill database with content"""
     fetch_targets()
     load_tables()
     insert_board_rename()
@@ -195,6 +197,7 @@ def loaddb():
 
 @app.cli.command()
 def run_worker():
+    """Run worker doing all sorts of background work"""
     from asu.utils.garbagecollector import GarbageCollector
     from asu.utils.boss import Boss
     from asu.utils.updater import Updater
@@ -218,6 +221,7 @@ def run_worker():
 
 
 def fetch_targets():
+    """Download available targets from server"""
     for distro in config.get("active_distros", ["openwrt"]):
         # set distro alias like OpenWrt, fallback would be openwrt
         database.insert_dict(
@@ -276,6 +280,7 @@ def fetch_targets():
 
 @app.cli.command()
 def build_all():
+    """Build all profiles of openwrt latest stable"""
     for profile in database.get_all_profiles(
         "openwrt", config.get("openwrt").get("latest")
     ):
@@ -292,6 +297,7 @@ def build_all():
 
 @app.cli.command()
 def build_worker():
+    """Build image with worker package preinstalled"""
     log.info("build worker image")
     packages = [
         "bash",
@@ -341,6 +347,7 @@ def build_worker():
 
 
 def insert_board_rename():
+    """Insert board rename"""
     for distro, version in database.get_versions():
         version_config = config.version(distro, version)
         if "board_rename" in version_config:
@@ -354,6 +361,7 @@ def insert_board_rename():
 
 
 def insert_transformations(distro, version, transformations):
+    """Insert package transformation in database"""
     for package, action in transformations.items():
         if not action:
             # drop package
@@ -386,6 +394,7 @@ def insert_transformations(distro, version, transformations):
 
 
 def load_tables():
+    """Load package transformations"""
     for distro, version in database.get_versions():
         log.debug("load tables %s %s", distro, version)
         version_transformations_path = os.path.join(
