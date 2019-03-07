@@ -224,14 +224,14 @@ class Database:
 
     # TODO reimplement
     def get_outdated_manifests(self):
-        sql = """select image_hash, file_path from images join images_download
+        sql = """select image_hash, file_path from images join images
             using (image_hash) join manifest_upgrades
             using (distro, version, target, manifest_hash);"""
         self.c.execute(sql)
         return self.c.fetchall()
 
     def get_outdated_snapshots(self):
-        sql = """select image_hash, file_path from images join images_download
+        sql = """select image_hash, file_path from images join images
             using (image_hash)
             where snapshots = 'true' and
                 build_date < NOW() - INTERVAL '1 day';"""
@@ -239,7 +239,7 @@ class Database:
         return self.c.fetchall()
 
     def get_outdated_customs(self):
-        sql = """select image_hash, file_path from images join images_download
+        sql = """select image_hash, file_path from images join images
             using (image_hash)
             where defaults_hash != '' and
             build_date < NOW() - INTERVAL '7 day';"""
@@ -317,7 +317,7 @@ class Database:
     # merge image_download table with images tables
     def get_image_path(self, image_hash):
         self.log.debug("get sysupgrade image for %s", image_hash)
-        sql = "select * from images_download where image_hash = ?"
+        sql = "select * from images where image_hash = ?"
         self.c.execute(sql, image_hash)
         return self.as_dict()
 
