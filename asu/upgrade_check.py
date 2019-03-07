@@ -34,7 +34,7 @@ class UpgradeCheck(Request):
             self.log.debug("passed version check")
             if self.config.version(
                 self.request["distro"], self.request["version"]
-            ).get("snapshot", False):
+            ).get("snapshots", False):
                 self.response_json["version"] = self.request["version"]
             else:
                 latest_version = self.config.get(self.request["distro"]).get(
