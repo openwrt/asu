@@ -1,4 +1,5 @@
 import yaml
+import shutil
 import os.path
 import json
 import os
@@ -19,6 +20,10 @@ class Config:
 
         with open(self.config_file, "r") as ymlfile:
             self.config = yaml.load(ymlfile)
+
+        distro_folder = self.config.get("distro_folder")
+        if not os.path.exists(distro_folder):
+            shutil.copytree(self.root_dir + "/distributions", distro_folder)
 
         for distro in self.get_distros():
             with open(
