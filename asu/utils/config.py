@@ -9,12 +9,14 @@ from os import makedirs
 class Config:
     def __init__(self):
         self.config = {}
-        self.config_file = "config.yml"
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config_file = "/etc/asu/config.yml"
         if not os.path.exists(self.config_file):
-            with open(self.root_dir + "/config.yml.default", "r") as default_file:
-                with open("config.yml", "w") as config_file:
-                    config_file.write(default_file.read())
+            self.config_file = "config.yml"
+            if not os.path.exists(self.config_file):
+                with open(self.root_dir + "/config.yml.default", "r") as default_file:
+                    with open("config.yml", "w") as config_file:
+                        config_file.write(default_file.read())
 
         with open(self.config_file, "r") as ymlfile:
             self.config = yaml.load(ymlfile)
