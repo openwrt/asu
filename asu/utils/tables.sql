@@ -128,7 +128,8 @@ create or replace rule update_targets AS
 ON update TO targets DO INSTEAD (
     update targets_table set
     supported = coalesce(NEW.supported, supported),
-    last_sync = coalesce(NEW.last_sync, last_sync)
+    last_sync = coalesce(NEW.last_sync, last_sync),
+    revision = coalesce(NEW.revision, revision)
     where targets_table.target_id =
     (select target_id from targets where
         targets.distro = NEW.distro and
