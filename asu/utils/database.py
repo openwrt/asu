@@ -98,7 +98,7 @@ class Database:
 
     def get_revision(self, distro, version, target):
         sql = """select revision from targets where
-            distro = ? and version = ?;"""
+            distro = ? and version = ? and target = ?;"""
         return self.c.execute(sql, distro, version, target).fetchval()
 
     def insert_profiles(self, distro, version, target, packages_default, profiles):

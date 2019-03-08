@@ -45,7 +45,7 @@ class UpgradeCheck(Request):
                     self.request["version"],
                     self.request_json["target"],
                 )
-                if self.request_json.get("revision") == revision:
+                if self.request_json.get("revision") != revision:
                     self.response_json["revision"] = revision
                     self.response_json["version"] = self.request["version"]
             else:
