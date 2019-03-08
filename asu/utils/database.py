@@ -93,10 +93,8 @@ class Database:
 
     def insert_revision(self, distro, version, target, revision):
         sql = """update targets set revisoin = ? where
-            distro = ? and
-            version = ? and
-            target = ?;"""
-        self.c.execute(sql, distro, version, target)
+            distro = ? and version = ? and target = ?;"""
+        self.c.execute(sql, revision, distro, version, target)
 
     def insert_profiles(self, distro, version, target, packages_default, profiles):
         # delete existing packages_default
