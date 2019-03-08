@@ -92,7 +92,7 @@ class Database:
         self.cnxn.autocommit = True
 
     def insert_revision(self, distro, version, target, revision):
-        sql = """update targets set revisoin = ? where
+        sql = """update targets set revision = ? where
             distro = ? and version = ? and target = ?;"""
         self.c.execute(sql, revision, distro, version, target)
 
