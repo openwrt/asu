@@ -88,6 +88,13 @@ class Database:
         self.commit()
         self.cnxn.autocommit = True
 
+    def insert_revision(self, distro, version, target, revision):
+        sql = """update targets set revisoin = ? where
+            distro = ? and
+            version = ? and
+            target = ?;"""
+        self.c.execute(sql, distro, version, target)
+
     def insert_profiles(self, distro, version, target, packages_default, profiles):
         # delete existing packages_default
         sql = """delete from packages_default where

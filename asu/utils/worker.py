@@ -267,9 +267,23 @@ class Worker(threading.Thread):
         return_code, output, errors = self.run_meta("info")
 
         if return_code == 0:
-            default_packages_pattern = r"(.*\n)*Default Packages: (.+)\n"
+            revision_pattern = r'.*\nCurrent Revision: "(.*)"\n'
+            revision_match = re.match(revision_pattern, output, re.M)
+            if revision_match:
+                revision = revision_match.group(1)
+            else:
+                revision = ""
+
+            self.database.insert_revision(
+                self.params["distro"],
+                self.params["version"],
+                self.params["target"],
+                revision,
+            )
+
+            default_packages_pattern = r"(?:.*\n)*Default Packages: (.+)\n"
             default_packages = (
-                re.match(default_packages_pattern, output, re.M).group(2).split()
+                re.match(default_packages_pattern, output, re.M).group(1).split()
             )
             logging.debug("default packages: %s", default_packages)
 

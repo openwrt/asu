@@ -107,17 +107,18 @@ create table if not exists targets_table(
     target varchar(50),
     supported boolean DEFAULT false,
     last_sync timestamp default date('1970-01-01'),
+    revision varchar(42),
     unique(version_id, target)
 );
 
 create or replace view targets as
-    select * from versions 
+    select * from versions
     join targets_table using (version_id);
 
 create or replace rule insert_targets AS
 ON insert TO targets DO INSTEAD (
     insert into targets_table (version_id, target) values (
-        (select version_id from versions 
+        (select version_id from versions
             where versions.distro = NEW.distro and version = NEW.version),
         NEW.target
     ) on conflict do nothing;
