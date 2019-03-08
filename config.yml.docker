@@ -21,6 +21,3 @@ database_port: 5432
 # folder
 distro_folder: distributions
 download_folder: download
-tempdir: /tmp
-keys_private: keys
-keys_public: server/static/keys

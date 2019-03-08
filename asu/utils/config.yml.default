@@ -3,10 +3,10 @@ dev: False
 sign_images: True
 server_user: root
 server_dir: /vagrant
-updater_dir: ./updater
+updater_dir: /var/lib/asu/updater
 updater_threads: 4
 worker:
-    - ./worker
+    - /var/lib/asu/worker
 
 active_distros:
     - lime
@@ -20,8 +20,5 @@ database_pass: changeme
 database_port: 5432
 
 # folder
-distro_folder: distributions
-download_folder: download
-tempdir: /tmp
-keys_private: keys
-keys_public: server/static/keys
+distro_folder: /etc/asu/distributions
+download_folder: /var/cache/asu/download

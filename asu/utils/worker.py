@@ -131,9 +131,7 @@ class Worker(threading.Thread):
             self.params["image_hash"]
         ):
             self.log.info("build image")
-            with tempfile.TemporaryDirectory(
-                dir=self.config.get_folder("tempdir")
-            ) as build_dir:
+            with tempfile.TemporaryDirectory() as build_dir:
                 # now actually build the image with manifest hash as
                 # EXTRA_IMAGE_NAME
                 self.log.info("build image at %s", build_dir)
