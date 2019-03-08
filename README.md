@@ -3,6 +3,7 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d0a6edfd64ef41b6bb44a01ba9b8d7d7)](https://app.codacy.com/app/aparcar/attendedsysupgrade-server?utm_source=github.com&utm_medium=referral&utm_content=aparcar/attendedsysupgrade-server&utm_campaign=Badge_Grade_Dashboard)
 [![Build Status](https://travis-ci.com/aparcar/attendedsysupgrade-server.svg?branch=master)](https://travis-ci.com/aparcar/attendedsysupgrade-server)
 [![PyPI version](https://badge.fury.io/py/asu.svg)](https://badge.fury.io/py/asu)
+[![Docker Pulls](https://img.shields.io/docker/pulls/aparcar/asu-base.svg)](https://cloud.docker.com/repository/docker/aparcar/asu-base)
 
 This project intends to simplify the sysupgrade process of devices running OpenWrt or
 distributions based on the former like LibreMesh. The provided tools here offer an easy
