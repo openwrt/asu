@@ -22,6 +22,11 @@ class UpgradeCheck(Request):
                 return bad_request
             self.log.debug("passed distro check")
 
+        if "target" not in self.request_json:
+            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
+            self.response_header["X-Missing-Param"] = "target"
+            return self.respond()
+
         if "version" not in self.request_json:
             self.response_json["version"] = self.config.get(self.request["distro"]).get(
                 "latest"
@@ -35,7 +40,14 @@ class UpgradeCheck(Request):
             if self.config.version(self.request["distro"], self.request["version"]).get(
                 "snapshots", False
             ):
-                self.response_json["version"] = self.request["version"]
+                revision = self.database.get_revision(
+                    self.request["distro"],
+                    self.request["version"],
+                    self.request_json["target"],
+                )
+                if self.request_json.get("revision") == revision:
+                    self.response_json["revision"] = revision
+                    self.response_json["version"] = self.request["version"]
             else:
                 latest_version = self.config.get(self.request["distro"]).get("latest")
                 if latest_version != self.request["version"]:
@@ -43,13 +55,10 @@ class UpgradeCheck(Request):
                 else:
                     self.response_status = HTTPStatus.NO_CONTENT  # 204
 
-        if "target" not in self.request_json:
-            return self.respond()
-        else:
-            # check if target/sutarget still exists in new version
-            bad_request = self.check_bad_target()
-            if bad_request:
-                return bad_request
+        # check if target/sutarget still exists in new version
+        bad_request = self.check_bad_target()
+        if bad_request:
+            return bad_request
 
         if "installed" not in self.request_json:
             return self.respond()
