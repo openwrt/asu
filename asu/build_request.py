@@ -181,9 +181,9 @@ class BuildRequest(Request):
             image_path = self.database.get_image_path(self.request["image_hash"])
             self.response_json["sysupgrade"] = image_path["sysupgrade"]
             self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(
-                image_path["file_path"], self.request["image_hash"]
+                image_path["files"], self.request["image_hash"]
             )
-            self.response_json["files"] = "/json/{}/".format(image_path["file_path"])
+            self.response_json["files"] = "/json/{}/".format(image_path["files"])
             self.response_json["request_hash"] = self.request["request_hash"]
             self.response_json["image_hash"] = self.request["image_hash"]
 
