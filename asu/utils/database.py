@@ -231,25 +231,20 @@ class Database:
 
     # TODO reimplement
     def get_outdated_manifests(self):
-        sql = """select image_hash, file_path from images join images
-            using (image_hash) join manifest_upgrades
-            using (distro, version, target, manifest_hash);"""
+        sql = """select image_hash, files from images join
+            manifest_upgrades using (distro, version, target, manifest_hash);"""
         self.c.execute(sql)
         return self.c.fetchall()
 
     def get_outdated_snapshots(self):
-        sql = """select image_hash, file_path from images join images
-            using (image_hash)
-            where snapshots = 'true' and
-                build_date < NOW() - INTERVAL '1 day';"""
+        sql = """select image_hash, files from images where
+            snapshots = 'true' and build_date < NOW() - INTERVAL '1 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
 
     def get_outdated_customs(self):
-        sql = """select image_hash, file_path from images join images
-            using (image_hash)
-            where defaults_hash != '' and
-            build_date < NOW() - INTERVAL '7 day';"""
+        sql = """select image_hash, files from images where
+            defaults_hash != '' and build_date < NOW() - INTERVAL '7 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
 
