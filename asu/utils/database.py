@@ -40,6 +40,9 @@ class Database:
             self.c.execute(tables_file.read())
         self.log.info("database init successful")
 
+    def reset_db(self):
+        self.c.execute("drop schema public cascade; create schema public;")
+
     def insert_target(self, distro, version, targets):
         sql = "insert into targets (distro, version, target) values (?, ?, ?);"
         self.cnxn.autocommit = False

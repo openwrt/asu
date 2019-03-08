@@ -196,6 +196,12 @@ def loaddb():
 
 
 @app.cli.command()
+def resetdb():
+    """Reset database"""
+    database.reset_db()
+
+
+@app.cli.command()
 def run_worker():
     """Run worker doing all sorts of background work"""
     from asu.utils.garbagecollector import GarbageCollector
