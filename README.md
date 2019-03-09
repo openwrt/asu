@@ -20,34 +20,17 @@ of setting up a build environment, even from mobile devices.
 
 Add a view to the Luci system tab called "Attended Sysupgrade". Offers a button to search for updates and if found, to flash the image created by the update server.
 
-**Dependencies:**
-
--   `rpcd-mod-rpcsys`
-    		Used to read list of installed packages and trigger sysupgrade on the target.
--   `uhttpd-mod-ubus`
-    		Communication between the Browser and the Router
--   `cgi-io`
-    		Upload image from Browser to Router
-    	
-
-![luci-app-attendedsysupgrade-screenshot](https://camo.githubusercontent.com/d21d3c2e43993325c0371866b28f09a67ea21902/687474703a2f2f692e696d6775722e636f6d2f653443716841502e706e67)
+![luci-app-attendedsysupgrade-screenshot](https://user-images.githubusercontent.com/16000931/53075790-57b74480-34ee-11e9-9955-68e9c00dc3bb.png)
 
 ### [`auc`](https://github.com/openwrt/packages/tree/master/utils/auc)
 
-Add CLI to perform sysupgrades.
-
-**Dependencies:**
-
--   `rpcd-mod-rpcsys`
-    		Used to read list of installed packages and trigger sysupgrade on the target.
--   `usteam-ssl` and `ca-certificates`
-    		Securely communicate and download firmware from server via https
+Add CLI to perform sysupgrades. Makes use of `ucert` to verify images are from a trusted source.
 
 ### [Chef Online Builder](https://github.com/libremesh/chef)
 
 -   <https://chef.libremesh.org>
 
-![Chef](https://screenshotscdn.firefoxusercontent.com/images/73b438ed-3fce-4951-8589-0e7685175f77.png)
+![Chef](https://user-images.githubusercontent.com/16000931/54073419-21681c00-4287-11e9-8592-3648431f1b41.png)
 
 ## Server
 
