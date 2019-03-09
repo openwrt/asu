@@ -1,0 +1,18 @@
+# where to store the updater
+updater_dir: "./updater"
+# how many update threads in parrallel
+updater_threads: 1
+
+# path to workers
+worker:
+    - "./worker"
+
+# currently active distributions
+active_distros:
+    - openwrt
+
+# folder with distro config
+distro_folder: distributions
+
+# folder to store created images
+download_folder: download

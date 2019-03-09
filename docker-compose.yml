@@ -18,7 +18,7 @@ services:
       - LANG=C.UTF-8
     command: sh -c 'sh .wait-for db:5432 -- flask fetch-targets && gunicorn3 -b 0.0.0.0:8000 asu:app'
     volumes:
-      - "./config.yml.docker:/asu/config.yml"
+      - "./config.yml/asu/config.yml"
     ports:
       - 8000
     depends_on:
@@ -32,7 +32,7 @@ services:
       - LANG=C.UTF-8
     command: sh -c 'sh .wait-for server:8000 -t 300 -- flask run-worker'
     volumes:
-      - "./config.yml.docker:/asu/config.yml"
+      - "./config.yml:/asu/config.yml"
       - "./worker/:/asu/worker/"
       - "./updater/:/asu/updater/"
     depends_on:

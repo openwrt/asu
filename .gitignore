@@ -6,7 +6,6 @@ build/
 dist/
 tests/
 .coverage
-config.yml
 .vagrant/
 *.swp
 *.log

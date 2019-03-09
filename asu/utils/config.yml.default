@@ -1,8 +1,3 @@
-# server
-dev: False
-sign_images: True
-server_user: root
-server_dir: /vagrant
 updater_dir: /var/lib/asu/updater
 updater_threads: 4
 worker:
@@ -12,6 +7,5 @@ active_distros:
     - lime
     - openwrt
 
-# folder
 distro_folder: /etc/asu/distributions
 download_folder: /var/cache/asu/download
