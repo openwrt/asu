@@ -148,8 +148,10 @@ root shell login as postgres, create the `asu` database and change the password!
 
     su postgres
     createdb asu
-    psql asu
-    alter role postgres with password 'changeme';
+    psql
+    create role asu with password 'changeme' nosuperuser nocreatedb nocreaterole noinherit login noreplication nobypassrls;
+    grant all privileges on database asu to asu;
+
 
 Now let flask initiate the database and load available targets.
 
