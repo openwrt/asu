@@ -14,7 +14,7 @@ class Database:
         self.connect()
 
     def connect(self):
-        connection_string="DSN=asu;BoolsAsChar=0"
+        connection_string = "DSN=asu;BoolsAsChar=0"
         self.cnxn = pyodbc.connect(connection_string)
         self.cnxn.autocommit = True
         self.c = self.cnxn.cursor()

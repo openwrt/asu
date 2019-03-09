@@ -20,6 +20,7 @@ before_script:
   - psql -c "CREATE DATABASE asu;" -U postgres
   - psql -c "ALTER USER postgres WITH PASSWORD 'changeme';" -U postgres
   - psql asu < ./asu/utils/tables.sql -U postgres
+  - cp odbc.ini /etc/odbc.ini
 
 script:
   - pip install -e .
