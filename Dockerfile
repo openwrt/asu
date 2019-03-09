@@ -13,7 +13,7 @@ wget \
 
 RUN apt update && apt install -y \
 subversion g++ zlib1g-dev build-essential git python rsync man-db \
-libncurses5-dev gawk gettext unzip file libssl-dev wget zip time \
+libncurses5-dev gawk gettext unzip file libssl-dev wget zip \
 && rm -rf /var/lib/apt/lists/*
 
 COPY . /asu
