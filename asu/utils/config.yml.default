@@ -12,13 +12,6 @@ active_distros:
     - lime
     - openwrt
 
-# database
-database_type: PostgreSQL Unicode
-database_address: localhost
-database_user: postgres
-database_pass: changeme
-database_port: 5432
-
 # folder
 distro_folder: /etc/asu/distributions
 download_folder: /var/cache/asu/download
