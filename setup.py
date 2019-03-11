@@ -7,7 +7,7 @@ with io.open("README.md", "rt", encoding="utf8") as f:
 
 setup(
     name="asu",
-    version="0.2.3",
+    version="0.2.4",
     url="https://github.com/aparcar/attendedsysupgrade-server",
     license="",
     maintainer="Paul Spooren",
