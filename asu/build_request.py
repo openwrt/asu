@@ -203,9 +203,7 @@ class BuildRequest(Request):
                 # no sysupgrade found but not requested, factory image is
                 # likely from interest
                 image_path = self.database.get_image_path(self.request["image_hash"])
-                self.response_json["files"] = "/json/{}/".format(
-                    image_path["files"]
-                )
+                self.response_json["files"] = "/json/{}/".format(image_path["files"])
                 self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(
                     image_path["files"], self.request["image_hash"]
                 )
