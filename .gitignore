@@ -1,5 +1,6 @@
 ansible/*.retry
 ansible/host_vars/
+ansible/ansible.cfg
 ansible/hosts
 asu.egg-info/
 build/

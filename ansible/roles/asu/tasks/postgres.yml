@@ -3,16 +3,16 @@
   vars:
       ansible_ssh_pipelining: true
   postgresql_db:
-    name: "asu"
+    name: "{{ db_name }}"
 
 - name: ensure user has access to database
   become_user: postgres
   vars:
       ansible_ssh_pipelining: true
   postgresql_user:
-    db: "asu"
-    name: "{{ database_user }}"
-    password: "{{ database_pass }}"
+    db: "{{ db_name }}"
+    name: "{{ db_user }}"
+    password: "{{ db_pass }}"
     priv: ALL
 
 - name: ensure user does not have unnecessary privilege
@@ -20,14 +20,5 @@
   vars:
       ansible_ssh_pipelining: true
   postgresql_user:
-    name: "{{ database_user }}"
+    name: "{{ db_user }}"
     role_attr_flags: NOSUPERUSER,NOCREATEDB
-
-- name: init database
-  become_user: postgres
-  vars:
-      ansible_ssh_pipelining: true
-  postgresql_db:
-    name: "asu"
-    state: restore
-    target: "{{ server_dir }}/asu/utils/tables.sql"
