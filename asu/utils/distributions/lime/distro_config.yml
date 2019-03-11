@@ -41,9 +41,9 @@ active_targets:
   - mcs814x/generic
   - mpc85xx/generic
   - mpc85xx/p1020
-  - mvevu/cortexa53
-  - mvevu/cortexa72
-  - mvevu/cortexa9
+  - mvebu/cortexa53
+  - mvebu/cortexa72
+  - mvebu/cortexa9
   - octeon/generic
   - ramips/mt7620
   - ramips/mt7621
