@@ -1,0 +1,21 @@
+- name: install asu via pip
+  pip:
+    executable: pip3
+    name: asu
+    state: latest
+  when: inventory_hostname != "vagrant" and git_branch is undefined
+
+- name: clone server git repo
+  become_user: "{{ server_user }}"
+  git:
+    repo: 'https://github.com/aparcar/attendedsysupgrade-server.git'
+    dest: "{{ server_dir }}"
+    version: "{{ git_branch }}"
+  when: git_branch is defined
+
+- pip:
+    executable: pip3
+    name: .
+    editable: yes
+    chdir: "{{ server_folder }}"
+  when: inventory_hostname == "vagrant" or git_branch is defined
