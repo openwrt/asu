@@ -124,10 +124,11 @@ This allows `gunicorn3` and `flask` to find the package.
 
 ### Setting up PostgreSQL
 
-As `asu` uses [ODBC](https://en.wikipedia.org/wiki/Open_Database_Connectivity) you have
-to add the servers database to your `.odbc.ini` or `/etc/odbc.ini`. See an example
-configuration [here](odbc.ini). Once added setup the PostgreSQL user account.  From a
-root shell login as postgres, create the `asu` database and change the password!
+As `asu` uses [ODBC](https://en.wikipedia.org/wiki/Open_Database_Connectivity)
+you have to add the servers database to your `.odbc.ini` or `/etc/odbc.ini`. See
+an example configuration [here](contrib/odbc.ini). Once added setup the
+PostgreSQL user account. From a root shell login as postgres, create the `asu`
+database and change the password!
 
     su postgres
     createdb asu

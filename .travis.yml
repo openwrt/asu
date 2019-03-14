@@ -21,7 +21,7 @@ before_script:
   - psql -c "create role asu with password 'changeme' nosuperuser nocreatedb nocreaterole noinherit login;" -U postgres
   - psql -c "grant all privileges on database asu to asu;" -U postgres
   - psql asu < ./asu/utils/tables.sql -U postgres
-  - cp odbc.ini ~/.odbc.ini
+  - cp ./contrib/odbc.ini ~/.odbc.ini
 
 script:
   - pip install -e .
