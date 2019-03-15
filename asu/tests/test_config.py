@@ -11,12 +11,12 @@ def test_config_version():
     assert Config().version("openwrt", "18.06.0") is not None
 
 
-def test_config_version_distro_alias():
-    assert Config().version("openwrt", "18.06.0").get("distro_alias") == "OpenWrt"
+def test_config_distro_alias():
+    assert Config().config["distros"]["openwrt"]["distro_alias"] == "OpenWrt"
 
 
 def test_config_version_distro_vanilla():
-    assert Config().version("openwrt", "18.06.0").get("vanilla") == ["luci"]
+    assert Config().version("openwrt", "18.06.0")["vanilla"] == ["luci"]
 
 
 def test_config_get_all():

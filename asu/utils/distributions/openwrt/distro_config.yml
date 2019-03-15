@@ -12,71 +12,27 @@ versions:
   - 18.06.0
   - snapshots
 
-# only imagebuilders of the following are downloaded
-active_targets:
-  - apm821xx/nand
-  - ar71xx/generic
-  - ar71xx/mikrotik
-  - ar71xx/nand
-  - ar71xx/tiny
-  - ath25/generic
-  - ath79/generic
-  - ath79/nand
-  - ath79/tiny
-  - bcm53xx/generic
-  - brcm2708/brcm2708
-  - brcm2708/brcm2709
-  - brcm2708/brcm2710
-  - brcm47xx/generic
-  - brcm47xx/legacy
-  - brcm47xx/mips74k
-  - brcm63xx/generic
-  - brcm63xx/smp
-  - gemini/generic
-  - ipq40xx/generic
-  - ipq806x/generic
-  - kirkwood/generic
-  - lantiq/xrx200
-  - lantiq/xway
-  - mcs814x/generic
-  - mpc85xx/generic
-  - mpc85xx/p1020
-  - mvebu/cortexa53
-  - mvebu/cortexa72
-  - mvebu/cortexa9
-  - octeon/generic
-  - oxnas/ox820
-  - ramips/mt7620
-  - ramips/mt7621
-  - ramips/mt76x8
-  - ramips/rt3883
-  - ramips/rt305x
-  - ramips/rt288x
-  - sunxi/cortexa53
-  - sunxi/cortexa7
-  - sunxi/cortexa8
-  - x86/64
+version_common:
+    # also possible to blacklist broken/unwanted targets
+    # ignore_targets:
+    #   - example/broken
 
-# also possible to blacklist broken/unwanted targets
-# ignore_targets:
-#   - example/broken
+    # additional packages to be installed per default
+    vanilla:
+      - luci
 
-# additional packages to be installed per default
-vanilla:
-  - luci
+    # url to imagebuilders
+    targets_url: https://downloads.openwrt.org/releases/
 
-# url to imagebuilders
-targets_url: https://downloads.openwrt.org/releases/
-
-# some images local board_name don't match the ones used by the image builder
-# see https://github.com/aparcar/attendedsysupgrade-server/issues/132
-board_rename:
-  nanostation-m: ubnt-nano-m
-  nanostation-m-xw: ubnt-nano-m-xw
-  loco-m: ubnt-loco-m
-  loco-m-xw: ubnt-loco-m-xw
-  tl-wdr3500: tl-wdr3500-v1
-  tl-wdr4300: tl-wdr4300-v1
-  tl-wr741: tl-wr741-v1
-  raspberrypi,3-model-b: rpi-3
-  armada-385-linksys-rango: linksys-wrt3200acm
+    # some images local board_name don't match the ones used by the image builder
+    # see https://github.com/aparcar/attendedsysupgrade-server/issues/132
+    board_rename:
+      nanostation-m: ubnt-nano-m
+      nanostation-m-xw: ubnt-nano-m-xw
+      loco-m: ubnt-loco-m
+      loco-m-xw: ubnt-loco-m-xw
+      tl-wdr3500: tl-wdr3500-v1
+      tl-wdr4300: tl-wdr4300-v1
+      tl-wr741: tl-wr741-v1
+      raspberrypi,3-model-b: rpi-3
+      armada-385-linksys-rango: linksys-wrt3200acm

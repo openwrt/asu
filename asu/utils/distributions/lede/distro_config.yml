@@ -9,22 +9,19 @@ versions:
   - "17.01.2"
   - "17.01.1"
   - "17.01.0"
-vanilla:
-  - luci
 
-active_targets:
-  - ar71xx/generic
-  - x86/64
-  - ramips/mt7621
+version_common:
+    vanilla:
+      - luci
 
-targets_url: https://downloads.lede-project.org/releases/
+    targets_url: https://downloads.lede-project.org/releases/
 
-board_rename:
-  nanostation-m: ubnt-nano-m
-  nanostation-m-xw: ubnt-nano-m-xw
-  loco-m: ubnt-loco-m
-  loco-m-xw: ubnt-loco-m-xw
-  tl-wdr3500: tl-wdr3500-v1
-  tl-wdr4300: tl-wdr4300-v1
-  tl-wr741: tl-wr741-v1
-  armada-385-linksys-rango: linksys-wrt3200acm
+    board_rename:
+      nanostation-m: ubnt-nano-m
+      nanostation-m-xw: ubnt-nano-m-xw
+      loco-m: ubnt-loco-m
+      loco-m-xw: ubnt-loco-m-xw
+      tl-wdr3500: tl-wdr3500-v1
+      tl-wdr4300: tl-wdr4300-v1
+      tl-wr741: tl-wr741-v1
+      armada-385-linksys-rango: linksys-wrt3200acm

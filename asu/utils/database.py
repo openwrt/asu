@@ -387,13 +387,6 @@ class Database:
             WHERE request_hash = ?;"""
         self.c.execute(sql, status, image_hash, request_hash)
 
-    def api_get_distros(self):
-        sql = """select coalesce(array_to_json(
-            array_agg(row_to_json(distributions))), '[]')
-                from (select * from distributions order by (alias))
-                as distributions;"""
-        return self.c.execute(sql).fetchval()
-
     def api_get_versions(self):
         sql = """select coalesce(array_to_json(array_agg(
             row_to_json(versions))), '[]') from (select * from versions

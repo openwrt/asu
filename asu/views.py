@@ -112,14 +112,9 @@ def api_stats_popular_packages():
     return mime_json(database.get_popular_packages())
 
 
-@app.route("/api/distros")
-def api_distros():
-    return mime_json(database.api_get_distros())
-
-
 @app.route("/api/distributions")
 def api_distributions():
-    return mime_json(config.get_all())
+    return mime_json(config.as_json())
 
 
 @app.route("/api/versions")
@@ -234,12 +229,16 @@ def fetch_targets():
             "distros",
             {
                 "distro": distro,
-                "distro_alias": config.get(distro).get("distro_alias", distro),
-                "distro_description": config.get(distro).get("distro_description", ""),
-                "latest": config.get(distro).get("latest"),
+                "distro_alias": config.config["distros"][distro].get(
+                    "distro_alias", distro
+                ),
+                "distro_description": config.config["distros"][distro].get(
+                    "distro_description", ""
+                ),
+                "latest": config.config["distros"][distro]["latest"],
             },
         )
-        for version in config.get(distro).get("versions", []):
+        for version in config.config["distros"][distro].get("versions", []):
             version_config = config.version(distro, version)
             database.insert_dict(
                 "versions",
@@ -270,10 +269,8 @@ def fetch_targets():
                 )
             )
 
-            if version_config.get("active_targets"):
-                version_targets = version_targets & set(
-                    version_config.get("active_targets")
-                )
+            if config.get("active_targets"):
+                version_targets = version_targets & set(config.get("active_targets"))
 
             if version_config.get("ignore_targets"):
                 version_targets = version_targets - set(
@@ -354,16 +351,17 @@ def build_worker():
 
 def insert_board_rename():
     """Insert board rename"""
-    for distro, version in database.get_versions():
-        version_config = config.version(distro, version)
-        if "board_rename" in version_config:
-            for origname, newname in version_config["board_rename"].items():
-                log.info(
-                    "insert board_rename {} {} {} {}".format(
-                        distro, version, origname, newname
+    for distro in config.get_distros():
+        for version in config.config["distros"][distro]["versions"]:
+            version_config = config.version(distro, version)
+            if "board_rename" in version_config:
+                for origname, newname in version_config["board_rename"].items():
+                    log.info(
+                        "insert board_rename {} {} {} {}".format(
+                            distro, version, origname, newname
+                        )
                     )
-                )
-                database.insert_board_rename(distro, version, origname, newname)
+                    database.insert_board_rename(distro, version, origname, newname)
 
 
 def insert_transformations(distro, version, transformations):
@@ -401,18 +399,21 @@ def insert_transformations(distro, version, transformations):
 
 def load_tables():
     """Load package transformations"""
-    for distro, version in database.get_versions():
-        log.debug("load tables %s %s", distro, version)
-        version_transformations_path = os.path.join(
-            "distributions", distro, (version + ".yml")
-        )
-        if os.path.exists(version_transformations_path):
-            with open(
-                version_transformations_path, "r"
-            ) as version_transformations_file:
-                transformations = yaml.load(version_transformations_file.read())
-                if transformations:
-                    if "transformations" in transformations:
-                        insert_transformations(
-                            distro, version, transformations["transformations"]
-                        )
+    for distro in config.get_distros():
+        for version in config.config["distros"][distro]["versions"]:
+            log.debug("load tables %s %s", distro, version)
+            version_transformations_path = os.path.join(
+                "distributions", distro, (version + ".yml")
+            )
+            if os.path.exists(version_transformations_path):
+                with open(
+                    version_transformations_path, "r"
+                ) as version_transformations_file:
+                    transformations = yaml.safe_load(
+                        version_transformations_file.read()
+                    )
+                    if transformations:
+                        if "transformations" in transformations:
+                            insert_transformations(
+                                distro, version, transformations["transformations"]
+                            )
