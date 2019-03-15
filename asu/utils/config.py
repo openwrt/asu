@@ -19,7 +19,7 @@ class Config:
                         config_file.write(default_file.read())
 
         with open(self.config_file, "r") as ymlfile:
-            self.config = yaml.load(ymlfile)
+            self.config = yaml.safe_load(ymlfile)
 
         distro_folder = self.config.get("distro_folder")
         if not os.path.exists(distro_folder):
@@ -32,7 +32,7 @@ class Config:
                 ),
                 "r",
             ) as ymlfile:
-                self.config[distro] = yaml.load(ymlfile)
+                self.config[distro] = yaml.safe_load(ymlfile)
 
     # load configuration of distro and overlay it with custom version settings
     def version(self, distro, version):
@@ -40,12 +40,12 @@ class Config:
         base_path = self.get_folder("distro_folder") + "/" + distro
 
         with open(base_path + "/distro_config.yml", "r") as distro_file:
-            version_config.update(yaml.load(distro_file.read()))
+            version_config.update(yaml.safe_load(distro_file.read()))
 
         version_path = os.path.join(base_path, version + ".yml")
         if os.path.exists(version_path):
             with open(version_path, "r") as version_file:
-                version_content = yaml.load(version_file.read())
+                version_content = yaml.safe_load(version_file.read())
                 if version_content:
                     version_config.update(version_content)
 
@@ -83,14 +83,14 @@ class Config:
         for distro in self.get_distros():
             base_path = self.get_folder("distro_folder") + "/" + distro
             with open(base_path + "/distro_config.yml", "r") as distro_file:
-                distros[distro] = yaml.load(distro_file.read())
+                distros[distro] = yaml.safe_load(distro_file.read())
             distro_versions = distros[distro]["versions"].copy()
             distros[distro]["versions"] = {}
             for version in distro_versions:
                 version_path = os.path.join(base_path, version + ".yml")
                 if os.path.exists(version_path):
                     with open(version_path, "r") as version_file:
-                        version_content = yaml.load(version_file.read())
+                        version_content = yaml.safe_load(version_file.read())
                         if version_content:
                             distros[distro]["versions"][version] = version_content
                 else:

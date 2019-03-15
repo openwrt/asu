@@ -34,10 +34,7 @@ class Worker(threading.Thread):
         if not os.path.exists(self.location + "/meta"):
             cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
             proc = subprocess.Popen(
-                cmdline.split(" "),
-                cwd=self.location,
-                stdout=subprocess.PIPE,
-                shell=False,
+                cmdline.split(" "), cwd=self.location, stdout=subprocess.PIPE
             )
 
             _, errors = proc.communicate()
@@ -334,7 +331,6 @@ class Worker(threading.Thread):
             cwd=self.location,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            shell=False,
             env=env,
         )
 

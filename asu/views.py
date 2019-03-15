@@ -208,8 +208,6 @@ def run_worker():
     from asu.utils.boss import Boss
     from asu.utils.updater import Updater
 
-    import logging
-
     logging.basicConfig(level=logging.DEBUG)
     log = logging.getLogger(__name__)
 
@@ -410,7 +408,7 @@ def load_tables():
             with open(
                 version_transformations_path, "r"
             ) as version_transformations_file:
-                transformations = yaml.load(version_transformations_file.read())
+                transformations = yaml.safe_load(version_transformations_file.read())
                 if transformations:
                     if "transformations" in transformations:
                         insert_transformations(
