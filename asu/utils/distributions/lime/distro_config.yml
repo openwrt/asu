@@ -1,12 +1,6 @@
 ---
 distro_alias: "LibreMesh"
 
-# LibreMesh is based on OpenWrt, so use their ImageBuidlers
-parent_distro: "openwrt"
-
-# Use the following parent version
-parent_version: "18.06.2"
-
 latest: "testing"
 
 versions:
@@ -19,4 +13,13 @@ distro_description: >
   LibreMesh is a modular framework for creating OpenWrt-based firmwares for
   wireless mesh nodes. Several communities around the world use LibreMesh as
   the foundation of their local mesh firmwares.
+
+version_common:
+    imagebuilder_version: "18.06.2"
+
+    # url to imagebuilders
+    targets_url: https://downloads.openwrt.org/releases/
+    # additional packages to be installed per default
+    vanilla:
+      - luci
 

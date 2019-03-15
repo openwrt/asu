@@ -1,4 +1,6 @@
 snapshots: True
+targets_url: https://downloads.openwrt.org/
+imagebuilder_version: "snapshots"
 version_description: >
   LibreMesh development branch of @aparcar
 repos: |

@@ -13,26 +13,9 @@ versions:
   - snapshots
 
 version_common:
-    # also possible to blacklist broken/unwanted targets
-    # ignore_targets:
-    #   - example/broken
-
     # additional packages to be installed per default
     vanilla:
       - luci
 
     # url to imagebuilders
     targets_url: https://downloads.openwrt.org/releases/
-
-    # some images local board_name don't match the ones used by the image builder
-    # see https://github.com/aparcar/attendedsysupgrade-server/issues/132
-    board_rename:
-      nanostation-m: ubnt-nano-m
-      nanostation-m-xw: ubnt-nano-m-xw
-      loco-m: ubnt-loco-m
-      loco-m-xw: ubnt-loco-m-xw
-      tl-wdr3500: tl-wdr3500-v1
-      tl-wdr4300: tl-wdr4300-v1
-      tl-wr741: tl-wr741-v1
-      raspberrypi,3-model-b: rpi-3
-      armada-385-linksys-rango: linksys-wrt3200acm

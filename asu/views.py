@@ -255,7 +255,7 @@ def fetch_targets():
             version_config = config.version(distro, version)
             version_url = version_config.get("targets_url")
             # use parent_version for ImageBuilder if exists
-            version_imagebuilder = version_config.get("parent_version", version)
+            version_imagebuilder = version_config.get("imagebuilder_version", version)
 
             version_targets = set(
                 json.loads(

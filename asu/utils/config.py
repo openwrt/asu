@@ -29,14 +29,17 @@ class Config:
 
         # load configuration of distro and overlay it with custom version settings
         self.config["distros"] = {}
+        # load config for all active_distros
         for distro in self.get_distros():
             self.config["distros"][distro] = {}
             base_path = self.get_folder("distro_folder") + "/" + distro
+            # load distro_config.yml
             with open(base_path + "/distro_config.yml", "r") as distro_file:
                 self.config["distros"][distro] = yaml.safe_load(distro_file.read())
                 self.config["distros"][distro].pop("version_common", None)
             distro_versions = self.config["distros"][distro]["versions"].copy()
             self.config["distros"][distro]["versions"] = {}
+            # load all versions of distro_config
             for version in distro_versions:
                 with open(base_path + "/distro_config.yml", "r") as distro_file:
                     self.config["distros"][distro]["versions"][
