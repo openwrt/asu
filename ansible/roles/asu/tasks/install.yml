@@ -9,7 +9,7 @@
   become_user: "{{ server_user }}"
   git:
     repo: 'https://github.com/aparcar/attendedsysupgrade-server.git'
-    dest: "{{ server_dir }}"
+    dest: "{{ server_folder }}"
     version: "{{ git_branch }}"
   when: git_branch is defined
 
