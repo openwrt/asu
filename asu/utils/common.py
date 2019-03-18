@@ -23,8 +23,8 @@ def get_request_hash(request):
         if request["defaults"]:
             request["defaults_hash"] = get_hash(request["defaults"], 32)
     request_array = [
-        request["distro"],
-        request["version"],
+        request.get("distro", ""),
+        request.get("version", ""),
         request["target"],
         request["profile"],
         request.get("defaults_hash", ""),
