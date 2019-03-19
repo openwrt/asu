@@ -21,45 +21,48 @@
     dest: "{{ config_folder }}"
 
 - name: install required software
+  vars:
+    packages:
+      - git
+      - nginx
+      - nginx-extras # required for fancyindex
+      - postgresql
+      - odbc-postgresql
+      - unixodbc
+      - unixodbc-dev
+      - python3-yaml
+      - python3-flask
+      - python3-psycopg2
+      - python-psycopg2
+      - python3-setuptools
+      - python3-pip
+      - python-setuptools # required due to ansible bug
+      - python-pip        # https://github.com/ansible/ansible/issues/47361
+      - gunicorn3
   package:
-    name: "{{ item }}"
+    name: "{{ packages }}"
     state: latest
     update_cache: yes
 
-  with_items:
-    - git
-    - nginx
-    - nginx-extras # required for fancyindex
-    - postgresql
-    - odbc-postgresql
-    - unixodbc
-    - unixodbc-dev
-    - python3-yaml
-    - python3-flask
-    - python3-psycopg2
-    - python-psycopg2
-    - python3-setuptools
-    - python3-pip
-    - python-setuptools # required due to ansible bug
-    - python-pip        # https://github.com/ansible/ansible/issues/47361
-    - gunicorn3
-
 - name: install imagebuilder dependencies
-  package: name={{ item }} state=present
-  with_items:
-    - subversion
-    - build-essential
-    - libncurses5-dev
-    - zlib1g-dev
-    - gawk
-    - git
-    - ccache
-    - gettext
-    - libssl-dev
-    - xsltproc
-    - wget
-    - unzip
-    - python
+  vars:
+    packages:
+      - subversion
+      - build-essential
+      - libncurses5-dev
+      - zlib1g-dev
+      - gawk
+      - git
+      - ccache
+      - gettext
+      - libssl-dev
+      - xsltproc
+      - wget
+      - unzip
+      - python
+  package:
+    name: "{{ packages }}"
+    state: latest
 
 - name: copy asu server service
   template:
