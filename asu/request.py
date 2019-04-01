@@ -35,6 +35,7 @@ class Request:
             return False
 
     def check_bad_version(self):
+        self.request_json["version"] = self.request_json["version"].lower()
         if not self.request_json["version"] in self.config.get(
             self.request["distro"]
         ).get("versions"):
