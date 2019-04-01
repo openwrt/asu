@@ -10,7 +10,7 @@ versions:
   - 18.06.2
   - 18.06.1
   - 18.06.0
-  - snapshots
+  - snapshot
 
 # only imagebuilders of the following are downloaded
 active_targets:
@@ -66,7 +66,7 @@ vanilla:
   - luci
 
 # url to imagebuilders
-targets_url: https://downloads.openwrt.org/releases/
+targets_url: https://downloads.openwrt.org/releases/{version}/targets?json-targets
 
 # some images local board_name don't match the ones used by the image builder
 # see https://github.com/aparcar/attendedsysupgrade-server/issues/132
