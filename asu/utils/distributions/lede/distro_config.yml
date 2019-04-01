@@ -17,7 +17,6 @@ active_targets:
   - x86/64
   - ramips/mt7621
 
-targets_url: https://downloads.lede-project.org/releases/
 targets_url: https://downloads.lede-project.org/releases/{version}/targets?json-targets
 
 board_rename:

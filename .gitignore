@@ -6,7 +6,7 @@ asu.egg-info/
 build/
 dist/
 tests/
-distributions/
+./distributions/
 .coverage
 .vagrant/
 *.swp
