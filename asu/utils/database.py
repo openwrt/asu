@@ -229,8 +229,8 @@ class Database:
 
     # TODO reimplement
     def get_outdated_manifests(self):
-        sql = """select image_hash, files from images join
-            manifest_upgrades using (distro, version, target, manifest_hash);"""
+        sql = """select image_hash, files from images where
+            defaults_hash != '' and build_date < NOW() - INTERVAL '14 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
 

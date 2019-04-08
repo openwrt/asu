@@ -35,8 +35,8 @@ class GarbageCollector(threading.Thread):
 
             # TODO reimplement
             # del oudated manifests
-            # for outdated_manifest in self.database.get_outdated_manifests():
-            #    self.del_image(outdated_manifest)
+             for outdated_manifest in self.database.get_outdated_manifests():
+                self.del_image(outdated_manifest)
 
             # del outdated snapshot requests
             self.database.del_outdated_request()
