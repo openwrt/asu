@@ -1,5 +1,4 @@
 from http import HTTPStatus
-import logging
 import json
 
 from asu.request import Request
@@ -7,58 +6,28 @@ from asu.utils.common import get_hash
 
 
 class UpgradeCheck(Request):
+    """Handle upgrade requests"""
+
+    sysupgrade_requested = True
+    required_params = ["distro", "version", "target", "revision", "board_name"]
+
     def __init__(self, config, db):
         super().__init__(config, db)
-        self.log = logging.getLogger(__name__)
 
     def _process_request(self):
-        if "distro" not in self.request_json:
-            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
-            self.response_header["X-Missing-Param"] = "distro"
-            return self.respond()
-        else:
-            bad_request = self.check_bad_distro()
-            if bad_request:
-                return bad_request
-            self.log.debug("passed distro check")
-
-        if "target" not in self.request_json:
-            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
-            self.response_header["X-Missing-Param"] = "target"
-            return self.respond()
-
-        if "version" not in self.request_json:
-            self.response_json["version"] = self.config.get(self.request["distro"]).get(
-                "latest"
+        if self.config.snapshot(self.request["distro"], self.request["version"]):
+            revision = self.database.get_revision(
+                self.request["distro"], self.request["version"], self.request["target"]
             )
-            return self.respond()
+            if self.request_json.get("revision") != revision:
+                self.response_json["revision"] = revision
+                self.response_json["version"] = self.request["version"]
         else:
-            bad_request = self.check_bad_version()
-            if bad_request:
-                return bad_request
-            self.log.debug("passed version check")
-            if self.config.version(self.request["distro"], self.request["version"]).get(
-                "snapshots", False
-            ):
-                revision = self.database.get_revision(
-                    self.request["distro"],
-                    self.request["version"],
-                    self.request_json["target"],
-                )
-                if self.request_json.get("revision") != revision:
-                    self.response_json["revision"] = revision
-                    self.response_json["version"] = self.request["version"]
+            latest_version = self.config.latest(self.request["distro"])
+            if latest_version != self.request["version"]:
+                self.response_json["version"] = latest_version
             else:
-                latest_version = self.config.get(self.request["distro"]).get("latest")
-                if latest_version != self.request["version"]:
-                    self.response_json["version"] = latest_version
-                else:
-                    self.response_status = HTTPStatus.NO_CONTENT  # 204
-
-        # check if target/sutarget still exists in new version
-        bad_request = self.check_bad_target()
-        if bad_request:
-            return bad_request
+                self.response_status = HTTPStatus.NO_CONTENT  # 204
 
         if "installed" not in self.request_json:
             return self.respond()
