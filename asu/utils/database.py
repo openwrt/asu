@@ -116,8 +116,10 @@ class Database:
         self.c.execute(sql, distro, version, target)
 
         self.cnxn.autocommit = False
+
         # distro, version, target, profile, model, packages, metadata
         sql = """select insert_packages_profile (?, ?, ?, ?, ?, ?, ?, ?);"""
+
         self.c.executemany(
             sql,
             list(
@@ -126,13 +128,17 @@ class Database:
                         distro,
                         version,
                         target,
-                        profile[0],
-                        profile[1],
-                        profile[2],
-                        True if profile[3] == "1" else False,
-                        profile[4],
+                        profile[0],  # profile name
+                        profile[1],  # model
+                        profile[2],  # packages
+                        True if profile[3] == "1" else False,  # has metadata
+                        profile[4],  # supported devices
                     ),
-                    profiles,
+                    # remove "Default Profile" entries
+                    filter(
+                        lambda profile: not profile[0].startswith("Default Profile"),
+                        profiles,
+                    ),
                 )
             ),
         )
