@@ -6,6 +6,8 @@ from asu.request import Request
 
 
 class BuildRequest(Request):
+    """Handle build requests"""
+
     def __init__(self, config, db):
         super().__init__(config, db)
 
@@ -24,16 +26,6 @@ class BuildRequest(Request):
             else:
                 return self.return_status()
 
-        # TODO check for profile or board
-
-        # generic approach for
-        # https://github.com/aparcar/attendedsysupgrade-server/issues/91
-        self.request_json["board"] = self.request_json["board"].replace(",", "_")
-
-        self.request_json["profile"] = self.request_json[
-            "board"
-        ]  # TODO fix this workaround
-
         request_hash = get_request_hash(self.request_json)
         request_database = self.database.check_request_hash(request_hash)
 
@@ -47,32 +39,6 @@ class BuildRequest(Request):
         else:
             self.request["request_hash"] = request_hash
             self.response_json["request_hash"] = self.request["request_hash"]
-
-        # if not perform various checks to see if the request is acutally valid
-
-        # validate distro and version
-        if "distro" not in self.request_json:
-            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
-            self.response_header["X-Missing-Param"] = "distro"
-            return self.respond()
-        else:
-            bad_request = self.check_bad_distro()
-            if bad_request:
-                return bad_request
-
-        if "version" not in self.request_json:
-            self.request["version"] = self.config.get(self.request["distro"]).get(
-                "latest"
-            )
-        else:
-            bad_request = self.check_bad_version()
-            if bad_request:
-                return bad_request
-
-        # check for valid target
-        bad_target = self.check_bad_target()
-        if bad_target:
-            return bad_target
 
         # validate attached defaults
         if "defaults" in self.request_json:
@@ -109,56 +75,7 @@ class BuildRequest(Request):
                 self.request["packages_hash"], self.request["packages"]
             )
 
-        # now some heavy guess work is done to figure out the profile
-        # eventually this could be simplified if upstream unifirm the
-        # profiles/boards
-        if "board" in self.request_json:
-            self.log.debug(
-                "board in request, search for %s", self.request_json["board"]
-            )
-            self.request["profile"] = self.database.check_profile(
-                self.request["distro"],
-                self.request["version"],
-                self.request["target"],
-                self.request_json["board"],
-            )
-
-        if not self.request["profile"]:
-            if "model" in self.request_json:
-                self.log.debug(
-                    "model in request, search for %s", self.request_json["model"]
-                )
-                self.request["profile"] = self.database.check_model(
-                    self.request["distro"],
-                    self.request["version"],
-                    self.request["target"],
-                    self.request_json["model"],
-                )
-                self.log.debug("model search found profile %s", self.request["profile"])
-
-        if not self.request["profile"]:
-            if self.database.check_profile(
-                self.request["distro"],
-                self.request["version"],
-                self.request["target"],
-                "Generic",
-            ):
-                self.request["profile"] = "Generic"
-            elif self.database.check_profile(
-                self.request["distro"],
-                self.request["version"],
-                self.request["target"],
-                "generic",
-            ):
-                self.request["profile"] = "generic"
-            else:
-                self.response_json[
-                    "error"
-                ] = "unknown device, please check model and board params"
-                self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
-                return self.respond()
-
-        # all checks passed, eventually add to queue!
+        # all checks passed, add job to queue!
         self.log.debug("add build job %s", self.request)
         self.database.add_build_job(self.request)
         return self.return_queued()
@@ -176,10 +93,14 @@ class BuildRequest(Request):
 
     def return_status(self):
         # image created, return all desired information
-        if self.request["request_status"] == "created":
+        # TODO no_sysupgrade is somewhat legacy now
+        if (
+            self.request["request_status"] == "created"
+            or self.request["request_status"] == "no_sysupgrade"
+        ):
             self.database.cache_hit(self.request["image_hash"])
             image_path = self.database.get_image_path(self.request["image_hash"])
-            self.response_json["sysupgrade"] = image_path["sysupgrade"]
+            self.response_json["sysupgrade"] = image_path.get("sysupgrade", "")
             self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(
                 image_path["files"], self.request["image_hash"]
             )
@@ -188,29 +109,6 @@ class BuildRequest(Request):
             self.response_json["image_hash"] = self.request["image_hash"]
 
             self.response_status = HTTPStatus.OK  # 200
-
-        elif self.request["request_status"] == "no_sysupgrade":
-            self.database.cache_hit(self.request["image_hash"])
-            if self.sysupgrade_requested:
-                # no sysupgrade found but requested,
-                # let user figure out what # to do
-                self.response_json[
-                    "error"
-                ] = "No sysupgrade file produced, may not supported by model."
-
-                self.response_status = HTTPStatus.NOT_IMPLEMENTED  # 501
-            else:
-                # no sysupgrade found but not requested, factory image is
-                # likely from interest
-                image_path = self.database.get_image_path(self.request["image_hash"])
-                self.response_json["files"] = "/json/{}/".format(image_path["files"])
-                self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(
-                    image_path["files"], self.request["image_hash"]
-                )
-                self.response_json["request_hash"] = self.request["request_hash"]
-                self.response_json["image_hash"] = self.request["image_hash"]
-
-                self.response_status = HTTPStatus.OK  # 200
 
             self.respond()
 

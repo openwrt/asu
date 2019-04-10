@@ -3,14 +3,16 @@ import shutil
 import os.path
 import json
 import os
-from os import makedirs
 
 
 class Config:
+    """Config of the asu server and worker"""
+
+    config = {}
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file = "/etc/asu/config.yml"
+
     def __init__(self):
-        self.config = {}
-        self.root_dir = os.path.dirname(os.path.abspath(__file__))
-        self.config_file = "/etc/asu/config.yml"
         if not os.path.exists(self.config_file):
             self.config_file = "config.yml"
             if not os.path.exists(self.config_file):
@@ -25,40 +27,47 @@ class Config:
         if not os.path.exists(distro_folder):
             shutil.copytree(self.root_dir + "/distributions", distro_folder)
 
+        # load configuration of distro and overlay it with custom version settings
+        self.config["distros"] = {}
+        # load config for all active_distros
         for distro in self.get_distros():
-            with open(
-                os.path.join(
-                    self.get_folder("distro_folder"), distro, "distro_config.yml"
-                ),
-                "r",
-            ) as ymlfile:
-                self.config[distro] = yaml.safe_load(ymlfile)
+            self.config["distros"][distro] = {}
+            base_path = self.get_folder("distro_folder") + "/" + distro
+            # load distro_config.yml
+            with open(base_path + "/distro_config.yml", "r") as distro_file:
+                self.config["distros"][distro] = yaml.safe_load(distro_file.read())
+                self.config["distros"][distro].pop("version_common", None)
+            distro_versions = self.config["distros"][distro]["versions"].copy()
+            self.config["distros"][distro]["versions"] = {}
+            # load all versions of distro_config
+            for version in distro_versions:
+                with open(base_path + "/distro_config.yml", "r") as distro_file:
+                    self.config["distros"][distro]["versions"][
+                        version
+                    ] = yaml.safe_load(distro_file.read()).get("version_common", {})
+                version_path = os.path.join(base_path, version + ".yml")
+                if os.path.exists(version_path):
+                    with open(version_path, "r") as version_file:
+                        self.config["distros"][distro]["versions"][version].update(
+                            yaml.safe_load(version_file.read())
+                        )
 
-    # load configuration of distro and overlay it with custom version settings
+    def get_distros(self):
+        return self.config.get("active_distros", ["openwrt"])
+
+    def distro(self, distro):
+        return self.config["distros"][distro]
+
     def version(self, distro, version):
-        version_config = {}
-        base_path = self.get_folder("distro_folder") + "/" + distro
+        return self.config["distros"][distro]["versions"][version]
 
-        with open(base_path + "/distro_config.yml", "r") as distro_file:
-            version_config.update(yaml.safe_load(distro_file.read()))
+    def snapshot(self, distro, version):
+        return self.config["distros"][distro]["versions"][version].get(
+            "snapshots", False
+        )
 
-        version_path = os.path.join(base_path, version + ".yml")
-        if os.path.exists(version_path):
-            with open(version_path, "r") as version_file:
-                version_content = yaml.safe_load(version_file.read())
-                if version_content:
-                    version_config.update(version_content)
-
-        # if distro is based on another distro, load these settings as well
-        if "parent_version" in version_config:
-            parent_config = self.version(
-                version_config["parent_distro"], version_config["parent_version"]
-            )
-
-            parent_config.update(version_config)
-            return parent_config
-
-        return version_config
+    def latest(self, distro):
+        return self.config["distros"][distro].get("latest")
 
     def get(self, opt, alt=None):
         if opt in self.config:
@@ -71,31 +80,8 @@ class Config:
             if not os.path.exists(folder):
                 os.makedirs(folder)
             return os.path.abspath(folder)
+        else:
+            raise Exception("Folder {} not set".format(requested_folder))
 
-        # if unset use $PWD/<requested_folder>
-        default_folder = os.path.join(os.getcwdb(), requested_folder)
-        if not os.path.exists(default_folder):
-            makedirs(default_folder)
-        return os.path.abspath(default_folder)
-
-    def get_all(self):
-        distros = {}
-        for distro in self.get_distros():
-            base_path = self.get_folder("distro_folder") + "/" + distro
-            with open(base_path + "/distro_config.yml", "r") as distro_file:
-                distros[distro] = yaml.safe_load(distro_file.read())
-            distro_versions = distros[distro]["versions"].copy()
-            distros[distro]["versions"] = {}
-            for version in distro_versions:
-                version_path = os.path.join(base_path, version + ".yml")
-                if os.path.exists(version_path):
-                    with open(version_path, "r") as version_file:
-                        version_content = yaml.safe_load(version_file.read())
-                        if version_content:
-                            distros[distro]["versions"][version] = version_content
-                else:
-                    distros[distro]["versions"][version] = {}
-        return json.dumps(distros)
-
-    def get_distros(self):
-        return self.config.get("active_distros", ["openwrt", "lime"])
+    def as_json(self):
+        return json.dumps(self.config["distros"])

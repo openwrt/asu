@@ -1,5 +1,5 @@
-parent_distro: openwrt
-parent_version: snapshots
+imagebuilder_version: snapshots
+targets_url: https://downloads.openwrt.org/
 snapshots: True
 version_alias: unstable development
 version_description: >

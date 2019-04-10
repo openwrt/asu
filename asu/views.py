@@ -11,7 +11,7 @@ import yaml
 from asu.build_request import BuildRequest
 from asu.upgrade_check import UpgradeCheck
 from asu.utils.config import Config
-from asu.utils.common import get_packages_hash, get_request_hash
+from asu.utils.common import get_request_hash
 from asu.utils.database import Database
 
 
@@ -38,14 +38,14 @@ def api_upgrade_check(request_hash=None):
     return uc.process_request(request_json)
 
 
-# request methos for individual image
-# uses post methos to receive build information
-
 # the post request should contain the following entries
 # distribution, version, revision, target, packages
+@app.route("/api/build-request", methods=["POST"])
+@app.route("/api/build-request/<request_hash>", methods=["GET"])
+# this is somewhat legacy
 @app.route("/api/upgrade-request", methods=["POST"])
 @app.route("/api/upgrade-request/<request_hash>", methods=["GET"])
-def api_upgrade_request(request_hash=None):
+def api_build_request(request_hash=None):
     if request.method == "POST":
         try:
             request_json = json.loads(request.get_data().decode("utf-8"))
@@ -56,7 +56,7 @@ def api_upgrade_request(request_hash=None):
             return "[]", HTTPStatus.BAD_REQUEST
         request_json = {"request_hash": request_hash}
 
-    return br.process_request(request_json, sysupgrade_requested=1)
+    return br.process_request(request_json)
 
 
 @app.route("/")
@@ -64,21 +64,6 @@ def api_upgrade_request(request_hash=None):
 @app.route("/stats/")
 def api_redirect():
     return redirect("https://github.com/aparcar/attendedsysupgrade-server/")
-
-
-@app.route("/api/build-request", methods=["POST"])
-@app.route("/api/build-request/<request_hash>", methods=["GET"])
-def api_files_request(request_hash=None):
-    if request.method == "POST":
-        try:
-            request_json = json.loads(request.get_data().decode("utf-8"))
-        except json.JSONDecodeError:
-            return "[]", HTTPStatus.BAD_REQUEST
-    else:
-        if not request_hash:
-            return "[]", HTTPStatus.BAD_REQUEST
-        request_json = {"request_hash": request_hash}
-    return br.process_request(request_json)
 
 
 @app.route("/api/v1/stats/image_stats")
@@ -112,14 +97,9 @@ def api_stats_popular_packages():
     return mime_json(database.get_popular_packages())
 
 
-@app.route("/api/distros")
-def api_distros():
-    return mime_json(database.api_get_distros())
-
-
 @app.route("/api/distributions")
 def api_distributions():
-    return mime_json(config.get_all())
+    return mime_json(config.as_json())
 
 
 @app.route("/api/versions")
@@ -232,12 +212,16 @@ def fetch_targets():
             "distros",
             {
                 "distro": distro,
-                "distro_alias": config.get(distro).get("distro_alias", distro),
-                "distro_description": config.get(distro).get("distro_description", ""),
-                "latest": config.get(distro).get("latest"),
+                "distro_alias": config.config["distros"][distro].get(
+                    "distro_alias", distro
+                ),
+                "distro_description": config.config["distros"][distro].get(
+                    "distro_description", ""
+                ),
+                "latest": config.config["distros"][distro]["latest"],
             },
         )
-        for version in config.get(distro).get("versions", []):
+        for version in config.config["distros"][distro].get("versions", []):
             version_config = config.version(distro, version)
             database.insert_dict(
                 "versions",
@@ -253,7 +237,7 @@ def fetch_targets():
             )
             version_config = config.version(distro, version)
             # use parent_version for ImageBuilder if exists
-            version_imagebuilder = version_config.get("parent_version", version)
+            version_imagebuilder = version_config.get("imagebuilder_version", version)
 
             version_targets = set(
                 json.loads(
@@ -267,10 +251,8 @@ def fetch_targets():
                 )
             )
 
-            if version_config.get("active_targets"):
-                version_targets = version_targets & set(
-                    version_config.get("active_targets")
-                )
+            if config.get("active_targets"):
+                version_targets = version_targets & set(config.get("active_targets"))
 
             if version_config.get("ignore_targets"):
                 version_targets = version_targets - set(
@@ -282,15 +264,15 @@ def fetch_targets():
 
 
 @app.cli.command()
-def build_all():
-    """Build all profiles of openwrt latest stable"""
-    for profile in database.get_all_profiles(
-        "openwrt", config.get("openwrt").get("latest")
-    ):
+def build_snap():
+    """Build all profiles of openwrt latest snapshot"""
+    for profile in database.get_all_profiles("openwrt", "snapshots"):
         target, profile = profile
+        if profile == "Default":
+            continue
         params = {
             "distro": "openwrt",
-            "version": config.get("openwrt").get("latest"),
+            "version": "snapshots",
             "target": target,
             "profile": profile,
         }
@@ -299,68 +281,42 @@ def build_all():
 
 
 @app.cli.command()
-def build_worker():
-    """Build image with worker package preinstalled"""
-    log.info("build worker image")
-    packages = [
-        "bash",
-        "bzip2",
-        "coreutils",
-        "coreutils-stat",
-        "diffutils",
-        "file",
-        "gawk",
-        "gcc",
-        "getopt",
-        "git",
-        "libncurses",
-        "make",
-        "patch",
-        "perl",
-        "perlbase-attributes",
-        "perlbase-findbin",
-        "perlbase-getopt",
-        "perlbase-thread",
-        "python-light",
-        "tar",
-        "unzip",
-        "wget",
-        "xz",
-        "xzdiff",
-        "xzgrep",
-        "xzless",
-        "xz-utils",
-        "zlib-dev",
-    ]
+def build_all():
+    """Build all profiles of openwrt latest stable"""
+    for profile in database.get_all_profiles(
+        "openwrt", config.distro("openwrt").get("latest")
+    ):
+        target, profile = profile
+        if profile == "Default":
+            continue
+        params = {
+            "distro": "openwrt",
+            "version": config.distro("openwrt").get("latest"),
+            "target": target,
+            "profile": profile,
+        }
+        params["request_hash"] = get_request_hash(params)
+        database.insert_dict("requests", params)
 
-    packages_hash = get_packages_hash(packages)
-    database.insert_packages_hash(packages_hash, packages)
 
-    params = {
-        "distro": "openwrt",
-        "version": config.get("openwrt").get("latest"),
-        "target": "x86/64",
-        "profile": "Generic",
-        "packages_hash": packages_hash,
-    }
-
-    params["request_hash"] = get_request_hash(params)
-
-    database.insert_dict("requests", params)
+@app.cli.command()
+def set_outdated():
+    database.c.execute("update targets set last_sync = '2010-01-01';")
 
 
 def insert_board_rename():
     """Insert board rename"""
-    for distro, version in database.get_versions():
-        version_config = config.version(distro, version)
-        if "board_rename" in version_config:
-            for origname, newname in version_config["board_rename"].items():
-                log.info(
-                    "insert board_rename {} {} {} {}".format(
-                        distro, version, origname, newname
+    for distro in config.get_distros():
+        for version in config.config["distros"][distro]["versions"]:
+            version_config = config.version(distro, version)
+            if "board_rename" in version_config:
+                for origname, newname in version_config["board_rename"].items():
+                    log.info(
+                        "insert board_rename {} {} {} {}".format(
+                            distro, version, origname, newname
+                        )
                     )
-                )
-                database.insert_board_rename(distro, version, origname, newname)
+                    database.insert_board_rename(distro, version, origname, newname)
 
 
 def insert_transformations(distro, version, transformations):
@@ -398,18 +354,21 @@ def insert_transformations(distro, version, transformations):
 
 def load_tables():
     """Load package transformations"""
-    for distro, version in database.get_versions():
-        log.debug("load tables %s %s", distro, version)
-        version_transformations_path = os.path.join(
-            "distributions", distro, (version + ".yml")
-        )
-        if os.path.exists(version_transformations_path):
-            with open(
-                version_transformations_path, "r"
-            ) as version_transformations_file:
-                transformations = yaml.safe_load(version_transformations_file.read())
-                if transformations:
-                    if "transformations" in transformations:
-                        insert_transformations(
-                            distro, version, transformations["transformations"]
-                        )
+    for distro in config.get_distros():
+        for version in config.config["distros"][distro]["versions"]:
+            log.debug("load tables %s %s", distro, version)
+            version_transformations_path = os.path.join(
+                "distributions", distro, (version + ".yml")
+            )
+            if os.path.exists(version_transformations_path):
+                with open(
+                    version_transformations_path, "r"
+                ) as version_transformations_file:
+                    transformations = yaml.safe_load(
+                        version_transformations_file.read()
+                    )
+                    if transformations:
+                        if "transformations" in transformations:
+                            insert_transformations(
+                                distro, version, transformations["transformations"]
+                            )

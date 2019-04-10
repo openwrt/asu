@@ -5,22 +5,88 @@ from flask import Response
 
 
 class Request:
+    """Parent request class"""
+
+    log = logging.getLogger(__name__)
+    required_params = ["distro", "version", "target"]
+    sysupgrade_requested = False
+
     def __init__(self, config, database):
         self.config = config
         self.database = database
-        self.log = logging.getLogger(__name__)
 
-    def process_request(self, request_json, sysupgrade_requested=False):
+    def process_request(self, request_json):
         self.request = {}
         self.request_json = request_json
         self.response_json = {}
         self.response_header = {}
         self.response_status = 0
-        self.sysupgrade_requested = sysupgrade_requested
+
+        # check if valid request if no request_hash attached
+        if "request_hash" not in self.request_json:
+            # first check if all requred params are available
+            bad_request = self.check_required_params()
+            if bad_request:
+                return bad_request
+
+            bad_request = self.check_bad_distro()
+            if bad_request:
+                return bad_request
+            self.log.debug("passed distro check")
+
+            bad_request = self.check_bad_version()
+            if bad_request:
+                return bad_request
+            self.log.debug("passed version check")
+
+            bad_request = self.check_bad_target()
+            if bad_request:
+                return bad_request
+            self.log.debug("passed target check")
+
+            if "profile" in self.request_json:
+                bad_request = self.check_bad_profile()
+                if bad_request:
+                    return bad_request
+                self.log.debug("passed profile check")
+            else:
+                bad_request = self.check_bad_board_name()
+                if bad_request:
+                    return bad_request
+                self.log.debug("passed board_name check")
+
         return self._process_request()
 
     def _process_request(self):
         pass
+
+    def check_bad_profile(self):
+        self.request["profile"] = self.request_json["profile"]
+        if not self.database.check_profile(self.request):
+            self.response_json["error"] = "unknown profile {}".format(
+                self.request["profile"]
+            )
+            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
+            return self.respond()
+
+    def check_bad_board_name(self):
+        if self.request["target"].startswith("x86"):
+            self.request["profile"] = "Generic"
+        else:
+            self.request["profile"], metadata = self.database.check_board_name(
+                self.request, self.request_json["board_name"]
+            )
+            if not self.request["profile"]:
+                self.response_json["error"] = "unknown device {}".format(
+                    self.request_json["board_name"]
+                )
+                self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
+                return self.respond()
+
+            if self.sysupgrade_requested and not metadata:
+                self.response_json["error"] = "device does not support sysupgrades"
+                self.response_status = HTTPStatus.NOT_IMPLEMENTED  # 501
+                return self.respond()
 
     # these checks are relevant for upgrade and image reuqest
     def check_bad_distro(self):
@@ -50,24 +116,12 @@ class Request:
 
     def check_bad_target(self):
         self.request["target"] = self.request_json["target"]
-
-        # Check if sysupgrade is supported.
-        # If None is returned the target isn't found
-        sysupgrade_supported = self.database.sysupgrade_supported(self.request)
-        if sysupgrade_supported is None:
+        if not self.database.check_target(self.request):
             self.response_json["error"] = "unknown target {}".format(
                 self.request["target"]
             )
             self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
             return self.respond()
-        elif not sysupgrade_supported and self.sysupgrade_requested:
-            self.response_json["error"] = "target currently not supported {}".format(
-                self.request["target"]
-            )
-            self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
-            return self.respond()
-
-        # all checks passed, not bad
         return False
 
     def respond(self, json_content=False):
@@ -103,3 +157,13 @@ class Request:
 
         # all checks passed, not bad
         return False
+
+    def check_required_params(self):
+        for required_param in self.required_params:
+            if required_param not in self.request_json:
+                self.response_status = HTTPStatus.PRECONDITION_FAILED  # 412
+                self.response_header["X-Missing-Param"] = required_param
+                self.response_json["error"] = "missing parameter: {}".format(
+                    required_param
+                )
+                return self.respond()
