@@ -52,7 +52,7 @@ class Request:
         self.request["target"] = self.request_json["target"]
 
         # Check if sysupgrade is supported.
-        # If None is returned the subtarget isn't found
+        # If None is returned the target isn't found
         sysupgrade_supported = self.database.sysupgrade_supported(self.request)
         if sysupgrade_supported is None:
             self.response_json["error"] = "unknown target {}".format(

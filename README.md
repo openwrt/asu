@@ -298,7 +298,7 @@ available devices and more. All responses are in `JSON` format.
 -   `/api/models?distro=&version=&model_search=<search string>` Get all supported
     devices of distro/version that contain the `model_search` string
 
--   `/api/packages_image?distro=&version=&target=&subtarget=&profile=` Get all default
+-   `/api/packages_image?distro=&version=&target=&profile=` Get all default
     packages installed on an image
 
 ### Request stats
