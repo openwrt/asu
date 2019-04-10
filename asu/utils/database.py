@@ -136,7 +136,7 @@ class Database:
                     ),
                     # remove "Default Profile" entries
                     filter(
-                        lambda profile: not profile[0].startswith("Default Profile"),
+                        lambda profile: not profile[0] == "Default",
                         profiles,
                     ),
                 )
