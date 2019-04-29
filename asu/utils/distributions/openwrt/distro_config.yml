@@ -24,9 +24,9 @@ active_targets:
   - ath79/nand
   - ath79/tiny
   - bcm53xx/generic
-  - brcm2708/brcm2708
-  - brcm2708/brcm2709
-  - brcm2708/brcm2710
+  - brcm2708/bcm2708
+  - brcm2708/bcm2709
+  - brcm2708/bcm2710
   - brcm47xx/generic
   - brcm47xx/legacy
   - brcm47xx/mips74k
