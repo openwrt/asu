@@ -55,7 +55,8 @@ active_targets:
   - sunxi/cortexa7
   - sunxi/cortexa8
   - x86/64
-
+  - x86/generic
+  - x86/geode
 
 # additional description to show in the user interfaces
 distro_description: >
