@@ -51,7 +51,7 @@ class Worker(threading.Thread):
         with open(path, "a") as log_file:
             log_file.write("### BUILD COMMAND:\n\n")
             for key, value in self.params.items():
-                log_file.write('{}="{}"\n'.format(key.upper(), str(value)))
+                log_file.write('export {}="{}"\n'.format(key.upper(), str(value)))
             log_file.write("./meta image\n")
             if stdout:
                 log_file.write("\n\n### STDOUT:\n\n" + stdout)
