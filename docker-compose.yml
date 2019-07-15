@@ -1,4 +1,4 @@
-version: '3.1'
+version: "3.5"
 
 services:
   db:
@@ -7,6 +7,7 @@ services:
     environment:
       POSTGRES_PASSWORD: changeme
       POSTGRES_DB: asu
+      POSTGRES_USER: asu
     volumes:
       - "./asu/utils/tables.sql:/docker-entrypoint-initdb.d/tables.sql"
 
@@ -16,9 +17,9 @@ services:
       - FLASK_APP=asu
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
-    command: sh -c 'sh .wait-for db:5432 -- flask fetch-targets && gunicorn3 -b 0.0.0.0:8000 asu:app'
+    command: sh -c 'sh .wait-for db:5432 -- flask loaddb && gunicorn3 -b 0.0.0.0:8000 asu:app'
     volumes:
-      - "./config.yml/asu/config.yml"
+      - "./config.yml:/asu/config.yml"
     ports:
       - 8000
     depends_on:

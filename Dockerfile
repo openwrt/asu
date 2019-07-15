@@ -16,9 +16,9 @@ subversion g++ zlib1g-dev build-essential git python rsync man-db \
 libncurses5-dev gawk gettext unzip file libssl-dev wget zip \
 && rm -rf /var/lib/apt/lists/*
 
-COPY . /asu
-COPY ./contrib/odbc.ini ~/.odbc.ini
-WORKDIR /asu
+COPY . /asu/
+COPY ./contrib/odbc.ini_docker /root/.odbc.ini
+WORKDIR /asu/
 
 RUN pip3 install -e .
 
