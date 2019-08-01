@@ -37,11 +37,11 @@ Add CLI to perform sysupgrades. Makes use of `ucert` to verify images are from a
 The server listens to update and image requests and images are automatically generated
 if the requests was valid. This is done by automatically setting up OpenWrt
 ImageBuilders and cache images in a database. This allows to quickly respond to
-requests without rebuilding exiting images again.
+requests without rebuilding existing images again.
 
 ### Active server
 
--   [chef.libremesh,org](https://chef.libremesh.org)
+-   [chef.libremesh.org](https://chef.libremesh.org)
 -   [as-test.stephen304.com](https://as-test.stephen304.com) **unstable dev server**
 
 You can set this server in `/etc/config/attendedsysupgrade` after installation of a
