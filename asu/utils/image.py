@@ -37,7 +37,7 @@ class Image:
     # write buildlog.txt to image dir
     def store_log(self, buildlog):
         self.log.debug("write log")
-        with open(self.params["dir"] + "/buildlog.txt", "a") as buildlog_file:
+        with open(self.params["dir"] + "/buildlog.txt", "w") as buildlog_file:
             buildlog_file.writelines(buildlog)
 
     # return dir where image is stored on server
