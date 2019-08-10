@@ -1,20 +1,31 @@
-FROM debian:9
+FROM debian:latest
 
-RUN apt update && apt install -y \
-python3-pip \
-odbc-postgresql \
-unixodbc-dev \
-gunicorn3 \
-git \
-bash \
-netcat \
-wget \
-&& rm -rf /var/lib/apt/lists/*
-
-RUN apt update && apt install -y \
-subversion g++ zlib1g-dev build-essential git python rsync man-db \
-libncurses5-dev gawk gettext unzip file libssl-dev wget zip \
-&& rm -rf /var/lib/apt/lists/*
+RUN apt-get update -qq &&\
+    apt-get install -y \
+        bash \
+        build-essential \
+        curl \
+        file \
+        gawk \
+        gettext \
+        git \
+        gunicorn3 \
+        libncurses5-dev \
+        libssl-dev \
+        netcat \
+        odbc-postgresql \
+        python2.7 \
+        python3 \
+        python3-pip \
+        rsync \
+        signify-openbsd \
+        subversion \
+        swig \
+        unixodbc-dev \
+        unzip \
+        wget \
+        zlib1g-dev \
+        && apt-get -y autoremove && apt-get clean
 
 COPY . /asu/
 COPY ./contrib/odbc.ini_docker /root/.odbc.ini
