@@ -3,6 +3,7 @@ import pyodbc
 import logging
 import json
 import os.path
+from time import sleep
 
 
 class Database:
@@ -15,7 +16,13 @@ class Database:
 
     def connect(self):
         connection_string = "DSN=asu;BoolsAsChar=0"
-        self.cnxn = pyodbc.connect(connection_string)
+        for i in range(10):
+            try:
+                self.cnxn = pyodbc.connect(connection_string)
+            except:
+                self.log.warning("could not connect to database. Try again in 5 seconds")
+                sleep(10)
+
         self.cnxn.autocommit = True
         self.c = self.cnxn.cursor()
         self.c.fast_executemany = True
@@ -135,10 +142,7 @@ class Database:
                         profile[4],  # supported devices
                     ),
                     # remove "Default Profile" entries
-                    filter(
-                        lambda profile: not profile[0] == "Default",
-                        profiles,
-                    ),
+                    filter(lambda profile: not profile[0] == "Default", profiles),
                 )
             ),
         )
@@ -153,7 +157,7 @@ class Database:
         ).fetchone()
 
     def check_profile(self, request):
-        sql = """select 1 from supported_devices where
+        sql = """select metadata from supported_devices where
             distro = ? and
             version = ? and
             target = ? and
@@ -288,16 +292,25 @@ class Database:
         return self.as_dict()
 
     # inserts an image to the build queue
-    def add_build_job(self, image):
-        self.log.info("add build job %s", image)
-        if "packages" in image:
-            image.pop("packages")
-        self.insert_dict("requests", image)
+    def add_build_job(self, request):
+        self.log.info("add build job %s", request)
+        self.insert_dict(
+            "requests",
+            {
+                "request_hash": request["request_hash"],
+                "distro": request["distro"],
+                "version": request["version"],
+                "target": request["target"],
+                "profile": request["profile"],
+                "packages_hash": request["packages_hash"],
+                "defaults_hash": request.get("defaults_hash"),
+            },
+        )
 
     # merge image_download table with images tables
     def get_image_path(self, image_hash):
         self.log.debug("get sysupgrade image for %s", image_hash)
-        sql = "select * from images where image_hash = ?"
+        sql = "select image_path, image_prefix from images where image_hash = ?"
         self.c.execute(sql, image_hash)
         return self.as_dict()
 

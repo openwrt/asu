@@ -1,4 +1,4 @@
-version: "3.5"
+version: '3.1'
 
 services:
   db:
@@ -10,31 +10,35 @@ services:
       POSTGRES_USER: asu
     volumes:
       - "./asu/utils/tables.sql:/docker-entrypoint-initdb.d/tables.sql"
+      - "./psql:/var/run/postgresql/"
 
   server:
-    build: .
+    image: aparcar/asu
     environment:
-      - FLASK_APP=asu
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
-    command: sh -c 'sh .wait-for db:5432 -- flask loaddb && gunicorn3 -b 0.0.0.0:8000 asu:app'
+      - FLASK_APP=asu
+      - FLASK_DEBUG=1
+        #command: sh -c 'sh .wait-for db:5432 -- flask loaddb && flask run --host=0.0.0.0'
+    command: sh -c 'flask loaddb && flask run --host=0.0.0.0'
     volumes:
-      - "./config.yml:/asu/config.yml"
+      - "./:/opt/asu/"
+      - "./psql:/var/run/postgresql/"
     ports:
-      - 8000
+      - 5000:5000
     depends_on:
       - db
 
   worker:
-    build: .
+    image: aparcar/asu
     environment:
       - FLASK_APP=asu
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
-    command: sh -c 'sh .wait-for server:8000 -t 300 -- flask run-worker'
+        #command: sh -c 'sh .wait-for server:5000 -t 300 -- flask run-worker'
+    command: sh -c 'flask run-worker'
     volumes:
-      - "./config.yml:/asu/config.yml"
-      - "./worker/:/asu/worker/"
-      - "./updater/:/asu/updater/"
+      - "./:/opt/asu/"
+      - "./psql:/var/run/postgresql/"
     depends_on:
       - db

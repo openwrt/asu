@@ -449,7 +449,22 @@ select
     || target || '/'
     || profile || '/'
     || manifest_hash
-    as files
+    as image_path,
+    distro || '-'
+    || manifest_hash || '-' ||
+    (CASE WHEN defaults_hash is null then
+        ''
+    ELSE
+        substr(defaults_hash, 0, 5) || '-'
+    end) ||
+    (CASE WHEN version = 'snapshot' then
+        ''
+    ELSE
+        version || '-'
+    end)
+    || replace(target, '/', '-') || '-'
+    || lower(replace(replace(profile, ' ','-'), ',','-'))
+    as image_prefix
 from images_table
 join profiles using (profile_id)
 join manifests_table using (manifest_id)

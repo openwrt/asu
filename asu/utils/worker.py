@@ -42,7 +42,7 @@ class Worker(threading.Thread):
 
             if return_code != 0:
                 self.log.error("failed to setup meta ImageBuilder")
-                print(errors)
+                self.log.debug(errors)
                 exit()
 
         self.log.info("meta ImageBuilder successfully setup")
@@ -98,8 +98,8 @@ class Worker(threading.Thread):
             self.log.info("successfully parsed manifest")
         else:
             self.log.error("couldn't determine manifest")
-            print(manifest_content)
-            print(errors)
+            self.log.debug(manifest_content)
+            self.log.debug(errors)
             self.write_log(fail_log_path, stderr=errors)
             self.database.set_requests_status(
                 self.params["request_hash"], "manifest_fail"
@@ -113,11 +113,6 @@ class Worker(threading.Thread):
         # calculate hash based on resulted manifest
         self.image.params["image_hash"] = get_hash(
             " ".join(self.image.as_array("manifest_hash")), 15
-        )
-
-        # set log path in case of success
-        success_log_path = self.image.params["dir"] + "/buildlog-{}.txt".format(
-            self.params["image_hash"]
         )
 
         # set build_status ahead, if stuff goes wrong it will be changed
@@ -178,47 +173,25 @@ class Worker(threading.Thread):
                             build_dir + "/" + filename, self.image.params["dir"]
                         )
 
-                    # possible sysupgrade names, ordered by likeliness
-                    possible_sysupgrade_files = [
-                        "*-squashfs-sysupgrade.bin",
-                        "*-squashfs-sysupgrade.tar",
-                        "*-squashfs-nand-sysupgrade.bin",
-                        "*-squashfs.trx",
-                        "*-squashfs.chk",
-                        "*-squashfs.bin",
-                        "*-squashfs-sdcard.img.gz",
-                        "*-combined-squashfs*",
-                        "*.img.gz",
-                    ]
-
-                    sysupgrade = None
-
-                    for sysupgrade_file in possible_sysupgrade_files:
-                        sysupgrade = glob.glob(
-                            self.image.params["dir"] + "/" + sysupgrade_file
+                    if buildlog.find("too big") != -1:
+                        self.log.warning("created image was to big")
+                        self.database.set_requests_status(
+                            self.params["request_hash"], "imagesize_fail"
                         )
-                        if sysupgrade:
-                            break
+                        self.write_log(fail_log_path, buildlog, errors)
+                        return False
 
-                    if not sysupgrade:
-                        self.log.debug("sysupgrade not found")
-                        if buildlog.find("too big") != -1:
-                            self.log.warning("created image was to big")
-                            self.database.set_requests_status(
-                                self.params["request_hash"], "imagesize_fail"
-                            )
-                            self.write_log(fail_log_path, buildlog, errors)
-                            return False
-                        else:
-                            self.build_status = "no_sysupgrade"
-                            self.image.params["sysupgrade"] = ""
-                    else:
-                        self.image.params["sysupgrade"] = os.path.basename(
-                            sysupgrade[0]
-                        )
-
-                    self.write_log(success_log_path, buildlog)
                     self.database.insert_dict("images", self.image.get_params())
+                    success_log_path = (
+                        os.path.join(
+                            self.config.get_folder("download_folder"),
+                            *self.database.get_image_path(
+                                self.params["image_hash"]
+                            ).values()
+                        )
+                        + ".log"
+                    )
+                    self.write_log(success_log_path, buildlog)
                     self.log.info("build successfull")
                 else:
                     self.log.info("build failed")
@@ -280,7 +253,7 @@ class Worker(threading.Thread):
             default_packages = (
                 re.match(default_packages_pattern, output, re.M).group(1).split()
             )
-            logging.debug("default packages: %s", default_packages)
+            self.log.debug("default packages: %s", default_packages)
 
             profiles = re.findall(
                 "(.+):\n    (.+)"
@@ -289,7 +262,7 @@ class Worker(threading.Thread):
                 "(?:(?:\n    SupportedDevices: )(.*?)(?:\n))?",
                 output,
             )
-            print(profiles)
+            self.log.debug(profiles)
             if not profiles:
                 profiles = []
             self.database.insert_profiles(
@@ -300,9 +273,9 @@ class Worker(threading.Thread):
                 profiles,
             )
         else:
-            logging.error("could not receive profiles")
-            print(output)
-            print(errors)
+            self.log.error("could not receive profiles")
+            self.log.debug(output)
+            self.log.debug(errors)
             return False
 
     def run_meta(self, cmd):
@@ -348,5 +321,5 @@ class Worker(threading.Thread):
             )
         else:
             self.log.warning("could not receive packages")
-            print(output)
-            print(errors)
+            self.log.debug(output)
+            self.log.debug(errors)

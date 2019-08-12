@@ -14,8 +14,6 @@ active_distros:
 # only imagebuilders of the following are downloaded
 active_targets:
   - ath79/generic
-  - ramips/mt7621
-  - x86/64
 
 # folder with distro config
 distro_folder: ./distributions/

@@ -84,7 +84,6 @@ class Image:
             "defaults_hash": self.params["defaults_hash"],
             "worker": self.params["worker"],
             "build_seconds": self.params["build_seconds"],
-            "sysupgrade": self.params["sysupgrade"],
         }
 
     def created(self):

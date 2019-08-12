@@ -1,5 +1,7 @@
 from http import HTTPStatus
+import json
 from sys import getsizeof
+import os
 
 from asu.utils.common import get_hash, get_packages_hash, get_request_hash
 from asu.request import Request
@@ -12,12 +14,12 @@ class BuildRequest(Request):
         super().__init__(config, db)
 
     def _process_request(self):
-        self.log.debug("request_json: %s", self.request_json)
+        self.log.debug("request: %s", self.request)
 
         # if request_hash is available check the database directly
-        if "request_hash" in self.request_json:
+        if "request_hash" in self.request:
             self.request = self.database.check_request_hash(
-                self.request_json["request_hash"]
+                self.request["request_hash"]
             )
 
             if not self.request:
@@ -26,7 +28,7 @@ class BuildRequest(Request):
             else:
                 return self.return_status()
 
-        request_hash = get_request_hash(self.request_json)
+        request_hash = get_request_hash(self.request)
         request_database = self.database.check_request_hash(request_hash)
 
         # if found return instantly the status
@@ -41,36 +43,34 @@ class BuildRequest(Request):
             self.response_json["request_hash"] = self.request["request_hash"]
 
         # validate attached defaults
-        if "defaults" in self.request_json:
-            if self.request_json["defaults"]:
+        if "defaults" in self.request:
+            if self.request["defaults"]:
                 # check if the uci file exceeds the max file size. this should
                 # be done as the uci-defaults are at least temporary stored in
                 # the database to be passed to a worker
-                if getsizeof(self.request_json["defaults"]) > self.config.get(
+                if getsizeof(self.request["defaults"]) > self.config.get(
                     "max_defaults_size", 1024
                 ):
                     self.response_json["error"] = "attached defaults exceed max size"
                     self.response_status = (
                         420
                     )  # this error code is the best I could find
-                    self.respond()
+                    return self.respond()
                 else:
                     self.request["defaults_hash"] = get_hash(
-                        self.request_json["defaults"], 32
+                        self.request["defaults"], 32
                     )
                     self.database.insert_defaults(
-                        self.request["defaults_hash"], self.request_json["defaults"]
+                        self.request["defaults_hash"], self.request["defaults"]
                     )
 
         # add package_hash to database
-        if "packages" in self.request_json:
+        if "packages" in self.request:
             # check for existing packages
-            bad_packages = self.check_bad_packages(self.request_json["packages"])
+            bad_packages = self.check_bad_packages(self.request["packages"])
             if bad_packages:
                 return bad_packages
-            self.request["packages_hash"] = get_packages_hash(
-                self.request_json["packages"]
-            )
+            self.request["packages_hash"] = get_packages_hash(self.request["packages"])
             self.database.insert_packages_hash(
                 self.request["packages_hash"], self.request["packages"]
             )
@@ -93,24 +93,27 @@ class BuildRequest(Request):
 
     def return_status(self):
         # image created, return all desired information
-        # TODO no_sysupgrade is somewhat legacy now
         if (
             self.request["request_status"] == "created"
             or self.request["request_status"] == "no_sysupgrade"
         ):
+            # with open("
             self.database.cache_hit(self.request["image_hash"])
-            image_path = self.database.get_image_path(self.request["image_hash"])
-            self.response_json["sysupgrade"] = image_path.get("sysupgrade", "")
-            self.response_json["log"] = "/download/{}/buildlog-{}.txt".format(
-                image_path["files"], self.request["image_hash"]
-            )
-            self.response_json["files"] = "/json/{}/".format(image_path["files"])
+            image_info = self.database.get_image_path(self.request["image_hash"])
+
             self.response_json["request_hash"] = self.request["request_hash"]
             self.response_json["image_hash"] = self.request["image_hash"]
-
+            self.response_json["image_path"] = image_info["image_path"]
+            with open(
+                os.path.join(
+                    self.config.get_folder("download_folder"), *image_info.values()
+                )
+                + ".json"
+            ) as json_info:
+                self.response_json.update(json.load(json_info))
             self.response_status = HTTPStatus.OK  # 200
 
-            self.respond()
+            return self.respond()
 
         # image request passed validation and is queued
         elif self.request["request_status"] == "requested":
@@ -126,7 +129,7 @@ class BuildRequest(Request):
         # build failed, see build log for details
         elif self.request["request_status"] == "build_fail":
             self.response_json["error"] = "ImageBuilder faild to create image"
-            self.response_json["log"] = "/download/faillogs/faillog-{}.txt".format(
+            self.response_json["faillog"] = "/download/faillogs/faillog-{}.txt".format(
                 self.request["request_hash"]
             )
             self.response_json["request_hash"] = self.request["request_hash"]

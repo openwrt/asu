@@ -28,10 +28,14 @@ RUN apt-get update -qq &&\
         zlib1g-dev \
         && apt-get -y autoremove && apt-get clean
 
-COPY . /asu/
-COPY ./contrib/odbc.ini_docker /root/.odbc.ini
-WORKDIR /asu/
-
+RUN useradd -c "OpenWrt Build Server" -m -d /home/asu -s /bin/bash asu
+COPY --chown=asu:asu . /opt/asu/
+RUN chown asu:asu /opt/asu/
+USER asu
+ENV HOME /home/asu/
+WORKDIR /opt/asu/
+ENV PATH="/home/asu/.local/bin:${PATH}"
 RUN pip3 install -e .
+COPY ./contrib/odbc.ini_docker /home/asu/.odbc.ini
 
 EXPOSE 8000
