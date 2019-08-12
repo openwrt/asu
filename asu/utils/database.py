@@ -19,10 +19,9 @@ class Database:
         for i in range(10):
             try:
                 self.cnxn = pyodbc.connect(connection_string)
-            except:
-                self.log.warning(
-                    "could not connect to database. Try again in 5 seconds"
-                )
+            except Exception as e:
+                self.log.warning("Retry database connection in 5 seconds")
+                self.log.debug(e)
                 sleep(10)
 
         self.cnxn.autocommit = True

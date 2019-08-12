@@ -26,6 +26,7 @@ build:
 
 test-loaddb:
   image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+  image: registry.gitlab.com/aparcar/attendedsysupgrade-server:backup-refactor
   services:
     - name: postgres:latest
       alias: db
@@ -36,7 +37,9 @@ test-loaddb:
     LC_ALL: C.UTF-8
     LANG: C.UTF-8
     FLASK_APP: asu
-    FLASK_DEBUG: 1
+    FLASK_DEBUG: "1"
   script:
-    - echo "$POSTGRES_PASSWORD" | psql -h db -U "$POSTGRES_USER" -W < "$CI_PROJECT_DIR/asu/utils/tables.sql"
+    - export PGPASSWORD="$POSTGRES_PASSWORD"
+    - cat ~/.odbc.ini
+    - psql -h db asu  < "$CI_PROJECT_DIR/asu/utils/tables.sql"
     - flask loaddb

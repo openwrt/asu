@@ -10,35 +10,32 @@ services:
       POSTGRES_USER: asu
     volumes:
       - "./asu/utils/tables.sql:/docker-entrypoint-initdb.d/tables.sql"
-      - "./psql:/var/run/postgresql/"
 
   server:
-    image: aparcar/asu
+    #image: aparcar/asu
+    image: registry.gitlab.com/aparcar/attendedsysupgrade-server:backup-refactor
     environment:
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
       - FLASK_APP=asu
       - FLASK_DEBUG=1
-        #command: sh -c 'sh .wait-for db:5432 -- flask loaddb && flask run --host=0.0.0.0'
     command: sh -c 'flask loaddb && flask run --host=0.0.0.0'
     volumes:
       - "./:/opt/asu/"
-      - "./psql:/var/run/postgresql/"
     ports:
       - 5000:5000
     depends_on:
       - db
 
   worker:
-    image: aparcar/asu
+    #image: aparcar/asu
+    image: registry.gitlab.com/aparcar/attendedsysupgrade-server:backup-refactor
     environment:
       - FLASK_APP=asu
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
-        #command: sh -c 'sh .wait-for server:5000 -t 300 -- flask run-worker'
     command: sh -c 'flask run-worker'
     volumes:
       - "./:/opt/asu/"
-      - "./psql:/var/run/postgresql/"
     depends_on:
       - db
