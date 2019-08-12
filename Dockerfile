@@ -14,6 +14,7 @@ RUN apt-get update -qq &&\
         libssl-dev \
         netcat \
         odbc-postgresql \
+        postgresql-client \
         python2.7 \
         python3 \
         python3-pip \
