@@ -20,7 +20,9 @@ class Database:
             try:
                 self.cnxn = pyodbc.connect(connection_string)
             except:
-                self.log.warning("could not connect to database. Try again in 5 seconds")
+                self.log.warning(
+                    "could not connect to database. Try again in 5 seconds"
+                )
                 sleep(10)
 
         self.cnxn.autocommit = True
@@ -225,19 +227,19 @@ class Database:
 
     # TODO reimplement
     def get_outdated_manifests(self):
-        sql = """select image_hash, files from images where
+        sql = """select image_hash, image_folder from images where
             build_date < NOW() - INTERVAL '14 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
 
     def get_outdated_snapshots(self):
-        sql = """select image_hash, files from images where
+        sql = """select image_hash, image_folder from images where
             snapshots = 'true' and build_date < NOW() - INTERVAL '1 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
 
     def get_outdated_customs(self):
-        sql = """select image_hash, files from images where
+        sql = """select image_hash, image_folder from images where
             defaults_hash != '' and build_date < NOW() - INTERVAL '7 day';"""
         self.c.execute(sql)
         return self.c.fetchall()
@@ -309,8 +311,8 @@ class Database:
 
     # merge image_download table with images tables
     def get_image_path(self, image_hash):
-        self.log.debug("get sysupgrade image for %s", image_hash)
-        sql = "select image_path, image_prefix from images where image_hash = ?"
+        self.log.debug("get image path for %s", image_hash)
+        sql = "select image_folder, image_prefix from images where image_hash = ?"
         self.c.execute(sql, image_hash)
         return self.as_dict()
 
@@ -472,7 +474,6 @@ class Database:
                 request_status != 'created' and
                 request_status != 'requested' and
                 request_status != 'building' and
-                request_status != 'no_sysupgrade' and
                 defaults_hash is null
                 order by request_id desc limit 50)
             as fails_latest;"""

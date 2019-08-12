@@ -93,17 +93,13 @@ class BuildRequest(Request):
 
     def return_status(self):
         # image created, return all desired information
-        if (
-            self.request["request_status"] == "created"
-            or self.request["request_status"] == "no_sysupgrade"
-        ):
-            # with open("
+        if self.request["request_status"] == "created":
             self.database.cache_hit(self.request["image_hash"])
             image_info = self.database.get_image_path(self.request["image_hash"])
 
             self.response_json["request_hash"] = self.request["request_hash"]
             self.response_json["image_hash"] = self.request["image_hash"]
-            self.response_json["image_path"] = image_info["image_path"]
+            self.response_json["image_folder"] = image_info["image_folder"]
             with open(
                 os.path.join(
                     self.config.get_folder("download_folder"), *image_info.values()

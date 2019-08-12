@@ -1,9 +1,3 @@
--- contains the names of the sysupgrade files
-create table if not exists sysupgrades_table (
-    sysupgrade_id SERIAL PRIMARY KEY,
-    sysupgrade varchar(100) unique
-);
-
 -- contains uci defaults added to the image
 create table if not exists defaults_table (
     defaults_id serial primary key,
@@ -410,7 +404,6 @@ create table if not exists images_table (
     manifest_id integer references manifests_table(manifest_id) ON DELETE CASCADE,
     worker_id integer references worker_table(worker_id) ON DELETE CASCADE,
     build_date timestamp default now(),
-    sysupgrade_id integer references sysupgrades_table(sysupgrade_id) ON DELETE CASCADE,
     image_status varchar(20) DEFAULT 'untested',
     defaults_id integer references defaults_table(defaults_id) on delete cascade,
     vanilla boolean default false,
@@ -433,7 +426,6 @@ select
     defaults_hash,
     worker,
     build_date,
-    sysupgrade,
     image_status,
     vanilla,
     build_seconds,
@@ -449,7 +441,7 @@ select
     || target || '/'
     || profile || '/'
     || manifest_hash
-    as image_path,
+    as image_folder,
     distro || '-'
     || manifest_hash || '-' ||
     (CASE WHEN defaults_hash is null then
@@ -469,12 +461,10 @@ from images_table
 join profiles using (profile_id)
 join manifests_table using (manifest_id)
 join worker_table using (worker_id)
-left join defaults_table using (defaults_id)
-left join sysupgrades_table using (sysupgrade_id);
+left join defaults_table using (defaults_id);
 
 create or replace rule insert_images AS
 ON insert TO images DO INSTEAD (
-    insert into sysupgrades_table (sysupgrade) values (NEW.sysupgrade) on conflict do nothing;
     insert into worker_table(worker) values (NEW.worker) on conflict do nothing;
     insert into images_table (
         image_hash,
@@ -482,7 +472,6 @@ ON insert TO images DO INSTEAD (
         manifest_id,
         defaults_id,
         worker_id,
-        sysupgrade_id,
         vanilla,
         build_seconds
     ) values (
@@ -498,8 +487,6 @@ ON insert TO images DO INSTEAD (
             defaults_hash = NEW.defaults_hash),
         (select worker_id from worker_table where
             worker = NEW.worker),
-        (select sysupgrade_id from sysupgrades_table where
-            sysupgrade = NEW.sysupgrade),
         NEW.vanilla,
         NEW.build_seconds)
     on conflict do nothing;
@@ -531,9 +518,9 @@ create table if not exists requests_table (
     /*
         requested -> will be build
         manifest_fail -> package selection fail
-        no_sysupgrade -> no sysupgrade found but build ok
         build_fail -> build failed
         imagesize_fail -> to many packages selected
+        created -> successfull build
     */
     request_status varchar(20) DEFAULT 'requested',
     request_date timestamp default now()
