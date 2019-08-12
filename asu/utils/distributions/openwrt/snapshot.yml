@@ -5,12 +5,3 @@ targets_url: https://downloads.openwrt.org/snapshots/targets?json-targets
 
 # this flag tells the server to remove created images and builders daily
 snapshots: True
-
-# some targets are/were broken and are hereby disabled
-ignore_targets:
-    - adm5120/rb1xx
-    - adm5120/router_be
-    - adm5120/router_le
-    - gemini/raidsonic
-    - gemini/wiligear
-    - malta/le64

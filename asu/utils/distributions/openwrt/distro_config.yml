@@ -3,15 +3,10 @@
 distro_alias: OpenWrt
 
 # latest release available, used for responses to upgrade requests
-latest: "18.06.4"
+latest: "snapshot"
 
 # a list of all active versions
 versions:
-  - 18.06.4
-  - 18.06.3
-  - 18.06.2
-  - 18.06.1
-  - 18.06.0
   - snapshot
 
 version_common:
