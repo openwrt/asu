@@ -98,6 +98,11 @@ class Database:
         return self.c.execute(sql, distro, version, target).fetchval()
 
     def insert_profiles(self, distro, version, target, packages_default, profiles):
+        # delete existing profiles
+        sql = """delete from profiles where
+            distro = ? and version = ? and target = ?"""
+
+        self.c.execute(sql, distro, version, target)
         # delete existing packages_default
         sql = """delete from packages_default where
             distro = ? and version = ? and target = ?"""
