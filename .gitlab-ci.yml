@@ -24,3 +24,19 @@ build:
   except:
     - master
 
+test-loaddb:
+  image: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+  services:
+    - name: postgres:latest
+      alias: db
+  variables:
+    POSTGRES_PASSWORD: changeme
+    POSTGRES_DB: asu
+    POSTGRES_USER: asu
+    LC_ALL: C.UTF-8
+    LANG: C.UTF-8
+    FLASK_APP: asu
+    FLASK_DEBUG: 1
+  script:
+    - echo "$POSTGRES_PASSWORD" | psql -h db -U "$POSTGRES_USER" -W < "$CI_PROJECT_DIR/asu/utils/tables.sql"
+    - flask loaddb
