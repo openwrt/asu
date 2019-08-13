@@ -226,8 +226,8 @@ class Worker(threading.Thread):
             if self.job == "image":
                 self.build()
             elif self.job == "update":
-                self.info()
                 self.parse_packages()
+                self.info()
 
     def info(self):
         self.log.debug("parse info")

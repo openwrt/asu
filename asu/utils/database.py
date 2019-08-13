@@ -4,6 +4,7 @@ import logging
 import json
 import os.path
 from time import sleep
+import sys
 
 
 class Database:
@@ -19,10 +20,17 @@ class Database:
         for i in range(10):
             try:
                 self.cnxn = pyodbc.connect(connection_string)
+                connected = True
             except Exception as e:
-                self.log.warning("Retry database connection in 5 seconds")
+                connected = False
+                self.log.warning(
+                    "[{}/10] Retry database connection in 5 seconds".format(i + 1)
+                )
                 self.log.debug(e)
-                sleep(10)
+                sleep(5)
+
+        if not connected:
+            sys.exit(1)
 
         self.cnxn.autocommit = True
         self.c = self.cnxn.cursor()
@@ -109,6 +117,8 @@ class Database:
 
         sql = """insert into packages_default
             (distro, version, target, package_name) values (?, ?, ?, ?);"""
+
+        self.log.debug(f"packages_default = {packages_default}")
 
         self.cnxn.autocommit = False
         self.c.executemany(
