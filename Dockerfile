@@ -30,7 +30,10 @@ RUN apt-get update -qq &&\
 
 RUN useradd -c "OpenWrt Build Server" -m -d /home/asu -s /bin/bash asu
 COPY --chown=asu:asu . /opt/asu/
-RUN chown asu:asu /opt/asu/
+COPY --chown=asu:asu asu/utils/config.yml.default /etc/asu/config.yml
+COPY --chown=asu:asu asu/utils/distributions /etc/asu/
+RUN mkdir -p /var/lib/asu/ /var/cache/asu/
+RUN chown asu:asu /opt/asu/ /var/lib/asu/ /var/cache/asu/
 USER asu
 ENV HOME /home/asu/
 WORKDIR /opt/asu/
