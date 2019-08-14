@@ -1,5 +1,4 @@
 import threading
-import glob
 import re
 import shutil
 import tempfile
@@ -193,12 +192,12 @@ class Worker(threading.Thread):
                         return False
 
                     self.database.insert_dict("images", self.image.get_params())
+                    image_info = self.database.get_image(self.params["image_hash"])
                     success_log_path = (
                         os.path.join(
                             self.config.get_folder("download_folder"),
-                            *self.database.get_image_path(
-                                self.params["image_hash"]
-                            ).values()
+                            image_info["image_folder"],
+                            image_info["image_prefix"],
                         )
                         + ".log"
                     )
@@ -267,10 +266,10 @@ class Worker(threading.Thread):
             self.log.debug("default packages: %s", default_packages)
 
             profiles = re.findall(
-                "(.+):\n    (.+)"
-                "\n    Packages: (.*)"
-                "\n(?:    hasImageMetadata: )?(\d)?"
-                "(?:(?:\n    SupportedDevices: )(.*?)(?:\n))?",
+                r"(.+):\n    (.+)"
+                r"\n    Packages: (.*)"
+                r"\n(?:    hasImageMetadata: )?(\d)?"
+                r"(?:(?:\n    SupportedDevices: )(.*?)(?:\n))?",
                 output,
             )
             self.log.debug(profiles)

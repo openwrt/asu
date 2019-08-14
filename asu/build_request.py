@@ -95,14 +95,18 @@ class BuildRequest(Request):
         # image created, return all desired information
         if self.request["request_status"] == "created":
             self.database.cache_hit(self.request["image_hash"])
-            image_info = self.database.get_image_path(self.request["image_hash"])
+            image = self.database.get_image(self.request["image_hash"])
 
             self.response_json["request_hash"] = self.request["request_hash"]
             self.response_json["image_hash"] = self.request["image_hash"]
-            self.response_json["image_folder"] = image_info["image_folder"]
+            self.response_json["manifest_hash"] = image["manifest_hash"]
+            self.response_json["image_folder"] = "/download/" + image["image_folder"]
+            self.response_json["image_prefix"] = image["image_prefix"]
             with open(
                 os.path.join(
-                    self.config.get_folder("download_folder"), *image_info.values()
+                    self.config.get_folder("download_folder"),
+                    image["image_folder"],
+                    image["image_prefix"],
                 )
                 + ".json"
             ) as json_info:

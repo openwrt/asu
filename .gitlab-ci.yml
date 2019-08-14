@@ -1,13 +1,19 @@
-style:
+stages:
+  - formal
+  - build
+  - test
+  - deploy
+
+python-style:
   image: alpine
-  stage: style
-  script_before:
-    - apk add py3-flake py3-pytest py3-coverage
+  stage: formal
+  before_script:
+    - apk add py3-flake8 py3-pytest py3-coverage
   script:
   - python3 -m flake8 --exclude=asu/__init__.py --max-line-length=88
-  - python3 -m pytest -c pytest.ini --cov=asu
-  - python3 -m coverage xml
-  - python3 -m codacy -r coverage.xml
+    #  - python3 -m pytest -c pytest.ini
+    #  - python3 -m coverage xml
+    #  - python3 -m codacy -r coverage.xml
 
 build-master:
   image: docker:latest

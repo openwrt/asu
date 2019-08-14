@@ -323,9 +323,9 @@ class Database:
         )
 
     # merge image_download table with images tables
-    def get_image_path(self, image_hash):
+    def get_image(self, image_hash):
         self.log.debug("get image path for %s", image_hash)
-        sql = "select image_folder, image_prefix from images where image_hash = ?"
+        sql = "select * from images where image_hash = ?"
         self.c.execute(sql, image_hash)
         return self.as_dict()
 
