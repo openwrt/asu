@@ -32,18 +32,29 @@ class Worker(threading.Thread):
         self.log.debug("setup meta")
         os.makedirs(self.location, exist_ok=True)
         if not os.path.exists(self.location + "/meta"):
+            self.log.info("Initial clone")
             cmdline = "git clone https://github.com/aparcar/meta-imagebuilder.git ."
-            proc = subprocess.Popen(
-                cmdline.split(" "), cwd=self.location, stdout=subprocess.PIPE
-            )
+        else:
+            self.log.info("Update pull")
+            cmdline = "git pull"
 
-            _, errors = proc.communicate()
-            return_code = proc.returncode
+        proc = subprocess.Popen(
+            cmdline.split(),
+            cwd=self.location,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
-            if return_code != 0:
-                self.log.error("failed to setup meta ImageBuilder")
-                self.log.debug(errors)
-                exit()
+        output, errors = proc.communicate()
+        return_code = proc.returncode
+        output = output.decode("utf-8")
+        errors = errors.decode("utf-8")
+        self.log.debug(output)
+
+        if return_code != 0:
+            self.log.error("failed to setup/update meta ImageBuilder")
+            self.log.warning(errors)
+            exit(1)
 
         self.log.info("meta ImageBuilder successfully setup")
 

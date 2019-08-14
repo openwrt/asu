@@ -4,7 +4,6 @@ import logging
 import json
 import os.path
 from time import sleep
-import sys
 
 
 class Database:
@@ -30,7 +29,7 @@ class Database:
                 sleep(5)
 
         if not connected:
-            sys.exit(1)
+            exit(1)
 
         self.cnxn.autocommit = True
         self.c = self.cnxn.cursor()

@@ -32,6 +32,8 @@ services:
     command: sh -c 'flask loaddb && flask run --host=0.0.0.0'
     volumes:
       - "./:/opt/asu/"
+      - "./config.yml:/etc/asu/config.yml"
+
     ports:
       - 5000
     depends_on:
@@ -47,5 +49,6 @@ services:
     command: sh -c 'flask run-worker'
     volumes:
       - "./:/opt/asu/"
+      - "./config.yml:/etc/asu/config.yml"
     depends_on:
       - db
