@@ -23,8 +23,7 @@ services:
       - "./asu/utils/tables.sql:/docker-entrypoint-initdb.d/tables.sql"
 
   server:
-    #image: aparcar/asu
-    image: registry.gitlab.com/aparcar/attendedsysupgrade-server:backup-refactor
+    build: .
     environment:
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
@@ -41,8 +40,7 @@ services:
       - db
 
   worker:
-    #image: aparcar/asu
-    image: registry.gitlab.com/aparcar/attendedsysupgrade-server:backup-refactor
+    build: .
     environment:
       - FLASK_APP=asu
       - LC_ALL=C.UTF-8
