@@ -4,7 +4,6 @@ worker:
     - /var/lib/asu/worker/
 
 active_distros:
-    - lime
     - openwrt
 
 distro_folder: /etc/asu/distributions/

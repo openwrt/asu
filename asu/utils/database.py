@@ -3,6 +3,7 @@ import pyodbc
 import logging
 import json
 import os.path
+from time import sleep
 
 
 class Database:
@@ -15,7 +16,21 @@ class Database:
 
     def connect(self):
         connection_string = "DSN=asu;BoolsAsChar=0"
-        self.cnxn = pyodbc.connect(connection_string)
+        for i in range(10):
+            try:
+                self.cnxn = pyodbc.connect(connection_string)
+                connected = True
+            except Exception as e:
+                connected = False
+                self.log.warning(
+                    "[{}/10] Retry database connection in 5 seconds".format(i + 1)
+                )
+                self.log.debug(e)
+                sleep(5)
+
+        if not connected:
+            exit(1)
+
         self.cnxn.autocommit = True
         self.c = self.cnxn.cursor()
         self.c.fast_executemany = True

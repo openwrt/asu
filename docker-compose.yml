@@ -1,6 +1,17 @@
-version: "3.5"
+version: '3.1'
 
 services:
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - "./contrib/nginx-asu-server.conf:/etc/nginx/conf.d/default.conf:ro"
+      - "./download/:/var/cache/asu/download/:ro"
+    ports:
+      - 8080:80
+    depends_on:
+      - server
+      - worker
+
   db:
     image: postgres
     restart: always
@@ -14,14 +25,17 @@ services:
   server:
     build: .
     environment:
-      - FLASK_APP=asu
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
-    command: sh -c 'sh .wait-for db:5432 -- flask loaddb && gunicorn3 -b 0.0.0.0:8000 asu:app'
+      - FLASK_APP=asu
+      - FLASK_DEBUG=1
+    command: sh -c 'flask loaddb && gunicorn3 -b 0.0.0.0:5000 --reload asu:app'
     volumes:
-      - "./config.yml:/asu/config.yml"
+      - "./:/opt/asu/"
+      - "./download/:/var/cache/asu/download/"
+      - "./config.yml:/etc/asu/config.yml"
     ports:
-      - 8000
+      - 5000
     depends_on:
       - db
 
@@ -31,10 +45,12 @@ services:
       - FLASK_APP=asu
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
-    command: sh -c 'sh .wait-for server:8000 -t 300 -- flask run-worker'
+    command: sh -c 'flask run-worker'
     volumes:
-      - "./config.yml:/asu/config.yml"
-      - "./worker/:/asu/worker/"
-      - "./updater/:/asu/updater/"
+      - "./:/opt/asu/"
+      - "./config.yml:/etc/asu/config.yml"
+      - "./download/:/var/cache/asu/download/"
+      - "./worker/:/var/lib/asu/worker/"
+      - "./updater/:/var/lib/asu/updater/"
     depends_on:
       - db
