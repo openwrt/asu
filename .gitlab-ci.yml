@@ -56,5 +56,6 @@ deploy-master:
   before_script:
     - docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
   script:
+    - docker pull "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
     - docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" "$DOCKER_IMAGE:latest"
     - docker push "$DOCKER_IMAGE"
