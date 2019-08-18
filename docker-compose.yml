@@ -6,6 +6,7 @@ services:
     volumes:
       - "./contrib/nginx-asu-server.conf:/etc/nginx/conf.d/default.conf:ro"
       - "./download/:/var/cache/asu/download/:ro"
+      - "./chef/:/usr/share/nginx/html:ro"
     ports:
       - 8080:80
     depends_on:
@@ -23,7 +24,7 @@ services:
       - "./asu/utils/tables.sql:/docker-entrypoint-initdb.d/tables.sql"
 
   server:
-    build: .
+    image: aparcar/asu
     environment:
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
@@ -40,7 +41,7 @@ services:
       - db
 
   worker:
-    build: .
+    image: aparcar/asu
     environment:
       - FLASK_APP=asu
       - LC_ALL=C.UTF-8
