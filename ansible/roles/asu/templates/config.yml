@@ -1,8 +1,0 @@
-{{ ansible_managed | comment }}
-
-updater_dir: {{ updater_dir }}
-updater_threads: {{ updater_threads }}
-worker: {{ worker }}
-active_distros: {{ active_distros }}
-distro_folder: {{ distro_folder }}
-download_folder: {{ download_folder }}
