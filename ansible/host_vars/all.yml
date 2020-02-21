@@ -1,6 +1,0 @@
-ansible_python_interpreter: /usr/bin/python3
-server_folder: "/home/{{ server_user }}/server"
-config_folder: /etc/asu/
-db_user: asu
-db_name: asu
-db_pass: changeme
