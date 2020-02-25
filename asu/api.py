@@ -172,7 +172,7 @@ def api_build():
             response = {"status": job.get_status()}
 
         if job.is_finished:
-            response = job.result
+            response.update(job.result)
             response["build_at"] = job.ended_at
 
         response["enqueued_at"] = job.enqueued_at
