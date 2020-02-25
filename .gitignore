@@ -1,10 +1,13 @@
-!\.gitignore
-\.*
+*$py.class
+*.py[cod]
+.coverage
+__pycache__/
 asu.egg-info/
 asu/__pycache__/
 bin/
 cache/
 dist/
+htmlcov/
 lib/
 lib64
 pyvenv.cfg
