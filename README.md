@@ -6,12 +6,27 @@ here offer an easy way to reflash the router with a new version or package
 upgrades, without the need of `opkg` installed.
 
 Additionally it offers an API (covered below) to request custom images with any
-selection of packages pre-installed, allowing to create firmware images without the need
-of setting up a build environment, even from mobile devices.
+selection of packages pre-installed, allowing to create firmware images without
+the need of setting up a build environment, even from mobile devices.
 
 ## Clients
 
+### Yet another firmware selector
+
+Simple web interface using vanilla JavaScript currently developed by @mwarning.
+It offers a device search based on model names and show links either to
+[official images](https://downloads.openwrt.org/) or requests images via the
+_asu_ API. Please join in the development at the [GitHub
+repository](https://github.com/mwarning/yet_another_firmware_selector)
+
 ![yafs](misc/yafs.png)
+
+### LuCI app
+
+The package `luci-app-attendedsysupgrade` [still
+exists](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
+but is currently not usable with the rewritten server implementation. The app
+will however be upgraded as soon as possible to be usable again.
 
 ## Server
 
@@ -30,7 +45,7 @@ Redis is required to store image requests:
 
     sudo apt install redis-server tar
 
-Install *asu*:
+Install _asu_:
 
     pip install asu
 
@@ -43,7 +58,6 @@ Start the server via the following commands:
 Start the worker via the following comand:
 
     rq worker
-
 
 ### Development
 
