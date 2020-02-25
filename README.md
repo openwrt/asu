@@ -30,11 +30,9 @@ Redis is required to store image requests:
 
     sudo apt install redis-server tar
 
-Create a Python virtual environment and install the dependencies:
+Install *asu*:
 
-    python3 -m venv .
-    source bin/activate
-    pip install -r requirements.txt
+    pip install asu
 
 Start the server via the following commands:
 
@@ -46,7 +44,18 @@ Start the worker via the following comand:
 
     rq worker
 
-Be sure that in both cases the virtual envorinment is active.
+
+### Development
+
+After cloning this repository create a Python virtual environment and install
+the dependencies:
+
+    python3 -m venv .
+    source bin/activate
+    pip install -r requirements.txt
+    export FLASK_APP=asu  # set Flask app to asu
+    export FLASK_DEBUG=1  # run Flask in debug mode (autoreload)
+    flask run
 
 ## API
 
