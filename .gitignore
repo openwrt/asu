@@ -1,8 +1,10 @@
 !\.gitignore
 \.*
+asu.egg-info/
 asu/__pycache__/
 bin/
 cache/
+dist/
 lib/
 lib64
 pyvenv.cfg
