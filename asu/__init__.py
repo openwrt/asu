@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import Flask, send_from_directory
+from flask import Flask, redirect, send_from_directory
 from flask_cors import CORS
 
 from .common import cwd
@@ -9,7 +9,7 @@ from .common import cwd
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        STORE_PATH=Path(app.instance_path) / "store",
+        STORE_PATH=Path(app.instance_path) / "public/store",
         TEST=False,
         DEBUG=True,
         UPSTREAM_URL="https://cdn.openwrt.org",
@@ -33,14 +33,18 @@ def create_app(test_config=None):
 
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    @app.route("/")
-    @app.route("/<path:path>")
-    def root(path="index.html"):
-        return send_from_directory(Path(app.instance_path) / "public", path)
+    # only serve files in DEBUG/TEST mode
+    # production should use nginx for static files
+    if app.config["DEBUG"] or app.config["TEST"]:
 
-    @app.route("/store/<path:path>")
-    def send_js(path):
-        return send_from_directory(cwd() / "store", path)
+        @app.route("/")
+        @app.route("/<path:path>")
+        def root(path="index.html"):
+            return send_from_directory(Path(app.instance_path) / "public", path)
+    else:
+        @app.route("/")
+        def root(path="index.html"):
+            return redirect("https://github.com/aparcar/asu/#api")
 
     from . import janitor
 

@@ -25,7 +25,7 @@ def get_profiles():
         g.profiles = {}
         for version in get_versions().keys():
             g.profiles[version] = json.loads(
-                (cwd() / f"profiles-{version}.json").read_text()
+                (cwd() / f"public/profiles-{version}.json").read_text()
             )["profiles"]
             current_app.logger.info(
                 f"Loaded {len(g.profiles[version])} profiles in {version}"
@@ -38,7 +38,7 @@ def get_packages():
         g.packages = {}
         for version in get_versions().keys():
             g.packages[version] = set(
-                json.loads((cwd() / f"packages-{version}.json").read_text())
+                json.loads((cwd() / f"public/packages-{version}.json").read_text())
             )
             current_app.logger.info(
                 f"Loaded {len(g.packages[version])} packages in {version}"

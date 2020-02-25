@@ -37,7 +37,7 @@ def download_package_indexes(version):
 
     current_app.logger.info(f"Total of {len(packages)} packages found")
 
-    pretty_json_dump(f"packages-{version}.json", sorted(list(packages)))
+    pretty_json_dump(f"public/packages-{version}.json", sorted(list(packages)))
 
 
 def fill_metadata(dictionary, profile_info, base_url):
@@ -88,8 +88,8 @@ def merge_profiles(profiles, base_url):
                 "images": profile_info["images"],
             }
 
-    pretty_json_dump(f"profiles-{version}.json", profiles_json_overview)
-    pretty_json_dump(f"names-{version}.json", names_json_overview)
+    pretty_json_dump(f"public/profiles-{version}.json", profiles_json_overview)
+    pretty_json_dump(f"public/names-{version}.json", names_json_overview)
 
 
 def download_profile(url):
