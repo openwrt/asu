@@ -59,6 +59,20 @@ Start the worker via the following comand:
 
     rq worker
 
+### Production
+
+It is recommended to run *ASU* via `gunicorn` proxied by `nginx`. Find a
+possible `nginx` configuration in the `misc/` folder. Also the setup should not
+HTTPS to allow clients without SSL/certificates to check for upgrades.
+
+To change the default setting place a file called `config.py` in the root of
+the [instance
+folder](https://flask.palletsprojects.com/en/1.1.x/config/#instance-folders).
+Find an example in the `misc/` folder.
+
+    pip install gunicorn
+    gunicorn "asu:create_app()"
+
 ### Development
 
 After cloning this repository create a Python virtual environment and install
