@@ -172,16 +172,8 @@ def api_build():
             response = {"status": job.get_status()}
 
         if job.is_finished:
+            response = job.result
             response["build_at"] = job.ended_at
-            response.update(
-                json.loads(
-                    (
-                        current_app.config["STORE_PATH"]
-                        / job.meta["bin_dir"]
-                        / job.result
-                    ).read_text()
-                )
-            )
 
         response["enqueued_at"] = job.enqueued_at
 

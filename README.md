@@ -61,7 +61,7 @@ Start the worker via the following comand:
 
 ### Production
 
-It is recommended to run *ASU* via `gunicorn` proxied by `nginx`. Find a
+It is recommended to run _ASU_ via `gunicorn` proxied by `nginx`. Find a
 possible `nginx` configuration in the `misc/` folder. Also the setup should not
 HTTPS to allow clients without SSL/certificates to check for upgrades.
 
@@ -103,42 +103,63 @@ responded JSON contains a newer version.
 
 ### Response `status 200`
 
-```
-{
-  "bin_dir": "SNAPSHOT/ramips/mt7620/alfa-network_tube-e4g/689292a5569f",
-  "build_at": "Mon, 24 Feb 2020 00:00:02 GMT",
-  "buildlog": true,
-  "enqueued_at": "Sun, 23 Feb 2020 23:59:13 GMT",
-  "id": "alfa-network_tube-e4g",
-  "image_prefix": "openwrt-689292a5569f-ramips-mt7620-alfa-network_tube-e4g",
-  "images": [
-    {
-      "name": "openwrt-689292a5569f-ramips-mt7620-alfa-network_tube-e4g-squashfs-sysupgrade.bin",
-      "sha256": "c14ffd501c8839d737504acf17285a519916830c8df6ca7d281596563c846d1e",
-      "type": "sysupgrade"
-    }
-  ],
-  "metadata_version": 1,
-  "supported_devices": [
-    "alfa-network,tube-e4g"
-  ],
-  "target": "ramips/mt7620",
-  "titles": [
-    {
-      "model": "Tube-E4G",
-      "vendor": "ALFA Network"
-    }
-  ],
-  "version_commit": "r12288-1173719817",
-  "version_number": "SNAPSHOT"
-}
+A `200` response means the image was sucessfully created. The response is JSON
+encoded containing build information.
 
-```
+| key        | information                                 |
+| ---------- | ------------------------------------------- |
+| `bin_dir`  | relative path to created files              |
+| `buildlog` | boolean if buildlog.txt was created         |
+| `manifest` | dict of all installed packages plus version |
 
-| key        | information                         |
-| ---------- | ----------------------------------- |
-| `bin_dir`  | relative path to created files      |
-| `buildlog` | boolean if buildlog.txt was created |
+    {
+      "build_at": "Tue, 25 Feb 2020 08:49:48 GMT",
+      "enqueued_at": "Tue, 25 Feb 2020 08:49:09 GMT",
+      "id": "avm_fritzbox-4040",
+      "image_prefix": "openwrt-387e9d003d04-ipq40xx-generic-avm_fritzbox-4040",
+      "images": [
+        {
+          "name": "openwrt-387e9d003d04-ipq40xx-generic-avm_fritzbox-4040-squashfs-eva.bin",
+          "sha256": "8cb0d58bf672ed442f0813a1f04ec2f5edf6e2b64c8f117cb11158e19251aa0b",
+          "type": "eva"
+        },
+        {
+          "name": "openwrt-387e9d003d04-ipq40xx-generic-avm_fritzbox-4040-squashfs-sysupgrade.bin",
+          "sha256": "0d12ce60dd63422a63ed28f0e2a2ab2d367a407ccc32b665c28c809f3cb073f1",
+          "type": "sysupgrade"
+        }
+      ],
+      "manifest": {
+        "ath10k-firmware-qca4019-ct": "2019-10-03-d622d160-1",
+        "base-files": "213-r12297-7e9c7e7b2d",
+        "busybox": "1.31.1-1",
+        "cgi-io": "17",
+        "dnsmasq": "2.80-18",
+        [...]
+        "uclient-fetch": "2020-01-05-fef6d3d3-1",
+        "uhttpd": "2020-02-12-2ee323c0-1",
+        "urandom-seed": "1.0-1",
+        "urngd": "2020-01-21-c7f7b6b6-1",
+        "usign": "2019-09-21-f34a383e-1",
+        "vim": "8.1-6",
+        "wireless-regdb": "2019.06.03",
+        "wpad-basic": "2019-08-08-ca8c2bd2-6",
+        "zlib": "1.2.11-3"
+      },
+      "metadata_version": 1,
+      "supported_devices": [
+        "avm,fritzbox-4040"
+      ],
+      "target": "ipq40xx/generic",
+      "titles": [
+        {
+          "model": "FRITZ!Box 4040",
+          "vendor": "AVM"
+        }
+      ],
+      "version_commit": "r12297-7e9c7e7b2d",
+      "version_number": "SNAPSHOT"
+    }
 
 ### Response status codes
 

@@ -161,10 +161,6 @@ def build(request):
         cwd=cache / subtarget,
     )
 
-    (request["config"]["STORE_PATH"] / bin_dir / "manifest.json").write_text(
-        json.dumps(manifest, sort_keys=True, indent="  ")
-    )
-
     (request["config"]["STORE_PATH"] / bin_dir / "buildlog.txt").write_text(
         f"### STDOUT\n\n{image_build.stdout}\n\n### STDERR\n\n{image_build.stderr}"
     )
@@ -180,4 +176,7 @@ def build(request):
 
     assert json_file, "Image built but no JSON file created"
 
-    return json_file.name
+    json_content = json.loads(json_file.read_text())
+    json_content.update({"manifest": manifest})
+
+    return json_content
