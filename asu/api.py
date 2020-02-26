@@ -25,7 +25,9 @@ def get_profiles():
         g.profiles = {}
         for version in get_versions().keys():
             g.profiles[version] = json.loads(
-                (cwd() / f"public/profiles-{version}.json").read_text()
+                (
+                    current_app.config["JSON_PATH"] / f"profiles-{version}.json"
+                ).read_text()
             )["profiles"]
             current_app.logger.info(
                 f"Loaded {len(g.profiles[version])} profiles in {version}"
@@ -38,7 +40,11 @@ def get_packages():
         g.packages = {}
         for version in get_versions().keys():
             g.packages[version] = set(
-                json.loads((cwd() / f"public/packages-{version}.json").read_text())
+                json.loads(
+                    (
+                        current_app.config["JSON_PATH"] / f"packages-{version}.json"
+                    ).read_text()
+                )["packages"]
             )
             current_app.logger.info(
                 f"Loaded {len(g.packages[version])} packages in {version}"
@@ -49,14 +55,14 @@ def get_packages():
 def get_queue():
     if "queue" not in g:
         with Connection():
-            g.queue = Queue()
+            g.queue = Queue(connection=current_app.config["REDIS_CONN"])
     return g.queue
 
 
 def validate_request(request_data):
     for needed in ["version", "profile"]:
         if needed not in request_data:
-            return ({"status": "bad_version", "message": f"Missing {needed}"}, 400)
+            return ({"status": "bad_request", "message": f"Missing {needed}"}, 400)
 
     if request_data.get("distro", "openwrt") not in get_distros():
         return (
@@ -109,21 +115,6 @@ def validate_request(request_data):
     return ({}, None)
 
 
-@bp.route("/profiles/<version>")
-def api_profiles(version):
-    return send_from_directory(cwd(), f"profiles-{version}.json")
-
-
-@bp.route("/names/<version>")
-def api_names(version):
-    return send_from_directory(cwd(), f"names-{version}.json")
-
-
-@bp.route("/packages/<version>")
-def api_packages(version):
-    return send_from_directory(cwd(), f"packages-{version}.json")
-
-
 @bp.route("/versions")
 def api_versions():
     return get_versions()
@@ -132,6 +123,9 @@ def api_versions():
 @bp.route("/build", methods=["POST"])
 def api_build():
     request_data = request.get_json()
+    if not request_data:
+        return {"status": "bad_request"}, 400
+
     current_app.logger.debug(request_data)
     request_hash = get_request_hash(request_data)
     job = get_queue().fetch_job(request_hash)
@@ -148,8 +142,15 @@ def api_build():
         response, status = validate_request(request_data)
         if not response:
             status = 202
-            request_data["config"] = current_app.config
-            request_data["packages"] = set(request_data["packages"])
+            request_data["store_path"] = current_app.config["STORE_PATH"]
+            request_data["upstream_url"] = current_app.config["UPSTREAM_URL"]
+            request_data["version_data"] = current_app.config["VERSIONS"][
+                request_data["version"]
+            ]
+            if "packages" in request_data:
+                request_data["packages"] = set(request_data["packages"])
+            else:
+                request_data["packages"] = set()
 
             job = get_queue().enqueue(
                 build,
@@ -176,6 +177,7 @@ def api_build():
             response["build_at"] = job.ended_at
 
         response["enqueued_at"] = job.enqueued_at
+        response["request_hash"] = request_hash
 
     current_app.logger.debug(f"Response {response} with status {status}")
     return response, status

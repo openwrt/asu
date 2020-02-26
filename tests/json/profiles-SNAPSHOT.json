@@ -1,0 +1,15 @@
+{
+  "metadata_version": 1,
+  "profiles": {
+    "8dev_jalapeno": {
+      "target": "ipq40xx/generic"
+    },
+    "8devices_carambola": {
+      "target": "ramips/rt305x"
+    }
+  },
+  "target": "bcm47xx/mips74k",
+  "url": "https://downloads.openwrt.org/snapshots/targets/{target}",
+  "version_commit": "r12320-3660a89cb9",
+  "version_number": "SNAPSHOT"
+}
