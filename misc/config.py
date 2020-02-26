@@ -2,7 +2,7 @@
 STORE_PATH="/var/asu/public/store",
 
 # disable test and debug features
-TEST=False,
+TESTING=False,
 DEBUG=False,
 
 # where to find the ImageBuildes

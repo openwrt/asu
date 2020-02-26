@@ -96,7 +96,7 @@ def download_profile(url):
     try:
         return json.load(request.urlopen(url))
     except json.JSONDecodeError:
-        current_app.logger.info(f"Error at {url}")
+        current_app.logger.warning(f"Error at {url}")
 
 
 def get_json_files(version):

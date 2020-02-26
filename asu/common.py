@@ -5,8 +5,10 @@ import base64
 from pathlib import Path
 from flask import current_app
 
+
 def cwd():
     return Path(current_app.instance_path)
+
 
 def get_str_hash(string: str, length: int) -> str:
     h = hashlib.sha256()

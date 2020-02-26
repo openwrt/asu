@@ -10,9 +10,9 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         STORE_PATH=Path(app.instance_path) / "public/store",
-        TEST=False,
-        DEBUG=True,
-        UPSTREAM_URL="https://cdn.openwrt.org",
+        TESTING=False,
+        DEBUG=False,
+        UPSTREAM_URL="https://downloads.openwrt.org",
         VERSIONS={
             "SNAPSHOT": {
                 "branch": "master",
@@ -33,15 +33,17 @@ def create_app(test_config=None):
 
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # only serve files in DEBUG/TEST mode
+    # only serve files in DEBUG/TESTING mode
     # production should use nginx for static files
-    if app.config["DEBUG"] or app.config["TEST"]:
+    if app.config["DEBUG"] or app.config["TESTING"]:
 
         @app.route("/")
         @app.route("/<path:path>")
         def root(path="index.html"):
             return send_from_directory(Path(app.instance_path) / "public", path)
+
     else:
+
         @app.route("/")
         def root(path="index.html"):
             return redirect("https://github.com/aparcar/asu/#api")

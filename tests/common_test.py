@@ -8,8 +8,9 @@ from asu.common import *
 
 def test_cwd(app):
     with app.app_context():
-        assert type(cwd()) == PosixPath
+        assert isinstance(cwd(), PosixPath)
         assert cwd().is_dir()
+
 
 def test_get_str_hash():
     assert get_str_hash("test", 12) == "9f86d081884c"
@@ -40,6 +41,7 @@ def test_get_request_hash():
 
     assert get_request_hash(request) == "006ffc934194"
 
+
 def test_verify_usign():
     sig = b"\nRWSrHfFmlHslUQ9dCB1AJr/PoIIbBJJKtofZ5frLOuG03SlwAwgU1tYOaJs2eVGdo1C8S9LNcMBLPIfDDCWSdrLK3WJ6JV6HNQM="
     msg_fd, msg_path = tempfile.mkstemp()
@@ -52,7 +54,6 @@ def test_verify_usign():
 
     assert verify_usign(Path(sig_path), Path(msg_path), pub_key)
     assert not verify_usign(Path(sig_path), Path(msg_path), pub_key_bad)
-
 
     os.close(msg_fd)
     os.close(sig_fd)
