@@ -23,6 +23,30 @@ def test_api_build(client):
     assert response.json.get("request_hash") == "0222f0cd9290"
 
 
+def test_api_build_get(client):
+    client.post(
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT",
+            profile="8devices_carambola",
+            packages=["test1", "test2"],
+        ),
+    )
+    response = client.get("/api/build/0222f0cd9290")
+    assert response.status == "202 ACCEPTED"
+    assert response.json.get("status") == "queued"
+    assert response.json.get("request_hash") == "0222f0cd9290"
+
+def test_api_build_get_not_found(client):
+    response = client.get("/api/build/testtesttest")
+    assert response.status == "404 NOT FOUND"
+
+
+def test_api_build_get_no_post(client):
+    response = client.post("/api/build/0222f0cd9290")
+    assert response.status == "405 METHOD NOT ALLOWED"
+
+
 def test_api_build_empty_packages(client):
     response = client.post(
         "/api/build", json=dict(version="SNAPSHOT", profile="8devices_carambola")

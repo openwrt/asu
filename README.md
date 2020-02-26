@@ -101,16 +101,20 @@ responded JSON contains a newer version.
 | `profile`  | `netgear_wndr4300-v2` | `board_name` of `ubus call system board` |
 | `packages` | `["luci", "vim"]`     | Extra packages for the new image         |
 
+Each valid request returns a `request_hash` which can be used for future
+polling via `/api/build/<request_hash>`.
+
 ### Response `status 200`
 
 A `200` response means the image was sucessfully created. The response is JSON
 encoded containing build information.
 
-| key        | information                                 |
-| ---------- | ------------------------------------------- |
-| `bin_dir`  | relative path to created files              |
-| `buildlog` | boolean if buildlog.txt was created         |
-| `manifest` | dict of all installed packages plus version |
+| key            | information                                 |
+| -------------- | ------------------------------------------- |
+| `bin_dir`      | relative path to created files              |
+| `buildlog`     | boolean if buildlog.txt was created         |
+| `manifest`     | dict of all installed packages plus version |
+| `request_hash` | hashed request data stored by the server    |
 
     {
       "build_at": "Tue, 25 Feb 2020 08:49:48 GMT",
@@ -147,6 +151,7 @@ encoded containing build information.
         "zlib": "1.2.11-3"
       },
       "metadata_version": 1,
+      "request_hash": "5bac6cb8321f",
       "supported_devices": [
         "avm,fritzbox-4040"
       ],

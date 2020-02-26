@@ -119,14 +119,46 @@ def validate_request(request_data):
 def api_versions():
     return get_versions()
 
+def return_job(job):
+    response = {}
+    if job.meta:
+        response.update(job.meta)
+
+    if job.is_failed:
+        status = 500
+        response["message"] = job.exc_info.strip().split("\n")[-1]
+
+    if job.is_queued or job.is_started:
+        status = 202
+        response = {"status": job.get_status()}
+
+    if job.is_finished:
+        status = 200
+        response.update(job.result)
+        response["build_at"] = job.ended_at
+
+    response["enqueued_at"] = job.enqueued_at
+    response["request_hash"] = job.id
+
+    current_app.logger.debug(f"Response {response} with status {status}")
+    return response, status
+
+@bp.route("/build/<request_hash>", methods=["GET"])
+def api_build_get(request_hash):
+    job = get_queue().fetch_job(request_hash)
+    if not job:
+        return {"status": "not_found"}, 404
+
+    return return_job(job)
+
 
 @bp.route("/build", methods=["POST"])
 def api_build():
     request_data = request.get_json()
+    current_app.logger.debug("rerequest_data {request_data}")
     if not request_data:
         return {"status": "bad_request"}, 400
 
-    current_app.logger.debug(request_data)
     request_hash = get_request_hash(request_data)
     job = get_queue().fetch_job(request_hash)
     response = {}
@@ -140,44 +172,26 @@ def api_build():
 
     if job is None:
         response, status = validate_request(request_data)
-        if not response:
-            status = 202
-            request_data["store_path"] = current_app.config["STORE_PATH"]
-            request_data["upstream_url"] = current_app.config["UPSTREAM_URL"]
-            request_data["version_data"] = current_app.config["VERSIONS"][
-                request_data["version"]
-            ]
-            if "packages" in request_data:
-                request_data["packages"] = set(request_data["packages"])
-            else:
-                request_data["packages"] = set()
+        if response:
+            return response, status
 
-            job = get_queue().enqueue(
-                build,
-                request_data,
-                job_id=request_hash,
-                result_ttl=result_ttl,
-                failure_ttl=failure_ttl,
-            )
+    request_data["store_path"] = current_app.config["STORE_PATH"]
+    request_data["upstream_url"] = current_app.config["UPSTREAM_URL"]
+    request_data["version_data"] = current_app.config["VERSIONS"][
+        request_data["version"]
+    ]
+    if "packages" in request_data:
+        request_data["packages"] = set(request_data["packages"])
+    else:
+        request_data["packages"] = set()
 
-    if job:
-        if job.meta:
-            response.update(job.meta)
+    job = get_queue().enqueue(
+        build,
+        request_data,
+        job_id=request_hash,
+        result_ttl=result_ttl,
+        failure_ttl=failure_ttl,
+    )
 
-        if job.is_failed:
-            status = 500
-            response["message"] = job.exc_info.strip().split("\n")[-1]
+    return return_job(job)
 
-        if job.is_queued or job.is_started:
-            status = 202
-            response = {"status": job.get_status()}
-
-        if job.is_finished:
-            response.update(job.result)
-            response["build_at"] = job.ended_at
-
-        response["enqueued_at"] = job.enqueued_at
-        response["request_hash"] = request_hash
-
-    current_app.logger.debug(f"Response {response} with status {status}")
-    return response, status
