@@ -37,7 +37,10 @@ def download_package_indexes(version):
 
     current_app.logger.info(f"Total of {len(packages)} packages found")
 
-    pretty_json_dump(f"public/packages-{version}.json", sorted(list(packages)))
+    pretty_json_dump(
+        f"public/packages-{version}.json",
+        {"metadata_version": 1, "packages": sorted(list(packages))},
+    )
 
 
 def fill_metadata(dictionary, profile_info, base_url):

@@ -9,7 +9,9 @@ from .common import cwd
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        STORE_PATH=Path(app.instance_path) / "public/store",
+        STORE_PATH=app.instance_path + "/public/store",
+        JSON_PATH=app.instance_path + "/public/",
+        REDIS_CONN=None,  # defaults to localhost
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.openwrt.org",
@@ -27,7 +29,9 @@ def create_app(test_config=None):
     else:
         app.config.from_mapping(test_config)
 
-    app.config["STORE_PATH"] = Path(app.config["STORE_PATH"])
+    for option, value in app.config.items():
+        if option.endswith("_PATH") and isinstance(value, str):
+            app.config[option] = Path(value)
 
     Path(app.instance_path).mkdir(exist_ok=True, parents=True)
 

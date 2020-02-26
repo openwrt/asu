@@ -35,9 +35,7 @@ def build(request):
         download_file("sha256sums", sums_file)
 
         assert verify_usign(
-            sig_file,
-            sums_file,
-            request["config"]["VERSIONS"][request["version"]]["pubkey"],
+            sig_file, sums_file, request["version_data"]["pubkey"]
         ), "Bad signature for cheksums"
 
         # openwrt-imagebuilder-ath79-generic.Linux-x86_64.tar.xz
@@ -72,9 +70,9 @@ def build(request):
     def download_file(filename: str, dest=None):
         log.debug(f"Downloading {filename}")
         urllib.request.urlretrieve(
-            request["config"]["UPSTREAM_URL"]
+            request["upstream_url"]
             + "/"
-            + request["config"]["VERSIONS"][request["version"]]["path"]
+            + request["version_data"]["path"]
             + "/targets/"
             + request["target"]
             + "/"
@@ -84,16 +82,16 @@ def build(request):
 
     cache.mkdir(parents=True, exist_ok=True)
 
-    if not (request["config"]["STORE_PATH"]).is_dir():
-        (request["config"]["STORE_PATH"]).mkdir(parents=True, exist_ok=True)
+    if not (request["store_path"]).is_dir():
+        (request["store_path"]).mkdir(parents=True, exist_ok=True)
 
     if sig_file.is_file():
         last_modified = time.mktime(
             time.strptime(
                 urllib.request.urlopen(
-                    request["config"]["UPSTREAM_URL"]
+                    request["upstream_url"]
                     + "/"
-                    + request["config"]["VERSIONS"][request["version"]]["path"]
+                    + request["version_data"]["path"]
                     + "/targets/"
                     + request["target"]
                     + "/sha256sums.sig"
@@ -144,8 +142,8 @@ def build(request):
 
     job.meta["bin_dir"] = str(bin_dir)
 
-    if not (request["config"]["STORE_PATH"] / bin_dir).is_dir():
-        (request["config"]["STORE_PATH"] / bin_dir).mkdir(parents=True, exist_ok=True)
+    if not (request["store_path"] / bin_dir).is_dir():
+        (request["store_path"] / bin_dir).mkdir(parents=True, exist_ok=True)
 
     image_build = subprocess.run(
         [
@@ -154,14 +152,14 @@ def build(request):
             f"PROFILE={request['profile']}",
             f"PACKAGES={' '.join(request['packages'])}",
             f"EXTRA_IMAGE_NAME={packages_hash}",
-            f"BIN_DIR={request['config']['STORE_PATH'] / bin_dir}",
+            f"BIN_DIR={request['store_path'] / bin_dir}",
         ],
         text=True,
         capture_output=True,
         cwd=cache / subtarget,
     )
 
-    (request["config"]["STORE_PATH"] / bin_dir / "buildlog.txt").write_text(
+    (request["store_path"] / bin_dir / "buildlog.txt").write_text(
         f"### STDOUT\n\n{image_build.stdout}\n\n### STDERR\n\n{image_build.stderr}"
     )
 
@@ -170,9 +168,7 @@ def build(request):
 
     assert not image_build.returncode, "ImageBuilder failed"
 
-    json_file = next(
-        Path(request["config"]["STORE_PATH"] / bin_dir).glob("openwrt-*.json")
-    )
+    json_file = next(Path(request["store_path"] / bin_dir).glob("openwrt-*.json"))
 
     assert json_file, "Image built but no JSON file created"
 
