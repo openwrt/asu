@@ -1,6 +1,6 @@
 import pytest
-import tempfile
 import shutil
+import tempfile
 
 from fakeredis import FakeStrictRedis
 
@@ -9,19 +9,20 @@ from asu import create_app
 
 @pytest.fixture
 def app():
-    store_path = tempfile.mkdtemp()
+    test_path = tempfile.mkdtemp()
     app = create_app(
         {
             "TESTING": True,
-            "STORE_PATH": store_path,
+            "STORE_PATH": test_path + "/store",
             "JSON_PATH": "./tests/json/",
+            "CACHE_PATH": test_path + "/cache",
             "REDIS_CONN": FakeStrictRedis(),
         }
     )
 
     yield app
 
-    shutil.rmtree(store_path)
+    shutil.rmtree(test_path)
 
 
 @pytest.fixture
@@ -32,3 +33,8 @@ def client(app):
 @pytest.fixture
 def runner(app):
     return app.test_cli_runner()
+
+
+@pytest.fixture
+def httpserver_listen_address():
+    return ("127.0.0.1", 8001)
