@@ -175,23 +175,23 @@ def api_build():
         if response:
             return response, status
 
-    request_data["store_path"] = current_app.config["STORE_PATH"]
-    request_data["upstream_url"] = current_app.config["UPSTREAM_URL"]
-    request_data["version_data"] = current_app.config["VERSIONS"][
-        request_data["version"]
-    ]
-    if "packages" in request_data:
-        request_data["packages"] = set(request_data["packages"])
-    else:
-        request_data["packages"] = set()
+        request_data["store_path"] = current_app.config["STORE_PATH"]
+        request_data["upstream_url"] = current_app.config["UPSTREAM_URL"]
+        request_data["version_data"] = current_app.config["VERSIONS"][
+            request_data["version"]
+        ]
+        if "packages" in request_data:
+            request_data["packages"] = set(request_data["packages"])
+        else:
+            request_data["packages"] = set()
 
-    job = get_queue().enqueue(
-        build,
-        request_data,
-        job_id=request_hash,
-        result_ttl=result_ttl,
-        failure_ttl=failure_ttl,
-    )
+        job = get_queue().enqueue(
+            build,
+            request_data,
+            job_id=request_hash,
+            result_ttl=result_ttl,
+            failure_ttl=failure_ttl,
+        )
 
     return return_job(job)
 
