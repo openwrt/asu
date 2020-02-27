@@ -119,6 +119,7 @@ def validate_request(request_data):
 def api_versions():
     return get_versions()
 
+
 def return_job(job):
     response = {}
     if job.meta:
@@ -142,6 +143,7 @@ def return_job(job):
 
     current_app.logger.debug(f"Response {response} with status {status}")
     return response, status
+
 
 @bp.route("/build/<request_hash>", methods=["GET"])
 def api_build_get(request_hash):
@@ -194,4 +196,3 @@ def api_build():
         )
 
     return return_job(job)
-

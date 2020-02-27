@@ -37,6 +37,7 @@ def test_api_build_get(client):
     assert response.json.get("status") == "queued"
     assert response.json.get("request_hash") == "0222f0cd9290"
 
+
 def test_api_build_get_not_found(client):
     response = client.get("/api/build/testtesttest")
     assert response.status == "404 NOT FOUND"

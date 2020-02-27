@@ -11,6 +11,7 @@ def create_app(test_config=None):
     app.config.from_mapping(
         STORE_PATH=app.instance_path + "/public/store",
         JSON_PATH=app.instance_path + "/public/",
+        CACHE_PATH=app.instance_path + "/cache/",
         REDIS_CONN=None,  # defaults to localhost
         TESTING=False,
         DEBUG=False,
@@ -32,6 +33,7 @@ def create_app(test_config=None):
     for option, value in app.config.items():
         if option.endswith("_PATH") and isinstance(value, str):
             app.config[option] = Path(value)
+            app.config[option].mkdir(parents=True, exist_ok=True)
 
     Path(app.instance_path).mkdir(exist_ok=True, parents=True)
 

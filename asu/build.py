@@ -18,10 +18,10 @@ log.setLevel(logging.DEBUG)
 
 
 def build(request):
-    job = get_current_job()
+    job = get_current_job() or {}
 
     log.debug(f"Building {request}")
-    cache = (Path("cache") / request["version"] / request["target"]).parent
+    cache = (request["cache_path"] / request["version"] / request["target"]).parent
     target, subtarget = request["target"].split("/")
     sums_file = Path(cache / f"{subtarget}_sums")
     sig_file = Path(cache / f"{subtarget}_sums.sig")
@@ -140,8 +140,6 @@ def build(request):
         / packages_hash
     )
 
-    job.meta["bin_dir"] = str(bin_dir)
-
     if not (request["store_path"] / bin_dir).is_dir():
         (request["store_path"] / bin_dir).mkdir(parents=True, exist_ok=True)
 
@@ -163,8 +161,10 @@ def build(request):
         f"### STDOUT\n\n{image_build.stdout}\n\n### STDERR\n\n{image_build.stderr}"
     )
 
-    job.meta["buildlog"] = True
-    job.save_meta()
+    if "meta" in job:
+        job.meta["bin_dir"] = str(bin_dir)
+        job.meta["buildlog"] = True
+        job.save_meta()
 
     assert not image_build.returncode, "ImageBuilder failed"
 

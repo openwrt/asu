@@ -10,5 +10,7 @@ def test_config():
 def test_pathlib(app):
     assert isinstance(app.config["STORE_PATH"], PosixPath)
     assert isinstance(app.config["JSON_PATH"], PosixPath)
+    assert isinstance(app.config["CACHE_PATH"], PosixPath)
     assert app.config["STORE_PATH"].is_dir()
     assert app.config["JSON_PATH"].is_dir()
+    assert app.config["CACHE_PATH"].is_dir()
