@@ -170,10 +170,11 @@ encoded containing build information.
 
 The client should check the status code:
 
-| status | meaning                              | information                          |
-| ------ | ------------------------------------ | ------------------------------------ |
-| `200`  | build finish / upgrade available     | see parameters above                 |
-| `202`  | building, queued, imagebuilder setup | building right now or in build queue |
-| `400`  | bad request                          | see `error` parameter                |
-| `422`  | unknown package                      | unknown package in request           |
-| `500`  | build failed                         | see `log` for build log              |
+| status | meaning                              | information                                                        |
+| ------ | ------------------------------------ | ------------------------------------------------------------------ |
+| `200`  | build finish / upgrade available     | see parameters above                                               |
+| `202`  | building, queued, imagebuilder setup | building right now or in build queue                               |
+| `400`  | bad request                          | see `error` parameter                                              |
+| `404`  | not found                            | if invalid `request_hash` supplied via `/api/build/<request_hash>` |
+| `422`  | unknown package                      | unknown package in request                                         |
+| `500`  | build failed                         | see `log` for build log                                            |
