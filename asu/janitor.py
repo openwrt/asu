@@ -80,7 +80,7 @@ def merge_profiles(profiles, base_url):
             }
 
     r.hmset(f"profiles-{version}", profiles_dict)
-    (current_app.config["JSON_PATH"] / f"names-{version}.json").write(
+    (current_app.config["JSON_PATH"] / f"names-{version}.json").write_text(
         names_json_overview, sort_keys=True, indent="  "
     )
 
