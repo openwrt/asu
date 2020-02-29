@@ -1,10 +1,9 @@
-import json
-
-from flask import request, g, current_app, send_from_directory, Blueprint
+from flask import request, g, current_app, Blueprint
 from rq import Connection, Queue
+from uuid import uuid4
 
 from .build import build
-from .common import get_request_hash, cwd
+from .common import get_request_hash
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -20,42 +19,16 @@ def get_versions():
     return g.versions
 
 
-def get_profiles():
-    if "profiles" not in g:
-        g.profiles = {}
-        for version in get_versions().keys():
-            g.profiles[version] = json.loads(
-                (
-                    current_app.config["JSON_PATH"] / f"profiles-{version}.json"
-                ).read_text()
-            )["profiles"]
-            current_app.logger.info(
-                f"Loaded {len(g.profiles[version])} profiles in {version}"
-            )
-    return g.profiles
-
-
-def get_packages():
-    if "packages" not in g:
-        g.packages = {}
-        for version in get_versions().keys():
-            g.packages[version] = set(
-                json.loads(
-                    (
-                        current_app.config["JSON_PATH"] / f"packages-{version}.json"
-                    ).read_text()
-                )["packages"]
-            )
-            current_app.logger.info(
-                f"Loaded {len(g.packages[version])} packages in {version}"
-            )
-    return g.packages
+def get_redis():
+    if "redis" not in g:
+        g.redis = current_app.config["REDIS_CONN"]
+    return g.redis
 
 
 def get_queue():
     if "queue" not in g:
         with Connection():
-            g.queue = Queue(connection=current_app.config["REDIS_CONN"])
+            g.queue = Queue(connection=get_redis())
     return g.queue
 
 
@@ -82,10 +55,8 @@ def validate_request(request_data):
             400,
         )
 
-    target = (
-        get_profiles()[request_data["version"]]
-        .get(request_data.get("profile", ""), {})
-        .get("target")
+    target = get_redis().hget(
+        f"profiles-{request_data['version']}", request_data["profile"]
     )
 
     if not target:
@@ -99,18 +70,27 @@ def validate_request(request_data):
     else:
         request_data["target"] = target
 
-    unknown_packages = (
-        set(map(lambda p: p.strip("-"), request_data.get("packages", [])))
-        - get_packages()[request_data["version"]]
-    )
-    if unknown_packages:
-        return (
-            {
-                "status": "bad_packages",
-                "message": f"Unknown package(s): {', '.join(unknown_packages)}",
-            },
-            422,
-        )
+    if "packages" in request_data:
+        request_data["packages"] = set(request_data["packages"])
+
+        # store request packages temporary in Redis and create a diff
+        temp = str(uuid4())
+        pipeline = get_redis().pipeline(True)
+        pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), request_data["packages"])))
+        pipeline.expire(temp, 5)
+        pipeline.sdiff(temp, f"packages-{request_data['version']}")
+        unknown_packages = list(map(lambda u: u.decode(), pipeline.execute()[-1]))
+
+        if unknown_packages:
+            return (
+                {
+                    "status": "bad_packages",
+                    "message": f"Unknown package(s): {', '.join(unknown_packages)}",
+                },
+                422,
+            )
+    else:
+        request_data["packages"] = set()
 
     return ({}, None)
 
@@ -182,10 +162,6 @@ def api_build():
         request_data["version_data"] = current_app.config["VERSIONS"][
             request_data["version"]
         ]
-        if "packages" in request_data:
-            request_data["packages"] = set(request_data["packages"])
-        else:
-            request_data["packages"] = set()
 
         job = get_queue().enqueue(
             build,

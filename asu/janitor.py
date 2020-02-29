@@ -3,17 +3,12 @@ from urllib import request
 import json
 import re
 import urllib.request
+import redis
 
-import click
 from flask import current_app, Blueprint
 
-from .common import cwd
-
 bp = Blueprint("janitor", __name__)
-
-
-def pretty_json_dump(filename, data):
-    (cwd() / filename).write_text(json.dumps(data, sort_keys=True, indent="  "))
+r = redis.Redis()
 
 
 def download_package_indexes(version):
@@ -25,22 +20,19 @@ def download_package_indexes(version):
     base_url = f"{version_url}/packages/x86_64"
     sources = ["base", "luci", "packages", "routing", "telephony"]
 
-    packages = set()
+    packages = []
     for source in sources:
         current_app.logger.info(f"Downloading {source}")
         source_content = (
             urllib.request.urlopen(f"{base_url}/{source}/Packages").read().decode()
         )
-        source_packages = set(re.findall(r"Package: (.+)\n", source_content))
+        source_packages = re.findall(r"Package: (.+)\n", source_content)
         current_app.logger.info(f"Found {len(source_packages)} packages")
-        packages.update(re.findall(r"Package: (.+)\n", source_content))
+        packages.extend(re.findall(r"Package: (.+)\n", source_content))
 
     current_app.logger.info(f"Total of {len(packages)} packages found")
 
-    pretty_json_dump(
-        f"public/packages-{version}.json",
-        {"metadata_version": 1, "packages": sorted(list(packages))},
-    )
+    r.sadd(f"packages-{version}", *packages)
 
 
 def fill_metadata(dictionary, profile_info, base_url):
@@ -56,7 +48,7 @@ def fill_metadata(dictionary, profile_info, base_url):
 
 
 def merge_profiles(profiles, base_url):
-    profiles_json_overview = {}
+    profiles_dict = {}
     names_json_overview = {}
     version = "unknown"
 
@@ -66,16 +58,12 @@ def merge_profiles(profiles, base_url):
 
         current_app.logger.info(f"Merging {profile_info['id']}")
 
-        if not profiles_json_overview:
-            fill_metadata(profiles_json_overview, profile_info, base_url)
+        if not names_json_overview:
             fill_metadata(names_json_overview, profile_info, base_url)
-            profiles_json_overview["profiles"] = {}
             names_json_overview["models"] = {}
             version = profile_info["version_number"]
 
-        profiles_json_overview["profiles"][profile_info["id"]] = {
-            "target": profile_info["target"]
-        }
+        profiles_dict[profile_info["id"]] = profile_info["target"]
 
         for title in profile_info.get("titles", []):
             name = ""
@@ -91,8 +79,10 @@ def merge_profiles(profiles, base_url):
                 "images": profile_info["images"],
             }
 
-    pretty_json_dump(f"public/profiles-{version}.json", profiles_json_overview)
-    pretty_json_dump(f"public/names-{version}.json", names_json_overview)
+    r.hmset(f"profiles-{version}", profiles_dict)
+    (current_app.config["JSON_PATH"] / f"names-{version}.json").write(
+        names_json_overview, sort_keys=True, indent="  "
+    )
 
 
 def download_profile(url):

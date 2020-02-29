@@ -1,9 +1,8 @@
 from pathlib import Path
+from redis import Redis
 
 from flask import Flask, redirect, send_from_directory
 from flask_cors import CORS
-
-from .common import cwd
 
 
 def create_app(test_config=None):
@@ -12,7 +11,7 @@ def create_app(test_config=None):
         STORE_PATH=app.instance_path + "/public/store",
         JSON_PATH=app.instance_path + "/public/",
         CACHE_PATH=app.instance_path + "/cache/",
-        REDIS_CONN=None,  # defaults to localhost
+        REDIS_CONN=Redis(),
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.openwrt.org",
