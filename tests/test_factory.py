@@ -14,3 +14,7 @@ def test_pathlib(app):
     assert app.config["STORE_PATH"].is_dir()
     assert app.config["JSON_PATH"].is_dir()
     assert app.config["CACHE_PATH"].is_dir()
+
+
+def test_other(app):
+    assert app.config["UPSTREAM_URL"] == "https://cdn.openwrt.org"

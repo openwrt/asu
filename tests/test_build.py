@@ -38,7 +38,8 @@ def test_build_fake(app, httpserver: HTTPServer):
     assert result["id"] == "testprofile"
 
 
-@pytest.mark.skip(reason="upstream package iw is currently broken")
+@pytest.mark.slow
+@pytest.mark.xfail
 def test_build_real(app, httpserver: HTTPServer):
     request_data = dict(
         version_data={
@@ -49,10 +50,10 @@ def test_build_real(app, httpserver: HTTPServer):
         target="ath79/generic",
         store_path=app.config["STORE_PATH"],
         cache_path=app.config["CACHE_PATH"],
-        upstream_url="https://cdn.openwrt.org",
+        upstream_url="https://downloads.openwrt.org",
         version="SNAPSHOT",
-        profile="8devices_carambola",
+        profile="rpi",
         packages=["tmux", "vim"],
     )
     result = build(request_data)
-    assert result["id"] == "8devices_carambola"
+    assert result["id"] == "rpi"

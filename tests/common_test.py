@@ -6,12 +6,6 @@ from pathlib import Path
 from asu.common import *
 
 
-def test_cwd(app):
-    with app.app_context():
-        assert isinstance(cwd(), PosixPath)
-        assert cwd().is_dir()
-
-
 def test_get_str_hash():
     assert get_str_hash("test", 12) == "9f86d081884c"
 
