@@ -5,7 +5,15 @@ from flask import Flask, redirect, send_from_directory
 from flask_cors import CORS
 
 
-def create_app(test_config=None):
+def create_app(test_config: dict = None) -> Flask:
+    """Create the main Flask application
+
+    Args:
+        test_config (dict): A dictionry containing a configuration during tests
+
+    Returns:
+        Flask: The application
+    """
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         STORE_PATH=app.instance_path + "/public/store",
@@ -16,11 +24,38 @@ def create_app(test_config=None):
         DEBUG=False,
         UPSTREAM_URL="https://downloads.openwrt.org",
         VERSIONS={
-            "SNAPSHOT": {
-                "branch": "master",
-                "path": "snapshots",
-                "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
-            }
+            "metadata_version": 1,
+            "branches": [
+                {
+                    "name": "snapshot",
+                    "enabled": True,
+                    "latest": "snapshot",
+                    "git_branch": "master",
+                    "path": "snapshots",
+                    "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
+                    "updates": "dev",
+                },
+                {
+                    "name": "19.07",
+                    "enabled": False,
+                    "eol": "2020-01-01",
+                    "latest": "19.07.2",
+                    "git_branch": "openwrt-19.07",
+                    "pubkey": "RWT5S53W/rrJY9BiIod3JF04AZ/eU1xDpVOb+rjZzAQBEcoETGx8BXEK",
+                    "release_date": "2020-01-31",
+                    "updates": "bugs",
+                },
+                {
+                    "name": "18.06",
+                    "enabled": False,
+                    "eol": "2019-01-01",
+                    "latest": "18.06.7",
+                    "git_branch": "openwrt-18.06",
+                    "pubkey": "RWT5S53W/rrJY9BiIod3JF04AZ/eU1xDpVOb+rjZzAQBEcoETGx8BXEK",
+                    "release_date": "2019-01-31",
+                    "updates": "security",
+                },
+            ],
         },
     )
 

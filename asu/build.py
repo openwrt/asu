@@ -17,8 +17,15 @@ log = logging.getLogger("rq.worker")
 log.setLevel(logging.DEBUG)
 
 
-def build(request):
-    job = get_current_job() or {}
+def build(request: dict):
+    """Build image request and setup ImageBuilders automatically
+
+    The `request` dict contains properties of the requested image.
+
+    Args:
+        request (dict): Contains all properties of requested image
+    """
+    job = get_current_job()
 
     log.debug(f"Building {request}")
     cache = (request["cache_path"] / request["version"] / request["target"]).parent
@@ -27,6 +34,12 @@ def build(request):
     sig_file = Path(cache / f"{subtarget}_sums.sig")
 
     def setup_ib():
+        """Setup ImageBuilder based on `request`
+
+        This function downloads and verifies the ImageBuilder archive. Existing
+        setups are automatically updated if newer version are available
+        upstream.
+        """
         log.debug("Setting up ImageBuilder")
         if (cache / subtarget).is_dir():
             rmtree(cache / subtarget)
@@ -67,7 +80,16 @@ def build(request):
 
         (cache / ib_archive).unlink()
 
-    def download_file(filename: str, dest=None):
+    def download_file(filename: str, dest: str = None):
+        """Download file from upstream target path
+
+        The URL points automatically to the targets folder upstream
+
+        Args:
+            filename (str): File in upstream target folder
+            dest (str): Optional path to store the file, default to target
+                        cache folder
+        """
         log.debug(f"Downloading {filename}")
         urllib.request.urlretrieve(
             request["upstream_url"]
@@ -124,6 +146,10 @@ def build(request):
         cwd=cache / subtarget,
     )
 
+    if manifest_run.returncode:
+        log.error(f"Manifest stdout {manifest_run.stdout}")
+        log.error(f"Manifest stderr {manifest_run.stderr}")
+
     manifest = dict(map(lambda pv: pv.split(" - "), manifest_run.stdout.splitlines()))
 
     manifest_packages = manifest.keys()
@@ -161,10 +187,16 @@ def build(request):
         f"### STDOUT\n\n{image_build.stdout}\n\n### STDERR\n\n{image_build.stderr}"
     )
 
-    if "meta" in job:
+    # check if running as job or within pytest
+    if job:
         job.meta["bin_dir"] = str(bin_dir)
         job.meta["buildlog"] = True
         job.save_meta()
+
+
+    if image_build.returncode:
+        log.error(f"Build stdout {image_build.stdout}")
+        log.error(f"Build stderr {image_build.stderr}")
 
     assert not image_build.returncode, "ImageBuilder failed"
 

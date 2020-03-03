@@ -11,13 +11,22 @@ bp = Blueprint("janitor", __name__)
 r = redis.Redis()
 
 
-def download_package_indexes(version):
-    version_url = (
-        current_app.config["UPSTREAM_URL"]
-        + "/"
-        + current_app.config["VERSIONS"][version].get("path")
-    )
-    base_url = f"{version_url}/packages/x86_64"
+def download_package_indexes(version: str, arch: str = "x86_64"):
+    """Download package in index of a version
+
+    This function is used to store all available packages of a version to the
+    Redis database. This information is used to validate build requests.
+
+    The `arch` should point tho the architecture supporting the most packages.
+    Currently the validation does not distinguishes if a package is available
+    for a specific architecture.
+
+    Args:
+        version (str): Version to parse
+        arch (str): Architecture containing most packages
+    """
+    version_url = current_app.config["UPSTREAM_URL"] + "/" + version.get("path")
+    base_url = f"{version_url}/packages/{arch}"
     sources = ["base", "luci", "packages", "routing", "telephony"]
 
     packages = []
@@ -32,25 +41,12 @@ def download_package_indexes(version):
 
     current_app.logger.info(f"Total of {len(packages)} packages found")
 
-    r.sadd(f"packages-{version}", *packages)
+    r.sadd(f"packages-{version['name']}", *packages)
 
 
-def fill_metadata(dictionary, profile_info, base_url):
-    dictionary.update(
-        {
-            "metadata_version": 1,
-            "target": profile_info["target"],
-            "version_commit": profile_info["version_commit"],
-            "version_number": profile_info["version_number"],
-            "url": f"{base_url}/{{target}}",
-        }
-    )
-
-
-def merge_profiles(profiles, base_url):
+def merge_profiles(version: dict, profiles: list, base_url: str):
     profiles_dict = {}
     names_json_overview = {}
-    version = "unknown"
 
     for profile_info in profiles:
         if not profile_info:
@@ -59,9 +55,14 @@ def merge_profiles(profiles, base_url):
         current_app.logger.info(f"Merging {profile_info['id']}")
 
         if not names_json_overview:
-            fill_metadata(names_json_overview, profile_info, base_url)
-            names_json_overview["models"] = {}
-            version = profile_info["version_number"]
+            names_json_overview = {
+                "metadata_version": 1,
+                "models": {},
+                "target": profile_info["target"],
+                "url": f"{base_url}/{{target}}",
+                "version_commit": profile_info["version_commit"],
+                "version_number": profile_info["version_number"],
+            }
 
         profiles_dict[profile_info["id"]] = profile_info["target"]
 
@@ -79,25 +80,43 @@ def merge_profiles(profiles, base_url):
                 "images": profile_info["images"],
             }
 
-    r.hmset(f"profiles-{version}", profiles_dict)
-    (current_app.config["JSON_PATH"] / f"names-{version}.json").write_text(
-        names_json_overview, sort_keys=True, indent="  "
+    r.hmset(f"profiles-{version['name']}", profiles_dict)
+    (current_app.config["JSON_PATH"] / f"names-{version['name']}.json").write_text(
+        json.dumps(names_json_overview, sort_keys=True, indent="  ")
     )
 
 
-def download_profile(url):
+def download_profile(url: str) -> dict:
+    """Download and loads profile JSON
+
+    Args:
+        url (str): URL to profile JSON
+
+    Returns:
+        dict: Loaded profile JSON
+    """
     try:
         return json.load(request.urlopen(url))
     except json.JSONDecodeError:
         current_app.logger.warning(f"Error at {url}")
 
 
-def get_json_files(version):
-    version_url = (
-        current_app.config["UPSTREAM_URL"]
-        + "/"
-        + current_app.config["VERSIONS"][version].get("path")
-    )
+def get_json_files(version: dict):
+    """Download all profile JSON files from server
+
+    This function makes use of the `?json" function of the upstream OpenWrt
+    download server which returns a list of all available files. The returned
+    list is searched for JSON files and all are downloaded via the
+    `download_profile` function.
+
+    All found profiles are stored in the Redis database as a dictionary with
+    the target as value. This way it is easy to know the to ImageBuilder
+    target required for image creation.
+
+    Args:
+        version (str): Version to download
+    """
+    version_url = current_app.config["UPSTREAM_URL"] + "/" + version.get("path")
     base_url = f"{version_url}/targets"
 
     files = list(
@@ -113,13 +132,22 @@ def get_json_files(version):
     pool = Pool(20)
     profiles = pool.map(download_profile, files)
     current_app.logger.info("Done downloading profile json files")
-    merge_profiles(profiles, base_url)
+    merge_profiles(version, profiles, base_url)
 
 
 @bp.cli.command("init")
 def init():
+    """Initialize the data required to run the server
+
+    For this all available packages and profiles for all enabled versions is
+    downloaded and stored in the Redis database.
+    """
     current_app.logger.info("Init ASU")
-    for current_version in current_app.config["VERSIONS"].keys():
-        current_app.logger.info(f"Setup {current_version}")
-        get_json_files(current_version)
-        download_package_indexes(current_version)
+    for version in current_app.config["VERSIONS"]["branches"]:
+        if not version.get("enabled"):
+            current_app.logger.info(f"Skip disabled version {version['name']}")
+            continue
+
+        current_app.logger.info(f"Setup {version['name']}")
+        get_json_files(version)
+        download_package_indexes(version)
