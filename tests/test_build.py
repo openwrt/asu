@@ -39,7 +39,6 @@ def test_build_fake(app, httpserver: HTTPServer):
 
 
 @pytest.mark.slow
-@pytest.mark.xfail
 def test_build_real(app, httpserver: HTTPServer):
     request_data = dict(
         version_data={
@@ -52,8 +51,8 @@ def test_build_real(app, httpserver: HTTPServer):
         cache_path=app.config["CACHE_PATH"],
         upstream_url="https://downloads.openwrt.org",
         version="SNAPSHOT",
-        profile="rpi",
+        profile="tplink_tl-wdr4300-v1",
         packages=["tmux", "vim"],
     )
     result = build(request_data)
-    assert result["id"] == "rpi"
+    assert result["id"] == "tplink_tl-wdr4300-v1"

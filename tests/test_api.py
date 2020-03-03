@@ -1,12 +1,6 @@
-def test_api_version(client):
+def test_api_version(client, app):
     response = client.get("/api/versions")
-    assert response.json == {
-        "SNAPSHOT": {
-            "branch": "master",
-            "path": "snapshots",
-            "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
-        }
-    }
+    assert response.json == app.config["VERSIONS"]
 
 
 def test_api_build(client):
@@ -85,7 +79,7 @@ def test_api_build_bad_distro(client):
         ),
     )
     assert response.status == "400 BAD REQUEST"
-    assert response.json.get("message") == "Unknown distro: Foobar"
+    assert response.json.get("message") == "Unsupported distro: foobar"
     assert response.json.get("status") == "bad_distro"
 
 
@@ -97,7 +91,7 @@ def test_api_build_bad_version(client):
         ),
     )
     assert response.status == "400 BAD REQUEST"
-    assert response.json.get("message") == "Unknown version: Foobar"
+    assert response.json.get("message") == "Unsupported version: foobar"
     assert response.json.get("status") == "bad_version"
 
 
@@ -107,7 +101,7 @@ def test_api_build_bad_profile(client):
         json=dict(version="SNAPSHOT", profile="Foobar", packages=["test1", "test2"]),
     )
     assert response.status == "400 BAD REQUEST"
-    assert response.json.get("message") == "Unknown profile: Foobar"
+    assert response.json.get("message") == "Unsupported profile: Foobar"
     assert response.json.get("status") == "bad_profile"
 
 
@@ -116,6 +110,6 @@ def test_api_build_bad_packages(client):
         "/api/build",
         json=dict(version="SNAPSHOT", profile="8devices_carambola", packages=["test4"]),
     )
-    assert response.status == "422 UNPROCESSABLE ENTITY"
-    assert response.json.get("message") == "Unknown package(s): test4"
+    assert response.json.get("message") == "Unsupported package(s): test4"
     assert response.json.get("status") == "bad_packages"
+    assert response.status == "422 UNPROCESSABLE ENTITY"

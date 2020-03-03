@@ -30,8 +30,8 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture
 def redis():
     r = FakeStrictRedis()
-    r.sadd("packages-SNAPSHOT", "test1", "test2", "test3")
-    r.hmset("profiles-SNAPSHOT", {"8devices_carambola": "ramips/rt305x"})
+    r.sadd("packages-snapshot", "test1", "test2", "test3")
+    r.hmset("profiles-snapshot", {"8devices_carambola": "ramips/rt305x"})
     yield r
 
 
