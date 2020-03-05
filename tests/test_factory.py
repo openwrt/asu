@@ -17,4 +17,4 @@ def test_pathlib(app):
 
 
 def test_other(app):
-    assert app.config["UPSTREAM_URL"] == "https://cdn.openwrt.org"
+    assert app.config["UPSTREAM_URL"] == "http://localhost:8001"

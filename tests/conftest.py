@@ -32,6 +32,8 @@ def redis():
     r = FakeStrictRedis()
     r.sadd("packages-snapshot", "test1", "test2", "test3")
     r.hmset("profiles-snapshot", {"8devices_carambola": "ramips/rt305x"})
+    r.sadd("targets-snapshot", "testtarget/testsubtarget")
+    r.hmset("profiles-snapshot", {"testprofile": "testtarget/testsubtarget"})
     yield r
 
 
@@ -45,7 +47,21 @@ def app(redis):
             "REDIS_CONN": redis,
             "STORE_PATH": test_path + "/store",
             "TESTING": True,
-            "UPSTREAM_URL": "https://cdn.openwrt.org",
+            "UPSTREAM_URL": "http://localhost:8001",
+            "VERSIONS": {
+                "metadata_version": 1,
+                "branches": [
+                    {
+                        "name": "snapshot",
+                        "enabled": True,
+                        "latest": "snapshot",
+                        "git_branch": "master",
+                        "path": "snapshots",
+                        "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
+                        "updates": "dev",
+                    }
+                ],
+            },
         }
     )
 
