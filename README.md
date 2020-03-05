@@ -23,10 +23,12 @@ repository](https://github.com/mwarning/yet_another_firmware_selector)
 
 ### LuCI app
 
-The package `luci-app-attendedsysupgrade` [still
-exists](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
-but is currently not usable with the rewritten server implementation. The app
-will however be upgraded as soon as possible to be usable again.
+The package
+[`luci-app-attendedsysupgrade`](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
+offers a simple view under `System > Attended Sysupgrade` to automatically
+request a new firmware, wait until it is build and flash it.
+
+![luci](misc/luci.png)
 
 ## Server
 
