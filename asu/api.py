@@ -127,14 +127,18 @@ def validate_request(request_data):
         request_data["target"] = target.decode()
 
     if "packages" in request_data:
-        request_data["packages"] = set(request_data["packages"])
+        request_data["packages"] = set(request_data["packages"]) - {"kernel", "libc"}
 
         # store request packages temporary in Redis and create a diff
         temp = str(uuid4())
         pipeline = get_redis().pipeline(True)
         pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), request_data["packages"])))
         pipeline.expire(temp, 5)
-        pipeline.sdiff(temp, f"packages-{request_data['branch']}")
+        pipeline.sdiff(
+            temp,
+            f"packages-{request_data['branch']}",
+            f"packages-{request_data['branch']}-{request_data['target']}",
+        )
         unknown_packages = list(map(lambda p: p.decode(), pipeline.execute()[-1]))
 
         if unknown_packages:

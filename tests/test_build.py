@@ -49,7 +49,7 @@ def test_build_real(app, httpserver: HTTPServer):
         target="ath79/generic",
         store_path=app.config["STORE_PATH"],
         cache_path=app.config["CACHE_PATH"],
-        upstream_url="https://downloads.openwrt.org",
+        upstream_url="https://cdn.openwrt.org",
         version="SNAPSHOT",
         profile="tplink_tl-wdr4300-v1",
         packages=["tmux", "vim"],

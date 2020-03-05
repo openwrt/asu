@@ -193,7 +193,6 @@ def build(request: dict):
         job.meta["buildlog"] = True
         job.save_meta()
 
-
     if image_build.returncode:
         log.error(f"Build stdout {image_build.stdout}")
         log.error(f"Build stderr {image_build.stderr}")
