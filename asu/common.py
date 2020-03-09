@@ -57,7 +57,7 @@ def get_request_hash(request_data: dict) -> str:
     request_array = [
         request_data.get("distro", ""),
         request_data.get("version", ""),
-        request_data.get("profile", ""),
+        request_data.get("profile", "").replace(",", "_"),
         request_data["packages_hash"],
         str(request_data.get("packages_diff", 0)),
     ]
