@@ -112,6 +112,12 @@ def validate_request(request_data):
             400,
         )
 
+    # The supported_devices variable on devices uses a "," instead of "_"
+    # It is stored on device as board_name and send to the server for requests
+    # To be compatible with the build system profiles replace the "," with "_"
+    # TODO upstream request to store device profile on board
+    request_data["profile"] = request_data["profile"].replace(",", "_")
+
     target = get_redis().hget(
         f"profiles-{request_data['branch']}", request_data["profile"]
     )

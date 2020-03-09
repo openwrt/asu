@@ -17,6 +17,20 @@ def test_api_build(client):
     assert response.json.get("request_hash") == "0222f0cd9290"
 
 
+def test_api_build_comma(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT",
+            profile="8devices,carambola",
+            packages=["test1", "test2"],
+        ),
+    )
+    assert response.status == "202 ACCEPTED"
+    assert response.json.get("status") == "queued"
+    assert response.json.get("request_hash") == "0222f0cd9290"
+
+
 def test_api_build_get(client):
     client.post(
         "/api/build",
