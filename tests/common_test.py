@@ -30,10 +30,21 @@ def test_get_request_hash():
         "version": "test",
         "profile": "test",
         "package_hash": get_packages_hash(["test"]),
-        "packages_diff": "0",
     }
 
-    assert get_request_hash(request) == "006ffc934194"
+    assert get_request_hash(request) == "ce7c88df2626"
+
+
+def test_get_request_hash_diff_packages():
+    request = {
+        "distro": "test",
+        "version": "test",
+        "profile": "test",
+        "package_hash": get_packages_hash(["test"]),
+        "diff_packages": True,
+    }
+
+    assert get_request_hash(request) == "bbe753d61568"
 
 
 def test_verify_usign():

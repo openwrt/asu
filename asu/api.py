@@ -132,7 +132,7 @@ def validate_request(request_data):
     else:
         request_data["target"] = target.decode()
 
-    if "packages" in request_data:
+    if request_data.get("packages"):
         request_data["packages"] = set(request_data["packages"]) - {"kernel", "libc"}
 
         # store request packages temporary in Redis and create a diff
