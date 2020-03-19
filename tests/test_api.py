@@ -14,7 +14,7 @@ def test_api_build(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "0222f0cd9290"
+    assert response.json.get("request_hash") == "781846d9b15e"
 
 
 def test_api_build_comma(client):
@@ -28,7 +28,7 @@ def test_api_build_comma(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "0222f0cd9290"
+    assert response.json.get("request_hash") == "781846d9b15e"
 
 
 def test_api_build_get(client):
@@ -40,10 +40,10 @@ def test_api_build_get(client):
             packages=["test1", "test2"],
         ),
     )
-    response = client.get("/api/build/0222f0cd9290")
+    response = client.get("/api/build/781846d9b15e")
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "0222f0cd9290"
+    assert response.json.get("request_hash") == "781846d9b15e"
 
 
 def test_api_build_get_not_found(client):
@@ -56,13 +56,34 @@ def test_api_build_get_no_post(client):
     assert response.status == "405 METHOD NOT ALLOWED"
 
 
-def test_api_build_empty_packages(client):
+def test_api_build_empty_packages_list(client):
+    response = client.post(
+        "/api/build",
+        json=dict(version="SNAPSHOT", profile="8devices_carambola", packages=[]),
+    )
+    assert response.status == "202 ACCEPTED"
+    assert response.json.get("status") == "queued"
+    assert response.json.get("request_hash") == "66af84b3e079"
+
+
+def test_api_build_withouth_packages_list(client):
     response = client.post(
         "/api/build", json=dict(version="SNAPSHOT", profile="8devices_carambola")
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "5bac6cb8321f"
+    assert response.json.get("request_hash") == "66af84b3e079"
+
+
+def test_api_build_bad_packages_str(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT", profile="8devices_carambola", packages="testpackage"
+        ),
+    )
+    assert response.status == "422 UNPROCESSABLE ENTITY"
+    assert response.json.get("status") == "bad_packages"
 
 
 def test_api_build_empty_request(client):
