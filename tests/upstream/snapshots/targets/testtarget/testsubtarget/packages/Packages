@@ -1,0 +1,35 @@
+Package: base-files
+Version: 214-r12467-5ea1b1ecd1
+Depends: libc, netifd, procd, jsonfilter, usign, openwrt-keyring, fstools, fwtool
+License: GPL-2.0
+Section: base
+Architecture: mips_mips32
+Installed-Size: 45996
+Filename: base-files_214-r12467-5ea1b1ecd1_mips_mips32.ipk
+Size: 46979
+SHA256sum:81184dbc1753154f6420eb7f9f20b5cc50aab071d9ee65b51d91a14a6817b1e6
+Description:  This package contains a base filesystem and system scripts for OpenWrt.
+
+Package: block-mount
+Version: 2020-01-21-deb745f8-1
+Depends: libc, ubox, libubox20191228, libuci20130104, libblobmsg-json, libjson-c4
+License: GPL-2.0
+Section: base
+Architecture: mips_mips32
+Installed-Size: 22892
+Filename: block-mount_2020-01-21-deb745f8-1_mips_mips32.ipk
+Size: 23512
+SHA256sum:5eaa1bb7e3df6c354fa8dec3c30e77d0e8dc0b601923eba22b5ae3319b868a8a
+Description:  Block device mounting and checking
+
+Package: blockd
+Version: 2020-01-21-deb745f8-1
+Depends: libc, block-mount, fstools, libubus20191227, kmod-fs-autofs4, libblobmsg-json, libjson-c4
+License: GPL-2.0
+Section: base
+Architecture: mips_mips32
+Installed-Size: 5153
+Filename: blockd_2020-01-21-deb745f8-1_mips_mips32.ipk
+Size: 5919
+SHA256sum:4186637e16373c4485bcb5a8d70193dd398d5f74810e30c5268e75af3c6e0535
+Description:  Block device automounting
