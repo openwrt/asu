@@ -1,6 +1,7 @@
 # Attendedsysupgrade Server for OpenWrt (GSoC 2017)
 
 [![codecov](https://codecov.io/gh/aparcar/asu/branch/master/graph/badge.svg)](https://codecov.io/gh/aparcar/asu)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This project intends to simplify the sysupgrade process of devices running
 OpenWrt or distributions based on the former like LibreMesh. The provided tools
