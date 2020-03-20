@@ -1,5 +1,7 @@
 # Attendedsysupgrade Server for OpenWrt (GSoC 2017)
 
+[![codecov](https://codecov.io/gh/aparcar/asu/branch/master/graph/badge.svg)](https://codecov.io/gh/aparcar/asu)
+
 This project intends to simplify the sysupgrade process of devices running
 OpenWrt or distributions based on the former like LibreMesh. The provided tools
 here offer an easy way to reflash the router with a new version or package
