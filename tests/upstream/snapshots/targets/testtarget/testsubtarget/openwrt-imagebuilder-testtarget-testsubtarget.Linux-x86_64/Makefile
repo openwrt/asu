@@ -6,3 +6,6 @@ image:
 
 manifest:
 	@cat ./openwrt-testtarget-testsubtarget-testprofile.manifest
+
+info:
+	@cat ./openwrt-testtarget-testsubtarget-testprofile.info

@@ -25,6 +25,16 @@ def build(request: dict):
     Args:
         request (dict): Contains all properties of requested image
     """
+
+    if "packages" in request:
+        assert isinstance(
+            request["packages"], set
+        ), "packages must be type set not list"
+    else:
+        request["packages"] = set()
+
+    assert (request["store_path"]).is_dir(), "store_path must be existing directory"
+
     job = get_current_job()
 
     log.debug(f"Building {request}")
@@ -104,23 +114,19 @@ def build(request: dict):
 
     cache.mkdir(parents=True, exist_ok=True)
 
-    if not (request["store_path"]).is_dir():
-        (request["store_path"]).mkdir(parents=True, exist_ok=True)
-
     if sig_file.is_file():
+        sig_file_headers = urllib.request.urlopen(
+            request["upstream_url"]
+            + "/"
+            + request["version_data"]["path"]
+            + "/targets/"
+            + request["target"]
+            + "/sha256sums.sig"
+        ).info()
+        log.debug("sig_file_headers:", sig_file_headers)
         last_modified = time.mktime(
             time.strptime(
-                urllib.request.urlopen(
-                    request["upstream_url"]
-                    + "/"
-                    + request["version_data"]["path"]
-                    + "/targets/"
-                    + request["target"]
-                    + "/sha256sums.sig"
-                )
-                .info()
-                .get("Last-Modified"),
-                "%a, %d %b %Y %H:%M:%S %Z",
+                sig_file_headers.get("Last-Modified"), "%a, %d %b %Y %H:%M:%S %Z"
             )
         )
         log.debug(
@@ -133,6 +139,27 @@ def build(request: dict):
             setup_ib()
     else:
         setup_ib()
+
+    if request.get("diff_packages", False) and request.get("packages"):
+        info_run = subprocess.run(
+            ["make", "info"], text=True, capture_output=True, cwd=cache / subtarget
+        )
+        default_packages = set(
+            re.search(r"Default Packages: (.*)\n", info_run.stdout).group(1).split()
+        )
+        profile_packages = set(
+            re.search(
+                r"{}:\n    .+\n    Packages: (.+?)\n".format(request["profile"]),
+                info_run.stdout,
+                re.MULTILINE,
+            )
+            .group(1)
+            .split()
+        )
+        remove_packages = (default_packages | profile_packages) - request["packages"]
+        request["packages"] = request["packages"] | set(
+            map(lambda p: f"-{p}", remove_packages)
+        )
 
     manifest_run = subprocess.run(
         [
@@ -166,8 +193,7 @@ def build(request: dict):
         / packages_hash
     )
 
-    if not (request["store_path"] / bin_dir).is_dir():
-        (request["store_path"] / bin_dir).mkdir(parents=True, exist_ok=True)
+    (request["store_path"] / bin_dir).mkdir(parents=True, exist_ok=True)
 
     image_build = subprocess.run(
         [
