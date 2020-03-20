@@ -123,7 +123,7 @@ def build(request: dict):
             + request["target"]
             + "/sha256sums.sig"
         ).info()
-        log.debug("sig_file_headers:", sig_file_headers)
+        log.debug(f"sig_file_headers: \n{sig_file_headers}")
         last_modified = time.mktime(
             time.strptime(
                 sig_file_headers.get("Last-Modified"), "%a, %d %b %Y %H:%M:%S %Z"
