@@ -14,7 +14,7 @@ with open(join(base_path, "requirements.txt")) as req_file:
 
 setup(
     name="asu",
-    version="0.3.0",
+    version="0.4.0",
     url="https://github.com/aparcar/asu",
     maintainer="Paul Spooren",
     maintainer_email="mail@aparcar.org",
