@@ -275,7 +275,7 @@ def api_build():
             job_id=request_hash,
             result_ttl=result_ttl,
             failure_ttl=failure_ttl,
-            timeout="5m",
+            job_timeout="5m",
         )
 
     return return_job(job)
