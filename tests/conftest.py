@@ -44,7 +44,6 @@ def app(redis):
         {
             "CACHE_PATH": test_path + "/cache",
             "JSON_PATH": test_path + "/json",
-            "REDIS_CONN": redis,
             "STORE_PATH": test_path + "/store",
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",
@@ -64,6 +63,7 @@ def app(redis):
             },
         }
     )
+    app.redis = redis
 
     yield app
 

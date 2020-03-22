@@ -20,8 +20,10 @@ def test_get_packages_arch(app, httpserver: HTTPServer, redis):
         )
 
     version = app.config["VERSIONS"]["branches"][0]
+    upstream_url = app.config["UPSTREAM_URL"]
+    json_path = app.config["JSON_PATH"]
     with app.app_context():
-        get_packages_arch(version, sources=["base"])
+        get_packages_arch(redis, upstream_url, version, sources=["base"])
     assert b"base-files" in redis.smembers("packages-snapshot")
 
 
@@ -38,11 +40,11 @@ def test_get_packages_target(app, httpserver: HTTPServer, redis):
         )
 
     version = app.config["VERSIONS"]["branches"][0]
+    upstream_url = app.config["UPSTREAM_URL"]
     with app.app_context():
-        assert get_packages_target((version, "testtarget/testsubtarget")) == (
-            "testtarget/testsubtarget",
-            ["base-files", "block-mount", "blockd"],
-        )
+        assert get_packages_target(
+            (upstream_url, version, "testtarget/testsubtarget")
+        ) == ("testtarget/testsubtarget", ["base-files", "block-mount", "blockd"])
 
 
 def test_get_packages_targets(app, httpserver: HTTPServer, redis):
@@ -58,8 +60,9 @@ def test_get_packages_targets(app, httpserver: HTTPServer, redis):
         )
 
     version = app.config["VERSIONS"]["branches"][0]
+    upstream_url = app.config["UPSTREAM_URL"]
     with app.app_context():
-        get_packages_targets(version)
+        get_packages_targets(redis, upstream_url, version)
     assert redis.smembers("packages-snapshot-testtarget/testsubtarget") == {
         b"base-files",
         b"block-mount",
@@ -85,8 +88,10 @@ def test_get_json_files(app, httpserver: HTTPServer, redis):
     )
 
     version = app.config["VERSIONS"]["branches"][0]
+    upstream_url = app.config["UPSTREAM_URL"]
+    json_path = app.config["JSON_PATH"]
     with app.app_context():
-        get_json_files(version)
+        get_json_files(redis, upstream_url, version, json_path)
     assert redis.hgetall("profiles-snapshot") == {
         b"8devices_carambola": b"ramips/rt305x",
         b"testprofile": b"testtarget/testsubtarget",
@@ -97,8 +102,9 @@ def test_get_json_files(app, httpserver: HTTPServer, redis):
 def test_get_packages_arch_real(app, httpserver: HTTPServer, redis):
     app.config["UPSTREAM_URL"] = "https://cdn.openwrt.org"
     version = app.config["VERSIONS"]["branches"][0]
+    upstream_url = app.config["UPSTREAM_URL"]
     with app.app_context():
-        get_packages_arch(version, sources=["base", "luci"])
+        get_packages_arch(redis, upstream_url, version, sources=["base", "luci"])
     assert len(redis.smembers("packages-snapshot")) > 2000
 
 
@@ -107,6 +113,8 @@ def test_get_packages_arch_real(app, httpserver: HTTPServer, redis):
 def test_get_json_files_real(app, httpserver: HTTPServer, redis):
     app.config["UPSTREAM_URL"] = "https://cdn.openwrt.org"
     version = app.config["VERSIONS"]["branches"][0]
+    upstream_url = app.config["UPSTREAM_URL"]
+    json_path = app.config["JSON_PATH"]
     with app.app_context():
-        get_json_files(version)
+        get_json_files(redis, upstream_url, version, json_path)
     assert len(redis.hgetall("profiles-snapshot")) > 900

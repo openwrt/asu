@@ -41,17 +41,6 @@ def get_versions() -> dict:
     return g.versions
 
 
-def get_redis():
-    """Return Redis connectio
-
-    Returns:
-        Redis: Configured used Redis connection
-    """
-    if "redis" not in g:
-        g.redis = current_app.config["REDIS_CONN"]
-    return g.redis
-
-
 def get_queue() -> Queue:
     """Return the current queue
 
@@ -60,7 +49,7 @@ def get_queue() -> Queue:
     """
     if "queue" not in g:
         with Connection():
-            g.queue = Queue(connection=get_redis())
+            g.queue = Queue(connection=current_app.redis)
     return g.queue
 
 
@@ -118,7 +107,7 @@ def validate_request(request_data):
     # TODO upstream request to store device profile on board
     request_data["profile"] = request_data["profile"].replace(",", "_")
 
-    target = get_redis().hget(
+    target = current_app.redis.hget(
         f"profiles-{request_data['branch']}", request_data["profile"]
     )
     if not target:
@@ -137,7 +126,7 @@ def validate_request(request_data):
 
         # store request packages temporary in Redis and create a diff
         temp = str(uuid4())
-        pipeline = get_redis().pipeline(True)
+        pipeline = current_app.redis.pipeline(True)
         pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), request_data["packages"])))
         pipeline.expire(temp, 5)
         pipeline.sdiff(

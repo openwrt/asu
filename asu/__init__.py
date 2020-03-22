@@ -1,8 +1,9 @@
 from pathlib import Path
-from redis import Redis
 
-from flask import Flask, redirect, send_from_directory
+from flask import Flask, redirect, send_from_directory, g
 from flask_cors import CORS
+from rq_scheduler import Scheduler
+from datetime import datetime
 
 
 def create_app(test_config: dict = None) -> Flask:
@@ -19,10 +20,11 @@ def create_app(test_config: dict = None) -> Flask:
         STORE_PATH=app.instance_path + "/public/store",
         JSON_PATH=app.instance_path + "/public/",
         CACHE_PATH=app.instance_path + "/cache/",
-        REDIS_CONN=Redis(),
+        REDIS_CONN="127.0.0.1",
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.openwrt.org",
+        UPSTREAM_SYNC_INTERVAL=60 * 60 * 6,  # every 6 hours
         VERSIONS={
             "metadata_version": 1,
             "branches": [
@@ -73,24 +75,28 @@ def create_app(test_config: dict = None) -> Flask:
 
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # only serve files in DEBUG/TESTING mode
-    # production should use nginx for static files
-    if app.config["DEBUG"] or app.config["TESTING"]:
+    @app.route("/")
+    def root():
+        return redirect("https://github.com/aparcar/asu/#api")
 
-        @app.route("/")
-        @app.route("/<path:path>")
-        def root(path="index.html"):
-            return send_from_directory(Path(app.instance_path) / "public", path)
-
+    if app.config["TESTING"]:
+        from fakeredis import FakeRedis as Redis
     else:
+        from redis import Redis
 
-        @app.route("/")
-        def root(path="index.html"):
-            return redirect("https://github.com/aparcar/asu/#api")
+    app.redis = Redis(app.config["REDIS_CONN"])
+    scheduler = Scheduler(connection=app.redis)
 
     from . import janitor
 
-    app.register_blueprint(janitor.bp)
+    # app.register_blueprint(janitor.bp)
+
+    scheduler.schedule(
+        scheduled_time=datetime.utcnow(),
+        func=janitor.sync,
+        args=[app.config],
+        interval=app.config["UPSTREAM_SYNC_INTERVAL"],
+    )
 
     from . import api
 

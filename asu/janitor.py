@@ -3,17 +3,16 @@ from urllib import request
 import json
 import re
 import urllib.request
+import logging
+from pathlib import Path
 
-from flask import current_app, Blueprint
-
-bp = Blueprint("janitor", __name__)
-
-
-def get_redis():
-    return current_app.config["REDIS_CONN"]
+log = logging.getLogger("rq.worker")
+log.setLevel(logging.DEBUG)
 
 
-def get_packages_arch(version: str, arch: str = "x86_64", sources: list = None):
+def get_packages_arch(
+    redis, upstream_url: str, version: str, arch: str = "x86_64", sources: list = None
+):
     """Download package in index of a version
 
     This function is used to store all available packages of a version to the
@@ -27,50 +26,44 @@ def get_packages_arch(version: str, arch: str = "x86_64", sources: list = None):
         version (str): Version to parse
         arch (str): Architecture containing most packages
     """
-    r = get_redis()
-    version_url = current_app.config["UPSTREAM_URL"] + "/" + version.get("path")
+    version_url = upstream_url + "/" + version.get("path")
     base_url = f"{version_url}/packages/{arch}"
     sources = sources or ["base", "luci", "packages", "routing", "telephony"]
 
     packages = []
     for source in sources:
-        current_app.logger.info(f"Downloading {source}")
+        log.info(f"Downloading {source}")
         packages.extend(parse_package_index(f"{base_url}/{source}"))
 
-    current_app.logger.info(f"Total of {len(packages)} packages found")
+    log.info(f"Total of {len(packages)} packages found")
 
-    r.sadd(f"packages-{version['name']}", *packages)
+    redis.sadd(f"packages-{version['name']}", *packages)
 
 
-def get_packages_targets(version):
-    r = get_redis()
+def get_packages_targets(redis, upstream_url, version):
     targets = list(
-        map(lambda t: (version, t.decode()), r.smembers(f"targets-{version['name']}"))
+        map(
+            lambda t: (upstream_url, version, t.decode()),
+            redis.smembers(f"targets-{version['name']}"),
+        )
     )
 
     pool = Pool(20)
     for tp in pool.map(get_packages_target, targets):
-        r.sadd(f"packages-{version['name']}-{tp[0]}", *tp[1])
+        redis.sadd(f"packages-{version['name']}-{tp[0]}", *tp[1])
 
 
-def get_packages_target(version_target: tuple):
+def get_packages_target(data: tuple):
     """Download target packages index and inserts them to Redis
 
     Args:
         version_target (tuple): Version and target combined as a tuple so it is
                                 handed over as a single arg.
     """
-    r = get_redis()
-    version, target = version_target
-    current_app.logger.info(f"{version['name']}/{target} downloading packages")
+    upstream_url, version, target = data
+    log.info(f"{version['name']}/{target} downloading packages")
     target_url = "/".join(
-        [
-            current_app.config["UPSTREAM_URL"],
-            version.get("path"),
-            "targets",
-            target,
-            "packages",
-        ]
+        [upstream_url, version.get("path"), "targets", target, "packages"]
     )
     return (target, parse_package_index(target_url))
 
@@ -86,11 +79,13 @@ def parse_package_index(url: str) -> list:
     """
     source_content = urllib.request.urlopen(f"{url}/Packages").read().decode()
     source_packages = re.findall(r"Package: (.+)\n", source_content)
-    current_app.logger.debug(f"{len(source_packages)} packages in {url}")
+    log.debug(f"{len(source_packages)} packages in {url}")
     return re.findall(r"Package: (.+)\n", source_content)
 
 
-def merge_profiles(version: dict, profiles: list):
+def merge_profiles(
+    redis, upstream_url: str, version: dict, profiles: list, json_path: Path
+):
     """Merge found profiles to single JSON file and insert into Redis database
 
     The JSON file is useful for web frontends to give them knowledge of which
@@ -100,8 +95,7 @@ def merge_profiles(version: dict, profiles: list):
         version (dict): Containing all version information as defined in VERSIONS
         profiles (list): List of parsed profile images
     """
-    r = get_redis()
-    version_url = current_app.config["UPSTREAM_URL"] + "/" + version.get("path")
+    version_url = upstream_url + "/" + version.get("path")
     base_url = f"{version_url}/targets"
     profiles_dict = {}
     targets = set()
@@ -111,7 +105,7 @@ def merge_profiles(version: dict, profiles: list):
         if not profile_info:
             continue
 
-        current_app.logger.info(f"Merging {profile_info['id']}")
+        log.info(f"Merging {profile_info['id']}")
 
         if not names_json_overview:
             names_json_overview = {
@@ -141,9 +135,9 @@ def merge_profiles(version: dict, profiles: list):
 
             targets.add(profile_info["target"])
 
-    r.sadd(f"targets-{version['name']}", *targets)
-    r.hmset(f"profiles-{version['name']}", profiles_dict)
-    (current_app.config["JSON_PATH"] / f"names-{version['name']}.json").write_text(
+    redis.sadd(f"targets-{version['name']}", *targets)
+    redis.hmset(f"profiles-{version['name']}", profiles_dict)
+    (json_path / f"names-{version['name']}.json").write_text(
         json.dumps(names_json_overview, sort_keys=True, indent="  ")
     )
 
@@ -160,10 +154,10 @@ def download_profile(url: str) -> dict:
     try:
         return json.load(request.urlopen(url))
     except json.JSONDecodeError:
-        current_app.logger.warning(f"Error at {url}")
+        log.warning(f"Error at {url}")
 
 
-def get_json_files(version: dict):
+def get_json_files(redis, upstream_url: str, version: dict, json_path: Path):
     """Download all profile JSON files from server
 
     This function makes use of the `?json" function of the upstream OpenWrt
@@ -178,7 +172,7 @@ def get_json_files(version: dict):
     Args:
         version (str): Version to download
     """
-    version_url = current_app.config["UPSTREAM_URL"] + "/" + version.get("path")
+    version_url = upstream_url + "/" + version.get("path")
     base_url = f"{version_url}/targets"
 
     files = list(
@@ -193,24 +187,32 @@ def get_json_files(version: dict):
 
     pool = Pool(20)
     profiles = pool.map(download_profile, files)
-    current_app.logger.info("Done downloading profile JSON files")
-    merge_profiles(version, profiles)
+    log.info("Done downloading profile JSON files")
+    merge_profiles(redis, upstream_url, version, profiles, json_path)
 
 
-@bp.cli.command("init")
-def init():
+def sync(config):
     """Initialize the data required to run the server
 
     For this all available packages and profiles for all enabled versions is
     downloaded and stored in the Redis database.
     """
-    current_app.logger.info("Init ASU")
-    for version in current_app.config["VERSIONS"]["branches"]:
+    log.info("Init ASU")
+    upstream_url = config["UPSTREAM_URL"]
+    json_path = config["JSON_PATH"]
+
+    if config["TESTING"]:
+        from fakeredis import FakeRedis as Redis
+    else:
+        from redis import Redis
+
+    redis = Redis(config["REDIS_CONN"])
+    for version in config["VERSIONS"]["branches"]:
         if not version.get("enabled"):
-            current_app.logger.info(f"Skip disabled version {version['name']}")
+            log.info(f"Skip disabled version {version['name']}")
             continue
 
-        current_app.logger.info(f"Setup {version['name']}")
-        get_packages_targets(version)
-        get_json_files(version)
-        get_packages_arch(version)
+        log.info(f"Setup {version['name']}")
+        get_packages_targets(redis, upstream_url, version)
+        get_json_files(redis, upstream_url, version, json_path)
+        get_packages_arch(redis, upstream_url, version)
