@@ -193,6 +193,11 @@ def get_json_files(version: dict):
 
     pool = Pool(20)
     profiles = pool.map(download_profile, files)
+    if len(profiles) == 0:
+        current_app.logger.warn(
+            f"No profile JSON file found for version {version['name']}"
+        )
+        return
     current_app.logger.info("Done downloading profile JSON files")
     merge_profiles(version, profiles)
 
