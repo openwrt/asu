@@ -1,0 +1,24 @@
+{
+	"metadata_version": 1,
+	"target": "testtarget/testsubtarget",
+	"version_commit": "r99999-999999999",
+	"version_number": "SNAPSHOT",
+	"profiles": {
+		"testprofile": {
+			"supported_devices": [
+				"testprofile"
+			],
+			"image_prefix": "openwrt-testtarget-testsubtarget-testprofile",
+			"images": [{
+				"name": "openwrt-testtarget-testsubtarget-testprofile-sysupgrade.bin",
+				"sha256": "000",
+				"type": "sysupgrade"
+			}],
+			"titles": [{
+				"model": "Test1",
+				"vendor": "The Test Comp"
+			}]
+
+		}
+	}
+}
