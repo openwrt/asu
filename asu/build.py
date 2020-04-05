@@ -225,11 +225,17 @@ def build(request: dict):
 
     assert not image_build.returncode, "ImageBuilder failed"
 
-    json_file = next(Path(request["store_path"] / bin_dir).glob("openwrt-*.json"))
+    json_file = Path(request["store_path"] / bin_dir / "profiles.json")
 
-    assert json_file, "Image built but no JSON file created"
+    assert json_file.is_file(), "Image built but no profiles.json file created"
 
     json_content = json.loads(json_file.read_text())
+
+    assert request["profile"] in json_content["profiles"], "Requested profile not in created profiles.json"
+
     json_content.update({"manifest": manifest})
+    json_content.update(json_content["profiles"][request["profile"]])
+    json_content["id"] = request["profile"]
+    json_content.pop("profiles")
 
     return json_content
