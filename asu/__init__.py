@@ -22,7 +22,7 @@ def create_app(test_config: dict = None) -> Flask:
         REDIS_CONN=Redis(),
         TESTING=False,
         DEBUG=False,
-        UPSTREAM_URL="https://downloads.openwrt.org",
+        UPSTREAM_URL="https://downloads.cdn.openwrt.org",
         VERSIONS={
             "metadata_version": 1,
             "branches": [

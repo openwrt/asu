@@ -95,7 +95,7 @@ def test_get_json_files(app, httpserver: HTTPServer, redis):
 
 
 def test_get_packages_arch_real(app, httpserver: HTTPServer, redis):
-    app.config["UPSTREAM_URL"] = "https://cdn.openwrt.org"
+    app.config["UPSTREAM_URL"] = "https://downloads.cdn.openwrt.org"
     version = app.config["VERSIONS"]["branches"][0]
     with app.app_context():
         get_packages_arch(version, sources=["base", "luci"])
@@ -105,7 +105,7 @@ def test_get_packages_arch_real(app, httpserver: HTTPServer, redis):
 @pytest.mark.slow
 @pytest.mark.skip
 def test_get_json_files_real(app, httpserver: HTTPServer, redis):
-    app.config["UPSTREAM_URL"] = "https://cdn.openwrt.org"
+    app.config["UPSTREAM_URL"] = "https://downloads.cdn.openwrt.org"
     version = app.config["VERSIONS"]["branches"][0]
     with app.app_context():
         get_json_files(version)

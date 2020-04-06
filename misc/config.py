@@ -6,7 +6,7 @@ TESTING=False,
 DEBUG=False,
 
 # where to find the ImageBuildes
-UPSTREAM_URL="https://cdn.openwrt.org",
+UPSTREAM_URL="https://downloads.cdn.openwrt.org",
 
 # supported versions
 VERSIONS={
