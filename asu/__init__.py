@@ -23,6 +23,7 @@ def create_app(test_config: dict = None) -> Flask:
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.cdn.openwrt.org",
+        JSON_URL="https://aparcar.github.io/openwrt-json",
         VERSIONS={
             "metadata_version": 1,
             "branches": [
