@@ -58,7 +58,7 @@ Install _asu_:
 Start the server via the following commands:
 
     export FLASK_APP=asu  # set Flask app to asu
-    flask janitor init    # download upstream profiles/packages
+    flask janitor update  # download upstream profiles/packages
     flask run             # run development server
 
 Start the worker via the following comand:

@@ -101,6 +101,9 @@ def validate_request(request_data):
             },
             400,
         )
+
+    r = get_redis()
+
     if request_data["version"] != get_versions()[request_data["branch"]][
         "latest"
     ] and not get_versions()[request_data["branch"]].get("support_legacy_versions"):
@@ -112,15 +115,18 @@ def validate_request(request_data):
             400,
         )
 
-    # The supported_devices variable on devices uses a "," instead of "_"
-    # It is stored on device as board_name and send to the server for requests
-    # To be compatible with the build system profiles replace the "," with "_"
-    # TODO upstream request to store device profile on board
-    request_data["profile"] = request_data["profile"].replace(",", "_")
+    current_app.logger.debug("Profile before mapping " + request_data["profile"])
 
-    target = get_redis().hget(
-        f"profiles-{request_data['branch']}", request_data["profile"]
+    mapped_profile = r.hget(
+        f"mapping-{request_data['branch']}", request_data["profile"]
     )
+
+    if mapped_profile:
+        request_data["profile"] = mapped_profile.decode()
+
+    current_app.logger.debug("Profile after mapping " + request_data["profile"])
+
+    target = r.hget(f"profiles-{request_data['branch']}", request_data["profile"])
     if not target:
         return (
             {
@@ -137,13 +143,11 @@ def validate_request(request_data):
 
         # store request packages temporary in Redis and create a diff
         temp = str(uuid4())
-        pipeline = get_redis().pipeline(True)
+        pipeline = r.pipeline(True)
         pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), request_data["packages"])))
         pipeline.expire(temp, 5)
         pipeline.sdiff(
-            temp,
-            f"packages-{request_data['branch']}",
-            f"packages-{request_data['branch']}-{request_data['target']}",
+            temp, f"packages-{request_data['branch']}-{request_data['target']}",
         )
         unknown_packages = list(map(lambda p: p.decode(), pipeline.execute()[-1]))
 
@@ -244,7 +248,7 @@ def api_build():
         (dict, int): Status message and code
     """
     request_data = request.get_json()
-    current_app.logger.debug("rerequest_data {request_data}")
+    current_app.logger.debug("request_data {request_data}")
     if not request_data:
         return {"status": "bad_request"}, 400
 
