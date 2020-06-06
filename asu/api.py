@@ -1,6 +1,6 @@
+from uuid import uuid4
 from flask import request, g, current_app, Blueprint
 from rq import Connection, Queue
-from uuid import uuid4
 
 from .build import build
 from .common import get_request_hash
@@ -118,7 +118,7 @@ def validate_request(request_data):
     current_app.logger.debug("Profile before mapping " + request_data["profile"])
 
     mapped_profile = r.hget(
-        f"mapping-{request_data['branch']}", request_data["profile"]
+        f"mapping-{request_data['branch']}", request_data["profile"],
     )
 
     if mapped_profile:
@@ -127,6 +127,7 @@ def validate_request(request_data):
     current_app.logger.debug("Profile after mapping " + request_data["profile"])
 
     target = r.hget(f"profiles-{request_data['branch']}", request_data["profile"])
+
     if not target:
         return (
             {
@@ -135,8 +136,8 @@ def validate_request(request_data):
             },
             400,
         )
-    else:
-        request_data["target"] = target.decode()
+
+    request_data["target"] = target.decode()
 
     if request_data.get("packages"):
         request_data["packages"] = set(request_data["packages"]) - {"kernel", "libc"}

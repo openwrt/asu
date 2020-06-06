@@ -7,14 +7,13 @@ def test_api_build(client):
     response = client.post(
         "/api/build",
         json=dict(
-            version="SNAPSHOT",
-            profile="testprofile",
-            packages=["test1", "test2"],
+            version="SNAPSHOT", profile="testprofile", packages=["test1", "test2"],
         ),
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
     assert response.json.get("request_hash") == "0af0c1a9ea31"
+
 
 def test_api_build_mapping(client):
     response = client.post(
@@ -34,9 +33,7 @@ def test_api_build_get(client):
     client.post(
         "/api/build",
         json=dict(
-            version="SNAPSHOT",
-            profile="testprofile",
-            packages=["test1", "test2"],
+            version="SNAPSHOT", profile="testprofile", packages=["test1", "test2"],
         ),
     )
     response = client.get("/api/build/0af0c1a9ea31")
@@ -57,8 +54,7 @@ def test_api_build_get_no_post(client):
 
 def test_api_build_empty_packages_list(client):
     response = client.post(
-        "/api/build",
-        json=dict(version="SNAPSHOT", profile="testprofile", packages=[]),
+        "/api/build", json=dict(version="SNAPSHOT", profile="testprofile", packages=[]),
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
@@ -77,9 +73,7 @@ def test_api_build_withouth_packages_list(client):
 def test_api_build_bad_packages_str(client):
     response = client.post(
         "/api/build",
-        json=dict(
-            version="SNAPSHOT", profile="testprofile", packages="testpackage"
-        ),
+        json=dict(version="SNAPSHOT", profile="testprofile", packages="testpackage"),
     )
     assert response.status == "422 UNPROCESSABLE ENTITY"
     assert response.json.get("status") == "bad_packages"
@@ -120,9 +114,7 @@ def test_api_build_bad_distro(client):
 def test_api_build_bad_version(client):
     response = client.post(
         "/api/build",
-        json=dict(
-            version="Foobar", profile="testprofile", packages=["test1", "test2"]
-        ),
+        json=dict(version="Foobar", profile="testprofile", packages=["test1", "test2"]),
     )
     assert response.status == "400 BAD REQUEST"
     assert response.json.get("message") == "Unsupported version: foobar"
