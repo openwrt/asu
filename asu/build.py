@@ -229,7 +229,9 @@ def build(request: dict):
 
     json_content = json.loads(json_file.read_text())
 
-    assert request["profile"] in json_content["profiles"], "Requested profile not in created profiles.json"
+    assert (
+        request["profile"] in json_content["profiles"]
+    ), "Requested profile not in created profiles.json"
 
     json_content.update({"manifest": manifest})
     json_content.update(json_content["profiles"][request["profile"]])
