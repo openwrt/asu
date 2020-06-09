@@ -1,9 +1,6 @@
-import time
 import urllib.request
 import json
-import urllib
 from pathlib import Path
-import datetime
 import re
 from shutil import rmtree
 import subprocess
@@ -114,31 +111,32 @@ def build(request: dict):
 
     cache.mkdir(parents=True, exist_ok=True)
 
-    if sig_file.is_file():
-        sig_file_headers = urllib.request.urlopen(
-            request["upstream_url"]
-            + "/"
-            + request["version_data"]["path"]
-            + "/targets/"
-            + request["target"]
-            + "/sha256sums.sig"
-        ).info()
-        log.debug(f"sig_file_headers: \n{sig_file_headers}")
-        last_modified = time.mktime(
-            time.strptime(
-                sig_file_headers.get("Last-Modified"), "%a, %d %b %Y %H:%M:%S %Z"
-            )
-        )
-        log.debug(
-            "Local  %s", datetime.datetime.fromtimestamp(sig_file.stat().st_mtime)
-        )
-        log.debug("Remote %s", datetime.datetime.fromtimestamp(last_modified))
+    stamp_file = cache / f"{subtarget}_stamp"
 
-        if sig_file.stat().st_mtime < last_modified:
-            log.debug("Newer ImageBuilder upstream available")
-            setup_ib()
+    sig_file_headers = urllib.request.urlopen(
+        request["upstream_url"]
+        + "/"
+        + request["version_data"]["path"]
+        + "/targets/"
+        + request["target"]
+        + "/sha256sums.sig"
+    ).info()
+    log.debug(f"sig_file_headers: \n{sig_file_headers}")
+
+    origin_modified = sig_file_headers.get("Last-Modified")
+    log.info("Origin %s", origin_modified)
+
+    if stamp_file.is_file():
+        local_modified = stamp_file.read_text()
+        log.info("Local  %s", local_modified)
     else:
+        local_modified = ""
+
+    if origin_modified != local_modified:
+        log.debug("New ImageBuilder upstream available")
         setup_ib()
+
+    stamp_file.write_text(origin_modified)
 
     if request.get("diff_packages", False) and request.get("packages"):
         info_run = subprocess.run(
