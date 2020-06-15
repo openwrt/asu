@@ -139,3 +139,9 @@ def test_api_build_bad_packages(client):
     assert response.json.get("message") == "Unsupported package(s): test4"
     assert response.json.get("status") == "bad_packages"
     assert response.status == "422 UNPROCESSABLE ENTITY"
+
+
+def test_api_latest_default(client):
+    response = client.get("/api/latest")
+    assert response.json == {"latest": ["19.07.3"]}
+    assert response.status == "200 OK"

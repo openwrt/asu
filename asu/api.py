@@ -1,5 +1,5 @@
 from uuid import uuid4
-from flask import request, g, current_app, Blueprint
+from flask import request, g, current_app, Blueprint, jsonify
 from rq import Connection, Queue
 
 from .build import build
@@ -39,6 +39,24 @@ def get_versions() -> dict:
         )
         current_app.logger.info(f"Loaded {len(g.versions)} versions")
     return g.versions
+
+
+def get_latest() -> dict:
+    if "latest" not in g:
+        g.latest = list(
+            map(
+                lambda b: b["latest"],
+                filter(
+                    lambda b: b.get("enabled"),
+                    filter(
+                        lambda b: b["name"] != "snapshot",
+                        current_app.config["VERSIONS"]["branches"],
+                    ),
+                ),
+            )
+        )
+
+    return g.latest
 
 
 def get_redis():
@@ -226,6 +244,11 @@ def api_build_get(request_hash):
         return {"status": "not_found"}, 404
 
     return return_job(job)
+
+
+@bp.route("/latest")
+def api_latest(version=""):
+    return jsonify({"latest": get_latest()})
 
 
 @bp.route("/build", methods=["POST"])

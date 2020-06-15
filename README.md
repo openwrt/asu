@@ -93,7 +93,19 @@ the dependencies:
 
 ## API
 
-### Upgrade check `/api/versions`
+### Latest versions `/api/latest/`
+
+The server responds with the latest versions of the same or newer branches. A
+client should always suggest the latest release of the same branch, however
+advanced users may also want to upgrade to a different branch. Branches are for
+instance `openwrt-18.06` and `openwrt-19.07`, where it is for a running 18.06.2
+device more failsafe to upgrade to 18.06.7 than to 19.07.3.
+
+If no argument is given the response contains the latest stable version.
+
+For snapshots is always a snapshot upgrade suggested.
+
+### Versions overview `/api/versions`
 
 The server does no longer offer complex upgrade but only serves static JSON
 files including available versions. For now the client must evaluate if the
