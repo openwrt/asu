@@ -87,6 +87,16 @@ def build(request: dict):
 
         (cache / ib_archive).unlink()
 
+        extra_repos = request["version_data"].get("extra_repos")
+        if extra_repos:
+            log.debug("Found extra repos")
+            repos_path = cache / subtarget / "repositories.conf"
+            repos = repos_path.read_text()
+            for name, repo in extra_repos.items():
+                repos += f"\nsrc/gz {name} {repo}"
+            repos_path.write_text(repos)
+            log.debug(f"Repos:\n{repos}")
+
     def download_file(filename: str, dest: str = None):
         """Download file from upstream target path
 
