@@ -39,6 +39,8 @@ def parse_packages_file(url, repo):
         else:
             linebuffer += line + "\n"
 
+    current_app.logger.debug(f"Found {len(packages)} in {repo}")
+
     return packages
 
 
@@ -114,8 +116,12 @@ def update_target_packages(version: dict, target: str):
 
     arch = packages["base-files"]["architecture"]
 
-    for repo in ["base", "packages", "luci", "routing", "telephony"]:
+    for repo in ["base", "packages", "luci", "routing", "telephony", "freifunk"]:
         packages.update(get_packages_arch_repo(version, arch, repo))
+
+    for name, url in version.get("extra_repos", {}).items():
+        current_app.logger.debug(f"Update extra repo {name} at {url}")
+        packages.update(parse_packages_file(f"{url}/Packages", name))
 
     output_path = current_app.config["JSON_PATH"] / version["path"] / target
     output_path.mkdir(exist_ok=True, parents=True)

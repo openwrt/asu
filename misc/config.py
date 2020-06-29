@@ -23,6 +23,10 @@ VERSIONS = {
             "path": "snapshots",
             "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
             "updates": "dev",
+            "extra_repos": {
+                "lime-packages": "https://images.aparcar.org/libremesh/packages",
+                "lime-profiles": "https://images.aparcar.org/libremesh/profiles",
+            },
         },
         {
             "name": "19.07",
@@ -34,6 +38,10 @@ VERSIONS = {
             "pubkey": "RWT5S53W/rrJY9BiIod3JF04AZ/eU1xDpVOb+rjZzAQBEcoETGx8BXEK",
             "release_date": "2020-01-31",
             "updates": "bugs",
+            "extra_repos": {
+                "lime-packages": "https://images.aparcar.org/libremesh/packages",
+                "lime-profiles": "https://images.aparcar.org/libremesh/profiles",
+            },
         },
         {
             "name": "18.06",
