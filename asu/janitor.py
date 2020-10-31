@@ -96,7 +96,7 @@ def update_version(version):
 
         profiles.pop("target", None)
 
-    profiles_path = current_app.config["JSON_PATH"] / version["path"] / "profiles.json"
+    profiles_path = current_app.config["JSON_PATH"] / version["path"] / "overview.json"
     profiles_path.parent.mkdir(exist_ok=True, parents=True)
 
     profiles_path.write_text(
