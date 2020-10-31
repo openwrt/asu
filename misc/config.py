@@ -8,9 +8,6 @@ DEBUG = False
 # where to find the ImageBuildes
 UPSTREAM_URL = "https://downloads.cdn.openwrt.org"
 
-# Workaround until upstream actually creates JSON files
-JSON_URL = "https://images.aparcar.org/rebuild/"
-
 # supported versions
 VERSIONS = {
     "metadata_version": 1,

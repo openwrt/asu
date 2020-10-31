@@ -149,10 +149,8 @@ def update_target_profiles(version: dict, target: str):
     current_app.logger.info(f"Updating profiles of {version['name']}")
     r = get_redis()
     req = requests.get(
-        current_app.config["JSON_URL"]
-        + "/"
-        + version["path"]
-        + f"/{target}/profiles.json"
+        current_app.config["UPSTREAM_URL"]
+        + f"/{version['path']}/targets/{target}/profiles.json"
     )
 
     if req.status_code != 200:
