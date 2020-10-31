@@ -24,8 +24,8 @@ VERSIONS = {
             "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
             "updates": "dev",
             "extra_repos": {
-                "lime-packages": "https://images.aparcar.org/libremesh/packages",
-                "lime-profiles": "https://images.aparcar.org/libremesh/profiles",
+                "lime-packages": "https://feed.libremesh.org/master",
+                "lime-profiles": "https://feed.libremesh.org/profiles",
             },
         },
         {
@@ -39,8 +39,8 @@ VERSIONS = {
             "release_date": "2020-01-31",
             "updates": "bugs",
             "extra_repos": {
-                "lime-packages": "https://images.aparcar.org/libremesh/packages",
-                "lime-profiles": "https://images.aparcar.org/libremesh/profiles",
+                "lime-packages": "https://feed.libremesh.org/master",
+                "lime-profiles": "https://feed.libremesh.org/profiles",
             },
         },
         {
