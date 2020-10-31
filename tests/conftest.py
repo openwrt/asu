@@ -31,8 +31,8 @@ def pytest_collection_modifyitems(config, items):
 def redis():
     r = FakeStrictRedis()
     r.sadd("packages-snapshot-testtarget/testsubtarget", "test1", "test2", "test3")
-    r.hmset("profiles-snapshot", {"testprofile": "testtarget/testsubtarget"})
-    r.hmset("mapping-snapshot", {"testvendor,testprofile": "testprofile"})
+    r.hset("profiles-snapshot", mapping={"testprofile": "testtarget/testsubtarget"})
+    r.hset("mapping-snapshot", mapping={"testvendor,testprofile": "testprofile"})
     r.sadd("targets-snapshot", "testtarget/testsubtarget")
     yield r
 
