@@ -146,7 +146,7 @@ def update_target_profiles(version: dict, target: str):
     Args:
         version (dict): Containing all version information as defined in VERSIONS
     """
-    current_app.logger.info(f"Updating profiles of {version['name']}")
+    current_app.logger.info(f"Updating profiles of {version['name']}/{target}")
     r = get_redis()
     req = requests.get(
         current_app.config["UPSTREAM_URL"]
@@ -166,6 +166,13 @@ def update_target_profiles(version: dict, target: str):
         for supported in data.get("supported_devices", []):
             r.hset(f"mapping-{version['name']}", supported, profile)
         r.hset(f"profiles-{version['name']}", profile, target)
+        profile_path = (
+            current_app.config["JSON_PATH"] / version["path"] / target / profile
+        ).with_suffix(".json")
+        profile_path.parent.mkdir(exist_ok=True, parents=True)
+        profile_path.write_text(
+            json.dumps({**data, **metadata}, sort_keys=True, separators=(",", ":"))
+        )
 
         data["target"] = target
 
