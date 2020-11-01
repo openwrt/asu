@@ -272,7 +272,7 @@ def api_build():
         request_data["store_path"] = current_app.config["STORE_PATH"]
         request_data["cache_path"] = current_app.config["CACHE_PATH"]
         request_data["upstream_url"] = current_app.config["UPSTREAM_URL"]
-        request_data["version_data"] = get_versions()[request_data["version"]]
+        request_data["version_data"] = get_versions()[request_data["branch"]]
 
         job = get_queue().enqueue(
             build,
