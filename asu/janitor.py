@@ -96,11 +96,27 @@ def update_version(version):
 
         profiles.pop("target", None)
 
-    profiles_path = current_app.config["JSON_PATH"] / version["path"] / "overview.json"
+    profiles_path = current_app.config["JSON_PATH"] / version["path"] / "profiles.json"
     profiles_path.parent.mkdir(exist_ok=True, parents=True)
 
     profiles_path.write_text(
         json.dumps(profiles, sort_keys=True, separators=(",", ":"))
+    )
+
+    overview_path = current_app.config["JSON_PATH"] / version["path"] / "overview.json"
+    overview = {
+        "metadata_version": 1,
+        "version_code": profiles["version_code"],
+        "version_number": profiles["version_number"],
+        "profiles": {},
+    }
+    for profile, data in profiles["profiles"].items():
+        overview["profiles"][profile] = {
+            "titles": data["titles"],
+            "target": data["target"],
+        }
+    overview_path.write_text(
+        json.dumps(overview, sort_keys=True, separators=(",", ":"))
     )
 
 
