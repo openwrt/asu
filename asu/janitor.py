@@ -103,6 +103,7 @@ def update_version(version):
         json.dumps(profiles, sort_keys=True, separators=(",", ":"))
     )
 
+    # generate overview for YAFS firmware wizard
     overview_path = current_app.config["JSON_PATH"] / version["path"] / "overview.json"
     overview = {
         "metadata_version": 1,
@@ -115,6 +116,12 @@ def update_version(version):
             "titles": data["titles"],
             "target": data["target"],
         }
+
+    # the image URL is used by YAFS firmware wizard to find pre-compiled images
+    # the {target} placeholder is replaced automatically by the firmware wizard
+    overview["image_url"] = (
+        current_app.config["UPSTREAM_URL"] + "/" + version["path"] + "/{target}"
+    )
     overview_path.write_text(
         json.dumps(overview, sort_keys=True, separators=(",", ":"))
     )
