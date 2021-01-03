@@ -109,13 +109,16 @@ def update_version(version):
         "metadata_version": 1,
         "version_code": profiles["version_code"],
         "version_number": profiles["version_number"],
-        "profiles": {},
+        "profiles": [],
     }
     for profile, data in profiles["profiles"].items():
-        overview["profiles"][profile] = {
-            "titles": data["titles"],
-            "target": data["target"],
-        }
+        overview["profiles"].append(
+            {
+                "id": data["profile"],
+                "titles": data["titles"],
+                "target": data["target"],
+            }
+        )
 
     # the image URL is used by YAFS firmware wizard to find pre-compiled images
     # the {target} placeholder is replaced automatically by the firmware wizard
