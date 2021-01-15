@@ -114,7 +114,7 @@ def update_version(version):
     for profile, data in profiles["profiles"].items():
         overview["profiles"].append(
             {
-                "id": data["profile"],
+                "id": profile,
                 "titles": data["titles"],
                 "target": data["target"],
             }
