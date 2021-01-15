@@ -32,7 +32,7 @@ pytest-httpserver==0.3.4
 PyYAML==5.3
 redis==3.5.3
 requests==2.23.0
-rq==1.2.2
+rq==1.7.0
 six==1.14.0
 sortedcontainers==2.1.0
 tornado==6.0.3
