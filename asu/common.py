@@ -42,24 +42,24 @@ def get_file_hash(path: str) -> str:
     return h.hexdigest()
 
 
-def get_request_hash(request_data: dict) -> str:
+def get_request_hash(req: dict) -> str:
     """Return sha256sum of an image request
 
     Creates a reproducible hash of the request by sorting the arguments
 
     Args:
-        request_data (dict): dict contianing request information
+        req (dict): dict contianing request information
 
     Returns:
-        str: hash of `request_data`
+        str: hash of `req`
     """
-    request_data["packages_hash"] = get_packages_hash(request_data.get("packages", ""))
+    req["packages_hash"] = get_packages_hash(req.get("packages", ""))
     request_array = [
-        request_data.get("distro", ""),
-        request_data.get("version", ""),
-        request_data.get("profile", "").replace(",", "_"),
-        request_data["packages_hash"],
-        str(request_data.get("diff_packages", False)),
+        req.get("distro", ""),
+        req.get("version", ""),
+        req.get("profile", "").replace(",", "_"),
+        req["packages_hash"],
+        str(req.get("diff_packages", False)),
     ]
     return get_str_hash(" ".join(request_array), 12)
 
@@ -71,10 +71,10 @@ def get_packages_hash(packages: list) -> str:
     reproducible
 
     Args:
-        packages (list ): list of packages
+        packages (list): list of packages
 
     Returns:
-        str: hash of `request_data`
+        str: hash of `req`
     """
     return get_str_hash(" ".join(sorted(list(set(packages)))), 12)
 

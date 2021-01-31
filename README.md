@@ -20,7 +20,7 @@ the need of setting up a build environment, even from mobile devices.
 Simple web interface using vanilla JavaScript currently developed by @mwarning.
 It offers a device search based on model names and show links either to
 [official images](https://downloads.openwrt.org/) or requests images via the
-_asu_ API. Please join in the development at the [GitHub
+*asu* API. Please join in the development at the [GitHub
 repository](https://github.com/mwarning/yet_another_firmware_selector)
 
 ![yafs](misc/yafs.png)
@@ -43,7 +43,7 @@ respond to requests without rebuilding existing images again.
 
 ### Active server
 
--   [chef.libremesh.org](https://chef.libremesh.org)
+*   [chef.libremesh.org](https://chef.libremesh.org)
 
 ## Run your own server
 
@@ -51,7 +51,7 @@ Redis is required to store image requests:
 
     sudo apt install redis-server tar
 
-Install _asu_:
+Install *asu*:
 
     pip install asu
 
@@ -67,7 +67,7 @@ Start the worker via the following comand:
 
 ### Production
 
-It is recommended to run _ASU_ via `gunicorn` proxied by `nginx`. Find a
+It is recommended to run *ASU* via `gunicorn` proxied by `nginx`. Find a
 possible `nginx` configuration in the `misc/` folder. Also the setup should not
 HTTPS to allow clients without SSL/certificates to check for upgrades.
 
@@ -93,19 +93,33 @@ the dependencies:
 
 ## API
 
-### Upgrade check `/api/versions`
+The server does no longer offer complex upgrade check but only static JSON
+including available branches and versions. The client must evaluate itself if
+the responded JSON contains a newer version.
 
-The server does no longer offer complex upgrade but only serves static JSON
-files including available versions. For now the client must evaluate if the
-responded JSON contains a newer version.
+### Latest versions `/api/latest`
+
+The server responds with the latest versions of the same or newer branches. A
+client should always suggest the latest release of the same branch, however
+advanced users may also want to upgrade to a different branch. Branches are for
+instance `openwrt-18.06` and `openwrt-19.07`, where it is for a running 18.06.2
+device safer to upgrade to 18.06.7 than to 19.07.3.
+
+Snapshots are not shown in this list.
+
+### Versions overview `/api/branches`
+
+Returns the configured branches. The content is based on the `BRANCHES`
+variable in the configuration, an example is available in `./misc/config.py`.
 
 ### Build request `/api/build`
 
-| key        | value                 | information                              |
-| ---------- | --------------------- | ---------------------------------------- |
-| `version`  | `SNAPSHOT`            | installed version                        |
-| `profile`  | `netgear_wndr4300-v2` | `board_name` of `ubus call system board` |
-| `packages` | `["luci", "vim"]`     | Extra packages for the new image         |
+| key             | value                 | information                              |
+| --------------- | --------------------- | ---------------------------------------- |
+| `version`       | `SNAPSHOT`            | installed version                        |
+| `profile`       | `netgear_wndr4300-v2` | `board_name` of `ubus call system board` |
+| `packages`      | `["luci", "vim"]`     | Extra packages for the new image         |
+| `diff_packages` | `true`                | Install list of `packages` additionally to default packages or excklusively |
 
 Each valid request returns a `request_hash` which can be used for future
 polling via `/api/build/<request_hash>`.

@@ -17,28 +17,15 @@ def get_distros() -> list:
     return ["openwrt"]
 
 
-@bp.route("/debug/get_versions")
-def get_versions() -> dict:
-    """Return available versions
-
-    The configuration stores a dict of versions containing additional
-    information like public signing key and upstream path.
-
-    Returns:
-        dict: latest available version per branch
-    """
-    if "versions" not in g:
-        g.versions = dict(
-            map(
-                lambda b: (b["name"], b),
-                filter(
-                    lambda b: b.get("enabled"),
-                    current_app.config["VERSIONS"]["branches"],
-                ),
-            )
-        )
-        current_app.logger.info(f"Loaded {len(g.versions)} versions")
-    return g.versions
+@bp.route("/branches")
+def get_branches() -> dict:
+    if "branches" not in g:
+        g.branches = {}
+        for branch in current_app.config["BRANCHES"]:
+            if branch["enabled"]:
+                g.branches[branch["name"]] = branch
+        current_app.logger.info(f"Loaded {len(g.branches)} branches")
+    return g.branches
 
 
 def get_redis():
@@ -50,6 +37,29 @@ def get_redis():
     if "redis" not in g:
         g.redis = current_app.config["REDIS_CONN"]
     return g.redis
+
+
+def get_latest() -> dict:
+    if "latest" not in g:
+        g.latest = list(
+            map(
+                lambda b: b["versions"][0],
+                filter(
+                    lambda b: b.get("enabled"),
+                    filter(
+                        lambda b: not b.get("snapshot"),
+                        current_app.config["BRANCHES"],
+                    ),
+                ),
+            )
+        )
+
+    return g.latest
+
+
+@bp.route("/latest")
+def api_latest():
+    return {"latest": get_latest()}
 
 
 def get_queue() -> Queue:
@@ -64,91 +74,95 @@ def get_queue() -> Queue:
     return g.queue
 
 
-def validate_request(request_data):
+def validate_request(req):
     """Validate an image request and return found errors with status code
 
     Instead of building every request it is first validated. This checks for
     existence of requested profile, distro, version and package.
 
     Args:
-        request_data (dict): The image request
+        req (dict): The image request
 
     Returns:
         (dict, int): Status message and code, empty if no error appears
 
     """
     for needed in ["version", "profile"]:
-        if needed not in request_data:
+        if needed not in req:
             return ({"status": "bad_request", "message": f"Missing {needed}"}, 400)
 
-    request_data["distro"] = request_data.get("distro", "openwrt").lower()
-    if request_data["distro"] not in get_distros():
+    req["distro"] = req.get("distro", "openwrt").lower()
+    if req["distro"] not in get_distros():
         return (
             {
                 "status": "bad_distro",
-                "message": f"Unsupported distro: {request_data['distro']}",
+                "message": f"Unsupported distro: {req['distro']}",
             },
             400,
         )
 
-    request_data["version"] = request_data["version"].lower()
-    request_data["branch"] = request_data["version"].rsplit(".", maxsplit=1)[0]
-    if request_data["branch"] not in get_versions().keys():
+    req["version"] = req["version"].lower()
+    req["branch"] = req["version"].rsplit(".", maxsplit=1)[0]
+    if req["branch"] not in get_branches().keys():
+        return (
+            {
+                "status": "bad_branch",
+                "message": f"Unsupported branch: {req['version']}",
+            },
+            400,
+        )
+
+    if req["version"] not in get_branches()[req["branch"]]["versions"]:
         return (
             {
                 "status": "bad_version",
-                "message": f"Unsupported version: {request_data['version']}",
+                "message": f"Unsupported version: {req['version']}",
             },
             400,
         )
 
     r = get_redis()
 
-    if request_data["version"] != get_versions()[request_data["branch"]][
-        "latest"
-    ] and not get_versions()[request_data["branch"]].get("support_legacy_versions"):
-        return (
-            {
-                "status": "legacy_version",
-                "message": "No legacy version support enabled",
-            },
-            400,
-        )
-
-    current_app.logger.debug("Profile before mapping " + request_data["profile"])
+    current_app.logger.debug("Profile before mapping " + req["profile"])
 
     mapped_profile = r.hget(
-        f"mapping-{request_data['branch']}", request_data["profile"],
+        f"mapping-{req['branch']}-{req['version']}",
+        req["profile"],
     )
 
     if mapped_profile:
-        request_data["profile"] = mapped_profile.decode()
+        req["profile"] = mapped_profile.decode()
 
-    current_app.logger.debug("Profile after mapping " + request_data["profile"])
+    current_app.logger.debug("Profile after mapping " + req["profile"])
 
-    target = r.hget(f"profiles-{request_data['branch']}", request_data["profile"])
+    target = r.hget(
+        f"profiles-{req['branch']}-{req['version']}",
+        req["profile"],
+    )
 
     if not target:
         return (
             {
                 "status": "bad_profile",
-                "message": f"Unsupported profile: {request_data['profile']}",
+                "message": f"Unsupported profile: {req['profile']}",
             },
             400,
         )
 
-    request_data["target"] = target.decode()
-
-    if request_data.get("packages"):
-        request_data["packages"] = set(request_data["packages"]) - {"kernel", "libc"}
+    req["target"] = target.decode()
+    arch = get_branches()[req["branch"]]["targets"][req["target"]]
+    if req.get("packages"):
+        req["packages"] = set(req["packages"]) - {"kernel", "libc", "libgcc"}
 
         # store request packages temporary in Redis and create a diff
         temp = str(uuid4())
         pipeline = r.pipeline(True)
-        pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), request_data["packages"])))
+        pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), req["packages"])))
         pipeline.expire(temp, 5)
         pipeline.sdiff(
-            temp, f"packages-{request_data['branch']}-{request_data['target']}",
+            temp,
+            f"packages-{req['branch']}-{req['version']}-{req['target']}",
+            f"packages-{req['branch']}-{arch}",
         )
         unknown_packages = list(map(lambda p: p.decode(), pipeline.execute()[-1]))
 
@@ -161,19 +175,9 @@ def validate_request(request_data):
                 422,
             )
     else:
-        request_data["packages"] = set()
+        req["packages"] = set()
 
     return ({}, None)
-
-
-@bp.route("/versions")
-def api_versions():
-    """API call to get available versions
-
-    Returns:
-        dict: Available versions in JSON format
-    """
-    return current_app.config["VERSIONS"]
 
 
 def return_job(job):
@@ -248,39 +252,35 @@ def api_build():
     Retrns:
         (dict, int): Status message and code
     """
-    request_data = request.get_json()
-    current_app.logger.debug("request_data {request_data}")
-    if not request_data:
+    req = request.get_json()
+    current_app.logger.debug(f"req {req}")
+    if not req:
         return {"status": "bad_request"}, 400
 
-    request_hash = get_request_hash(request_data)
+    request_hash = get_request_hash(req)
     job = get_queue().fetch_job(request_hash)
     response = {}
     status = 200
-    if not current_app.config["DEBUG"]:
-        result_ttl = "24h"
-        failure_ttl = "12h"
-    else:
-        result_ttl = "15m"
-        failure_ttl = "15m"
+    result_ttl = "24h"
+    failure_ttl = "12h"
 
     if job is None:
-        response, status = validate_request(request_data)
+        response, status = validate_request(req)
         if response:
             return response, status
 
-        request_data["store_path"] = current_app.config["STORE_PATH"]
-        request_data["cache_path"] = current_app.config["CACHE_PATH"]
-        request_data["upstream_url"] = current_app.config["UPSTREAM_URL"]
-        request_data["version_data"] = get_versions()[request_data["branch"]]
+        req["store_path"] = current_app.config["STORE_PATH"]
+        req["cache_path"] = current_app.config["CACHE_PATH"]
+        req["upstream_url"] = current_app.config["UPSTREAM_URL"]
+        req["branch_data"] = get_branches()[req["branch"]]
 
         job = get_queue().enqueue(
             build,
-            request_data,
+            req,
             job_id=request_hash,
             result_ttl=result_ttl,
             failure_ttl=failure_ttl,
-            job_timeout="5m",
+            job_timeout="10m",
         )
 
     return return_job(job)

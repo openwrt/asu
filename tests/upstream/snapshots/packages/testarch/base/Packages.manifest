@@ -1,0 +1,53 @@
+Package: 464xlat
+Version: 12
+Depends: libc, kmod-nat46, ip
+Source: feeds/base/package/network/ipv6/464xlat
+SourceName: 464xlat
+License: GPL-2.0
+Section: net
+SourceDateEpoch: 1594830836
+Maintainer: Hans Dedecker <dedeckeh@gmail.com>
+Architecture: x86_64
+Installed-Size: 4120
+Filename: 464xlat_12_x86_64.ipk
+Size: 4940
+SHA256sum: ee063ac6f151ed6524ca39c6a3de410b4b656037add5cc963108fe053da7b51b
+Description:  464xlat provides support to deploy limited IPv4 access services to mobile
+ and wireline IPv6-only edge networks without encapsulation (RFC6877)
+
+Package: 6in4
+Version: 26
+Depends: libc, kmod-sit, uclient-fetch
+Source: feeds/base/package/network/ipv6/6in4
+SourceName: 6in4
+License: GPL-2.0
+Section: net
+SourceDateEpoch: 1594830836
+Maintainer: Jo-Philipp Wich <jo@mein.io>
+Architecture: all
+Installed-Size: 1698
+Filename: 6in4_26_all.ipk
+Size: 2515
+SHA256sum: 019edf72aa30f83fb8cc8acd2655074c546be15090ab794b27aeedd1180c202f
+Description:  Provides support for 6in4 tunnels in /etc/config/network.
+ Refer to http://wiki.openwrt.org/doc/uci/network for
+ configuration details.
+
+Package: 6rd
+Version: 10
+Depends: libc, kmod-sit
+Source: feeds/base/package/network/ipv6/6rd
+SourceName: 6rd
+License: GPL-2.0
+Section: net
+SourceDateEpoch: 1594830836
+Maintainer: Steven Barth <cyrus@openwrt.org>
+Architecture: all
+Installed-Size: 2904
+Filename: 6rd_10_all.ipk
+Size: 3704
+SHA256sum: 5a4165edfd033ae363aeffde7d67ca7c0a6f3e5e0f0898a24ad2284b13e738c3
+Description:  Provides support for 6rd tunnels in /etc/config/network.
+ Refer to http://wiki.openwrt.org/doc/uci/network for
+ configuration details.
+

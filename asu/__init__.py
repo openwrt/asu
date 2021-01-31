@@ -4,6 +4,8 @@ from redis import Redis
 from flask import Flask, redirect, send_from_directory
 from flask_cors import CORS
 
+import json
+
 
 def create_app(test_config: dict = None) -> Flask:
     """Create the main Flask application
@@ -23,11 +25,17 @@ def create_app(test_config: dict = None) -> Flask:
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.cdn.openwrt.org",
-        VERSIONS={},
+        BRANCHES={},
     )
 
-    if test_config is None:
-        app.config.from_pyfile("config.py", silent=True)
+    if not test_config:
+        for config_file in [
+            "./config.py",
+            app.instance_path + "/config.py",
+            "/etc/asu/config.py",
+        ]:
+            if Path(config_file).exists():
+                app.config.from_pyfile(config_file, silent=True)
     else:
         app.config.from_mapping(test_config)
 
@@ -62,5 +70,9 @@ def create_app(test_config: dict = None) -> Flask:
     from . import api
 
     app.register_blueprint(api.bp)
+
+    (app.config["JSON_PATH"] / "branches.json").write_text(
+        json.dumps(app.config["BRANCHES"])
+    )
 
     return app
