@@ -24,11 +24,12 @@ def upstream(httpserver):
 
 
 def test_build_fake(app, upstream):
-    request_data = dict(
-        version_data={
+    req = dict(
+        branch_data={
             "branch": "master",
             "path": "snapshots",
             "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
         store_path=app.config["STORE_PATH"],
@@ -38,16 +39,17 @@ def test_build_fake(app, upstream):
         profile="testprofile",
         packages={"test1", "test2"},
     )
-    result = build(request_data)
+    result = build(req)
     assert result["id"] == "testprofile"
 
 
 def test_build_fake_diff_packages(app, upstream):
-    request_data = dict(
-        version_data={
+    req = dict(
+        branch_data={
             "branch": "master",
             "path": "snapshots",
             "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
         store_path=app.config["STORE_PATH"],
@@ -58,16 +60,17 @@ def test_build_fake_diff_packages(app, upstream):
         packages={"test1", "test2"},
         diff_packages=True,
     )
-    result = build(request_data)
+    result = build(req)
     assert result["id"] == "testprofile"
 
 
 def test_build_fake_no_packages(app, upstream):
-    request_data = dict(
-        version_data={
+    req = dict(
+        branch_data={
             "branch": "master",
             "path": "snapshots",
             "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
         store_path=app.config["STORE_PATH"],
@@ -76,16 +79,17 @@ def test_build_fake_no_packages(app, upstream):
         version="SNAPSHOT",
         profile="testprofile",
     )
-    result = build(request_data)
+    result = build(req)
     assert result["id"] == "testprofile"
 
 
 def test_build_fake_list_packages(app, upstream):
-    request_data = dict(
-        version_data={
+    req = dict(
+        branch_data={
             "branch": "master",
             "path": "snapshots",
             "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
         store_path=app.config["STORE_PATH"],
@@ -96,18 +100,19 @@ def test_build_fake_list_packages(app, upstream):
         packages=["test1"],
     )
     with pytest.raises(Exception) as execinfo:
-        result = build(request_data)
+        result = build(req)
     assert str(execinfo.value) == "packages must be type set not list"
 
 
 def test_build_fake_store_path_not_exists(app, upstream):
     app.config["STORE_PATH"].rmdir()
 
-    request_data = dict(
-        version_data={
+    req = dict(
+        branch_data={
             "branch": "master",
             "path": "snapshots",
             "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
         store_path=app.config["STORE_PATH"],
@@ -117,17 +122,18 @@ def test_build_fake_store_path_not_exists(app, upstream):
         profile="testprofile",
     )
     with pytest.raises(Exception) as execinfo:
-        result = build(request_data)
+        result = build(req)
     assert str(execinfo.value) == "store_path must be existing directory"
 
 
 @pytest.mark.slow
 def test_build_real(app, httpserver: HTTPServer):
-    request_data = dict(
-        version_data={
+    req = dict(
+        branch_data={
             "branch": "master",
             "path": "snapshots",
             "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
+            "versions": ["snapshot"],
         },
         target="ath79/generic",
         store_path=app.config["STORE_PATH"],
@@ -137,5 +143,5 @@ def test_build_real(app, httpserver: HTTPServer):
         profile="tplink_tl-wdr4300-v1",
         packages={"tmux", "vim"},
     )
-    result = build(request_data)
+    result = build(req)
     assert result["id"] == "tplink_tl-wdr4300-v1"

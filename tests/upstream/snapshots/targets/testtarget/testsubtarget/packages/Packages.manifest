@@ -1,0 +1,47 @@
+Package: base-files
+Version: 1403-r15666-8019c54d8a
+Depends: libc, netifd, jsonfilter, usign, openwrt-keyring, fstools, fwtool
+Source: package/base-files
+SourceName: base-files
+License: GPL-2.0
+Section: base
+SourceDateEpoch: 1611955596
+Architecture: x86_64
+Installed-Size: 43933
+Filename: base-files_1403-r15666-8019c54d8a_x86_64.ipk
+Size: 44961
+SHA256sum: 9f980084a0ee1337f63c0fe30ea9d76e0fc7596dc57ceafa295f2a80d743f78e
+Description:  This package contains a base filesystem and system scripts for OpenWrt.
+
+Package: block-mount
+Version: 2021-01-04-c53b1882-1
+Depends: libc, ubox, libubox20201212, libuci20130104, libblobmsg-json, libjson-c5
+Source: package/system/fstools
+SourceName: block-mount
+License: GPL-2.0
+Section: base
+SourceDateEpoch: 1609794455
+Maintainer: John Crispin <john@phrozen.org>
+Architecture: x86_64
+Installed-Size: 22438
+Filename: block-mount_2021-01-04-c53b1882-1_x86_64.ipk
+Size: 23214
+SHA256sum: 9f5e1d69aeb95e3a501f0e6afc134f902d19d8088ecf440762219293babe45ac
+Description:  Block device mounting and checking
+
+Package: blockd
+Version: 2021-01-04-c53b1882-1
+Depends: libc, block-mount, fstools, libubus20191227, kmod-fs-autofs4, libblobmsg-json, libjson-c5
+Source: package/system/fstools
+SourceName: blockd
+License: GPL-2.0
+Section: base
+SourceDateEpoch: 1609794455
+Maintainer: John Crispin <john@phrozen.org>
+Architecture: x86_64
+Installed-Size: 5810
+Filename: blockd_2021-01-04-c53b1882-1_x86_64.ipk
+Size: 6596
+SHA256sum: e170bfe5c99cad6c23bd289aba0ff7fff700c4d1a550851afa1080f5578926f5
+Description:  Block device automounting
+

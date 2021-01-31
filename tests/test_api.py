@@ -1,18 +1,29 @@
 def test_api_version(client, app):
-    response = client.get("/api/versions")
-    assert response.json == app.config["VERSIONS"]
+    response = client.get("/api/branches")
+    branches = {}
+    for branch in app.config["BRANCHES"]:
+        if branch["enabled"]:
+            branches[branch["name"]] = branch
+    assert response.json == branches
 
 
 def test_api_build(client):
     response = client.post(
         "/api/build",
         json=dict(
-            version="SNAPSHOT", profile="testprofile", packages=["test1", "test2"],
+            version="SNAPSHOT",
+            profile="testprofile",
+            packages=["test1", "test2"],
         ),
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
     assert response.json.get("request_hash") == "0af0c1a9ea31"
+
+def test_api_latest_default(client):
+    response = client.get("/api/latest")
+    assert response.json == {"latest": ["19.07.6"]}
+    assert response.status == "200 OK"
 
 
 def test_api_build_mapping(client):
@@ -33,7 +44,9 @@ def test_api_build_get(client):
     client.post(
         "/api/build",
         json=dict(
-            version="SNAPSHOT", profile="testprofile", packages=["test1", "test2"],
+            version="SNAPSHOT",
+            profile="testprofile",
+            packages=["test1", "test2"],
         ),
     )
     response = client.get("/api/build/0af0c1a9ea31")
@@ -54,7 +67,8 @@ def test_api_build_get_no_post(client):
 
 def test_api_build_empty_packages_list(client):
     response = client.post(
-        "/api/build", json=dict(version="SNAPSHOT", profile="testprofile", packages=[]),
+        "/api/build",
+        json=dict(version="SNAPSHOT", profile="testprofile", packages=[]),
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
@@ -111,13 +125,27 @@ def test_api_build_bad_distro(client):
     assert response.json.get("status") == "bad_distro"
 
 
+def test_api_build_bad_branch(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="10.10.10", profile="testprofile", packages=["test1", "test2"]
+        ),
+    )
+    assert response.status == "400 BAD REQUEST"
+    assert response.json.get("message") == "Unsupported branch: 10.10.10"
+    assert response.json.get("status") == "bad_branch"
+
+
 def test_api_build_bad_version(client):
     response = client.post(
         "/api/build",
-        json=dict(version="Foobar", profile="testprofile", packages=["test1", "test2"]),
+        json=dict(
+            version="19.07.2", profile="testprofile", packages=["test1", "test2"]
+        ),
     )
     assert response.status == "400 BAD REQUEST"
-    assert response.json.get("message") == "Unsupported version: foobar"
+    assert response.json.get("message") == "Unsupported version: 19.07.2"
     assert response.json.get("status") == "bad_version"
 
 

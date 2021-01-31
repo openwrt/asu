@@ -1,6 +1,6 @@
 {
-	"version": "snapshot",
-	"packages": [  "vim"],
+	"version": "19.07.4",
+	"packages": [  "tmux"],
 	"profile": "tplink_tl-wdr4300-v1",
-	"diff_packages": true
+	"diff_packages": false
 }
