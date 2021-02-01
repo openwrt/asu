@@ -1,4 +1,3 @@
-from pathlib import PosixPath
 import os
 import tempfile
 from pathlib import Path
