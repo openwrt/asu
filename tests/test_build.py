@@ -1,4 +1,5 @@
 from asu.build import build
+from asu.build import StorePathMissingError
 from pathlib import Path
 
 import pytest
@@ -28,7 +29,7 @@ def test_build_fake(app, upstream):
         branch_data={
             "branch": "master",
             "path": "snapshots",
-            "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "pubkey": "RWSr8lOdNWjmjpLR+x5/e2O2qahzP9lYyCfg0Eu66iFCuEsuZfj18MiI",
             "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
@@ -48,7 +49,7 @@ def test_build_fake_diff_packages(app, upstream):
         branch_data={
             "branch": "master",
             "path": "snapshots",
-            "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "pubkey": "RWSr8lOdNWjmjpLR+x5/e2O2qahzP9lYyCfg0Eu66iFCuEsuZfj18MiI",
             "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
@@ -64,46 +65,6 @@ def test_build_fake_diff_packages(app, upstream):
     assert result["id"] == "testprofile"
 
 
-def test_build_fake_no_packages(app, upstream):
-    req = dict(
-        branch_data={
-            "branch": "master",
-            "path": "snapshots",
-            "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
-            "versions": ["snapshot"],
-        },
-        target="testtarget/testsubtarget",
-        store_path=app.config["STORE_PATH"],
-        cache_path=app.config["CACHE_PATH"],
-        upstream_url="http://localhost:8001",
-        version="SNAPSHOT",
-        profile="testprofile",
-    )
-    result = build(req)
-    assert result["id"] == "testprofile"
-
-
-def test_build_fake_list_packages(app, upstream):
-    req = dict(
-        branch_data={
-            "branch": "master",
-            "path": "snapshots",
-            "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
-            "versions": ["snapshot"],
-        },
-        target="testtarget/testsubtarget",
-        store_path=app.config["STORE_PATH"],
-        cache_path=app.config["CACHE_PATH"],
-        upstream_url="http://localhost:8001",
-        version="SNAPSHOT",
-        profile="testprofile",
-        packages=["test1"],
-    )
-    with pytest.raises(Exception) as execinfo:
-        result = build(req)
-    assert str(execinfo.value) == "packages must be type set not list"
-
-
 def test_build_fake_store_path_not_exists(app, upstream):
     app.config["STORE_PATH"].rmdir()
 
@@ -111,7 +72,7 @@ def test_build_fake_store_path_not_exists(app, upstream):
         branch_data={
             "branch": "master",
             "path": "snapshots",
-            "pubkey": "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89",
+            "pubkey": "RWSr8lOdNWjmjpLR+x5/e2O2qahzP9lYyCfg0Eu66iFCuEsuZfj18MiI",
             "versions": ["snapshot"],
         },
         target="testtarget/testsubtarget",
@@ -123,7 +84,7 @@ def test_build_fake_store_path_not_exists(app, upstream):
     )
     with pytest.raises(Exception) as execinfo:
         result = build(req)
-    assert str(execinfo.value) == "store_path must be existing directory"
+    assert execinfo.type == StorePathMissingError
 
 
 @pytest.mark.slow

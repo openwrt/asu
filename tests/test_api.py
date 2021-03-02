@@ -20,6 +20,7 @@ def test_api_build(client):
     assert response.json.get("status") == "queued"
     assert response.json.get("request_hash") == "0af0c1a9ea31"
 
+
 def test_api_latest_default(client):
     response = client.get("/api/latest")
     assert response.json == {"latest": ["19.07.6"]}
@@ -84,6 +85,18 @@ def test_api_build_withouth_packages_list(client):
     assert response.json.get("request_hash") == "a86ba552b5f6"
 
 
+def test_api_build_prerelease(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="21.02-SNAPSHOT", profile="testprofile", packages=["test1", "test2"]
+        ),
+    )
+    assert response.status == "400 BAD REQUEST"
+    assert response.json.get("message") == "Unsupported profile: testprofile"
+    assert response.json.get("status") == "bad_profile"
+
+
 def test_api_build_bad_packages_str(client):
     response = client.post(
         "/api/build",
@@ -121,7 +134,7 @@ def test_api_build_bad_distro(client):
         ),
     )
     assert response.status == "400 BAD REQUEST"
-    assert response.json.get("message") == "Unsupported distro: foobar"
+    assert response.json.get("message") == "Unsupported distro: Foobar"
     assert response.json.get("status") == "bad_distro"
 
 

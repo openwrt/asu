@@ -1,2 +1,2 @@
-untrusted comment: signed by key ab1df166947b2551
-RWSrHfFmlHslUUaG21l3fsPw2e8t/IIAIkMkP+ge6oNN3jDlxsH9GK6welMwkXM/EN1JpxNh0inc2PKg71v792OCD6wncaJuNAA=
+untrusted comment: verify with testkey.pub
+RWSr8lOdNWjmjh0LckR1otac2NjO6AOLkD3sBaZTo1PiP2wB+odo7GsyUPNo7IK3+9HiZKigv+ybrMChY5r3eYF9mtd4Cq2nDww=
