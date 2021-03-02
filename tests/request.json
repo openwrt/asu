@@ -1,6 +1,6 @@
 {
-	"version": "19.07.4",
-	"packages": [  "tmux"],
-	"profile": "tplink_tl-wdr4300-v1",
-	"diff_packages": false
+	"target": "ramips/mt7621",
+	"profile": "xiaomi_mi-router-4a-gigabit",
+	"packages": ["luci", "luci-app-adblock", "luci-app-sqm", "luci-app-upnp", "luci-app-wifischedule", "luci-app-nft-qos", "luci-app-wireguard", "luci-app-nlbwmon", "stubby", "tcpdump-mini"],
+	"version": "snapshot"
 }

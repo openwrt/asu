@@ -31,14 +31,14 @@ def pytest_collection_modifyitems(config, items):
 def redis():
     r = FakeStrictRedis()
     r.sadd(
-        "packages-snapshot-snapshot-testtarget/testsubtarget", "test1", "test2", "test3"
+        "packages-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget", "test1", "test2", "test3"
     )
     r.hset(
-        "profiles-snapshot-snapshot",
+        "profiles-SNAPSHOT-SNAPSHOT",
         mapping={"testprofile": "testtarget/testsubtarget"},
     )
-    r.hset("mapping-snapshot", mapping={"testvendor,testprofile": "testprofile"})
-    r.sadd("targets-snapshot", "testtarget/testsubtarget")
+    r.hset("mapping-SNAPSHOT-SNAPSHOT", mapping={"testvendor,testprofile": "testprofile"})
+    r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget")
     yield r
 
 
@@ -55,16 +55,29 @@ def app(redis):
             "UPSTREAM_URL": "http://localhost:8001",
             "BRANCHES": [
                 {
-                    "name": "snapshot",
+                    "name": "SNAPSHOT",
                     "enabled": True,
                     "snapshot": True,
-                    "versions": ["snapshot"],
+                    "versions": ["SNAPSHOT"],
                     "git_branch": "master",
                     "path": "snapshots",
                     "path_packages": "snapshots/packages",
                     "repos": ["base"],
                     "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
                     "updates": "dev",
+                    "targets": {"testtarget/testsubtarget": "testarch"},
+                },
+                {
+                    "name": "21.02",
+                    "enabled": True,
+                    "snapshot": True,
+                    "versions": ["21.02-SNAPSHOT"],
+                    "git_branch": "openwrt-21.02",
+                    "path": "releases/{version}",
+                    "path_packages": "releases/packages-{branch}",
+                    "repos": ["base"],
+                    "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
+                    "updates": "rc",
                     "targets": {"testtarget/testsubtarget": "testarch"},
                 },
                 {

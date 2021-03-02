@@ -91,7 +91,7 @@ def validate_request(req):
         if needed not in req:
             return ({"status": "bad_request", "message": f"Missing {needed}"}, 400)
 
-    req["distro"] = req.get("distro", "openwrt").lower()
+    req["distro"] = req.get("distro", "openwrt")
     if req["distro"] not in get_distros():
         return (
             {
@@ -101,8 +101,15 @@ def validate_request(req):
             400,
         )
 
-    req["version"] = req["version"].lower()
-    req["branch"] = req["version"].rsplit(".", maxsplit=1)[0]
+    req["version"] = req["version"]
+
+    if req["version"].count("-"):
+        # e.g. 21.02-snapshot
+        req["branch"] = req["version"].rsplit("-", maxsplit=1)[0]
+    else:
+        # e.g. snapshot or 19.07.7
+        req["branch"] = req["version"].rsplit(".", maxsplit=1)[0]
+
     if req["branch"] not in get_branches().keys():
         return (
             {

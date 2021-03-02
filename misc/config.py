@@ -11,10 +11,10 @@ UPSTREAM_URL = "https://downloads.cdn.openwrt.org"
 # supported versions
 BRANCHES = [
     {
-        "name": "snapshot",
+        "name": "SNAPSHOT",
         "enabled": True,
         "snapshot": True,
-        "versions": ["snapshot"],
+        "versions": ["SNAPSHOT"],
         "git_branch": "master",
         "path": "snapshots",
         "path_packages": "snapshots/packages",
