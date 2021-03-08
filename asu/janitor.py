@@ -26,7 +26,7 @@ def parse_packages_file(url, repo):
         if line == "":
             parser = email.parser.Parser()
             package = parser.parsestr(linebuffer)
-            package_name = package.get("Package")
+            package_name = package.get("SourceName")
             if package_name:
                 packages[package_name] = dict(
                     (name.lower().replace("-", "_"), val)
@@ -176,7 +176,7 @@ def update_arch_packages(branch: dict, arch: str):
 
     for name, url in branch.get("extra_repos", {}).items():
         current_app.logger.debug(f"Update extra repo {name} at {url}")
-        packages.update(parse_packages_file(f"{url}/Packages", name))
+        packages.update(parse_packages_file(f"{url}/Packages.manifest", name))
 
     if len(packages) == 0:
         current_app.logger.warning(f"No packages found for {arch}")
