@@ -74,6 +74,48 @@ def get_queue() -> Queue:
     return g.queue
 
 
+def validate_packages(req):
+    if "packages" in req and "packages_versions" in req:
+        return (
+            {
+                "status": "duplicate_package_list",
+                "message": "Use either `packages` or `packages_versions`, not both",
+            },
+            400,
+        )
+    elif req.get("packages"):
+        pass
+    elif req.get("packages_versions"):
+        req["packages"] = req["packages_versions"].keys()
+    else:
+        # no packages to check
+        return
+
+    req["packages"] = set(req["packages"]) - {"kernel", "libc", "libgcc"}
+
+    # store request packages temporary in Redis and create a diff
+    temp = str(uuid4())
+    r = get_redis()
+    pipeline = r.pipeline(True)
+    pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), req["packages"])))
+    pipeline.expire(temp, 5)
+    pipeline.sdiff(
+        temp,
+        f"packages-{req['branch']}-{req['version']}-{req['target']}",
+        f"packages-{req['branch']}-{req['arch']}",
+    )
+    unknown_packages = list(map(lambda p: p.decode(), pipeline.execute()[-1]))
+
+    if unknown_packages:
+        return (
+            {
+                "status": "bad_packages",
+                "message": f"Unsupported package(s): {', '.join(unknown_packages)}",
+            },
+            422,
+        )
+
+
 def validate_request(req):
     """Validate an image request and return found errors with status code
 
@@ -157,32 +199,11 @@ def validate_request(req):
         )
 
     req["target"] = target.decode()
-    arch = get_branches()[req["branch"]]["targets"][req["target"]]
-    if req.get("packages"):
-        req["packages"] = set(req["packages"]) - {"kernel", "libc", "libgcc"}
+    req["arch"] = get_branches()[req["branch"]]["targets"][req["target"]]
 
-        # store request packages temporary in Redis and create a diff
-        temp = str(uuid4())
-        pipeline = r.pipeline(True)
-        pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), req["packages"])))
-        pipeline.expire(temp, 5)
-        pipeline.sdiff(
-            temp,
-            f"packages-{req['branch']}-{req['version']}-{req['target']}",
-            f"packages-{req['branch']}-{arch}",
-        )
-        unknown_packages = list(map(lambda p: p.decode(), pipeline.execute()[-1]))
-
-        if unknown_packages:
-            return (
-                {
-                    "status": "bad_packages",
-                    "message": f"Unsupported package(s): {', '.join(unknown_packages)}",
-                },
-                422,
-            )
-    else:
-        req["packages"] = set()
+    package_problems = validate_packages(req)
+    if package_problems:
+        return package_problems
 
     return ({}, None)
 

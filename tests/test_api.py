@@ -18,7 +18,7 @@ def test_api_build(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "0af0c1a9ea31"
+    assert response.json.get("request_hash") == "3128aff5c6db"
 
 
 def test_api_latest_default(client):
@@ -38,7 +38,7 @@ def test_api_build_mapping(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "cfe4b87e4ec7"
+    assert response.json.get("request_hash") == "d0318d0bba8d"
 
 
 def test_api_build_get(client):
@@ -50,10 +50,10 @@ def test_api_build_get(client):
             packages=["test1", "test2"],
         ),
     )
-    response = client.get("/api/build/0af0c1a9ea31")
+    response = client.get("/api/build/3128aff5c6db")
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "0af0c1a9ea31"
+    assert response.json.get("request_hash") == "3128aff5c6db"
 
 
 def test_api_build_get_not_found(client):
@@ -73,7 +73,7 @@ def test_api_build_empty_packages_list(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "a86ba552b5f6"
+    assert response.json.get("request_hash") == "c6022275d623"
 
 
 def test_api_build_withouth_packages_list(client):
@@ -82,7 +82,7 @@ def test_api_build_withouth_packages_list(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "a86ba552b5f6"
+    assert response.json.get("request_hash") == "c6022275d623"
 
 
 def test_api_build_prerelease(client):

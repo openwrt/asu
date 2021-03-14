@@ -32,7 +32,7 @@ def test_get_request_hash():
         "package_hash": get_packages_hash(["test"]),
     }
 
-    assert get_request_hash(request) == "ce7c88df2626"
+    assert get_request_hash(request) == "e8dc1720525b"
 
 
 def test_get_request_hash_diff_packages():
@@ -44,7 +44,7 @@ def test_get_request_hash_diff_packages():
         "diff_packages": True,
     }
 
-    assert get_request_hash(request) == "bbe753d61568"
+    assert get_request_hash(request) == "75967363f440"
 
 
 def test_verify_usign():
