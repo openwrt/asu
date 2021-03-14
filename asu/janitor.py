@@ -171,12 +171,14 @@ def update_arch_packages(branch: dict, arch: str):
     packages = {}
     packages_path = branch["path_packages"].format(branch=branch["name"])
 
-    for repo in branch["repos"]:
-        packages.update(get_packages_arch_repo(branch, arch, repo))
-
+    # first update extra repos in case they contain redundant packages to core
     for name, url in branch.get("extra_repos", {}).items():
         current_app.logger.debug(f"Update extra repo {name} at {url}")
         packages.update(parse_packages_file(f"{url}/Packages.manifest", name))
+
+    # update default repositories afterwards so they overwrite redundancies
+    for repo in branch["repos"]:
+        packages.update(get_packages_arch_repo(branch, arch, repo))
 
     if len(packages) == 0:
         current_app.logger.warning(f"No packages found for {arch}")
