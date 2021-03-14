@@ -18,6 +18,10 @@ class PackageSelectionError(Exception):
     pass
 
 
+class ImageBuilderVersionError(Exception):
+    pass
+
+
 class ImageBuildError(Exception):
     pass
 
@@ -184,10 +188,19 @@ def build(req: dict):
 
     stamp_file.write_text(origin_modified)
 
-    if req.get("diff_packages", False) and req.get("packages"):
-        info_run = subprocess.run(
-            ["make", "info"], text=True, capture_output=True, cwd=cache / subtarget
-        )
+    info_run = subprocess.run(
+        ["make", "info"], text=True, capture_output=True, cwd=cache / subtarget
+    )
+
+    version_code = re.search('Current Revision: "(r.+)"', info_run.stdout).group(1)
+
+    if "version_code" in req:
+        if version_code != req.get("version_code"):
+            raise ImageBuilderVersionError(
+                f"requested {req['version_code']} vs got {version_code}"
+            )
+
+    if req.get("diff_packages", False):
         default_packages = set(
             re.search(r"Default Packages: (.*)\n", info_run.stdout).group(1).split()
         )
@@ -226,6 +239,14 @@ def build(req: dict):
             raise PackageSelectionError()
 
     manifest = dict(map(lambda pv: pv.split(" - "), manifest_run.stdout.splitlines()))
+
+    for package, version in req.get("packages_versions", {}).items():
+        if package not in manifest:
+            raise PackageSelectionError(f"{package} not in manifest")
+        if version != manifest[package]:
+            raise PackageSelectionError(
+                f"{package} version not as requested: {version} vs. {manifest[package]}"
+            )
 
     manifest_packages = manifest.keys()
 

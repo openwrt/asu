@@ -42,6 +42,21 @@ def get_file_hash(path: str) -> str:
     return h.hexdigest()
 
 
+def get_manifest_hash(manifest: dict) -> str:
+    """Return sha256sum of package manifest
+
+    Duplicate packages are automatically removed and the list is sorted to be
+    reproducible
+
+    Args:
+        manifest(dict): list of packages
+
+    Returns:
+        str: hash of `req`
+    """
+    return str(hash(frozenset(sorted(manifest.items()))))
+
+
 def get_request_hash(req: dict) -> str:
     """Return sha256sum of an image request
 
@@ -53,13 +68,14 @@ def get_request_hash(req: dict) -> str:
     Returns:
         str: hash of `req`
     """
-    req["packages_hash"] = get_packages_hash(req.get("packages", ""))
     request_array = [
         req.get("distro", ""),
         req.get("version", ""),
+        req.get("version_code", ""),
         req.get("profile", "").replace(",", "_"),
-        req["packages_hash"],
-        str(req.get("diff_packages", False)),
+        get_packages_hash(req.get("packages", "")),
+        get_manifest_hash(req.get("packages_versions", {})),
+        str(req.get("diff_packages", False))
     ]
     return get_str_hash(" ".join(request_array), 12)
 
