@@ -222,6 +222,7 @@ def build(req: dict):
             "manifest",
             f"PROFILE={req['profile']}",
             f"PACKAGES={' '.join(req['packages'])}",
+            "STRIP_ABI=1",
         ],
         text=True,
         cwd=cache / subtarget,
