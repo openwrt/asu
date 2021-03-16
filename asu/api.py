@@ -226,7 +226,7 @@ def return_job(job):
 
     elif job.is_queued or job.is_started:
         status = 202
-        response = {"status": job.get_status()}
+        response = {"status": job.get_status(), "queue_position": job.get_position()}
 
     elif job.is_finished:
         status = 200
