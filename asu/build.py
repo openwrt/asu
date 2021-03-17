@@ -120,6 +120,11 @@ def build(req: dict):
 
         (cache / ib_archive).unlink()
 
+        for name, key in req["branch_data"].get("extra_keys", {}).items():
+            (cache / subtarget / "keys" / name).write_text(
+                f"untrusted comment: public key {name}\n{key}"
+            )
+
         repos_path = cache / subtarget / "repositories.conf"
         repos = repos_path.read_text()
 
