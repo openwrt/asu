@@ -1,6 +1,0 @@
-{
-	"target": "ramips/mt7621",
-	"profile": "xiaomi_mi-router-4a-gigabit",
-	"packages": ["luci", "luci-app-adblock", "luci-app-sqm", "luci-app-upnp", "luci-app-wifischedule", "luci-app-nft-qos", "luci-app-wireguard", "luci-app-nlbwmon", "stubby", "tcpdump-mini"],
-	"version": "snapshot"
-}
