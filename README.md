@@ -15,24 +15,31 @@ the need of setting up a build environment, even from mobile devices.
 
 ## Clients
 
-### Yet another firmware selector
+### OpenWrt Firmware Selector
 
 Simple web interface using vanilla JavaScript currently developed by @mwarning.
 It offers a device search based on model names and show links either to
 [official images](https://downloads.openwrt.org/) or requests images via the
-*asu* API. Please join in the development at the [GitHub
-repository](https://github.com/mwarning/yet_another_firmware_selector)
+*asu* API. Please join in the development at the [GitLab
+repository](https://gitlab.com/openwrt/web/firmware-selector-openwrt-org)
 
-![yafs](misc/yafs.png)
+![ofs](misc/ofs.png)
 
 ### LuCI app
 
 The package
 [`luci-app-attendedsysupgrade`](https://github.com/openwrt/luci/tree/master/applications/luci-app-attendedsysupgrade)
 offers a simple view under `System > Attended Sysupgrade` to automatically
-request a new firmware, wait until it is build and flash it.
+request a new firmware, wait until it's built and flash it.
 
 ![luci](misc/luci.png)
+
+### CLI
+
+It's possible to upgrade routers via a command line interface called
+[`auc`](https://github.com/openwrt/packages/tree/master/utils/auc).
+
+![auc](misc/auc.png)
 
 ## Server
 
