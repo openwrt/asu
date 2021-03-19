@@ -8,7 +8,12 @@ import logging
 
 from rq import get_current_job
 
-from .common import get_packages_hash, verify_usign, get_file_hash
+from .common import (
+    fingerprint_pubkey_usign,
+    get_file_hash,
+    get_packages_hash,
+    verify_usign,
+)
 
 log = logging.getLogger("rq.worker")
 log.setLevel(logging.DEBUG)
@@ -120,9 +125,10 @@ def build(req: dict):
 
         (cache / ib_archive).unlink()
 
-        for name, key in req["branch_data"].get("extra_keys", {}).items():
-            (cache / subtarget / "keys" / name).write_text(
-                f"untrusted comment: public key {name}\n{key}"
+        for key in req["branch_data"].get("extra_keys", []):
+            fingerprint = fingerprint_pubkey_usign(key)
+            (cache / subtarget / "keys" / fingerprint).write_text(
+                f"untrusted comment: ASU extra key {fingerprint}\n{key}"
             )
 
         repos_path = cache / subtarget / "repositories.conf"

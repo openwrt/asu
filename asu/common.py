@@ -95,6 +95,19 @@ def get_packages_hash(packages: list) -> str:
     return get_str_hash(" ".join(sorted(list(set(packages)))), 12)
 
 
+def fingerprint_pubkey_usign(pubkey: str) -> str:
+    """Return fingerprint of signify/usign public key
+
+    Args:
+        pubkey (str): signify/usign public key
+
+    Returns:
+        str: string containing the fingerprint
+    """
+    keynum = base64.b64decode(pubkey.splitlines()[-1])[2:10]
+    return "".join(format(x, "02x") for x in keynum)
+
+
 def verify_usign(sig_file: Path, msg_file: Path, pub_key: str) -> bool:
     """Verify a signify/usign signature
 

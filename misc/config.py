@@ -25,9 +25,7 @@ BRANCHES = [
             "lime-packages": "https://feed.libremesh.org/master",
             "lime-profiles": "https://feed.libremesh.org/profiles",
         },
-        "extra_keys": {
-            "a71b3c8285abd28b": "RWSnGzyChavSiyQ+vLk3x7F0NqcLa4kKyXCdriThMhO78ldHgxGljM/8"
-        },
+        "extra_keys": ["RWSnGzyChavSiyQ+vLk3x7F0NqcLa4kKyXCdriThMhO78ldHgxGljM/8"],
         "targets": {
             "apm821xx/nand": "powerpc_464fp",
             "apm821xx/sata": "powerpc_464fp",
@@ -114,9 +112,7 @@ BRANCHES = [
             "lime-packages": "https://feed.libremesh.org/master",
             "lime-profiles": "https://feed.libremesh.org/profiles",
         },
-        "extra_keys": {
-            "a71b3c8285abd28b": "RWSnGzyChavSiyQ+vLk3x7F0NqcLa4kKyXCdriThMhO78ldHgxGljM/8"
-        },
+        "extra_keys": ["RWSnGzyChavSiyQ+vLk3x7F0NqcLa4kKyXCdriThMhO78ldHgxGljM/8"],
         "targets": {
             "apm821xx/nand": "powerpc_464fp",
             "apm821xx/sata": "powerpc_464fp",
