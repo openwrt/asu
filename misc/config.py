@@ -5,6 +5,8 @@
 TESTING = False
 DEBUG = True
 
+CA_PUBKEY = "RWSGJBpwejDLf4OApA5SOavh0GBlBFY9FhqxnivUQHpi0/t0QRI98LPW"
+
 # where to find the ImageBuildes
 UPSTREAM_URL = "https://downloads.cdn.openwrt.org"
 
