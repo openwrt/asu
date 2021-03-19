@@ -18,6 +18,7 @@ def create_app(test_config: dict = None) -> Flask:
     """
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
+        CA_PUBKEY=None,
         STORE_PATH=app.instance_path + "/public/store",
         JSON_PATH=app.instance_path + "/public/json",
         CACHE_PATH=app.instance_path + "/cache/",

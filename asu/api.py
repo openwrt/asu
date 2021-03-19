@@ -300,6 +300,7 @@ def api_build():
         req["store_path"] = current_app.config["STORE_PATH"]
         req["cache_path"] = current_app.config["CACHE_PATH"]
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
+        req["ca_pubkey"] = current_app.config["CA_PUBKEY"]
         req["branch_data"] = get_branches()[req["branch"]]
 
         job = get_queue().enqueue(
