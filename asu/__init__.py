@@ -5,6 +5,7 @@ from flask import Flask, redirect, send_from_directory
 from flask_cors import CORS
 
 import json
+from os import getenv
 
 
 def create_app(test_config: dict = None) -> Flask:
@@ -16,12 +17,16 @@ def create_app(test_config: dict = None) -> Flask:
     Returns:
         Flask: The application
     """
+
+    redis_host = getenv("REDIS_HOST", "localhost")
+    redis_port = getenv("REDIS_PORT", 6379)
+
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         STORE_PATH=app.instance_path + "/public/store",
         JSON_PATH=app.instance_path + "/public/json",
         CACHE_PATH=app.instance_path + "/cache/",
-        REDIS_CONN=Redis(),
+        REDIS_CONN=Redis(host=redis_host, port=redis_port),
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.cdn.openwrt.org",
