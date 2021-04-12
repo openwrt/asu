@@ -75,7 +75,7 @@ def get_request_hash(req: dict) -> str:
         req.get("profile", "").replace(",", "_"),
         get_packages_hash(req.get("packages", "")),
         get_manifest_hash(req.get("packages_versions", {})),
-        str(req.get("diff_packages", False))
+        str(req.get("diff_packages", False)),
     ]
     return get_str_hash(" ".join(request_array), 12)
 
