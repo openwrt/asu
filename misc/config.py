@@ -191,8 +191,8 @@ BRANCHES = [
         "enabled": True,
         "eol": "2020-01-01",
         "versions": [
+            "19.07.7",
             "19.07.6",
-            "19.07.5",
             "19.07-SNAPSHOT",
         ],
         "git_branch": "openwrt-19.07",
