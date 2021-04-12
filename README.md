@@ -64,9 +64,9 @@ Install *asu*:
 
 Start the server via the following commands:
 
-    export FLASK_APP=asu  # set Flask app to asu
-    flask janitor update  # download upstream profiles/packages
-    flask run             # run development server
+    export FLASK_APP=asu.asu  # set Flask app to asu
+    flask janitor update      # download upstream profiles/packages
+    flask run                 # run development server
 
 Start the worker via the following comand:
 
@@ -94,8 +94,8 @@ the dependencies:
     python3 -m venv .
     source bin/activate
     pip install -r requirements.txt
-    export FLASK_APP=asu  # set Flask app to asu
-    export FLASK_DEBUG=1  # run Flask in debug mode (autoreload)
+    export FLASK_APP=asu.asu  # set Flask app to asu
+    export FLASK_DEBUG=1      # run Flask in debug mode (autoreload)
     flask run
 
 ## API

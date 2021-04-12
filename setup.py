@@ -3,6 +3,8 @@ import io
 from setuptools import find_packages, setup
 from os.path import dirname, abspath, join
 
+from asu import __version__
+
 
 with io.open("README.md", "rt", encoding="utf8") as f:
     readme = f.read()
@@ -14,7 +16,7 @@ with open(join(base_path, "requirements.txt")) as req_file:
 
 setup(
     name="asu",
-    version="0.4.1",
+    version=__version__,
     url="https://github.com/aparcar/asu",
     maintainer="Paul Spooren",
     maintainer_email="mail@aparcar.org",

@@ -37,7 +37,9 @@ def redis():
         "profiles-SNAPSHOT-SNAPSHOT",
         mapping={"testprofile": "testtarget/testsubtarget"},
     )
-    r.hset("mapping-SNAPSHOT-SNAPSHOT", mapping={"testvendor,testprofile": "testprofile"})
+    r.hset(
+        "mapping-SNAPSHOT-SNAPSHOT", mapping={"testvendor,testprofile": "testprofile"}
+    )
     r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget")
     yield r
 
