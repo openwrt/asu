@@ -41,6 +41,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: aparcar/asu
         tag_with_ref: true
+        tags: latest
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
