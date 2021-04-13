@@ -36,12 +36,14 @@ def create_app(test_config: dict = None) -> Flask:
 
     if not test_config:
         for config_file in [
-            "./config.py",
+            Path.cwd() / "config.py",
             app.instance_path + "/config.py",
             "/etc/asu/config.py",
         ]:
             if Path(config_file).exists():
-                app.config.from_pyfile(config_file, silent=True)
+                print(f"Loading {config_file}")
+                app.config.from_pyfile(config_file)
+                break
     else:
         app.config.from_mapping(test_config)
 
