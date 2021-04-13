@@ -48,7 +48,7 @@ def create_app(test_config: dict = None) -> Flask:
         app.config.from_mapping(test_config)
 
     for option, value in app.config.items():
-        if option.endswith("_PATH") and isinstance(value, str):
+        if option.endswith("_PATH") and isinstance(value, (Path, str)):
             app.config[option] = Path(value)
             app.config[option].mkdir(parents=True, exist_ok=True)
 

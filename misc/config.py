@@ -1,14 +1,23 @@
-# where to store created images
-# STORE_PATH="/var/asu/public/store",
+from pathlib import Path
 
 # disable test and debug features
 TESTING = False
-DEBUG = True
+DEBUG = False
 
 CA_PUBKEY = "RWSGJBpwejDLf4OApA5SOavh0GBlBFY9FhqxnivUQHpi0/t0QRI98LPW"
 
 # where to find the ImageBuildes
 UPSTREAM_URL = "https://downloads.cdn.openwrt.org"
+
+
+# where to store created images
+STORE_PATH = Path.cwd() / "public/store/"
+
+# where to store JSON files
+JSON_PATH = Path.cwd() / "public/json/"
+
+# where to store ImageBuilders
+CACHE_PATH = Path.cwd() / "cache/"
 
 # supported versions
 BRANCHES = [
