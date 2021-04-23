@@ -145,11 +145,11 @@ def validate_request(req):
 
     req["version"] = req["version"]
 
-    if req["version"].count("-"):
+    if req["version"].endswith("-SNAPSHOT"):
         # e.g. 21.02-snapshot
         req["branch"] = req["version"].rsplit("-", maxsplit=1)[0]
     else:
-        # e.g. snapshot or 19.07.7
+        # e.g. snapshot, 21.02.0-rc1 or 19.07.7
         req["branch"] = req["version"].rsplit(".", maxsplit=1)[0]
 
     if req["branch"] not in get_branches().keys():
