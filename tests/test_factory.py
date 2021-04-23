@@ -1,4 +1,4 @@
-from asu import create_app
+from asu.asu import create_app
 from pathlib import PosixPath
 
 

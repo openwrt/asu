@@ -4,7 +4,7 @@ import tempfile
 
 from fakeredis import FakeStrictRedis
 
-from asu import create_app
+from asu.asu import create_app
 
 
 def pytest_addoption(parser):
