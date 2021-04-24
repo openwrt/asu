@@ -33,14 +33,12 @@ def redis():
     r.sadd(
         "packages-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget", "test1", "test2", "test3"
     )
-    r.hset(
-        "profiles-SNAPSHOT-SNAPSHOT",
-        mapping={"testprofile": "testtarget/testsubtarget"},
-    )
+    r.sadd("profiles-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget", "testprofile")
     r.hset(
         "mapping-SNAPSHOT-SNAPSHOT", mapping={"testvendor,testprofile": "testprofile"}
     )
     r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget")
+    r.sadd("targets-21.02", "testtarget/testsubtarget")
     yield r
 
 
@@ -73,7 +71,7 @@ def app(redis):
                     "name": "21.02",
                     "enabled": True,
                     "snapshot": True,
-                    "versions": ["21.02-SNAPSHOT"],
+                    "versions": ["21.02.0-rc1", "21.02-SNAPSHOT"],
                     "git_branch": "openwrt-21.02",
                     "path": "releases/{version}",
                     "path_packages": "releases/packages-{branch}",
