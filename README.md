@@ -123,7 +123,8 @@ variable in the configuration, an example is available in `./misc/config.py`.
 
 | key             | value                 | information                              |
 | --------------- | --------------------- | ---------------------------------------- |
-| `version`       | `SNAPSHOT`            | installed version                        |
+| `version`       | `SNAPSHOT`            | Requested version                        |
+| `target`        | `ath79/nand`          | Requested target                         |
 | `profile`       | `netgear_wndr4300-v2` | `board_name` of `ubus call system board` |
 | `packages`      | `["luci", "vim"]`     | Extra packages for the new image         |
 | `diff_packages` | `true`                | Install list of `packages` additionally to default packages or excklusively |

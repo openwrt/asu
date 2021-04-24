@@ -12,6 +12,7 @@ def test_api_build(client):
         "/api/build",
         json=dict(
             version="SNAPSHOT",
+            target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
         ),
@@ -32,6 +33,7 @@ def test_api_build_mapping(client):
         "/api/build",
         json=dict(
             version="SNAPSHOT",
+            target="testtarget/testsubtarget",
             profile="testvendor,testprofile",
             packages=["test1", "test2"],
         ),
@@ -46,6 +48,7 @@ def test_api_build_get(client):
         "/api/build",
         json=dict(
             version="SNAPSHOT",
+            target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
         ),
@@ -69,7 +72,12 @@ def test_api_build_get_no_post(client):
 def test_api_build_empty_packages_list(client):
     response = client.post(
         "/api/build",
-        json=dict(version="SNAPSHOT", profile="testprofile", packages=[]),
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=[],
+        ),
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
@@ -78,18 +86,40 @@ def test_api_build_empty_packages_list(client):
 
 def test_api_build_withouth_packages_list(client):
     response = client.post(
-        "/api/build", json=dict(version="SNAPSHOT", profile="testprofile")
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+        ),
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
     assert response.json.get("request_hash") == "c6022275d623"
 
 
-def test_api_build_prerelease(client):
+def test_api_build_prerelease_snapshot(client):
     response = client.post(
         "/api/build",
         json=dict(
-            version="21.02-SNAPSHOT", profile="testprofile", packages=["test1", "test2"]
+            version="21.02-SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+        ),
+    )
+    assert response.status == "400 BAD REQUEST"
+    assert response.json.get("message") == "Unsupported profile: testprofile"
+    assert response.json.get("status") == "bad_profile"
+
+def test_api_build_prerelease_rc(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="21.02.0-rc1",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
         ),
     )
     assert response.status == "400 BAD REQUEST"
@@ -100,7 +130,12 @@ def test_api_build_prerelease(client):
 def test_api_build_bad_packages_str(client):
     response = client.post(
         "/api/build",
-        json=dict(version="SNAPSHOT", profile="testprofile", packages="testpackage"),
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages="testpackage",
+        ),
     )
     assert response.status == "422 UNPROCESSABLE ENTITY"
     assert response.json.get("status") == "bad_packages"
@@ -113,13 +148,24 @@ def test_api_build_empty_request(client):
 
 
 def test_api_build_needed(client):
-    response = client.post("/api/build", json=dict(profile="testprofile"))
+    response = client.post(
+        "/api/build",
+        json=dict(profile="testprofile", target="testtarget/testsubtarget"),
+    )
     assert response.status == "400 BAD REQUEST"
     assert response.json.get("message") == "Missing version"
     assert response.json.get("status") == "bad_request"
-    response = client.post("/api/build", json=dict(version="SNAPSHOT"))
+    response = client.post(
+        "/api/build", json=dict(version="SNAPSHOT", target="testtarget/testsubtarget")
+    )
     assert response.status == "400 BAD REQUEST"
     assert response.json.get("message") == "Missing profile"
+    assert response.json.get("status") == "bad_request"
+    response = client.post(
+        "/api/build", json=dict(version="SNAPSHOT", profile="testprofile")
+    )
+    assert response.status == "400 BAD REQUEST"
+    assert response.json.get("message") == "Missing target"
     assert response.json.get("status") == "bad_request"
 
 
@@ -128,6 +174,7 @@ def test_api_build_bad_distro(client):
         "/api/build",
         json=dict(
             distro="Foobar",
+            target="testtarget/testsubtarget",
             version="SNAPSHOT",
             profile="testprofile",
             packages=["test1", "test2"],
@@ -142,7 +189,10 @@ def test_api_build_bad_branch(client):
     response = client.post(
         "/api/build",
         json=dict(
-            version="10.10.10", profile="testprofile", packages=["test1", "test2"]
+            version="10.10.10",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
         ),
     )
     assert response.status == "400 BAD REQUEST"
@@ -154,7 +204,10 @@ def test_api_build_bad_version(client):
     response = client.post(
         "/api/build",
         json=dict(
-            version="19.07.2", profile="testprofile", packages=["test1", "test2"]
+            version="19.07.2",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
         ),
     )
     assert response.status == "400 BAD REQUEST"
@@ -165,7 +218,12 @@ def test_api_build_bad_version(client):
 def test_api_build_bad_profile(client):
     response = client.post(
         "/api/build",
-        json=dict(version="SNAPSHOT", profile="Foobar", packages=["test1", "test2"]),
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="Foobar",
+            packages=["test1", "test2"],
+        ),
     )
     assert response.status == "400 BAD REQUEST"
     assert response.json.get("message") == "Unsupported profile: Foobar"
@@ -175,7 +233,12 @@ def test_api_build_bad_profile(client):
 def test_api_build_bad_packages(client):
     response = client.post(
         "/api/build",
-        json=dict(version="SNAPSHOT", profile="testprofile", packages=["test4"]),
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test4"],
+        ),
     )
     assert response.json.get("message") == "Unsupported package(s): test4"
     assert response.json.get("status") == "bad_packages"

@@ -129,7 +129,7 @@ def validate_request(req):
         (dict, int): Status message and code, empty if no error appears
 
     """
-    for needed in ["version", "profile"]:
+    for needed in ["version", "target", "profile"]:
         if needed not in req:
             return ({"status": "bad_request", "message": f"Missing {needed}"}, 400)
 
@@ -174,6 +174,20 @@ def validate_request(req):
 
     current_app.logger.debug("Profile before mapping " + req["profile"])
 
+    if not r.sismember(
+        f"targets-{req['branch']}",
+        req["target"],
+    ):
+        return (
+            {
+                "status": "bad_target",
+                "message": f"Unsupported target: {req['target']}",
+            },
+            400,
+        )
+
+    req["arch"] = get_branches()[req["branch"]]["targets"][req["target"]]
+
     mapped_profile = r.hget(
         f"mapping-{req['branch']}-{req['version']}",
         req["profile"],
@@ -184,12 +198,10 @@ def validate_request(req):
 
     current_app.logger.debug("Profile after mapping " + req["profile"])
 
-    target = r.hget(
-        f"profiles-{req['branch']}-{req['version']}",
+    if not r.sismember(
+        f"profiles-{req['branch']}-{req['version']}-{req['target']}",
         req["profile"],
-    )
-
-    if not target:
+    ):
         return (
             {
                 "status": "bad_profile",
@@ -197,9 +209,6 @@ def validate_request(req):
             },
             400,
         )
-
-    req["target"] = target.decode()
-    req["arch"] = get_branches()[req["branch"]]["targets"][req["target"]]
 
     package_problems = validate_packages(req)
     if package_problems:
