@@ -83,7 +83,7 @@ def app(redis):
                 {
                     "name": "19.07",
                     "enabled": True,
-                    "versions": ["19.07.6", "19.07.5"],
+                    "versions": ["19.07.7", "19.07.6"],
                     "git_branch": "openwrt-19.07",
                     "path": "releases/{version}",
                     "path_packages": "releases/packages-{branch}",

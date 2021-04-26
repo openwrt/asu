@@ -46,10 +46,7 @@ def get_latest() -> dict:
                 lambda b: b["versions"][0],
                 filter(
                     lambda b: b.get("enabled"),
-                    filter(
-                        lambda b: not b.get("snapshot"),
-                        current_app.config["BRANCHES"],
-                    ),
+                    current_app.config["BRANCHES"],
                 ),
             )
         )

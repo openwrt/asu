@@ -24,7 +24,9 @@ def test_api_build(client):
 
 def test_api_latest_default(client):
     response = client.get("/api/latest")
-    assert response.json == {"latest": ["19.07.6"]}
+    assert "19.07.7" in response.json["latest"]
+    assert "21.02.0-rc1" in response.json["latest"]
+    assert "SNAPSHOT" in response.json["latest"]
     assert response.status == "200 OK"
 
 
