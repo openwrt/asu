@@ -210,7 +210,7 @@ BRANCHES = [
         "pubkey": "RWT5S53W/rrJY9BiIod3JF04AZ/eU1xDpVOb+rjZzAQBEcoETGx8BXEK",
         "release_date": "2020-01-31",
         "updates": "bugs",
-        "repos": ["base", "packages", "luci", "routing", "telephony"],
+        "repos": ["base", "packages", "luci", "routing", "telephony", "freifunk"],
         "extra_repos": {
             "lime-packages": "https://feed.libremesh.org/master",
             "lime-profiles": "https://feed.libremesh.org/profiles",
