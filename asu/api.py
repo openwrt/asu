@@ -185,27 +185,31 @@ def validate_request(req):
 
     req["arch"] = get_branches()[req["branch"]]["targets"][req["target"]]
 
-    mapped_profile = r.hget(
-        f"mapping-{req['branch']}-{req['version']}",
-        req["profile"],
-    )
-
-    if mapped_profile:
-        req["profile"] = mapped_profile.decode()
-
-    current_app.logger.debug("Profile after mapping " + req["profile"])
-
-    if not r.sismember(
-        f"profiles-{req['branch']}-{req['version']}-{req['target']}",
-        req["profile"],
-    ):
-        return (
-            {
-                "status": "bad_profile",
-                "message": f"Unsupported profile: {req['profile']}",
-            },
-            400,
+    if req["target"] in ["x86/64", "x86/generic", "x86/geode", "x86/legacy"]:
+        current_app.logger.debug("Use generic profile for {req['target']}")
+        req["profile"] = "generic"
+    else:
+        mapped_profile = r.hget(
+            f"mapping-{req['branch']}-{req['version']}",
+            req["profile"],
         )
+
+        if mapped_profile:
+            req["profile"] = mapped_profile.decode()
+
+        current_app.logger.debug("Profile after mapping " + req["profile"])
+
+        if not r.sismember(
+            f"profiles-{req['branch']}-{req['version']}-{req['target']}",
+            req["profile"],
+        ):
+            return (
+                {
+                    "status": "bad_profile",
+                    "message": f"Unsupported profile: {req['profile']}",
+                },
+                400,
+            )
 
     package_problems = validate_packages(req)
     if package_problems:

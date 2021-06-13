@@ -37,7 +37,7 @@ def redis():
     r.hset(
         "mapping-SNAPSHOT-SNAPSHOT", mapping={"testvendor,testprofile": "testprofile"}
     )
-    r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget")
+    r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget", "x86/64")
     r.sadd("targets-21.02", "testtarget/testsubtarget")
     yield r
 
@@ -65,7 +65,10 @@ def app(redis):
                     "repos": ["base"],
                     "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
                     "updates": "dev",
-                    "targets": {"testtarget/testsubtarget": "testarch"},
+                    "targets": {
+                        "testtarget/testsubtarget": "testarch",
+                        "x86/64": "x86_64",
+                    },
                 },
                 {
                     "name": "21.02",

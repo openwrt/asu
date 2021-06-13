@@ -114,6 +114,7 @@ def test_api_build_prerelease_snapshot(client):
     assert response.json.get("message") == "Unsupported profile: testprofile"
     assert response.json.get("status") == "bad_profile"
 
+
 def test_api_build_prerelease_rc(client):
     response = client.post(
         "/api/build",
@@ -147,6 +148,21 @@ def test_api_build_empty_request(client):
     response = client.post("/api/build")
     assert response.status == "400 BAD REQUEST"
     assert response.json.get("status") == "bad_request"
+
+
+def test_api_build_x86(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            target="x86/64",
+            version="SNAPSHOT",
+            profile="some_random_cpu_which_doesnt_exists_as_profile",
+        ),
+    )
+
+    assert response.status == "202 ACCEPTED"
+    assert response.json.get("status") == "queued"
+    assert response.json.get("request_hash") == "a30a7dc8e19b"
 
 
 def test_api_build_needed(client):
