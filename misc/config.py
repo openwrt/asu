@@ -112,7 +112,7 @@ BRANCHES = [
         "name": "21.02",
         "enabled": True,
         "snapshot": True,
-        "versions": ["21.02.0-rc2", "21.02.0-rc1", "21.02-SNAPSHOT"],
+        "versions": ["21.02.0-rc3", "21.02.0-rc2", "21.02.0-rc1", "21.02-SNAPSHOT"],
         "git_branch": "openwrt-21.02",
         "path": "releases/{version}",
         "path_packages": "releases/packages-{branch}",
