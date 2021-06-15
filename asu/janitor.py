@@ -133,7 +133,7 @@ def update_target_packages(branch: dict, version: str, target: str):
     version_path = branch["path"].format(version=version)
     r = get_redis()
 
-    packages = get_packages_target_base(branch, branch["versions"][0], target)
+    packages = get_packages_target_base(branch, version, target)
 
     if len(packages) == 0:
         current_app.logger.warning(f"No packages found for {target}")
