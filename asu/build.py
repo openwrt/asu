@@ -148,20 +148,13 @@ def build(req: dict):
         repos_path.write_text(repos)
         log.debug(f"Repos:\n{repos}")
 
-        # if a CA pubkey is defined, add it to the created images
-        # enabling CA requires each worker to find a seckey, pubkey and newcert
-        if req.get("ca_pubkey"):
-            fingerprint = fingerprint_pubkey_usign(req["ca_pubkey"])
-            opkg_key_path = cache / subtarget / "files/etc/opkg/keys"
-            opkg_key_path.mkdir(parents=True, exist_ok=True)
-            (opkg_key_path / fingerprint).write_text(
-                f"untrusted comment: ASU CA pubkey {fingerprint}\n{req['ca_pubkey']}"
-            )
-
+        if (Path.cwd() / "seckey").exists():
             # link key-build to imagebuilder
             (cache / subtarget / "key-build").symlink_to(Path.cwd() / "seckey")
+        if (Path.cwd() / "pubkey").exists():
             # link key-build.pub to imagebuilder
             (cache / subtarget / "key-build.pub").symlink_to(Path.cwd() / "pubkey")
+        if (Path.cwd() / "newcert").exists():
             # link key-build.ucert to imagebuilder
             (cache / subtarget / "key-build.ucert").symlink_to(Path.cwd() / "newcert")
 

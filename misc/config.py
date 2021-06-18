@@ -4,11 +4,8 @@ from pathlib import Path
 TESTING = False
 DEBUG = False
 
-CA_PUBKEY = "RWSGJBpwejDLf4OApA5SOavh0GBlBFY9FhqxnivUQHpi0/t0QRI98LPW"
-
 # where to find the ImageBuildes
 UPSTREAM_URL = "https://downloads.cdn.openwrt.org"
-
 
 # where to store created images
 STORE_PATH = Path.cwd() / "public/store/"
