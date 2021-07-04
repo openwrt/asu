@@ -14,6 +14,7 @@ def get_redis():
 
 
 def parse_packages_file(url, repo):
+    r = get_redis()
     req = requests.get(url)
 
     if req.status_code != 200:
@@ -26,13 +27,17 @@ def parse_packages_file(url, repo):
         if line == "":
             parser = email.parser.Parser()
             package = parser.parsestr(linebuffer)
-            package_name = package.get("SourceName")
-            if package_name:
-                packages[package_name] = dict(
+            source_name = package.get("SourceName")
+            if source_name:
+                packages[source_name] = dict(
                     (name.lower().replace("-", "_"), val)
                     for name, val in package.items()
                 )
-                packages[package_name]["repository"] = repo
+                packages[source_name]["repository"] = repo
+                package_name = package.get("Package")
+                if source_name != package_name:
+                    print(f"Add ABI mapping {package_name} -> {source_name}")
+                    r.hset("mapping-abi", package_name, source_name)
             else:
                 print(f"Something wired about {package}")
             linebuffer = ""

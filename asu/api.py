@@ -90,9 +90,21 @@ def validate_packages(req):
 
     req["packages"] = set(req["packages"]) - {"kernel", "libc", "libgcc"}
 
+    r = get_redis()
+
+    # translate packages to remove their ABI version for 19.07.x compatibility
+    tr = set()
+    for p in req["packages"]:
+        p_tr = r.hget("mapping-abi", p)
+        if p_tr:
+            tr.add(p_tr.decode())
+        else:
+            tr.add(p)
+
+    req["packages"] = tr
+
     # store request packages temporary in Redis and create a diff
     temp = str(uuid4())
-    r = get_redis()
     pipeline = r.pipeline(True)
     pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), req["packages"])))
     pipeline.expire(temp, 5)
