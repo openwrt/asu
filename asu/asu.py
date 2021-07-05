@@ -64,6 +64,11 @@ def create_app(test_config: dict = None) -> Flask:
         def root(path="index.html"):
             return send_from_directory(Path(app.instance_path) / "public", path)
 
+        @app.route("/store/")
+        @app.route("/store/<path:path>")
+        def store(path="index.html"):
+            return send_from_directory(app.config["STORE_PATH"], path)
+
     else:
 
         @app.route("/")
