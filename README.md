@@ -84,7 +84,7 @@ folder](https://flask.palletsprojects.com/en/1.1.x/config/#instance-folders).
 Find an example in the `misc/` folder.
 
     pip install gunicorn
-    gunicorn "asu:create_app()"
+    gunicorn "asu.asu:create_app()"
 
 ### Development
 
