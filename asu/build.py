@@ -242,7 +242,7 @@ def build(req: dict):
             "make",
             "manifest",
             f"PROFILE={req['profile']}",
-            f"PACKAGES={' '.join(req['packages'])}",
+            f"PACKAGES={' '.join(req.get('packages', ''))}",
             "STRIP_ABI=1",
         ],
         text=True,
