@@ -4,7 +4,21 @@
 #
 #    pip-compile dev-requirements.in
 #
+attrs==21.2.0
+    # via pytest
 fakeredis==1.5.2
+    # via -r dev-requirements.in
+iniconfig==1.1.1
+    # via pytest
+packaging==21.0
+    # via pytest
+pluggy==0.13.1
+    # via pytest
+py==1.10.0
+    # via pytest
+pyparsing==2.4.7
+    # via packaging
+pytest==6.2.4
     # via -r dev-requirements.in
 pytest-httpserver==1.0.0
     # via -r dev-requirements.in
@@ -18,6 +32,8 @@ six==1.16.0
     #   fakeredis
 sortedcontainers==2.4.0
     # via fakeredis
+toml==0.10.2
+    # via pytest
 werkzeug==2.0.1
     # via
     #   -c requirements.txt
