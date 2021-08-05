@@ -1,0 +1,5 @@
+flask
+pynacl
+redis
+requests
+rq

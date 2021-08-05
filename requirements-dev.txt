@@ -1,2 +1,0 @@
-fakeredis==1.5.0
-pytest-httpserver==1.0.0
