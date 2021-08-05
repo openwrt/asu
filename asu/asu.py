@@ -2,7 +2,6 @@ from pathlib import Path
 from redis import Redis
 
 from flask import Flask, redirect, send_from_directory
-from flask_cors import CORS
 
 import json
 from os import getenv
@@ -52,8 +51,6 @@ def create_app(test_config: dict = None) -> Flask:
             app.config[option].mkdir(parents=True, exist_ok=True)
 
     Path(app.instance_path).mkdir(exist_ok=True, parents=True)
-
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # only serve files in DEBUG/TESTING mode
     # production should use nginx for static files
