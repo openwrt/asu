@@ -22,6 +22,7 @@ def parse_packages_file(url, repo):
         return {}
 
     packages = {}
+    mapping = {}
     linebuffer = ""
     for line in req.text.splitlines():
         if line == "":
@@ -36,13 +37,17 @@ def parse_packages_file(url, repo):
                 packages[source_name]["repository"] = repo
                 package_name = package.get("Package")
                 if source_name != package_name:
-                    print(f"Add ABI mapping {package_name} -> {source_name}")
-                    r.hset("mapping-abi", package_name, source_name)
+                    mapping[package_name] = source_name
             else:
                 print(f"Something wired about {package}")
             linebuffer = ""
         else:
             linebuffer += line + "\n"
+
+    for package, source in mapping.items():
+        if not r.hexists("mapping-abi", package):
+            print(f"Add ABI mapping {package} -> {source}")
+            r.hset("mapping-abi", package, source)
 
     current_app.logger.debug(f"Found {len(packages)} in {repo}")
 
