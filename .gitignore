@@ -1,11 +1,11 @@
-__pycache__/
+*$py.class
+*.py[cod]
+*.swp
 .coverage
 .coverage.*
 .direnv/
 .vscode/
-*.py[cod]
-*.swp
-*$py.class
+__pycache__/
 asu.egg-info/
 asu/__pycache__/
 cache/
@@ -13,6 +13,7 @@ coverage.xml
 dist/
 htmlcov/
 instance/
+public/
 site/
 store/
 var/
