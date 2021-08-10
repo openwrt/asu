@@ -48,14 +48,14 @@ def create_app(test_config: dict = None) -> Flask:
 
     (Path().cwd()).mkdir(exist_ok=True, parents=True)
 
-    @app.route("/")
-    @app.route("/<path:path>")
-    def root(path="index.html"):
-        return send_from_directory(Path().cwd() / "public", path)
+    @app.route("/json/")
+    @app.route("/json/<path:path>")
+    def json_path(path="index.html"):
+        return send_from_directory(app.config["JSON_PATH"], path)
 
     @app.route("/store/")
     @app.route("/store/<path:path>")
-    def store(path="index.html"):
+    def store_path(path="index.html"):
         return send_from_directory(app.config["STORE_PATH"], path)
 
     from . import janitor
