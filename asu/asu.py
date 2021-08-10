@@ -22,9 +22,6 @@ def create_app(test_config: dict = None) -> Flask:
 
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        STORE_PATH=app.instance_path + "/public/store",
-        JSON_PATH=app.instance_path + "/public/json",
-        CACHE_PATH=app.instance_path + "/cache/",
         REDIS_CONN=Redis(host=redis_host, port=redis_port),
         TESTING=False,
         DEBUG=False,
@@ -35,7 +32,6 @@ def create_app(test_config: dict = None) -> Flask:
     if not test_config:
         for config_file in [
             Path.cwd() / "config.py",
-            app.instance_path + "/config.py",
             "/etc/asu/config.py",
         ]:
             if Path(config_file).exists():
@@ -50,27 +46,17 @@ def create_app(test_config: dict = None) -> Flask:
             app.config[option] = Path(value)
             app.config[option].mkdir(parents=True, exist_ok=True)
 
-    Path(app.instance_path).mkdir(exist_ok=True, parents=True)
+    (Path().cwd()).mkdir(exist_ok=True, parents=True)
 
-    # only serve files in DEBUG/TESTING mode
-    # production should use nginx for static files
-    if app.config["DEBUG"] or app.config["TESTING"]:
+    @app.route("/")
+    @app.route("/<path:path>")
+    def root(path="index.html"):
+        return send_from_directory(Path().cwd() / "public", path)
 
-        @app.route("/")
-        @app.route("/<path:path>")
-        def root(path="index.html"):
-            return send_from_directory(Path(app.instance_path) / "public", path)
-
-        @app.route("/store/")
-        @app.route("/store/<path:path>")
-        def store(path="index.html"):
-            return send_from_directory(app.config["STORE_PATH"], path)
-
-    else:
-
-        @app.route("/")
-        def root(path="index.html"):
-            return redirect("https://github.com/aparcar/asu/#api")
+    @app.route("/store/")
+    @app.route("/store/<path:path>")
+    def store(path="index.html"):
+        return send_from_directory(app.config["STORE_PATH"], path)
 
     from . import janitor
 
