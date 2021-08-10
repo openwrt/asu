@@ -88,10 +88,12 @@ def update_branch(branch):
 
     r.sadd(f"targets-{branch['name']}", *list(targets))
 
-    architectures = set(branch["targets"].values())
+    packages_path = branch["path_packages"].format(branch=branch["name"])
 
     with Pool(20) as pool:
-        pool.starmap(update_arch_packages, map(lambda a: (branch, a), architectures))
+        pool.starmap(
+            update_arch_packages, map(lambda a: (branch, a), branch["targets"].values())
+        )
 
     for version in branch["versions"]:
         current_app.logger.info(f"Update {branch['name']}/{version}")
@@ -99,7 +101,6 @@ def update_branch(branch):
             # TODO: ugly
             version_path = branch["path"].format(version=version)
             version_path_abs = current_app.config["JSON_PATH"] / version_path
-            packages_path = branch["path_packages"].format(branch=branch["name"])
             output_path = current_app.config["JSON_PATH"] / packages_path
             version_path_abs.mkdir(exist_ok=True, parents=True)
             packages_symlink = version_path_abs / "packages"
@@ -143,6 +144,31 @@ def update_target_packages(branch: dict, version: str, target: str):
     version_path = branch["path"].format(version=version)
     r = get_redis()
 
+    packages_modified_local = r.get(
+        f"last-modified-packages-{branch['name']}-{version}-{target}"
+    )
+    if packages_modified_local:
+        packages_modified_local = packages_modified_local.decode("utf-8")
+    packages_modified_remote = requests.head(
+        current_app.config["UPSTREAM_URL"]
+        + "/"
+        + version_path
+        + f"/targets/{target}/packages/Packages.manifest",
+    ).headers.get("last-modified")
+
+    if packages_modified_local:
+        if packages_modified_local == packages_modified_remote:
+            current_app.logger.debug(
+                f"Skip {branch['name']}/{version}/{target} package update"
+            )
+            return
+
+    if packages_modified_remote:
+        r.set(
+            f"last-modified-packages-{branch['name']}-{version}-{target}",
+            packages_modified_remote,
+        )
+
     packages = get_packages_target_base(branch, version, target)
 
     if len(packages) == 0:
@@ -178,8 +204,26 @@ def update_target_packages(branch: dict, version: str, target: str):
 def update_arch_packages(branch: dict, arch: str):
     current_app.logger.info(f"Update {branch['name']}/{arch}")
     r = get_redis()
-    packages = {}
+
     packages_path = branch["path_packages"].format(branch=branch["name"])
+    packages_modified_local = r.get(f"last-modified-packages-{branch['name']}-{arch}")
+    if packages_modified_local:
+        packages_modified_local = packages_modified_local.decode("utf-8")
+    packages_modified_remote = requests.head(
+        current_app.config["UPSTREAM_URL"] + f"/{packages_path}/{arch}/feeds.conf"
+    ).headers.get("last-modified")
+
+    if packages_modified_local:
+        if packages_modified_local == packages_modified_remote:
+            current_app.logger.debug(f"Skip {branch['name']}/{arch} package update")
+            return
+
+    if packages_modified_remote:
+        r.set(
+            f"last-modified-packages-{branch['name']}-{arch}", packages_modified_remote
+        )
+
+    packages = {}
 
     # first update extra repos in case they contain redundant packages to core
     for name, url in branch.get("extra_repos", {}).items():
@@ -226,9 +270,31 @@ def update_target_profiles(branch: dict, version: str, target: str):
         current_app.config["UPSTREAM_URL"]
         + f"/{version_path}/targets/{target}/profiles.json"
     )
+
     if req.status_code != 200:
-        current_app.logger.warning(f"Could not download profiles.json for {target}")
+        current_app.logger.warning(
+            f"Could not download profiles.json for {version}/{target}"
+        )
         return
+
+    profiles_modified_local = r.get(
+        f"last-modified-profiles-{branch['name']}-{version}-{target}"
+    )
+    if profiles_modified_local:
+        profiles_modified_local = profiles_modified_local.decode("utf-8")
+
+    profiles_modified_remote = req.headers.get("last-modified")
+
+    if profiles_modified_local:
+        if profiles_modified_local == profiles_modified_remote:
+            current_app.logger.debug(f"Skip {branch['name']}/{version} profiles update")
+            return
+
+    if profiles_modified_remote:
+        r.set(
+            f"last-modified-profiles-{branch['name']}-{version}-{target}",
+            profiles_modified_remote,
+        )
 
     req = requests.get(
         current_app.config["UPSTREAM_URL"]
