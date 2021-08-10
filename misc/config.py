@@ -13,9 +13,6 @@ STORE_PATH = Path.cwd() / "public/store/"
 # where to store JSON files
 JSON_PATH = Path.cwd() / "public/json/"
 
-# where to store ImageBuilders
-CACHE_PATH = Path.cwd() / "cache/"
-
 # supported versions
 BRANCHES = [
     {

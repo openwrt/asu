@@ -320,7 +320,6 @@ def api_build():
             return response, status
 
         req["store_path"] = current_app.config["STORE_PATH"]
-        req["cache_path"] = current_app.config["CACHE_PATH"]
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
         req["branch_data"] = get_branches()[req["branch"]]
 

@@ -47,7 +47,6 @@ def app(redis):
     test_path = tempfile.mkdtemp()
     app = create_app(
         {
-            "CACHE_PATH": test_path + "/cache",
             "JSON_PATH": test_path + "/json",
             "REDIS_CONN": redis,
             "STORE_PATH": test_path + "/store",
