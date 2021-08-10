@@ -39,14 +39,14 @@ def parse_packages_file(url, repo):
                 if source_name != package_name:
                     mapping[package_name] = source_name
             else:
-                print(f"Something wired about {package}")
+                current_app.warning(f"Something wired about {package}")
             linebuffer = ""
         else:
             linebuffer += line + "\n"
 
     for package, source in mapping.items():
         if not r.hexists("mapping-abi", package):
-            print(f"Add ABI mapping {package} -> {source}")
+            current_app.logger.info(f"Add ABI mapping {package} -> {source}")
             r.hset("mapping-abi", package, source)
 
     current_app.logger.debug(f"Found {len(packages)} in {repo}")
