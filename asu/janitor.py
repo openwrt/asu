@@ -5,6 +5,7 @@ from flask import current_app, Blueprint
 import email
 import json
 
+import click
 
 bp = Blueprint("janitor", __name__)
 
@@ -326,18 +327,26 @@ def update_target_profiles(branch: dict, version: str, target: str):
 
 
 @bp.cli.command("update")
-def update():
+@click.option("-i", "--interval", default=10, type=int)
+def update(interval):
     """Update the data required to run the server
 
     For this all available packages and profiles for all enabled versions is
     downloaded and stored in the Redis database.
     """
-    current_app.logger.info("Init ASU")
+    current_app.logger.info("Init ASU janitor")
+    while True:
+        for branch in current_app.config["BRANCHES"]:
+            if not branch.get("enabled"):
+                current_app.logger.info(f"Skip disabled version {branch['name']}")
+                continue
 
-    for branch in current_app.config["BRANCHES"]:
-        if not branch.get("enabled"):
-            current_app.logger.info(f"Skip disabled version {branch['name']}")
-            continue
+            current_app.logger.info(f"Update {branch['name']}")
+            update_branch(branch)
 
-        current_app.logger.info(f"Update {branch['name']}")
-        update_branch(branch)
+        if interval > 0:
+            current_app.logger.info(f"Next reload in { interval } minutes")
+            sleep(interval * 60)
+        else:
+            current_app.logger.info("Exiting ASU janitor")
+            break
