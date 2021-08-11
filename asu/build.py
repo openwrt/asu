@@ -107,12 +107,21 @@ def build(req: dict):
 
         ib_hash, ib_archive = ib_search.groups()
 
+        if job:
+            job.meta["imagebuilder_status"] = "download_imagebuilder"
+            job.save_meta()
+
         download_file(ib_archive)
 
         if ib_hash != get_file_hash(cache / ib_archive):
             raise BadChecksumError()
 
         (cache / subtarget).mkdir(parents=True, exist_ok=True)
+
+        if job:
+            job.meta["imagebuilder_status"] = "unpack_imagebuilder"
+            job.save_meta()
+
         extract_archive = subprocess.run(
             ["tar", "--strip-components=1", "-xf", ib_archive, "-C", subtarget],
             cwd=cache,
@@ -237,6 +246,10 @@ def build(req: dict):
         remove_packages = (default_packages | profile_packages) - req["packages"]
         req["packages"] = req["packages"] | set(map(lambda p: f"-{p}", remove_packages))
 
+    if job:
+        job.meta["imagebuilder_status"] = "calculate_packages_hash"
+        job.save_meta()
+
     manifest_run = subprocess.run(
         [
             "make",
@@ -255,9 +268,10 @@ def build(req: dict):
             rmtree(cache / subtarget)
             return build(req)
         else:
-            job.meta["stdout"] = manifest_run.stdout
-            job.meta["stderr"] = manifest_run.stderr
-            job.save_meta()
+            if job:
+                job.meta["stdout"] = manifest_run.stdout
+                job.meta["stderr"] = manifest_run.stderr
+                job.save_meta()
             raise PackageSelectionError()
 
     manifest = dict(map(lambda pv: pv.split(" - "), manifest_run.stdout.splitlines()))
@@ -289,6 +303,10 @@ def build(req: dict):
         f"EXTRA_IMAGE_NAME={packages_hash}",
         f"BIN_DIR={req['store_path'] / bin_dir}",
     ]
+
+    if job:
+        job.meta["imagebuilder_status"] = "building_image"
+        job.save_meta()
 
     image_build = subprocess.run(
         build_cmd,

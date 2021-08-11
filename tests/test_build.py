@@ -38,7 +38,7 @@ def test_build_fake(app, upstream):
         version="SNAPSHOT",
         profile="testprofile",
         packages={"test1", "test2"},
-        request_hash = "foobar123"
+        request_hash="foobar123",
     )
     result = build(req)
     assert result["id"] == "testprofile"
@@ -59,7 +59,7 @@ def test_build_fake_diff_packages(app, upstream):
         profile="testprofile",
         packages={"test1", "test2"},
         diff_packages=True,
-        request_hash = "foobar123"
+        request_hash="foobar123",
     )
     result = build(req)
     assert result["id"] == "testprofile"
@@ -101,6 +101,7 @@ def test_build_real(app, httpserver: HTTPServer):
         version="SNAPSHOT",
         profile="tplink_tl-wdr4300-v1",
         packages={"tmux", "vim"},
+        request_hash="foobar123",
     )
     result = build(req)
     assert result["id"] == "tplink_tl-wdr4300-v1"

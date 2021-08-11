@@ -539,6 +539,14 @@ components:
           description: |
             Contains the shell command ran by the ImageBuilder. This can be
             used locally to test builds for reproducibility.
+        imagebuilder_status:
+          type: string
+          enum:
+            - download_imagebuilder
+            - unpack_imagebuilder
+            - calculate_packages_hash
+            - building_image
+          example: "download_imagebuilder"
 
     JsonSchemaBranch:
       type: object
