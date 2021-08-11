@@ -1,0 +1,35 @@
+services:
+  server:
+    image: aparcar/asu-server
+    build:
+      dockerfile: Dockerfile.server
+    volumes:
+      - "./asu-service:/home/build/asu/"
+    ports:
+      - 8000:8000
+    depends_on:
+      - redis
+
+  janitor:
+    image: aparcar/asu-server
+    build:
+      dockerfile: Dockerfile.server
+    environment:
+      - FLASK_APP=asu.asu
+    command: flask janitor update
+    volumes:
+      - "./asu-service:/home/build/asu/"
+    depends_on:
+      - redis
+
+  worker:
+    image: aparcar/asu-worker
+    build:
+      dockerfile: Dockerfile.worker
+    volumes:
+      - "./asu-service:/home/build/asu/"
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis:alpine"

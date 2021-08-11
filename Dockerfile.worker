@@ -1,0 +1,19 @@
+FROM openwrt/imagebuilder
+
+ENV REDIS_HOST="redis://redis"
+
+RUN mkdir /home/build/asu/
+
+WORKDIR /home/build/asu/
+
+RUN sudo apt-get -q update \
+    && sudo apt-get install -y python3-pip \
+    && sudo apt-get clean autoclean \
+    && sudo apt-get autoremove --yes \
+    && sudo rm -rf /var/lib/{apt,dpkg,cache,log}/
+
+RUN pip3 install --no-cache-dir rq asu
+
+ENV PATH="/home/build/.local/bin:${PATH}"
+
+CMD /bin/sh -c 'rqworker --url "$REDIS_HOST"'
