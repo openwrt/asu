@@ -50,6 +50,7 @@ respond to requests without rebuilding existing images again.
 
 ### Active server
 
+*   [asu.aparcar.org](https://asu.aparcar.org)
 *   [chef.libremesh.org](https://chef.libremesh.org)
 
 ## Run your own server
@@ -72,16 +73,30 @@ Start the worker via the following comand:
 
     rq worker
 
+### Docker
+
+Run The service inside multiple Docker containers. The services include the
+*ASU* server itself, a *janitor* service which fills the Redis database with
+known packages and profiles as well as a `rqworker` which actually builds
+images.
+
+Currently all services share the same folder and therefore a very "open" access
+is required, suggestions on how to improve this setup are welcome.
+
+	mkdir ./asu-service/
+	chmod 777 ./asu-service/
+	docker-compose up
+
+A webserver should proxy API calls to port 8000 of the `server` service while
+the `asu/` folder should be file hosted as is.
+
 ### Production
 
-It is recommended to run *ASU* via `gunicorn` proxied by `nginx`. Find a
-possible `nginx` configuration in the `misc/` folder. Also the setup should not
-HTTPS to allow clients without SSL/certificates to check for upgrades.
+It is recommended to run *ASU* via `gunicorn` proxied by `nginx` or
+`caddyserver`. Find a possible server configurations in the `misc/` folder.
 
-To change the default setting place a file called `config.py` in the root of
-the [instance
-folder](https://flask.palletsprojects.com/en/1.1.x/config/#instance-folders).
-Find an example in the `misc/` folder.
+The *ASU* server will try `$PWD/config.py` and `/etc/asu/config.py` to find a
+configuration. Find an example configuration in the `misc/` folder.
 
     pip install gunicorn
     gunicorn "asu.asu:create_app()"
@@ -91,8 +106,8 @@ Find an example in the `misc/` folder.
 After cloning this repository create a Python virtual environment and install
 the dependencies:
 
-    python3 -m venv .
-    source bin/activate
+    python3 -m venv .direnv
+    source .direnv/bin/activate
     pip install -r requirements.txt
     export FLASK_APP=asu.asu  # set Flask app to asu
     export FLASK_DEBUG=1      # run Flask in debug mode (autoreload)
