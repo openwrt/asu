@@ -1,8 +1,8 @@
-asu.aparcar.org {
-	root * /home/debian/asu/public/
+:80 {
+	root * /site/
 	file_server browse
 	header Access-Control-Allow-Methods "POST, GET, OPTIONS"
 	header Access-Control-Allow-Headers "*"
 	header Access-Control-Allow-Origin "*"
-	reverse_proxy /api/* localhost:8000
+	reverse_proxy /api/* server:8000
 }
