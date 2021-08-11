@@ -327,6 +327,10 @@ def api_build():
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
         req["branch_data"] = get_branches()[req["branch"]]
 
+        if req["branch_data"]["snapshot"]:
+            result_ttl = "15m"
+            current_app.logger.info(f"Set snapshot request {request_hash} ttl to 15m")
+
         job = get_queue().enqueue(
             build,
             req,
