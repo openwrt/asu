@@ -1,10 +1,9 @@
 import io
+from os.path import abspath, dirname, join
 
 from setuptools import find_packages, setup
-from os.path import dirname, abspath, join
 
 from asu import __version__
-
 
 with io.open("README.md", "rt", encoding="utf8") as f:
     readme = f.read()

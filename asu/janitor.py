@@ -1,11 +1,11 @@
-import requests
-from multiprocessing import Pool
-
-from flask import current_app, Blueprint
 import email
 import json
+from multiprocessing import Pool
+from time import sleep
 
 import click
+import requests
+from flask import Blueprint, current_app
 
 bp = Blueprint("janitor", __name__)
 

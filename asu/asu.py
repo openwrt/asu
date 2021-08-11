@@ -1,10 +1,9 @@
-from pathlib import Path
-from redis import Redis
-
-from flask import Flask, redirect, send_from_directory
-
 import json
 from os import getenv
+from pathlib import Path
+
+from flask import Flask, redirect, send_from_directory
+from redis import Redis
 
 
 def create_app(test_config: dict = None) -> Flask:
