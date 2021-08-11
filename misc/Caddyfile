@@ -1,12 +1,8 @@
-(cors) {
-        @origin header Origin {args.0}
-        header @origin Access-Control-Allow-Origin "{args.0}"
-        header @origin Access-Control-Request-Method GET
-}
-
 asu.aparcar.org {
-        reverse_proxy /api/* localhost:8000
-        root * /home/debian/asu/public/
-        file_server browse
-        import cors asu.aparcar.org
+	root * /home/debian/asu/public/
+	file_server browse
+	header Access-Control-Allow-Methods "POST, GET, OPTIONS"
+	header Access-Control-Allow-Headers "*"
+	header Access-Control-Allow-Origin "*"
+	reverse_proxy /api/* localhost:8000
 }
