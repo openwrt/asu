@@ -273,7 +273,7 @@ def validate_request(req):
 
 
 def return_job_v1(job):
-    response = {}
+    response = job.get_meta()
     headers = {}
     if job.meta:
         response.update(job.meta)
@@ -298,6 +298,7 @@ def return_job_v1(job):
                 "detail": "started",
             }
         )
+        headers = {"X-Imagebuilder-Status": response.get("imagebuilder_status", "init")}
 
     elif job.is_finished:
         response.update({"status": 200, "build_at": job.ended_at, **job.result})

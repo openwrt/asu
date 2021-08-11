@@ -3,4 +3,4 @@ connexion[swagger-ui]
 pynacl
 redis
 requests
-rq
+rq==1.10.0
