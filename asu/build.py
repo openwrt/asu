@@ -1,10 +1,10 @@
-import urllib.request
 import json
-from pathlib import Path
-import re
-from shutil import rmtree
-import subprocess
 import logging
+import re
+import subprocess
+import urllib.request
+from pathlib import Path
+from shutil import rmtree
 
 from rq import get_current_job
 

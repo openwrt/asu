@@ -1,5 +1,6 @@
 from uuid import uuid4
-from flask import request, g, current_app, Blueprint
+
+from flask import Blueprint, current_app, g, request
 from rq import Connection, Queue
 
 from .build import build
@@ -248,7 +249,10 @@ def return_job(job):
 
     elif job.is_queued or job.is_started:
         status = 202
-        response = {"status": job.get_status(), "queue_position": job.get_position()}
+        response = {
+            "status": job.get_status(),
+            "queue_position": job.get_position() or -1,
+        }
 
     elif job.is_finished:
         status = 200

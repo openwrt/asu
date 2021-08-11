@@ -1,8 +1,9 @@
-from pathlib import Path
 import base64
 import hashlib
-import nacl.signing
 import struct
+from pathlib import Path
+
+import nacl.signing
 
 
 def get_str_hash(string: str, length: int = 32) -> str:
