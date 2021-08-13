@@ -12,6 +12,7 @@ from .common import (
     fingerprint_pubkey_usign,
     get_file_hash,
     get_packages_hash,
+    get_str_hash,
     verify_usign,
 )
 
@@ -308,6 +309,16 @@ def build(req: dict):
         job.meta["imagebuilder_status"] = "building_image"
         job.save_meta()
 
+    if req.get("defaults"):
+        defaults_file = (
+            Path(req["store_path"]) / bin_dir / "files/etc/uci-defaults/99-asu-defaults"
+        )
+        defaults_file.parent.mkdir(parents=True)
+        defaults_file.write_text(req["defaults"])
+        build_cmd.append(f"FILES={req['store_path'] / bin_dir / 'files'}")
+
+    log.debug(f"Running {' '.join(build_cmd)}")
+
     image_build = subprocess.run(
         build_cmd,
         text=True,
@@ -372,5 +383,7 @@ def build(req: dict):
         )
 
         job.connection.incr("stats-images")
+        if req.get("defaults"):
+            job.connection.incr("stats-images-custom")
 
     return json_content

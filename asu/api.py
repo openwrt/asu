@@ -58,7 +58,12 @@ def api_latest():
 
 
 def api_v1_stats_images():
-    return jsonify({"images": int(get_redis().get("stats-images").decode("utf-8"))})
+    return jsonify(
+        {
+            "total": int(get_redis().get("stats-images").decode("utf-8")),
+            "custom": int(get_redis().get("stats-images-custom").decode("utf-8")),
+        }
+    )
 
 
 def api_v1_stats_versions():
@@ -197,14 +202,19 @@ def validate_request(req):
         (dict, int): Status message and code, empty if no error appears
 
     """
+
+    if "defaults" in req and not current_app.config["ALLOW_DEFAULTS"]:
+        return (
+            {"detail": f"Handling `defaults` not enabled on server", "status": 400},
+            400,
+        )
+
     req["distro"] = req.get("distro", "openwrt")
     if req["distro"] not in get_distros():
         return (
             {"detail": f"Unsupported distro: {req['distro']}", "status": 400},
             400,
         )
-
-    req["version"] = req["version"]
 
     if req["version"].endswith("-SNAPSHOT"):
         # e.g. 21.02-snapshot

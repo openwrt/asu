@@ -342,6 +342,14 @@ components:
             It is not possible to specify what package version to request. Only
             the latest version of a package can be requested, which can be
             retrieved via provided package indexes.
+        defaults:
+          type: string
+          description: |
+            Custom shell script embedded in firmware image to be run on first
+            boot. This feature might be dropped in the future. Size is limited
+            to 10kB and can not be exceeded.
+          maxLength: 10240
+
       example:
         version: 19.07.8
         target: ath79/generic
@@ -739,9 +747,11 @@ components:
       type: object
       additionalProperties: false
       required:
-        - images
+        - total
       properties:
-        images:
+        total:
+          type: integer
+        custom:
           type: integer
       example:
         images: 1

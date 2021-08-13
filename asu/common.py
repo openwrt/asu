@@ -79,6 +79,10 @@ def get_request_hash(req: dict) -> str:
         get_manifest_hash(req.get("packages_versions", {})),
         str(req.get("diff_packages", False)),
     ]
+
+    if "defaults" in req:
+        request_array.append(get_str_hash(req.get("defaults", "")))
+
     return get_str_hash(" ".join(request_array), 32)
 
 

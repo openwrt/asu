@@ -31,6 +31,7 @@ def create_app(test_config: dict = None) -> Flask:
         DEBUG=False,
         UPSTREAM_URL="https://downloads.cdn.openwrt.org",
         BRANCHES={},
+        ALLOW_DEFAULTS=False,
     )
 
     if not test_config:
@@ -90,7 +91,11 @@ def create_app(test_config: dict = None) -> Flask:
     app.config["OVERVIEW"] = {
         "latest": latest,
         "branches": branches,
-        "server": {"version": __version__, "contact": "mail@aparcar.org"},
+        "server": {
+            "version": __version__,
+            "contact": "mail@aparcar.org",
+            "allow_defaults": app.config["ALLOW_DEFAULTS"],
+        },
     }
 
     # legacy
