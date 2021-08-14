@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from flask import Blueprint, current_app, g, request
+from flask import Blueprint, current_app, g, redirect, request
 from rq import Connection, Queue
 
 from .build import build
@@ -18,17 +18,6 @@ def get_distros() -> list:
     return ["openwrt"]
 
 
-@bp.route("/branches")
-def get_branches() -> dict:
-    if "branches" not in g:
-        g.branches = {}
-        for branch in current_app.config["BRANCHES"]:
-            if branch["enabled"]:
-                g.branches[branch["name"]] = branch
-        current_app.logger.info(f"Loaded {len(g.branches)} branches")
-    return g.branches
-
-
 def get_redis():
     """Return Redis connectio
 
@@ -40,24 +29,14 @@ def get_redis():
     return g.redis
 
 
-def get_latest() -> dict:
-    if "latest" not in g:
-        g.latest = list(
-            map(
-                lambda b: b["versions"][0],
-                filter(
-                    lambda b: b.get("enabled"),
-                    current_app.config["BRANCHES"],
-                ),
-            )
-        )
-
-    return g.latest
-
-
 @bp.route("/latest")
 def api_latest():
-    return {"latest": get_latest()}
+    return redirect("/json/latest.json")
+
+
+@bp.route("/branches")
+def api_branches():
+    return redirect("/json/branches.json")
 
 
 def get_queue() -> Queue:
@@ -162,7 +141,7 @@ def validate_request(req):
         # e.g. snapshot, 21.02.0-rc1 or 19.07.7
         req["branch"] = req["version"].rsplit(".", maxsplit=1)[0]
 
-    if req["branch"] not in get_branches().keys():
+    if req["branch"] not in current_app.config["BRANCHES"].keys():
         return (
             {
                 "status": "bad_branch",
@@ -171,7 +150,7 @@ def validate_request(req):
             400,
         )
 
-    if req["version"] not in get_branches()[req["branch"]]["versions"]:
+    if req["version"] not in current_app.config["BRANCHES"][req["branch"]]["versions"]:
         return (
             {
                 "status": "bad_version",
@@ -196,7 +175,9 @@ def validate_request(req):
             400,
         )
 
-    req["arch"] = get_branches()[req["branch"]]["targets"][req["target"]]
+    req["arch"] = current_app.config["BRANCHES"][req["branch"]]["targets"][
+        req["target"]
+    ]
 
     if req["target"] in ["x86/64", "x86/generic", "x86/geode", "x86/legacy"]:
         current_app.logger.debug("Use generic profile for {req['target']}")
@@ -331,7 +312,7 @@ def api_build():
 
         req["store_path"] = current_app.config["STORE_PATH"]
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
-        req["branch_data"] = get_branches()[req["branch"]]
+        req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
 
         if req["branch_data"]["snapshot"]:
             result_ttl = "15m"

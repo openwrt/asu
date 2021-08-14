@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import json
 import struct
 from pathlib import Path
 
@@ -55,7 +56,7 @@ def get_manifest_hash(manifest: dict) -> str:
     Returns:
         str: hash of `req`
     """
-    return str(hash(frozenset(sorted(manifest.items()))))
+    return get_str_hash(json.dumps(manifest, sort_keys=True))
 
 
 def get_request_hash(req: dict) -> str:

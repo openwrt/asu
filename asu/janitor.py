@@ -336,7 +336,7 @@ def update(interval):
     """
     current_app.logger.info("Init ASU janitor")
     while True:
-        for branch in current_app.config["BRANCHES"]:
+        for branch in current_app.config["BRANCHES"].values():
             if not branch.get("enabled"):
                 current_app.logger.info(f"Skip disabled version {branch['name']}")
                 continue

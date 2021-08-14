@@ -39,6 +39,7 @@ def redis():
     )
     r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget", "x86/64")
     r.sadd("targets-21.02", "testtarget/testsubtarget")
+    r.hset("mapping-abi", mapping={"test1-1": "test1"})
     yield r
 
 
@@ -52,8 +53,8 @@ def app(redis):
             "STORE_PATH": test_path + "/store",
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",
-            "BRANCHES": [
-                {
+            "BRANCHES": {
+                "SNAPSHOT": {
                     "name": "SNAPSHOT",
                     "enabled": True,
                     "snapshot": True,
@@ -69,7 +70,7 @@ def app(redis):
                         "x86/64": "x86_64",
                     },
                 },
-                {
+                "21.02": {
                     "name": "21.02",
                     "enabled": True,
                     "snapshot": True,
@@ -82,7 +83,7 @@ def app(redis):
                     "updates": "rc",
                     "targets": {"testtarget/testsubtarget": "testarch"},
                 },
-                {
+                "19.07": {
                     "name": "19.07",
                     "enabled": True,
                     "versions": ["19.07.7", "19.07.6"],
@@ -94,7 +95,7 @@ def app(redis):
                     "updates": "stable",
                     "targets": {"testtarget/testsubtarget": "testarch"},
                 },
-            ],
+            },
         }
     )
 
