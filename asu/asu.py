@@ -66,7 +66,30 @@ def create_app(test_config: dict = None) -> Flask:
     app.register_blueprint(api.bp)
 
     (app.config["JSON_PATH"] / "branches.json").write_text(
-        json.dumps(app.config["BRANCHES"])
+        json.dumps(
+            dict(
+                map(
+                    lambda b: (b["name"], b),
+                    filter(lambda b: b.get("enabled"), app.config["BRANCHES"].values()),
+                )
+            )
+        )
+    )
+
+    (app.config["JSON_PATH"] / "latest.json").write_text(
+        json.dumps(
+            {
+                "latest": list(
+                    map(
+                        lambda b: b["versions"][0],
+                        filter(
+                            lambda b: b.get("enabled"),
+                            app.config["BRANCHES"].values(),
+                        ),
+                    )
+                )
+            }
+        )
     )
 
     return app

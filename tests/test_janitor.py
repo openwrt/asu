@@ -26,7 +26,7 @@ def upstream(httpserver):
 
 def test_update_branch(app, upstream):
     with app.app_context():
-        update_branch(app.config["BRANCHES"][0])
+        update_branch(app.config["BRANCHES"]["SNAPSHOT"])
     assert (app.config["JSON_PATH"] / "snapshots/overview.json").is_file()
 
 
@@ -47,7 +47,7 @@ def test_parse_packages_file_bad(app, upstream):
 
 
 def test_get_packages_target_base(app, upstream):
-    branch = app.config["BRANCHES"][0]
+    branch = app.config["BRANCHES"]["SNAPSHOT"]
     version = "snapshots"
     target = "testtarget/testsubtarget"
     with app.app_context():
@@ -56,7 +56,7 @@ def test_get_packages_target_base(app, upstream):
 
 
 def test_update_target_packages(app, upstream):
-    branch = app.config["BRANCHES"][0]
+    branch = app.config["BRANCHES"]["SNAPSHOT"]
     version = "snapshots"
     target = "testtarget/testsubtarget"
     with app.app_context():
@@ -68,7 +68,7 @@ def test_update_target_packages(app, upstream):
 
 
 def test_update_arch_packages(app, upstream):
-    branch = app.config["BRANCHES"][0]
+    branch = app.config["BRANCHES"]["SNAPSHOT"]
     arch = "testarch"
     with app.app_context():
         packages = update_arch_packages(branch, arch)

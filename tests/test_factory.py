@@ -11,3 +11,23 @@ def test_pathlib(app):
 
 def test_other(app):
     assert app.config["UPSTREAM_URL"] == "http://localhost:8001"
+
+
+def test_json_path_latest(client):
+    response = client.get("/json/latest.json")
+    assert "19.07.7" in response.json["latest"]
+    assert "21.02.0-rc1" in response.json["latest"]
+    assert "SNAPSHOT" in response.json["latest"]
+    assert response.status == "200 OK"
+
+
+def test_json_path_branches(client):
+    response = client.get("/json/branches.json")
+    assert "19.07" in response.json.keys()
+    assert "SNAPSHOT" in response.json.keys()
+    assert response.status == "200 OK"
+
+
+def test_json_store(client):
+    response = client.get("/store/")
+    assert response.status == "404 NOT FOUND"

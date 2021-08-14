@@ -1,10 +1,6 @@
 def test_api_version(client, app):
     response = client.get("/api/branches")
-    branches = {}
-    for branch in app.config["BRANCHES"]:
-        if branch["enabled"]:
-            branches[branch["name"]] = branch
-    assert response.json == branches
+    assert response.status == "302 FOUND"
 
 
 def test_api_build(client):
@@ -19,15 +15,12 @@ def test_api_build(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "3128aff5c6db"
+    assert response.json.get("request_hash") == "e360f833a191"
 
 
 def test_api_latest_default(client):
     response = client.get("/api/latest")
-    assert "19.07.7" in response.json["latest"]
-    assert "21.02.0-rc1" in response.json["latest"]
-    assert "SNAPSHOT" in response.json["latest"]
-    assert response.status == "200 OK"
+    assert response.status == "302 FOUND"
 
 
 def test_api_build_mapping(client):
@@ -42,11 +35,44 @@ def test_api_build_mapping(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "d0318d0bba8d"
+    assert response.json.get("request_hash") == "19bb42f198c9"
+
+
+def test_api_build_mapping_abi(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testvendor,testprofile",
+            packages=["test1-1", "test2"],
+        ),
+    )
+    assert response.status == "202 ACCEPTED"
+    assert response.json.get("status") == "queued"
+    assert response.json.get("request_hash") == "7d099fb07fb3"
+
+
+def test_api_build_bad_target(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtargetbad",
+            profile="testvendor,testprofile",
+            packages=["test1", "test2"],
+        ),
+    )
+    assert response.status == "400 BAD REQUEST"
+    assert (
+        response.json.get("message")
+        == "Unsupported target: testtarget/testsubtargetbad"
+    )
+    assert response.json.get("status") == "bad_target"
 
 
 def test_api_build_get(client):
-    client.post(
+    response = client.post(
         "/api/build",
         json=dict(
             version="SNAPSHOT",
@@ -55,10 +81,42 @@ def test_api_build_get(client):
             packages=["test1", "test2"],
         ),
     )
-    response = client.get("/api/build/3128aff5c6db")
+    assert response.json["request_hash"] == "e360f833a191"
+    response = client.get("/api/build/e360f833a191")
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "3128aff5c6db"
+    assert response.json.get("request_hash") == "e360f833a191"
+
+
+def test_api_build_packages_versions(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages_versions={"test1": "1.0", "test2": "2.0"},
+        ),
+    )
+    assert response.json["request_hash"] == "552b9e328888"
+    response = client.get("/api/build/552b9e328888")
+    assert response.status == "202 ACCEPTED"
+    assert response.json.get("status") == "queued"
+    assert response.json.get("request_hash") == "552b9e328888"
+
+
+def test_api_build_packages_duplicate(client):
+    response = client.post(
+        "/api/build",
+        json=dict(
+            version="SNAPSHOT",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            packages_versions={"test1": "1.0", "test2": "2.0"},
+        ),
+    )
+    assert response.status == "400 BAD REQUEST"
 
 
 def test_api_build_get_not_found(client):
@@ -83,7 +141,7 @@ def test_api_build_empty_packages_list(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "c6022275d623"
+    assert response.json.get("request_hash") == "66cb932c37a4"
 
 
 def test_api_build_withouth_packages_list(client):
@@ -97,7 +155,7 @@ def test_api_build_withouth_packages_list(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "c6022275d623"
+    assert response.json.get("request_hash") == "66cb932c37a4"
 
 
 def test_api_build_prerelease_snapshot(client):
@@ -162,7 +220,7 @@ def test_api_build_x86(client):
 
     assert response.status == "202 ACCEPTED"
     assert response.json.get("status") == "queued"
-    assert response.json.get("request_hash") == "a30a7dc8e19b"
+    assert response.json.get("request_hash") == "1fda145d439f"
 
 
 def test_api_build_needed(client):
