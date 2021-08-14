@@ -251,7 +251,7 @@ def return_job(job):
         status = 202
         response = {
             "status": job.get_status(),
-            "queue_position": job.get_position() or -1,
+            "queue_position": job.get_position() or 0,
         }
 
     elif job.is_started:
