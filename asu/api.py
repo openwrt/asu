@@ -247,11 +247,17 @@ def return_job(job):
         status = 500
         response["message"] = job.exc_info.strip().split("\n")[-1]
 
-    elif job.is_queued or job.is_started:
+    elif job.is_queued:
         status = 202
         response = {
             "status": job.get_status(),
-            "queue_position": job.get_position() or 0,
+            "queue_position": job.get_position() or -1,
+        }
+
+    elif job.is_started:
+        status = 202
+        response = {
+            "status": job.get_status(),
         }
 
     elif job.is_finished:
