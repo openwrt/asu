@@ -1,0 +1,325 @@
+openapi: 3.0.0
+info:
+  title: ASU Server API
+  description: This is a simple API
+  contact:
+    name: Paul Spooren
+    email: mail@aparcar.org
+  license:
+    name: GPL-2.0
+    url: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
+  version: 0.5.9
+externalDocs:
+  description: README.md
+  url: https://github.com/aparcar/asu/blob/master/README.md
+servers:
+- url: https://asu.aparcar.org
+  description: Running instance of ASU
+paths:
+  /api/build:
+    post:
+      deprecated: true
+      summary: Request a custom firmware image
+      description: Adds an item to the system
+      operationId: asu.api.api_build_post
+      requestBody:
+        description: Inventory item to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildRequest'
+      responses:
+        "200":
+          $ref: '#/components/responses/ResponseSuccessfull'
+
+        "202":
+          $ref: '#/components/responses/ResponseActive'
+
+        "400":
+          $ref: '#/components/responses/ResponseError'
+
+        "422":
+          $ref: '#/components/responses/ResponseBadPackage'
+
+        "500":
+          $ref: '#/components/responses/ResponseError'
+
+  /api/v1/build:
+    post:
+      summary: Request a custom firmware image
+      description: Adds an item to the system
+      operationId: asu.api.api_v1_build_post
+      requestBody:
+        description: Inventory item to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildRequest'
+      responses:
+        "200":
+          $ref: '#/components/responses/ResponseSuccessfull'
+
+        "202":
+          $ref: '#/components/responses/ResponseActive'
+
+        "400":
+          $ref: '#/components/responses/ResponseError'
+
+        "422":
+          $ref: '#/components/responses/ResponseBadPackage'
+
+        "500":
+          $ref: '#/components/responses/ResponseError'
+
+  /api/build/{request_hash}:
+    get:
+      deprecated: true
+      summary: check status of previously triggered build
+      operationId: asu.api.api_build_get
+      parameters:
+      - name: request_hash
+        in: path
+        description: Hash of request
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/ResponseSuccessfull'
+
+        "202":
+          $ref: '#/components/responses/ResponseActive'
+
+        "404":
+          $ref: '#/components/responses/ResponseError'
+
+  /api/v1/build/{request_hash}:
+    get:
+      summary: check status of previously triggered build
+      operationId: asu.api.api_v1_build_get
+      parameters:
+      - name: request_hash
+        in: path
+        description: Hash of request
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/ResponseSuccessfull'
+
+        "202":
+          $ref: '#/components/responses/ResponseActive'
+
+        "404":
+          $ref: '#/components/responses/ResponseError'
+
+components:
+  responses:
+    ResponseSuccessfull:
+      description: image successfully built
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BuildResponseSuccess'
+
+    ResponseActive:
+      description: build added to queue or currently building
+      headers:
+        X-Queue-Position:
+          schema:
+            type: integer
+            description: Current position in build queue
+      content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildResponseActive'
+
+    ResponseError:
+      description: invalid build request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BuildResponseError'
+
+    ResponseBadPackage:
+      description: unknown package(s) in request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BuildResponseError'
+  schemas:
+    BuildRequest:
+      required:
+      - profile
+      - target
+      - version
+      type: object
+      properties:
+        distro:
+          type: string
+          example: openwrt
+        version:
+          type: string
+          example: 19.07.8
+        target:
+          type: string
+          example: ath79/generic
+        profile:
+          type: string
+          example: 8dev_carambola2
+        diff_packages:
+          type: boolean
+        packages:
+          type: array
+          example:
+          - vim
+          - tmux
+          items:
+            type: string
+        packages_versions:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            vim: 8.0.1
+            bmon: 3.0.1
+      example:
+        version: 19.07.9
+        target: ath79/generic
+        profile: 8dev_carambola2
+        packages:
+          - auc
+          - luci-app-attendedsysupgrade
+
+    BuildResponseError:
+      type: object
+      required:
+        - details
+        - status
+      properties:
+        details:
+          type: string
+          example: "asu.build.PackageSelectionError: bmon version not as requested: 1.0 vs. 4.0-1"
+        type:
+          type: string
+          example: "about:blank"
+          description: "Further information on the issue"
+        status:
+          type: integer
+          example: 500
+        enqueued_at:
+          type: string
+          format: date-time
+          example: "2021-08-15T09:59:27.754430Z"
+        request_hash:
+          type: string
+          example: "5992c73895fb"
+
+    BuildResponseActive:
+      type: object
+      required:
+        - details
+        - enqueued_at
+        - request_hash
+        - status
+      properties:
+        details:
+          type: string
+          example: "queued"
+        enqueued_at:
+          type: string
+          format: date-time
+          example: "2021-08-15T09:59:27.754430Z"
+        request_hash:
+          type: string
+          example: "5992c73895fb"
+        status:
+          type: integer
+          example: 202
+        queue_position:
+          type: integer
+          example: 2
+          description: Current position in build queue
+
+    BuildResponseSuccess:
+      type: object
+      properties:
+        build_at:
+          type: string
+          format: date-time
+          example: "Tue, 25 Feb 2020 08:49:48 GMT"
+        enqueued_at:
+          type: string
+          format: date-time
+          example: "Tue, 25 Feb 2020 08:49:09 GMT"
+        id:
+          type: string
+          example: "avm_fritzbox-4040"
+        image_prefix:
+          type: string
+          example: "openwrt-387e9d003d04-ipq40xx-generic-avm_fritzbox-4040"
+        images:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - sha256
+              - type
+            properties:
+              name:
+                type: string
+                example: "openwrt-387e9d003d04-ipq40xx-generic-avm_fritzbox-4040-squashfs-eva.bin"
+              sha256:
+                type: string
+                example: "8cb0d58bf672ed442f0813a1f04ec2f5edf6e2b64c8f117cb11158e19251aa0b"
+              type:
+                type: string
+                example: "eva"
+        manifest:
+          type: object
+          additionalProperties:
+            type: string
+        metadata_version:
+          type: integer
+          description: Version of the JSON file create by OpenWrt ImageBuilder
+          example: 1
+        request_hash:
+          type: string
+          example: "5bac6cb8321f"
+        supported_devices:
+          type: array
+          items:
+            type: string
+            example: "avm,fritzbox-4040"
+        target:
+          type: string
+          example: "ipq40xx/generic"
+        titles:
+          type: array
+          items:
+            type: object
+            required:
+            - model
+            - vendor
+            properties:
+              vendor:
+                type: string
+                example: "AVM"
+              model:
+                type: string
+                example: "FRITZ!Box 4040"
+              variant:
+                type: string
+                example: "v1"
+        version_commit:
+          type: string
+          example: "r12297-7e9c7e7b2d"
+        version_code:
+          type: string
+          example: "SNAPSHOT"

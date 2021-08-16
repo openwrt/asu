@@ -2,6 +2,7 @@ import json
 from os import getenv
 from pathlib import Path
 
+import connexion
 from flask import Flask, redirect, send_from_directory
 from redis import Redis
 
@@ -20,7 +21,8 @@ def create_app(test_config: dict = None) -> Flask:
     redis_port = getenv("REDIS_PORT", 6379)
     redis_password = getenv("REDIS_PASSWORD", "")
 
-    app = Flask(__name__, instance_relative_config=True)
+    cnxn = connexion.FlaskApp(__name__)
+    app = cnxn.app
     app.config.from_mapping(
         REDIS_CONN=Redis(host=redis_host, port=redis_port, password=redis_password),
         TESTING=False,
@@ -92,5 +94,7 @@ def create_app(test_config: dict = None) -> Flask:
             }
         )
     )
+
+    cnxn.add_api("openapi.yml")
 
     return app
