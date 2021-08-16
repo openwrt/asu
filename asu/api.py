@@ -52,20 +52,10 @@ def get_queue() -> Queue:
 
 
 def validate_packages(req):
-    if "packages" in req and "packages_versions" in req:
-        return (
-            {
-                "status": "duplicate_package_list",
-                "message": "Use either `packages` or `packages_versions`, not both",
-            },
-            400,
-        )
-    elif req.get("packages"):
-        pass
-    elif req.get("packages_versions"):
+    if req.get("packages_versions") and not req.get("packages"):
         req["packages"] = req["packages_versions"].keys()
-    else:
-        # no packages to check
+
+    if not req.get("packages"):
         return
 
     req["packages"] = set(req["packages"]) - {"kernel", "libc", "libgcc"}
@@ -98,8 +88,7 @@ def validate_packages(req):
     if unknown_packages:
         return (
             {
-                "status": "bad_packages",
-                "message": f"Unsupported package(s): {', '.join(unknown_packages)}",
+                "detail": f"Unsupported package(s): {', '.join(unknown_packages)}",
             },
             422,
         )
@@ -118,16 +107,11 @@ def validate_request(req):
         (dict, int): Status message and code, empty if no error appears
 
     """
-    for needed in ["version", "target", "profile"]:
-        if needed not in req:
-            return ({"status": "bad_request", "message": f"Missing {needed}"}, 400)
-
     req["distro"] = req.get("distro", "openwrt")
     if req["distro"] not in get_distros():
         return (
             {
-                "status": "bad_distro",
-                "message": f"Unsupported distro: {req['distro']}",
+                "detail": f"Unsupported distro: {req['distro']}",
             },
             400,
         )
@@ -144,8 +128,7 @@ def validate_request(req):
     if req["branch"] not in current_app.config["BRANCHES"].keys():
         return (
             {
-                "status": "bad_branch",
-                "message": f"Unsupported branch: {req['version']}",
+                "detail": f"Unsupported branch: {req['version']}",
             },
             400,
         )
@@ -153,8 +136,7 @@ def validate_request(req):
     if req["version"] not in current_app.config["BRANCHES"][req["branch"]]["versions"]:
         return (
             {
-                "status": "bad_version",
-                "message": f"Unsupported version: {req['version']}",
+                "detail": f"Unsupported version: {req['version']}",
             },
             400,
         )
@@ -169,8 +151,7 @@ def validate_request(req):
     ):
         return (
             {
-                "status": "bad_target",
-                "message": f"Unsupported target: {req['target']}",
+                "detail": f"Unsupported target: {req['target']}",
             },
             400,
         )
@@ -199,8 +180,7 @@ def validate_request(req):
         ):
             return (
                 {
-                    "status": "bad_profile",
-                    "message": f"Unsupported profile: {req['profile']}",
+                    "detail": f"Unsupported profile: {req['profile']}",
                 },
                 400,
             )
@@ -221,40 +201,48 @@ def return_job(job):
         (dict, int): Status message and code
     """
     response = {}
+    headers = {}
     if job.meta:
         response.update(job.meta)
 
     if job.is_failed:
-        status = 500
-        response["message"] = job.exc_info.strip().split("\n")[-1]
+        response.update(
+            {"status": 500, "details": job.exc_info.strip().split("\n")[-1]}
+        )
 
     elif job.is_queued:
-        status = 202
-        response = {
-            "status": job.get_status(),
-            "queue_position": job.get_position() or 0,
-        }
+        response.update(
+            {
+                "status": 202,
+                "details": job.get_status(),
+                "queue_position": job.get_position() or 0,
+            }
+        )
+        headers["X-Queue-Position"] = str(response["queue_position"])
 
     elif job.is_started:
-        status = 202
-        response = {
-            "status": job.get_status(),
-        }
+        response.update(
+            {
+                "status": 202,
+                "details": job.get_status(),
+            }
+        )
 
     elif job.is_finished:
-        status = 200
-        response.update(job.result)
-        response["build_at"] = job.ended_at
+        response.update({"status": 200, "build_at": job.ended_at, **job.result})
 
     response["enqueued_at"] = job.enqueued_at
     response["request_hash"] = job.id
 
-    current_app.logger.debug(f"Response {response} with status {status}")
-    return response, status
+    current_app.logger.debug(response)
+    return response, response["status"], headers
 
 
-@bp.route("/build/<request_hash>", methods=["GET"])
 def api_build_get(request_hash):
+    return api_v1_build_get(request_hash)
+
+
+def api_v1_build_get(request_hash):
     """API call to get job information based on `request_hash`
 
     This API call can be used for polling once the initial build request is
@@ -268,13 +256,20 @@ def api_build_get(request_hash):
     """
     job = get_queue().fetch_job(request_hash)
     if not job:
-        return {"status": "not_found"}, 404
+        return {
+            "status": 404,
+            "title": "Not Found",
+            "detail": "could not find provided request hash",
+        }, 404
 
     return return_job(job)
 
 
-@bp.route("/build", methods=["POST"])
-def api_build():
+def api_build_post():
+    return api_v1_build_post()
+
+
+def api_v1_build_post():
     """API call to request an image
 
     An API request contains at least version and profile. The `packages` key
@@ -295,8 +290,6 @@ def api_build():
     """
     req = request.get_json()
     current_app.logger.debug(f"req {req}")
-    if not req:
-        return {"status": "bad_request"}, 400
 
     request_hash = get_request_hash(req)
     job = get_queue().fetch_job(request_hash)

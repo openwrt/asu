@@ -11,11 +11,11 @@ UPSTREAM_URL = "https://downloads.cdn.openwrt.org"
 STORE_PATH = Path.cwd() / "public/store/"
 
 # where to store JSON files
-JSON_PATH = Path.cwd() / "public/json/"
+JSON_PATH = Path.cwd() / "public/json/v1/"
 
 # supported versions
-BRANCHES = [
-    {
+BRANCHES = {
+    "SNAPSHOT": {
         "name": "SNAPSHOT",
         "enabled": True,
         "snapshot": True,
@@ -102,7 +102,7 @@ BRANCHES = [
             "zynq/generic": "arm_cortex-a9_neon",
         },
     },
-    {
+    "21.02": {
         "name": "21.02",
         "enabled": True,
         "snapshot": True,
@@ -193,7 +193,7 @@ BRANCHES = [
             "zynq/generic": "arm_cortex-a9_neon",
         },
     },
-    {
+    "19.07": {
         "name": "19.07",
         "enabled": True,
         "eol": "2020-01-01",
@@ -286,4 +286,4 @@ BRANCHES = [
             "zynq/generic": "arm_cortex-a9_neon",
         },
     },
-]
+}

@@ -1,4 +1,5 @@
-flask
+connexion
+connexion[swagger-ui]
 pynacl
 redis
 requests
