@@ -184,7 +184,7 @@ def validate_request(req):
         req["profile"] = "generic"
     else:
         mapped_profile = r.hget(
-            f"mapping-{req['branch']}-{req['version']}",
+            f"mapping-{req['branch']}-{req['version']}-{req['target']}",
             req["profile"],
         )
 

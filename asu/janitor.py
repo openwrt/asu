@@ -309,7 +309,8 @@ def update_target_profiles(branch: dict, version: str, target: str):
 
     for profile, data in profiles.items():
         for supported in data.get("supported_devices", []):
-            r.hset(f"mapping-{branch['name']}-{version}", supported, profile)
+            r.hset(f"mapping-{branch['name']}-{version}-{target}", supported, profile)
+            current_app.logger.info(f"Add profile mapping {supported} -> {profile}")
         r.sadd(f"profiles-{branch['name']}-{version}-{target}", profile)
         profile_path = (
             current_app.config["JSON_PATH"]
