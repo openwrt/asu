@@ -35,7 +35,8 @@ def redis():
     )
     r.sadd("profiles-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget", "testprofile")
     r.hset(
-        "mapping-SNAPSHOT-SNAPSHOT", mapping={"testvendor,testprofile": "testprofile"}
+        "mapping-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget",
+        mapping={"testvendor,testprofile": "testprofile"},
     )
     r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget", "x86/64")
     r.sadd("targets-21.02", "testtarget/testsubtarget")
