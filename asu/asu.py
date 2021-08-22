@@ -18,10 +18,11 @@ def create_app(test_config: dict = None) -> Flask:
 
     redis_host = getenv("REDIS_HOST", "localhost")
     redis_port = getenv("REDIS_PORT", 6379)
+    redis_password = getenv("REDIS_PASSWORD", "")
 
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        REDIS_CONN=Redis(host=redis_host, port=redis_port),
+        REDIS_CONN=Redis(host=redis_host, port=redis_port, password=redis_password),
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.cdn.openwrt.org",
