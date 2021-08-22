@@ -206,15 +206,13 @@ def return_job(job):
         response.update(job.meta)
 
     if job.is_failed:
-        response.update(
-            {"status": 500, "details": job.exc_info.strip().split("\n")[-1]}
-        )
+        response.update({"status": 500, "detail": job.exc_info.strip().split("\n")[-1]})
 
     elif job.is_queued:
         response.update(
             {
                 "status": 202,
-                "details": job.get_status(),
+                "detail": "queued",
                 "queue_position": job.get_position() or 0,
             }
         )
@@ -224,7 +222,7 @@ def return_job(job):
         response.update(
             {
                 "status": 202,
-                "details": job.get_status(),
+                "detail": "started",
             }
         )
 

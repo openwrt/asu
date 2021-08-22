@@ -14,7 +14,7 @@ def test_api_build(client):
         ),
     )
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "e360f833a191"
 
 
@@ -34,7 +34,7 @@ def test_api_build_mapping(client):
         ),
     )
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "19bb42f198c9"
 
 
@@ -49,7 +49,7 @@ def test_api_build_mapping_abi(client):
         ),
     )
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "7d099fb07fb3"
 
 
@@ -83,7 +83,7 @@ def test_api_build_get(client):
     assert response.json["request_hash"] == "e360f833a191"
     response = client.get("/api/v1/build/e360f833a191")
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "e360f833a191"
 
 
@@ -100,7 +100,7 @@ def test_api_build_packages_versions(client):
     assert response.json["request_hash"] == "552b9e328888"
     response = client.get("/api/v1/build/552b9e328888")
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "552b9e328888"
 
 
@@ -139,7 +139,7 @@ def test_api_build_empty_packages_list(client):
         ),
     )
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "66cb932c37a4"
 
 
@@ -153,7 +153,7 @@ def test_api_build_withouth_packages_list(client):
         ),
     )
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "66cb932c37a4"
 
 
@@ -216,7 +216,7 @@ def test_api_build_x86(client):
     )
 
     assert response.status == "202 ACCEPTED"
-    assert response.json.get("details") == "queued"
+    assert response.json.get("detail") == "queued"
     assert response.json.get("request_hash") == "1fda145d439f"
 
 
