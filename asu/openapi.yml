@@ -199,10 +199,10 @@ components:
     BuildResponseError:
       type: object
       required:
-        - details
+        - detail
         - status
       properties:
-        details:
+        detail:
           type: string
           example: "asu.build.PackageSelectionError: bmon version not as requested: 1.0 vs. 4.0-1"
         type:
@@ -223,12 +223,12 @@ components:
     BuildResponseActive:
       type: object
       required:
-        - details
+        - detail
         - enqueued_at
         - request_hash
         - status
       properties:
-        details:
+        detail:
           type: string
           example: "queued"
         enqueued_at:

@@ -89,6 +89,7 @@ def validate_packages(req):
         return (
             {
                 "detail": f"Unsupported package(s): {', '.join(unknown_packages)}",
+                "status": 422,
             },
             422,
         )
@@ -110,9 +111,7 @@ def validate_request(req):
     req["distro"] = req.get("distro", "openwrt")
     if req["distro"] not in get_distros():
         return (
-            {
-                "detail": f"Unsupported distro: {req['distro']}",
-            },
+            {"detail": f"Unsupported distro: {req['distro']}", "status": 400},
             400,
         )
 
@@ -127,17 +126,13 @@ def validate_request(req):
 
     if req["branch"] not in current_app.config["BRANCHES"].keys():
         return (
-            {
-                "detail": f"Unsupported branch: {req['version']}",
-            },
+            {"detail": f"Unsupported branch: {req['version']}", "status": 400},
             400,
         )
 
     if req["version"] not in current_app.config["BRANCHES"][req["branch"]]["versions"]:
         return (
-            {
-                "detail": f"Unsupported version: {req['version']}",
-            },
+            {"detail": f"Unsupported version: {req['version']}", "status": 400},
             400,
         )
 
@@ -150,9 +145,7 @@ def validate_request(req):
         req["target"],
     ):
         return (
-            {
-                "detail": f"Unsupported target: {req['target']}",
-            },
+            {"detail": f"Unsupported target: {req['target']}", "status": 400},
             400,
         )
 
@@ -179,9 +172,7 @@ def validate_request(req):
             req["profile"],
         ):
             return (
-                {
-                    "detail": f"Unsupported profile: {req['profile']}",
-                },
+                {"detail": f"Unsupported profile: {req['profile']}", "status": 400},
                 400,
             )
 

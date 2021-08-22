@@ -95,6 +95,6 @@ def create_app(test_config: dict = None) -> Flask:
         )
     )
 
-    cnxn.add_api("openapi.yml")
+    cnxn.add_api("openapi.yml", validate_responses=True)
 
     return app
