@@ -1,0 +1,14 @@
+[Unit]
+Description=Gunicorn instance to serve ASU
+After=network.target
+
+[Service]
+User=debian
+Group=debian
+WorkingDirectory=/home/debian/asu/
+Environment="PATH=/home/debian/.local/bin/"
+ExecStart=/home/debian/.local/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 -m 007 "asu.asu:create_app()"
+
+[Install]
+WantedBy=multi-user.target
+
