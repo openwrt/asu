@@ -303,20 +303,29 @@ components:
         titles:
           type: array
           items:
-            type: object
-            required:
-            - model
-            - vendor
-            properties:
-              vendor:
-                type: string
-                example: "AVM"
-              model:
-                type: string
-                example: "FRITZ!Box 4040"
-              variant:
-                type: string
-                example: "v1"
+            oneOf:
+              - type: object
+                required:
+                - model
+                - vendor
+                properties:
+                  vendor:
+                    type: string
+                    example: "AVM"
+                  model:
+                    type: string
+                    example: "FRITZ!Box 4040"
+                  variant:
+                    type: string
+                    example: "v1"
+              - type: object
+                required:
+                  - title
+                properties:
+                  title:
+                    type: string
+                    example: "AVM FRITZ!Box 7320"
+
         version_commit:
           type: string
           example: "r12297-7e9c7e7b2d"
