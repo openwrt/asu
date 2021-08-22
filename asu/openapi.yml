@@ -189,7 +189,7 @@ components:
             vim: 8.0.1
             bmon: 3.0.1
       example:
-        version: 19.07.9
+        version: 19.07.8
         target: ath79/generic
         profile: 8dev_carambola2
         packages:
