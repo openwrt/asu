@@ -245,9 +245,31 @@ components:
           type: integer
           example: 2
           description: Current position in build queue
+      example:
+        detail: queued
+        enqueued_at: 2021-08-22T20:41:32.729065Z
+        queue_position: 2,
+        request_hash: f74fdcb97a09
+        status: 202
 
     BuildResponseSuccess:
       type: object
+      required:
+        - build_at
+        - enqueued_at
+        - id
+        - image_prefix
+        - images
+        - manifest
+        - metadata_version
+        - request_hash
+        - status
+        - supported_devices
+        - target
+        - titles
+        - version_code
+        - version_number
+
       properties:
         build_at:
           type: string
@@ -292,6 +314,9 @@ components:
         request_hash:
           type: string
           example: "5bac6cb8321f"
+        status:
+          type: integer
+          example: 500
         supported_devices:
           type: array
           items:
@@ -325,10 +350,9 @@ components:
                   title:
                     type: string
                     example: "AVM FRITZ!Box 7320"
-
-        version_commit:
+        version_code:
           type: string
           example: "r12297-7e9c7e7b2d"
-        version_code:
+        version_number:
           type: string
           example: "SNAPSHOT"
