@@ -2,6 +2,7 @@ services:
   server:
     image: aparcar/asu-server
     build:
+      context: ./
       dockerfile: Dockerfile.server
     volumes:
       - "./asu-service:/home/build/asu/"
@@ -13,6 +14,7 @@ services:
   janitor:
     image: aparcar/asu-server
     build:
+      context: ./
       dockerfile: Dockerfile.server
     environment:
       - FLASK_APP=asu.asu
@@ -25,6 +27,7 @@ services:
   worker:
     image: aparcar/asu-worker
     build:
+      context: ./
       dockerfile: Dockerfile.worker
     volumes:
       - "./asu-service/public:/home/build/asu/public"
@@ -35,6 +38,7 @@ services:
   worker2:
     image: aparcar/asu-worker
     build:
+      context: ./
       dockerfile: Dockerfile.worker
     volumes:
       - "./asu-service/public:/home/build/asu/public"
