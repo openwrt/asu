@@ -320,4 +320,7 @@ def build(req: dict):
     json_content["id"] = req["profile"]
     json_content.pop("profiles")
 
+    for package in manifest.keys():
+        job.connection.zadd("package_installations", {package: 1}, incr=True)
+
     return json_content
