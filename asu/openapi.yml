@@ -35,8 +35,7 @@ paths:
   /api/build:
     post:
       deprecated: true
-      summary: Request a custom firmware image
-      description: Adds an item to the system
+      summary: Request a custom firmware image, please use /api/v1/build
       operationId: asu.api.api_build_post
       requestBody:
         description: Inventory item to add
@@ -63,7 +62,22 @@ paths:
   /api/v1/build:
     post:
       summary: Request a custom firmware image
-      description: Adds an item to the system
+      description: |
+        This API call allows to request a firmware image containing any
+        selection of packages. If the build was successfull it will respond a
+        `200` response including information on the build and created images. If
+        there were errors other status coulds will be returned, as described
+        below.
+
+        Since images take between 30 seconds and 5 minutes to be build, the
+        status `202` response will be returend while an image is being build or
+        in the build queue. Clients should poll the API every 5 seconds to if
+        the image was build or an error occured.
+
+        The `POST` request should only be done once. A valid request will result
+        in a response including a `request_hash` which can then be used for the
+        `/api/v1/build/<request_hash>` API path. This way the server doens't
+        have to validate the request every time.
       operationId: asu.api.api_v1_build_post
       requestBody:
         description: Inventory item to add
@@ -90,7 +104,7 @@ paths:
   /api/build/{request_hash}:
     get:
       deprecated: true
-      summary: check status of previously triggered build
+      summary: Check status of requested firmware, please use /api/v1/build/
       operationId: asu.api.api_build_get
       parameters:
       - name: request_hash
@@ -114,11 +128,18 @@ paths:
   /api/v1/build/{request_hash}:
     get:
       summary: check status of previously triggered build
+      description: |
+        This API path should be used for polling since it does not validate the
+        request data every time but simply checks if the job exists.
+
+        Ideally clients requests status updates no more then every 5 seconds.
       operationId: asu.api.api_v1_build_get
       parameters:
       - name: request_hash
         in: path
-        description: Hash of request
+        description: |
+          The hashed request is responded after a successful build request at
+          `/api/v1/build`.
         required: true
         style: simple
         explode: false
@@ -134,17 +155,36 @@ paths:
         "404":
           $ref: '#/components/responses/ResponseError'
 
+          #  /api/v1/revision/{target}:
+          #    get:
+          #      summary: receive revision of current target
+          #      operationId: asu.api.api_v1_revision
+          #      parameters:
+          #      - name: target
+          #        in: path
+          #        description: Target used on device
+          #        required: true
+          #        style: simple
+          #        explode: false
+          #        schema:
+          #          type: string
+          #      responses:
+          #        "200":
+          #          $ref: '#/components/responses/JsonResponseRevision'
+
 components:
   responses:
     ResponseSuccessfull:
-      description: image successfully built
+      description: Image successfully built
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/BuildResponseSuccess'
 
     ResponseActive:
-      description: build added to queue or currently building
+      description: |
+        Build added to queue or currently building, please check again in 5
+        seconds.
       headers:
         X-Queue-Position:
           schema:
@@ -156,18 +196,19 @@ components:
               $ref: '#/components/schemas/BuildResponseActive'
 
     ResponseError:
-      description: invalid build request
+      description: Invalid build request
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/BuildResponseError'
 
     ResponseBadPackage:
-      description: unknown package(s) in request
+      description: Unknown package(s) in request
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/BuildResponseError'
+
   schemas:
     BuildRequest:
       required:
@@ -179,9 +220,15 @@ components:
         distro:
           type: string
           example: openwrt
+          description: |
+            This parameter is currently optional since no other distributions
+            are supported.
         version:
           type: string
           example: 19.07.8
+          description: |
+            It is recommended to always upgrade to the latest version, however
+            it is possible to request older images for testing.
         target:
           type: string
           example: ath79/generic
@@ -190,6 +237,14 @@ components:
           example: 8dev_carambola2
         diff_packages:
           type: boolean
+          description: |
+            This parameter determines if requested packages are seen as
+            *additional* or *absolut*. If set to `true` the packages are seen as
+            *absolute* and all default packages outside the requested packages
+            are removed.
+
+            It is possible to brick devices when requesting an incomplete list
+            with this parameter enabled since it may remove WiFi drivers.
         packages:
           type: array
           example:
@@ -197,6 +252,9 @@ components:
           - tmux
           items:
             type: string
+          description: |
+            List of packages, either *additional* or *absolute* depending of the
+            `diff_packages` parameter.
         packages_versions:
           type: object
           additionalProperties:
@@ -204,6 +262,16 @@ components:
           example:
             vim: 8.0.1
             bmon: 3.0.1
+          description: |
+            Instead of using the `packages` parameter it is possible to include
+            *expected* package versions. This is useful if the user interface
+            shows package upgrades before performing an image request. Once
+            approved by the user the build request will fail if any package of
+            the resulting firmware is different than requested.
+
+            It is not possible to specify what package version to request. Only
+            the latest version of a package can be requested, which can be
+            retrieved via provided package indexes.
       example:
         version: 19.07.8
         target: ath79/generic
@@ -221,20 +289,29 @@ components:
         detail:
           type: string
           example: "asu.build.PackageSelectionError: bmon version not as requested: 1.0 vs. 4.0-1"
+          description: |
+            This contains a short but user readable detail of the occurring error.
         type:
           type: string
           example: "about:blank"
-          description: "Further information on the issue"
+          description: "Further information on the issue. This is currently not used"
         status:
           type: integer
           example: 500
+          description:
+            Always the same as the responding HTTP status code.
         enqueued_at:
           type: string
           format: date-time
           example: "2021-08-15T09:59:27.754430Z"
+          description:
+            Time and date of the build request.
         request_hash:
           type: string
           example: "5992c73895fb"
+          description:
+            The `request_hash` is based on all parameters of a build request and
+            can be used for polling.
 
     BuildResponseActive:
       type: object
@@ -247,20 +324,34 @@ components:
         detail:
           type: string
           example: "queued"
+          description: |
+            This is currently either `queued` or `started`. Instead of relying
+            on this parameter it can be always considered *active* if the HTTP
+            status code is `202`.
         enqueued_at:
           type: string
           format: date-time
           example: "2021-08-15T09:59:27.754430Z"
+          description:
+            Time and date of the build request.
         request_hash:
           type: string
           example: "5992c73895fb"
+          description:
+            The `request_hash` is based on all parameters of a build request and
+            can be used for polling.
         status:
           type: integer
           example: 202
+          description:
+            Always the same as the responding HTTP status code.
         queue_position:
           type: integer
           example: 2
-          description: Current position in build queue
+          description: |
+            Current position in build queue. If the response contains the queue
+            position the firmware build is queued, if it does not the firmware
+            is currently being built.
       example:
         detail: queued
         enqueued_at: 2021-08-22T20:41:32.729065Z
