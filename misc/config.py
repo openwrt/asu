@@ -24,7 +24,6 @@ BRANCHES = {
         "path": "snapshots",
         "path_packages": "snapshots/packages",
         "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
-        "updates": "dev",
         "repos": ["base", "packages", "luci", "routing", "telephony"],
         "extra_repos": {
             "lime-packages": "https://feed.libremesh.org/master",
@@ -115,7 +114,6 @@ BRANCHES = {
         "path": "releases/{version}",
         "path_packages": "releases/packages-{branch}",
         "pubkey": "RWQviwuY4IMGvwLfs6842A0m4EZU1IjczTxKMSk3BQP8DAQLHBwdQiaU",
-        "updates": "rc",
         "repos": ["base", "packages", "luci", "routing", "telephony"],
         "extra_repos": {
             "lime-packages": "https://feed.libremesh.org/master",
@@ -196,7 +194,6 @@ BRANCHES = {
     "19.07": {
         "name": "19.07",
         "enabled": True,
-        "eol": "2020-01-01",
         "versions": [
             "19.07.8",
             "19.07.7",
@@ -206,8 +203,6 @@ BRANCHES = {
         "path": "releases/{version}",
         "path_packages": "releases/packages-{branch}",
         "pubkey": "RWT5S53W/rrJY9BiIod3JF04AZ/eU1xDpVOb+rjZzAQBEcoETGx8BXEK",
-        "release_date": "2020-01-31",
-        "updates": "bugs",
         "repos": ["base", "packages", "luci", "routing", "telephony", "freifunk"],
         "extra_repos": {
             "lime-packages": "https://feed.libremesh.org/master",

@@ -16,6 +16,22 @@ servers:
 - url: https://asu.aparcar.org
   description: Running instance of ASU
 paths:
+  /api/v1/overview:
+    get:
+      summary: Overview of branches and versions available
+      description: |
+        This can be used by user interfaces and update clients to check for
+        latest releases. For automatic checks the static file at
+        `/json/v1/latest.json` should be used.
+      operationId: asu.api.api_v1_overview
+      responses:
+        "200":
+          description: Overview of current OpenWrt versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchemaOverview'
+
   /api/build:
     post:
       deprecated: true
@@ -356,3 +372,80 @@ components:
         version_number:
           type: string
           example: "SNAPSHOT"
+
+    JsonSchemaBranch:
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+          type: string
+          example: 19.07
+        enabled:
+          type: boolean
+        snapshot:
+          type: boolean
+        versions:
+          type: array
+          items:
+            type: string
+            example:
+              - 19.07.8
+              - 19.07.7
+              - 19.07.6
+        git_branch:
+          type: string
+          example: openwrt-19.07
+        path:
+          type: string
+          example: "releases/{version}"
+        path_packages:
+          type: string
+          example: "releases/packages-{branch}"
+        pubkey:
+          type: string
+          example: RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+
+        targets:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            apm821xx/nand: powerpc_464fp
+            x86/64: x86_86
+        extra_repos:
+          type: object
+          additionalProperties:
+            type: string
+        extra_keys:
+          type: array
+          items:
+            type: string
+        repos:
+          type: array
+          items:
+            type: string
+
+    JsonSchemaOverview:
+      type: object
+      additionalProperties: False
+      properties:
+        latest:
+          type: array
+          items:
+            type: string
+            example:
+              - SNAPSHOT
+              - 21.02.0-rc4
+              - 19.07.7
+        branches:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/JsonSchemaBranch'
+        server:
+          type: object
+          properties:
+            version:
+              type: string
+              example: v0.6.1
+            contact:
+              type: string
+              example: mail@aparcar.org

@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from flask import Blueprint, current_app, g, redirect, request
+from flask import Blueprint, current_app, g, redirect, request, jsonify
 from rq import Connection, Queue
 
 from .build import build
@@ -29,14 +29,16 @@ def get_redis():
     return g.redis
 
 
-@bp.route("/latest")
-def api_latest():
-    return redirect("/json/latest.json")
-
-
+# legacy
 @bp.route("/branches")
 def api_branches():
-    return redirect("/json/branches.json")
+    return redirect("/json/v1/branches.json")
+
+
+# tbd
+@bp.route("/latest")
+def api_latest():
+    return redirect("/json/v1/latest.json")
 
 
 def get_queue() -> Queue:
@@ -225,6 +227,10 @@ def return_job(job):
 
     current_app.logger.debug(response)
     return response, response["status"], headers
+
+
+def api_v1_overview():
+    return jsonify(current_app.config["OVERVIEW"])
 
 
 def api_build_get(request_hash):

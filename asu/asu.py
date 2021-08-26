@@ -6,6 +6,8 @@ import connexion
 from flask import Flask, redirect, send_from_directory
 from redis import Redis
 
+from asu import __version__
+
 
 def create_app(test_config: dict = None) -> Flask:
     """Create the main Flask application
@@ -52,6 +54,7 @@ def create_app(test_config: dict = None) -> Flask:
 
     @app.route("/json/")
     @app.route("/json/<path:path>")
+    @app.route("/json/v1/<path:path>")
     def json_path(path="index.html"):
         return send_from_directory(app.config["JSON_PATH"], path)
 
@@ -68,30 +71,38 @@ def create_app(test_config: dict = None) -> Flask:
 
     app.register_blueprint(api.bp)
 
-    (app.config["JSON_PATH"] / "branches.json").write_text(
-        json.dumps(
-            dict(
-                map(
-                    lambda b: (b["name"], b),
-                    filter(lambda b: b.get("enabled"), app.config["BRANCHES"].values()),
-                )
-            )
+    branches = dict(
+        map(
+            lambda b: (b["name"], b),
+            filter(lambda b: b.get("enabled"), app.config["BRANCHES"].values()),
+        )
+    )
+    latest = list(
+        map(
+            lambda b: b["versions"][0],
+            filter(
+                lambda b: b.get("enabled"),
+                app.config["BRANCHES"].values(),
+            ),
         )
     )
 
-    (app.config["JSON_PATH"] / "latest.json").write_text(
+    app.config["OVERVIEW"] = {
+        "latest": latest,
+        "branches": branches,
+        "server": {"version": __version__, "contact": "mail@aparcar.org"},
+    }
+
+    # legacy
+    (app.config["JSON_PATH"] / "branches.json").write_text(json.dumps(branches))
+
+    # tdb
+    (app.config["JSON_PATH"] / "latest.json").write_text(json.dumps({"latest": latest}))
+
+    (app.config["JSON_PATH"] / "overview.json").write_text(
         json.dumps(
-            {
-                "latest": list(
-                    map(
-                        lambda b: b["versions"][0],
-                        filter(
-                            lambda b: b.get("enabled"),
-                            app.config["BRANCHES"].values(),
-                        ),
-                    )
-                )
-            }
+            app.config["OVERVIEW"],
+            indent=2,
         )
     )
 
