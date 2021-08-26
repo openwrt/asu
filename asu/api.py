@@ -50,7 +50,7 @@ def api_v1_stats_targets(branch="SNAPSHOT"):
             "branch": branch,
             "targets": [
                 (s, p.decode("utf-8"))
-                for p, s in get_redis().zrange(
+                for p, s in get_redis().zrevrange(
                     f"stats-targets-{branch}", 0, -1, withscores=True
                 )
             ],
@@ -72,7 +72,7 @@ def api_v1_stats_packages(branch="SNAPSHOT"):
             "branch": branch,
             "packages": [
                 (s, p.decode("utf-8"))
-                for p, s in get_redis().zrange(
+                for p, s in get_redis().zrevrange(
                     f"stats-packages-{branch}", 0, -1, withscores=True
                 )
             ],
@@ -94,7 +94,7 @@ def api_v1_stats_profiles(branch):
             "branch": branch,
             "profiles": [
                 (s, p.decode("utf-8"))
-                for p, s in get_redis().zrange(
+                for p, s in get_redis().zrevrange(
                     f"stats-profiles-{branch}", 0, -1, withscores=True
                 )
             ],
