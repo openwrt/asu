@@ -285,6 +285,7 @@ components:
       - target
       - version
       type: object
+      additionalProperties: false
       properties:
         distro:
           type: string
@@ -298,6 +299,13 @@ components:
           description: |
             It is recommended to always upgrade to the latest version, however
             it is possible to request older images for testing.
+        version_code:
+          type: string
+          description: |
+            It is possible to send the expected revision. This allows to show
+            the revision within clients before the request. If the resulting
+            firmware is a different revision, the build results in an error.
+          example: r11364-ef56c85848
         target:
           type: string
           example: ath79/generic
