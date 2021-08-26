@@ -41,18 +41,70 @@ def api_latest():
     return redirect("/json/v1/latest.json")
 
 
-@bp.route("/stats/package_installations")
-def api_v1_stats_package_installations():
+def api_v1_stats_targets(branch="SNAPSHOT"):
+    if branch not in current_app.config["BRANCHES"]:
+        return "", 404
+
     return jsonify(
         {
-            "package_installations": [
+            "branch": branch,
+            "targets": [
                 (s, p.decode("utf-8"))
-                for p, s in get_redis().zrevrange(
-                    "package_installations", 0, -1, withscores=True
+                for p, s in get_redis().zrange(
+                    f"stats-targets-{branch}", 0, -1, withscores=True
                 )
-            ]
+            ],
         }
     )
+
+
+@bp.route("/v1/stats/targets/")
+def api_v1_stats_targets_default():
+    return redirect("/api/v1/stats/targets/SNAPSHOT")
+
+
+def api_v1_stats_packages(branch="SNAPSHOT"):
+    if branch not in current_app.config["BRANCHES"]:
+        return "", 404
+
+    return jsonify(
+        {
+            "branch": branch,
+            "packages": [
+                (s, p.decode("utf-8"))
+                for p, s in get_redis().zrange(
+                    f"stats-packages-{branch}", 0, -1, withscores=True
+                )
+            ],
+        }
+    )
+
+
+@bp.route("/v1/stats/packages/")
+def api_v1_stats_packages_default():
+    return redirect("/api/v1/stats/packages/SNAPSHOT")
+
+
+def api_v1_stats_profiles(branch):
+    if branch not in current_app.config["BRANCHES"]:
+        return "", 404
+
+    return jsonify(
+        {
+            "branch": branch,
+            "profiles": [
+                (s, p.decode("utf-8"))
+                for p, s in get_redis().zrange(
+                    f"stats-profiles-{branch}", 0, -1, withscores=True
+                )
+            ],
+        }
+    )
+
+
+@bp.route("/v1/stats/profiles/")
+def api_v1_stats_profiles_default():
+    return redirect("/api/v1/stats/profiles/SNAPSHOT")
 
 
 def get_queue() -> Queue:
