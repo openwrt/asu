@@ -17,6 +17,7 @@ JSON_PATH = Path.cwd() / "public/json/v1/"
 BRANCHES = {
     "SNAPSHOT": {
         "name": "SNAPSHOT",
+        "updates": "dev",
         "enabled": True,
         "snapshot": True,
         "versions": ["SNAPSHOT"],
@@ -103,6 +104,8 @@ BRANCHES = {
     },
     "21.02": {
         "name": "21.02",
+        "updates": "features",
+        "release_date": "2021-08-04",
         "enabled": True,
         "snapshot": True,
         "versions": [
@@ -193,6 +196,8 @@ BRANCHES = {
     },
     "19.07": {
         "name": "19.07",
+        "updates": "security",
+        "release_date": "2021-08-07",
         "enabled": True,
         "versions": [
             "19.07.8",
