@@ -305,6 +305,10 @@ def update_target_profiles(branch: dict, version: str, target: str):
     metadata = req.json()
     profiles = metadata.pop("profiles", {})
 
+    r.set(
+        f"revision-{version}-{target}", metadata["version_code"],
+    )
+
     current_app.logger.info(f"Found {len(profiles)} profiles")
 
     for profile, data in profiles.items():
