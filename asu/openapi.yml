@@ -402,7 +402,6 @@ components:
         - titles
         - version_code
         - version_number
-
       properties:
         build_at:
           type: string
@@ -512,6 +511,28 @@ components:
         git_branch:
           type: string
           example: openwrt-19.07
+        updates:
+          type: string
+          enum: [dev, features, bugs, security]
+          example: bugs
+          description: |
+            Describes what kind of update a branch receives
+              - `dev` unstable development
+              - `features` receives new features
+              - `bugs` only bug fixes
+              - `security` only security fixes
+        release_date:
+          type: string
+          format: date
+          example: "2021-08-15"
+          description: |
+            Date of the latest release
+        eol:
+          type: string
+          format: date
+          example: "2021-08-15"
+          description:
+            Date of branch end of life
         path:
           type: string
           example: "releases/{version}"
@@ -544,6 +565,10 @@ components:
     JsonSchemaOverview:
       type: object
       additionalProperties: False
+      required:
+        - latest
+        - branches
+        - server
       properties:
         latest:
           type: array
