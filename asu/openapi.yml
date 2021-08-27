@@ -197,22 +197,42 @@ paths:
         "404":
           $ref: '#/components/responses/ResponseError'
 
-          #  /api/v1/revision/{target}:
-          #    get:
-          #      summary: receive revision of current target
-          #      operationId: asu.api.api_v1_revision
-          #      parameters:
-          #      - name: target
-          #        in: path
-          #        description: Target used on device
-          #        required: true
-          #        style: simple
-          #        explode: false
-          #        schema:
-          #          type: string
-          #      responses:
-          #        "200":
-          #          $ref: '#/components/responses/JsonResponseRevision'
+  /api/v1/revision/{version}/{target}/{subtarget}:
+    get:
+      summary: receive revision of current target
+      operationId: asu.api.api_v1_revision
+      parameters:
+      - name: version
+        in: path
+        description: Version in question
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: target
+        in: path
+        description: Target used on device
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: subtarget
+        in: path
+        description: Target used on device
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Revision found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchemaRevision'
 
 components:
   responses:
@@ -710,3 +730,13 @@ components:
           type: integer
       example:
         images: 1
+
+    JsonSchemaRevision:
+      type: object
+      additionalProperties: false
+      required:
+        - revision
+      properties:
+        revision:
+          type: string
+          example: r11364-ef56c85848
