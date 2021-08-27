@@ -101,33 +101,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/JsonSchemaStatsTargets'
 
-  /api/build:
-    post:
-      deprecated: true
-      summary: Request a custom firmware image, please use /api/v1/build
-      operationId: asu.api.api_build_post
-      requestBody:
-        description: Inventory item to add
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BuildRequest'
-      responses:
-        "200":
-          $ref: '#/components/responses/ResponseSuccessfull'
-
-        "202":
-          $ref: '#/components/responses/ResponseActive'
-
-        "400":
-          $ref: '#/components/responses/ResponseError'
-
-        "422":
-          $ref: '#/components/responses/ResponseBadPackage'
-
-        "500":
-          $ref: '#/components/responses/ResponseError'
-
   /api/v1/build:
     post:
       summary: Request a custom firmware image
@@ -168,30 +141,6 @@ paths:
           $ref: '#/components/responses/ResponseBadPackage'
 
         "500":
-          $ref: '#/components/responses/ResponseError'
-
-  /api/build/{request_hash}:
-    get:
-      deprecated: true
-      summary: Check status of requested firmware, please use /api/v1/build/
-      operationId: asu.api.api_build_get
-      parameters:
-      - name: request_hash
-        in: path
-        description: Hash of request
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
-      responses:
-        "200":
-          $ref: '#/components/responses/ResponseSuccessfull'
-
-        "202":
-          $ref: '#/components/responses/ResponseActive'
-
-        "404":
           $ref: '#/components/responses/ResponseError'
 
   /api/v1/build/{request_hash}:

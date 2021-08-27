@@ -29,10 +29,16 @@ def get_redis():
     return g.redis
 
 
-# legacy
-@bp.route("/branches")
-def api_branches():
-    return redirect("/json/v1/branches.json")
+def get_queue() -> Queue:
+    """Return the current queue
+
+    Returns:
+        Queue: The current RQ work queue
+    """
+    if "queue" not in g:
+        with Connection():
+            g.queue = Queue(connection=get_redis())
+    return g.queue
 
 
 # tbd
@@ -105,18 +111,6 @@ def api_v1_stats_profiles(branch):
 @bp.route("/v1/stats/profiles/")
 def api_v1_stats_profiles_default():
     return redirect("/api/v1/stats/profiles/SNAPSHOT")
-
-
-def get_queue() -> Queue:
-    """Return the current queue
-
-    Returns:
-        Queue: The current RQ work queue
-    """
-    if "queue" not in g:
-        with Connection():
-            g.queue = Queue(connection=get_redis())
-    return g.queue
 
 
 def validate_packages(req):
@@ -251,14 +245,7 @@ def validate_request(req):
     return ({}, None)
 
 
-def return_job(job):
-    """Return job status message and code
-
-    The states vary if the image is currently build, failed or finished
-
-    Returns:
-        (dict, int): Status message and code
-    """
+def return_job_v1(job):
     response = {}
     headers = {}
     if job.meta:
@@ -299,22 +286,7 @@ def api_v1_overview():
     return jsonify(current_app.config["OVERVIEW"])
 
 
-def api_build_get(request_hash):
-    return api_v1_build_get(request_hash)
-
-
 def api_v1_build_get(request_hash):
-    """API call to get job information based on `request_hash`
-
-    This API call can be used for polling once the initial build request is
-    accepted. The request using POST returns the `request_hash` on success.
-
-    Args:
-        request_hash (str): Request hash to lookup
-
-    Retrns:
-        (dict, int): Status message and code
-    """
     job = get_queue().fetch_job(request_hash)
     if not job:
         return {
@@ -323,35 +295,98 @@ def api_v1_build_get(request_hash):
             "detail": "could not find provided request hash",
         }, 404
 
-    return return_job(job)
-
-
-def api_build_post():
-    return api_v1_build_post()
+    return return_job_v1(job)
 
 
 def api_v1_build_post():
-    """API call to request an image
-
-    An API request contains at least version and profile. The `packages` key
-    can contain a list of extra packages to install.
-
-    Below an example of the contents of the POSTed JSON data:
-
-        {
-            "profile": "tplink_tl-wdr4300-v1",
-            "packages": [
-                "luci"
-            ],
-            "version": "SNAPSHOT"
-        }
-
-    Retrns:
-        (dict, int): Status message and code
-    """
     req = request.get_json()
     current_app.logger.debug(f"req {req}")
+    request_hash = get_request_hash(req)
+    job = get_queue().fetch_job(request_hash)
+    response = {}
+    status = 200
+    result_ttl = "24h"
+    failure_ttl = "12h"
 
+    if job is None:
+        response, status = validate_request(req)
+        if response:
+            return response, status
+
+        req["store_path"] = current_app.config["STORE_PATH"]
+        req["upstream_url"] = current_app.config["UPSTREAM_URL"]
+        req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
+
+        if req["branch_data"].get("snapshot"):
+            result_ttl = "15m"
+            current_app.logger.info(f"Set snapshot request {request_hash} ttl to 15m")
+
+        job = get_queue().enqueue(
+            build,
+            req,
+            job_id=request_hash,
+            result_ttl=result_ttl,
+            failure_ttl=failure_ttl,
+            job_timeout="10m",
+        )
+
+    return return_job_v1(job)
+
+
+# legacy /api/build
+@bp.route("/branches")
+def api_branches():
+    return redirect("/json/v1/branches.json")
+
+
+def return_job(job):
+    response = {}
+    if job.meta:
+        response.update(job.meta)
+
+    status = 500
+
+    if job.is_failed:
+        response["message"] = job.exc_info.strip().split("\n")[-1]
+
+    elif job.is_queued:
+        status = 202
+        response = {
+            "status": job.get_status(),
+            "queue_position": job.get_position() or 0,
+        }
+
+    elif job.is_started:
+        status = 202
+        response = {
+            "status": job.get_status(),
+        }
+
+    elif job.is_finished:
+        status = 200
+        response.update(job.result)
+        response["build_at"] = job.ended_at
+
+    response["enqueued_at"] = job.enqueued_at
+    response["request_hash"] = job.id
+
+    current_app.logger.debug(f"Response {response} with status {status}")
+    return response, status
+
+
+@bp.route("/build", methods=["GET"])
+def api_build_get(request_hash):
+    job = get_queue().fetch_job(request_hash)
+    if not job:
+        return {"status": "not_found"}, 404
+
+    return return_job(job)
+
+
+@bp.route("/build", methods=["POST"])
+def api_build_post():
+    req = request.get_json()
+    current_app.logger.debug(f"req {req}")
     request_hash = get_request_hash(req)
     job = get_queue().fetch_job(request_hash)
     response = {}
