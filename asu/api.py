@@ -336,7 +336,7 @@ def api_v1_build_post():
 # legacy /api/build
 @bp.route("/branches")
 def api_branches():
-    return redirect("/json/v1/branches.json")
+    return jsonify(list(current_app.config["OVERVIEW"]["branches"].values()))
 
 
 def return_job(job):

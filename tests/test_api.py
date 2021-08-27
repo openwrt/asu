@@ -1,6 +1,6 @@
 def test_api_version(client, app):
     response = client.get("/api/branches")
-    assert response.status == "302 FOUND"
+    assert response.status == "200 OK"
 
 
 def test_api_build(client):

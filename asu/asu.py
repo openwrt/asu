@@ -94,7 +94,9 @@ def create_app(test_config: dict = None) -> Flask:
     }
 
     # legacy
-    (app.config["JSON_PATH"] / "branches.json").write_text(json.dumps(branches))
+    (app.config["JSON_PATH"] / "branches.json").write_text(
+        json.dumps(list(branches.values()))
+    )
 
     # tdb
     (app.config["JSON_PATH"] / "latest.json").write_text(json.dumps({"latest": latest}))
