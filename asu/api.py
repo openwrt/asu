@@ -391,7 +391,7 @@ def return_job(job):
     return response, status
 
 
-@bp.route("/build", methods=["GET"])
+@bp.route("/build/<path:request_hash>", methods=["GET"])
 def api_build_get(request_hash):
     job = get_queue().fetch_job(request_hash)
     if not job:
