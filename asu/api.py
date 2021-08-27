@@ -47,6 +47,23 @@ def api_latest():
     return redirect("/json/v1/latest.json")
 
 
+def api_v1_stats_images():
+    return jsonify({"images": int(get_redis().get("stats-images").decode("utf-8"))})
+
+
+def api_v1_stats_versions():
+    return jsonify(
+        {
+            "versions": [
+                (s, p.decode("utf-8"))
+                for p, s in get_redis().zrevrange(
+                    f"stats-versions", 0, -1, withscores=True
+                )
+            ],
+        }
+    )
+
+
 def api_v1_stats_targets(branch="SNAPSHOT"):
     if branch not in current_app.config["BRANCHES"]:
         return "", 404

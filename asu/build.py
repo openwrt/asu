@@ -340,4 +340,12 @@ def build(req: dict):
             incr=True,
         )
 
+        job.connection.zadd(
+            "stats-versions",
+            {req["version"]: 1},
+            incr=True,
+        )
+
+        job.connection.incr("stats-images")
+
     return json_content

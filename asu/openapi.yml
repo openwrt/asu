@@ -32,6 +32,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/JsonSchemaOverview'
 
+  /api/v1/stats/versions:
+    get:
+      summary: Per version count of built images
+      operationId: asu.api.api_v1_stats_versions
+      responses:
+        "200":
+          description: Stats found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchemaStatsVersions'
+
+  /api/v1/stats/images:
+    get:
+      summary: Total count of built images
+      operationId: asu.api.api_v1_stats_images
+      responses:
+        "200":
+          description: Stats found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchemaStatsImages'
+
   /api/v1/stats/profiles/{branch}:
     get:
       summary: See profile installations of specified branch
@@ -642,3 +666,24 @@ components:
           items:
             type: array
             items: {}
+
+    JsonSchemaStatsVersions:
+      type: object
+      additionalProperties: false
+      required:
+        - versions
+      properties:
+        versions:
+          type: array
+          items:
+            type: array
+            items: {}
+
+    JsonSchemaStatsImages:
+      type: object
+      additionalProperties: false
+      required:
+        - images
+      properties:
+        images:
+          type: integer
