@@ -23,9 +23,7 @@ def create_app(test_config: dict = None) -> Flask:
     redis_port = getenv("REDIS_PORT", 6379)
     redis_password = getenv("REDIS_PASSWORD", "")
 
-    cnxn = connexion.FlaskApp(
-        __name__, options={"swagger_path": "/home/user/src/swagger-ui/dist"}
-    )
+    cnxn = connexion.FlaskApp(__name__)
     app = cnxn.app
     app.config.from_mapping(
         REDIS_CONN=Redis(host=redis_host, port=redis_port, password=redis_password),

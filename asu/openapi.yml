@@ -632,6 +632,11 @@ components:
           items:
             type: array
             items: {}
+      example:
+        branch: SNAPSHOT
+        targets:
+          - [ 7, "8dev_rambutan" ]
+          - [ 6, "bananapi_bpi-r2" ]
 
     JsonSchemaStatsPackages:
       type: object
@@ -649,6 +654,12 @@ components:
           items:
             type: array
             items: {}
+      example:
+        branch: SNAPSHOT
+        targets:
+          - [ 7, "uci" ]
+          - [ 6, "ubusd" ]
+          - [ 2, "ubox" ]
 
     JsonSchemaStatsTargets:
       type: object
@@ -666,6 +677,12 @@ components:
           items:
             type: array
             items: {}
+      example:
+        branch: SNAPSHOT
+        targets:
+          - [ 4, "mediatek/mt7622" ]
+          - [ 2, "ath79/generic" ]
+          - [ 1, "ath79/nand" ]
 
     JsonSchemaStatsVersions:
       type: object
@@ -678,6 +695,10 @@ components:
           items:
             type: array
             items: {}
+      example:
+        versions:
+          - [ 2, "21.02.0-rc4" ]
+          - [ 1, "19.07.8" ]
 
     JsonSchemaStatsImages:
       type: object
@@ -687,3 +708,5 @@ components:
       properties:
         images:
           type: integer
+      example:
+        images: 1
