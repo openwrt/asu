@@ -1,5 +1,6 @@
 import email
 import json
+from datetime import datetime
 from multiprocessing import Pool
 from time import sleep
 
@@ -327,7 +328,14 @@ def update_target_profiles(branch: dict, version: str, target: str):
         profile_path.parent.mkdir(exist_ok=True, parents=True)
         profile_path.write_text(
             json.dumps(
-                {**data, **metadata, "id": profile},
+                {
+                    **metadata,
+                    **data,
+                    "id": profile,
+                    "build_at": datetime.utcfromtimestamp(
+                        metadata["source_date_epoch"]
+                    ).strftime("%a, %d %b %Y %I:%M:%S %Z"),
+                },
                 sort_keys=True,
                 separators=(",", ":"),
             )
