@@ -306,7 +306,8 @@ def update_target_profiles(branch: dict, version: str, target: str):
     profiles = metadata.pop("profiles", {})
 
     r.set(
-        f"revision-{version}-{target}", metadata["version_code"],
+        f"revision-{version}-{target}",
+        metadata["version_code"],
     )
 
     current_app.logger.info(f"Found {len(profiles)} profiles")
@@ -325,7 +326,11 @@ def update_target_profiles(branch: dict, version: str, target: str):
         ).with_suffix(".json")
         profile_path.parent.mkdir(exist_ok=True, parents=True)
         profile_path.write_text(
-            json.dumps({**data, **metadata}, sort_keys=True, separators=(",", ":"))
+            json.dumps(
+                {**data, **metadata, "id": profile},
+                sort_keys=True,
+                separators=(",", ":"),
+            )
         )
 
         data["target"] = target
