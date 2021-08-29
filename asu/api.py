@@ -343,10 +343,7 @@ def api_v1_build_post():
         req["store_path"] = current_app.config["STORE_PATH"]
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
-
-        if req["branch_data"].get("snapshot"):
-            result_ttl = "15m"
-            current_app.logger.info(f"Set snapshot request {request_hash} ttl to 15m")
+        req["request_hash"] = request_hash
 
         job = get_queue().enqueue(
             build,
@@ -429,10 +426,7 @@ def api_build_post():
         req["store_path"] = current_app.config["STORE_PATH"]
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
-
-        if req["branch_data"].get("snapshot"):
-            result_ttl = "15m"
-            current_app.logger.info(f"Set snapshot request {request_hash} ttl to 15m")
+        req["request_hash"] = request_hash
 
         job = get_queue().enqueue(
             build,

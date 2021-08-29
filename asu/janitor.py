@@ -7,6 +7,9 @@ from time import sleep
 import click
 import requests
 from flask import Blueprint, current_app
+from rq import Queue
+from rq.exceptions import NoSuchJobError
+from rq.registry import FinishedJobRegistry
 
 bp = Blueprint("janitor", __name__)
 
@@ -305,6 +308,19 @@ def update_target_profiles(branch: dict, version: str, target: str):
 
     metadata = req.json()
     profiles = metadata.pop("profiles", {})
+
+    queue = Queue(connection=r)
+    registry = FinishedJobRegistry(queue=queue)
+    version_code = r.get(f"revision-{version}-{target}")
+    if version_code:
+        version_code = version_code.decode()
+        for member in r.smembers(f"builds-{version_code}"):
+            current_app.logger.warning(f"Delete outdated job build with {version_code}")
+            try:
+                registry.remove(member.decode(), delete_job=True)
+            except NoSuchJobError:
+                current_app.logger.warning(f"Job was already deleted")
+        r.delete(f"build-{version_code}")
 
     r.set(
         f"revision-{version}-{target}",
