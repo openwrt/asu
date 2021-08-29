@@ -332,7 +332,7 @@ def api_v1_build_post():
     job = get_queue().fetch_job(request_hash)
     response = {}
     status = 200
-    result_ttl = "24h"
+    result_ttl = "7d"
     failure_ttl = "12h"
 
     if job is None:
