@@ -145,7 +145,7 @@ def update_branch(branch):
 
 
 def update_target_packages(branch: dict, version: str, target: str):
-    current_app.logger.info(f"Updating packages of {branch['name']}")
+    current_app.logger.info(f"Updating packages of {branch['name']}/{version}/{target}")
     version_path = branch["path"].format(version=version)
     r = get_redis()
 
@@ -327,7 +327,7 @@ def update_target_profiles(branch: dict, version: str, target: str):
         metadata["version_code"],
     )
 
-    current_app.logger.info(f"Found {len(profiles)} profiles")
+    current_app.logger.info(f"{version}: Found {len(profiles)} profiles")
 
     for profile, data in profiles.items():
         for supported in data.get("supported_devices", []):
@@ -349,7 +349,7 @@ def update_target_profiles(branch: dict, version: str, target: str):
                     **data,
                     "id": profile,
                     "build_at": datetime.utcfromtimestamp(
-                        int(metadata["source_date_epoch"])
+                        int(metadata.get("source_date_epoch", 0))
                     ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 },
                 sort_keys=True,
