@@ -333,8 +333,8 @@ def update_target_profiles(branch: dict, version: str, target: str):
                     **data,
                     "id": profile,
                     "build_at": datetime.utcfromtimestamp(
-                        metadata["source_date_epoch"]
-                    ).strftime("%a, %d %b %Y %I:%M:%S %Z"),
+                        int(metadata["source_date_epoch"])
+                    ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 },
                 sort_keys=True,
                 separators=(",", ":"),

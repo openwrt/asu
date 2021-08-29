@@ -450,11 +450,11 @@ components:
         build_at:
           type: string
           format: date-time
-          example: "Tue, 25 Feb 2020 08:49:48 GMT"
+          example: "2021-08-29T02:43:55.929319Z"
         enqueued_at:
           type: string
           format: date-time
-          example: "Tue, 25 Feb 2020 08:49:09 GMT"
+          example: "2021-08-29T02:42:55.929319Z"
         id:
           type: string
           example: "avm_fritzbox-4040"
