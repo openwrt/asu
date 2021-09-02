@@ -59,7 +59,7 @@ def create_app(test_config: dict = None) -> Flask:
         return send_from_directory(app.config["JSON_PATH"], path)
 
     @app.route("/store/")
-    @app.route("/store/<path:path>")
+    @app.route("/store/<path:path>", methods=["GET", "POST"])
     def store_path(path="index.html"):
         return send_from_directory(app.config["STORE_PATH"], path)
 

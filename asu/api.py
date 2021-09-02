@@ -300,7 +300,7 @@ def return_job_v1(job):
         )
 
     elif job.is_finished:
-        response.update({"status": 200, "build_at": job.ended_at, **job.result})
+        return redirect(f"/store/{job.result}/build.json", code=301)
 
     response["enqueued_at"] = job.enqueued_at
     response["request_hash"] = job.id

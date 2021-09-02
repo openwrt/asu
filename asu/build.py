@@ -5,6 +5,7 @@ import subprocess
 import urllib.request
 from pathlib import Path
 from shutil import rmtree
+from datetime import datetime
 
 from rq import get_current_job
 
@@ -305,12 +306,12 @@ def build(req: dict):
     if image_build.returncode:
         raise ImageBuildError()
 
-    json_file = Path(req["store_path"] / bin_dir / "profiles.json")
+    bin_path = Path(req["store_path"] / bin_dir)
 
-    if not json_file.is_file():
+    if not (bin_path / "profiles.json").is_file():
         raise JSONMissingError()
 
-    json_content = json.loads(json_file.read_text())
+    json_content = json.loads((bin_path / "profiles.json").read_text())
 
     if req["profile"] not in json_content["profiles"]:
         raise JSONMissingProfileError()
@@ -318,7 +319,12 @@ def build(req: dict):
     json_content.update({"manifest": manifest})
     json_content.update(json_content["profiles"][req["profile"]])
     json_content["id"] = req["profile"]
+    json_content["request_hash"] = req["request_hash"]
+    json_content["status"] = 200
+    json_content["build_at"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     json_content.pop("profiles")
+
+    (bin_path / "build.json").write_text(json.dumps(json_content))
 
     if job:
         job.connection.sadd(f"builds-{version_code}", req["request_hash"])
@@ -351,4 +357,4 @@ def build(req: dict):
 
         job.connection.incr("stats-images")
 
-    return json_content
+    return bin_dir
