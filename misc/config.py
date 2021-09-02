@@ -109,8 +109,8 @@ BRANCHES = {
         "enabled": True,
         "snapshot": True,
         "versions": [
+            "21.02.0",
             "21.02.0-rc4",
-            "21.02.0-rc3",
             "21.02-SNAPSHOT",
         ],
         "git_branch": "openwrt-21.02",
