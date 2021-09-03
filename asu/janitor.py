@@ -10,6 +10,7 @@ from flask import Blueprint, current_app
 from rq import Queue
 from rq.exceptions import NoSuchJobError
 from rq.registry import FinishedJobRegistry
+from shutil import rmtree
 
 bp = Blueprint("janitor", __name__)
 
@@ -314,10 +315,13 @@ def update_target_profiles(branch: dict, version: str, target: str):
     version_code = r.get(f"revision-{version}-{target}")
     if version_code:
         version_code = version_code.decode()
-        for member in r.smembers(f"builds-{version_code}"):
+        for request_hash in r.smembers(f"builds-{version_code}"):
             current_app.logger.warning(f"Delete outdated job build with {version_code}")
             try:
-                registry.remove(member.decode(), delete_job=True)
+                request_hash = request_hash.decode()
+                registry.remove(request_hash, delete_job=True)
+                rmtree(current_app.config["STORE_PATH"] / request_hash)
+
             except NoSuchJobError:
                 current_app.logger.warning(f"Job was already deleted")
         r.delete(f"build-{version_code}")

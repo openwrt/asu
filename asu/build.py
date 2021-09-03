@@ -277,7 +277,7 @@ def build(req: dict):
     packages_hash = get_packages_hash(manifest_packages)
     log.debug(f"Packages Hash {packages_hash}")
 
-    bin_dir = Path(req["version"]) / req["target"] / req["profile"] / packages_hash
+    bin_dir = req["request_hash"]
 
     (req["store_path"] / bin_dir).mkdir(parents=True, exist_ok=True)
 
