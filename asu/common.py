@@ -79,7 +79,7 @@ def get_request_hash(req: dict) -> str:
         get_manifest_hash(req.get("packages_versions", {})),
         str(req.get("diff_packages", False)),
     ]
-    return get_str_hash(" ".join(request_array), 12)
+    return get_str_hash(" ".join(request_array), 32)
 
 
 def get_packages_hash(packages: list) -> str:

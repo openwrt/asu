@@ -15,7 +15,7 @@ def test_api_build(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "e360f833a191"
+    assert response.json.get("request_hash") == "e360f833a1914b2f82844fa6d33f0d7f"
 
 
 def test_api_latest_default(client):
@@ -35,7 +35,7 @@ def test_api_build_mapping(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "19bb42f198c9"
+    assert response.json.get("request_hash") == "19bb42f198c975cfbaf8a2ec241b7580"
 
 
 def test_api_build_mapping_abi(client):
@@ -50,7 +50,7 @@ def test_api_build_mapping_abi(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "7d099fb07fb3"
+    assert response.json.get("request_hash") == "7d099fb07fb35a55de091ad2a148fca5"
 
 
 def test_api_build_bad_target(client):
@@ -80,11 +80,11 @@ def test_api_build_get(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.json["request_hash"] == "e360f833a191"
-    response = client.get("/api/v1/build/e360f833a191")
+    assert response.json["request_hash"] == "e360f833a1914b2f82844fa6d33f0d7f"
+    response = client.get("/api/v1/build/e360f833a1914b2f82844fa6d33f0d7f")
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "e360f833a191"
+    assert response.json.get("request_hash") == "e360f833a1914b2f82844fa6d33f0d7f"
 
 
 def test_api_build_packages_versions(client):
@@ -97,11 +97,11 @@ def test_api_build_packages_versions(client):
             packages_versions={"test1": "1.0", "test2": "2.0"},
         ),
     )
-    assert response.json["request_hash"] == "552b9e328888"
-    response = client.get("/api/v1/build/552b9e328888")
+    assert response.json["request_hash"] == "552b9e328888629e83649256497f981d"
+    response = client.get("/api/v1/build/552b9e328888629e83649256497f981d")
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "552b9e328888"
+    assert response.json.get("request_hash") == "552b9e328888629e83649256497f981d"
 
 
 def test_api_build_packages_duplicate(client):
@@ -140,7 +140,7 @@ def test_api_build_empty_packages_list(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "66cb932c37a4"
+    assert response.json.get("request_hash") == "66cb932c37a4a2d1b012db4eb5286cf0"
 
 
 def test_api_build_withouth_packages_list(client):
@@ -154,7 +154,7 @@ def test_api_build_withouth_packages_list(client):
     )
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "66cb932c37a4"
+    assert response.json.get("request_hash") == "66cb932c37a4a2d1b012db4eb5286cf0"
 
 
 def test_api_build_prerelease_snapshot(client):
@@ -217,7 +217,7 @@ def test_api_build_x86(client):
 
     assert response.status == "202 ACCEPTED"
     assert response.json.get("detail") == "queued"
-    assert response.json.get("request_hash") == "1fda145d439f"
+    assert response.json.get("request_hash") == "1fda145d439f33b0e8e671115bd0bd66"
 
 
 def test_api_build_needed(client):
