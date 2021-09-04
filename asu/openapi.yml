@@ -532,6 +532,13 @@ components:
         version_number:
           type: string
           example: "SNAPSHOT"
+        build_cmd:
+          type: array
+          items:
+            type: string
+          description: |
+            Contains the shell command ran by the ImageBuilder. This can be
+            used locally to test builds for reproducibility.
 
     JsonSchemaBranch:
       type: object

@@ -281,15 +281,17 @@ def build(req: dict):
 
     (req["store_path"] / bin_dir).mkdir(parents=True, exist_ok=True)
 
+    build_cmd = [
+        "make",
+        "image",
+        f"PROFILE={req['profile']}",
+        f"PACKAGES={' '.join(req['packages'])}",
+        f"EXTRA_IMAGE_NAME={packages_hash}",
+        f"BIN_DIR={req['store_path'] / bin_dir}",
+    ]
+
     image_build = subprocess.run(
-        [
-            "make",
-            "image",
-            f"PROFILE={req['profile']}",
-            f"PACKAGES={' '.join(req['packages'])}",
-            f"EXTRA_IMAGE_NAME={packages_hash}",
-            f"BIN_DIR={req['store_path'] / bin_dir}",
-        ],
+        build_cmd,
         text=True,
         cwd=cache / subtarget,
         capture_output=True,
@@ -299,7 +301,7 @@ def build(req: dict):
     if job:
         job.meta["stdout"] = image_build.stdout
         job.meta["stderr"] = image_build.stderr
-        job.meta["bin_dir"] = str(bin_dir)
+        job.meta["build_cmd"] = build_cmd
         job.save_meta()
 
     if image_build.returncode:
@@ -318,6 +320,7 @@ def build(req: dict):
     json_content.update({"manifest": manifest})
     json_content.update(json_content["profiles"][req["profile"]])
     json_content["id"] = req["profile"]
+    json_content["bin_dir"] = str(bin_dir)
     json_content.pop("profiles")
 
     if job:
