@@ -324,8 +324,9 @@ def build(req: dict):
     json_content.pop("profiles")
 
     if job:
-        job.connection.sadd(f"builds-{version_code}", req["request_hash"])
-        job.connection.expire(f"builds-{version_code}", 60 * 60 * 24)
+        job.connection.sadd(
+            f"builds-{version_code}-{req['target']}", req["request_hash"]
+        )
 
         for package in manifest.keys():
             job.connection.zadd(

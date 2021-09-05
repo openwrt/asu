@@ -315,8 +315,10 @@ def update_target_profiles(branch: dict, version: str, target: str):
     version_code = r.get(f"revision-{version}-{target}")
     if version_code:
         version_code = version_code.decode()
-        for request_hash in r.smembers(f"builds-{version_code}"):
-            current_app.logger.warning(f"Delete outdated job build with {version_code}")
+        for request_hash in r.smembers(f"builds-{version_code}-{target}"):
+            current_app.logger.warning(
+                f"Delete outdated job build with {version_code}/{target}"
+            )
             try:
                 request_hash = request_hash.decode()
                 registry.remove(request_hash, delete_job=True)
@@ -324,7 +326,7 @@ def update_target_profiles(branch: dict, version: str, target: str):
 
             except NoSuchJobError:
                 current_app.logger.warning(f"Job was already deleted")
-        r.delete(f"build-{version_code}")
+        r.delete(f"build-{version_code}-{target}")
 
     r.set(
         f"revision-{version}-{target}",
