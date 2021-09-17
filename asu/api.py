@@ -320,6 +320,8 @@ def return_job_v1(job):
     return response, response["status"], headers
 
 
+# legacy offering /api/overview
+@bp.route("/overview")
 def api_v1_overview():
     return jsonify(current_app.config["OVERVIEW"])
 
