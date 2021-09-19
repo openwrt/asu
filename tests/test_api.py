@@ -65,8 +65,7 @@ def test_api_build_bad_target(client):
     )
     assert response.status == "400 BAD REQUEST"
     assert (
-        response.json.get("detail")
-        == "Unsupported target: testtarget/testsubtargetbad"
+        response.json.get("detail") == "Unsupported target: testtarget/testsubtargetbad"
     )
 
 
@@ -196,7 +195,10 @@ def test_api_build_bad_packages_str(client):
         ),
     )
     assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "'testpackage' is not of type 'array' - 'packages'"
+    assert (
+        response.json.get("detail")
+        == "'testpackage' is not of type 'array' - 'packages'"
+    )
 
 
 def test_api_build_empty_request(client):
@@ -229,7 +231,8 @@ def test_api_build_needed(client):
     assert response.json.get("detail") == "'version' is a required property"
     assert response.json.get("title") == "Bad Request"
     response = client.post(
-        "/api/v1/build", json=dict(version="SNAPSHOT", target="testtarget/testsubtarget")
+        "/api/v1/build",
+        json=dict(version="SNAPSHOT", target="testtarget/testsubtarget"),
     )
     assert response.status == "400 BAD REQUEST"
     assert response.json.get("detail") == "'profile' is a required property"

@@ -34,7 +34,7 @@ jobs:
     - name: Stylecheck with black
       run: |
         pip install black
-        black asu/
+        black asu/ tests/
     - name: Test with pytest
       run: |
         pip install pytest

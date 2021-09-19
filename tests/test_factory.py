@@ -24,7 +24,7 @@ def test_json_path_latest(client):
 def test_json_path_branches(client):
     response = client.get("/json/branches.json")
     assert "19.07" == response.json[2]["name"]
-    assert "SNAPSHOT" ==  response.json[0]["name"]
+    assert "SNAPSHOT" == response.json[0]["name"]
     assert response.status == "200 OK"
 
 
