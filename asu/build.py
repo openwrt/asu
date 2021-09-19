@@ -60,6 +60,10 @@ class ExtractArchiveError(Exception):
     pass
 
 
+class TooManyPackages(Exception):
+    pass
+
+
 def build(req: dict):
     """Build image request and setup ImageBuilders automatically
 
@@ -335,6 +339,9 @@ def build(req: dict):
 
     if image_build.returncode:
         raise ImageBuildError()
+
+    if "is too big" in image_build.stderr:
+        raise TooManyPackages()
 
     json_file = Path(req["store_path"] / bin_dir / "profiles.json")
 
