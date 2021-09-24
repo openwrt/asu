@@ -4,7 +4,7 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
 from .build import build
-from .common import get_request_hash
+from .common import get_request_hash, stats_versions, stats_profiles
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -69,16 +69,7 @@ def api_v1_stats_images():
 
 
 def api_v1_stats_versions():
-    return jsonify(
-        {
-            "versions": [
-                (s, p.decode("utf-8"))
-                for p, s in get_redis().zrevrange(
-                    f"stats-versions", 0, -1, withscores=True
-                )
-            ],
-        }
-    )
+    return jsonify({"versions": stats_versions()})
 
 
 def api_v1_stats_targets(branch="SNAPSHOT"):
@@ -129,17 +120,7 @@ def api_v1_stats_profiles(branch):
     if branch not in current_app.config["BRANCHES"]:
         return "", 404
 
-    return jsonify(
-        {
-            "branch": branch,
-            "profiles": [
-                (s, p.decode("utf-8"))
-                for p, s in get_redis().zrevrange(
-                    f"stats-profiles-{branch}", 0, -1, withscores=True
-                )
-            ],
-        }
-    )
+    return jsonify({"branch": branch, "profiles": stats_profiles(branch)})
 
 
 @bp.route("/v1/stats/profiles/")

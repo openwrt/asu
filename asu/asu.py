@@ -7,6 +7,7 @@ from flask import Flask, redirect, render_template, send_from_directory
 from redis import Redis
 
 from asu import __version__
+import asu.common
 
 
 def create_app(test_config: dict = None) -> Flask:
@@ -52,15 +53,6 @@ def create_app(test_config: dict = None) -> Flask:
             app.config[option].mkdir(parents=True, exist_ok=True)
 
     (Path().cwd()).mkdir(exist_ok=True, parents=True)
-
-    @app.route("/")
-    def overview():
-        return render_template(
-            "overview.html",
-            version=__version__,
-            branches=app.config["BRANCHES"],
-            defaults=app.config["ALLOW_DEFAULTS"],
-        )
 
     @app.route("/json/")
     @app.route("/json/<path:path>")
@@ -121,6 +113,29 @@ def create_app(test_config: dict = None) -> Flask:
             indent=2,
         )
     )
+
+    @app.route("/")
+    def overview():
+        return render_template(
+            "overview.html",
+            branches=branches,
+            defaults=app.config["ALLOW_DEFAULTS"],
+            latest=latest,
+            version=__version__,
+        )
+
+    @app.route("/stats")
+    def stats():
+        branch_stats = {}
+        for branch, data in branches.items():
+            branch_stats.setdefault(branch, {})["profiles"] = asu.common.stats_profiles(
+                branch
+            )[0:5]
+        return render_template(
+            "stats.html",
+            versions=asu.common.stats_versions(),
+            branch_stats=branch_stats,
+        )
 
     cnxn.add_api("openapi.yml", validate_responses=True)
 

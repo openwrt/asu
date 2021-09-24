@@ -9,7 +9,8 @@
         <pre>
 
 
-		Welcome to the OpenWrt sysupgrade server ({{ version }})!
+		# Welcome to the OpenWrt sysupgrade server ({{ version }})!
+
 		
 		Request and receive custom sysupgrade images on demand.
 		See the <a href="/ui/">API documentation</a> on how to request images.
@@ -17,11 +18,11 @@
 		Please <a href="https://github.com/aparcar/asu/issues">report issues</a>!
 
 
-		LuCI Client:
+		## LuCI Client:
 			
 			opkg install luci-app-attendedsysupgrade
 
-		Terminal Client:
+		## Terminal Client:
 
 			opkg install auc
 
@@ -34,6 +35,10 @@
 		{% endfor %}
 
 		Allow custom UCI defaults: {{ defaults }}
+
+		Latest versions: {{ latest }}
+
+		<a href="/stats">Server Stats</a>
 	</pre>
 </body>
 
