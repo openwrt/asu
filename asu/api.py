@@ -60,8 +60,10 @@ def api_latest():
 def api_v1_stats_images():
     return jsonify(
         {
-            "total": int(get_redis().get("stats-images").decode("utf-8")),
-            "custom": int(get_redis().get("stats-images-custom").decode("utf-8")),
+            "total": int((get_redis().get("stats-images") or b"0").decode("utf-8")),
+            "custom": int(
+                (get_redis().get("stats-images-custom") or b"0").decode("utf-8")
+            ),
         }
     )
 
