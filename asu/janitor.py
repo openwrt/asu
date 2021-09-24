@@ -285,6 +285,7 @@ def update_target_profiles(branch: dict, version: str, target: str):
     profiles = metadata.pop("profiles", {})
 
     r.sadd(f"architectures-{branch['name']}", metadata["arch_packages"])
+    r.hset(f"architecture-{branch['name']}", target, metadata["arch_packages"])
 
     queue = Queue(connection=r)
     registry = FinishedJobRegistry(queue=queue)

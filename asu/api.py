@@ -45,7 +45,7 @@ def api_v1_revision(version, target, subtarget):
     return jsonify(
         {
             "revision": get_redis()
-            .get(f"revision-{version}-{target}/{subtarget}")
+            .get(f"revision-{version}-{target}/{subtarget}" or b"")
             .decode()
         }
     )
@@ -250,9 +250,9 @@ def validate_request(req):
             400,
         )
 
-    req["arch"] = current_app.config["BRANCHES"][req["branch"]]["targets"][
-        req["target"]
-    ]
+    req["arch"] = (
+        r.hget(f"architecture-{req['branch']}", req["target"]) or b""
+    ).decode()
 
     if req["target"] in ["x86/64", "x86/generic", "x86/geode", "x86/legacy"]:
         current_app.logger.debug("Use generic profile for {req['target']}")
