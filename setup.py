@@ -22,7 +22,7 @@ setup(
     description="Create images for OpenWrt on demand",
     long_description=readme,
     long_description_content_type="text/markdown",
-    package_data={"": ["openapi.yml"]},
+    package_data={"": ["openapi.yml", "templates/*"]},
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
