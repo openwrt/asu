@@ -193,7 +193,10 @@ def update_target_packages(branch: dict, version: str, target: str):
 
     (output_path / "index.json").write_text(
         json.dumps(
-            package_index,
+            {
+                "architecture": packages["base-files"]["architecture"],
+                "packages": package_index,
+            },
             sort_keys=True,
             separators=(",", ":"),
         )
