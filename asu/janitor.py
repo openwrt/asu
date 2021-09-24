@@ -2,6 +2,7 @@ import email
 import json
 from datetime import datetime
 from multiprocessing import Pool
+from shutil import rmtree
 from time import sleep
 
 import click
@@ -10,7 +11,6 @@ from flask import Blueprint, current_app
 from rq import Queue
 from rq.exceptions import NoSuchJobError
 from rq.registry import FinishedJobRegistry
-from shutil import rmtree
 
 bp = Blueprint("janitor", __name__)
 

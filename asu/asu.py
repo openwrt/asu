@@ -3,7 +3,7 @@ from os import getenv
 from pathlib import Path
 
 import connexion
-from flask import Flask, redirect, send_from_directory
+from flask import Flask, redirect, render_template, send_from_directory
 from redis import Redis
 
 from asu import __version__
@@ -52,6 +52,15 @@ def create_app(test_config: dict = None) -> Flask:
             app.config[option].mkdir(parents=True, exist_ok=True)
 
     (Path().cwd()).mkdir(exist_ok=True, parents=True)
+
+    @app.route("/")
+    def overview():
+        return render_template(
+            "overview.html",
+            version=__version__,
+            branches=app.config["BRANCHES"],
+            defaults=app.config["ALLOW_DEFAULTS"],
+        )
 
     @app.route("/json/")
     @app.route("/json/<path:path>")
