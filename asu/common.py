@@ -5,6 +5,36 @@ import struct
 from pathlib import Path
 
 import nacl.signing
+import redis
+import requests
+from flask import current_app
+
+
+def get_redis():
+    return current_app.config["REDIS_CONN"]
+
+
+def is_modified(url: str) -> bool:
+    r = get_redis()
+
+    modified_local = r.hget("last-modified", url)
+    if modified_local:
+        modified_local = modified_local.decode("utf-8")
+
+    modified_remote = requests.head(url).headers.get("last-modified")
+
+    if modified_local:
+        if modified_local == modified_remote:
+            return False
+
+    if modified_remote:
+        r.hset(
+            "last-modified",
+            url,
+            modified_remote,
+        )
+
+    return True
 
 
 def get_str_hash(string: str, length: int = 32) -> str:

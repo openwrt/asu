@@ -23,6 +23,10 @@ def upstream(httpserver):
             (upstream_path / f).read_bytes()
         )
 
+    httpserver.expect_request(
+        f"{base_url}/targets", query_string="json-targets"
+    ).respond_with_json(["testtarget/testsubtarget"])
+
 
 def test_update_branch(app, upstream):
     with app.app_context():

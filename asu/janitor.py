@@ -12,11 +12,9 @@ from rq import Queue
 from rq.exceptions import NoSuchJobError
 from rq.registry import FinishedJobRegistry
 
+from asu.common import get_redis, is_modified
+
 bp = Blueprint("janitor", __name__)
-
-
-def get_redis():
-    return current_app.config["REDIS_CONN"]
 
 
 def parse_packages_file(url, repo):
@@ -45,17 +43,15 @@ def parse_packages_file(url, repo):
                 if source_name != package_name:
                     mapping[package_name] = source_name
             else:
-                current_app.warning(f"Something wired about {package}")
+                current_app.logger.warning(f"Something wired about {package}")
             linebuffer = ""
         else:
             linebuffer += line + "\n"
 
     for package, source in mapping.items():
         if not r.hexists("mapping-abi", package):
-            current_app.logger.info(f"Add ABI mapping {package} -> {source}")
+            current_app.logger.info(f"{repo}: Add ABI mapping {package} -> {source}")
             r.hset("mapping-abi", package, source)
-
-    current_app.logger.debug(f"Found {len(packages)} in {repo}")
 
     return packages
 
@@ -86,20 +82,27 @@ def get_packages_arch_repo(branch, arch, repo):
 def update_branch(branch):
     r = get_redis()
 
-    targets = branch["targets"].keys()
+    version_path = branch["path"].format(version=branch["versions"][0])
+    targets = list(
+        filter(
+            lambda t: not t.startswith("."),
+            requests.get(
+                current_app.config["UPSTREAM_URL"]
+                + f"/{version_path}/targets?json-targets"
+            ).json(),
+        )
+    )
 
-    if len(targets) == 0:
+    if not targets:
         current_app.logger.warning("No targets found for {branch['name']}")
         return
 
     r.sadd(f"targets-{branch['name']}", *list(targets))
 
     packages_path = branch["path_packages"].format(branch=branch["name"])
-
-    with Pool(20) as pool:
-        pool.starmap(
-            update_arch_packages, map(lambda a: (branch, a), branch["targets"].values())
-        )
+    packages_path = branch["path_packages"].format(branch=branch["name"])
+    output_path = current_app.config["JSON_PATH"] / packages_path
+    output_path.mkdir(exist_ok=True, parents=True)
 
     for version in branch["versions"]:
         current_app.logger.info(f"Update {branch['name']}/{version}")
@@ -144,42 +147,38 @@ def update_branch(branch):
                 json.dumps(overview, sort_keys=True, separators=(",", ":"))
             )
 
+    with Pool() as pool:
+        pool.starmap(
+            update_arch_packages,
+            map(
+                lambda a: (branch, a.decode("utf-8")),
+                r.smembers(f"architectures-{branch['name']}"),
+            ),
+        )
+
 
 def update_target_packages(branch: dict, version: str, target: str):
-    current_app.logger.info(f"Updating packages of {branch['name']}/{version}/{target}")
+    current_app.logger.info(f"{version}/{target}: Update packages")
+
     version_path = branch["path"].format(version=version)
     r = get_redis()
 
-    packages_modified_local = r.get(
-        f"last-modified-packages-{branch['name']}-{version}-{target}"
-    )
-    if packages_modified_local:
-        packages_modified_local = packages_modified_local.decode("utf-8")
-    packages_modified_remote = requests.head(
+    if not is_modified(
         current_app.config["UPSTREAM_URL"]
         + "/"
         + version_path
-        + f"/targets/{target}/packages/Packages.manifest",
-    ).headers.get("last-modified")
-
-    if packages_modified_local:
-        if packages_modified_local == packages_modified_remote:
-            current_app.logger.debug(
-                f"Skip {branch['name']}/{version}/{target} package update"
-            )
-            return
-
-    if packages_modified_remote:
-        r.set(
-            f"last-modified-packages-{branch['name']}-{version}-{target}",
-            packages_modified_remote,
-        )
+        + f"/targets/{target}/packages/Packages.manifest"
+    ):
+        current_app.logger.debug(f"{version}/{target}: Skip package update")
+        return
 
     packages = get_packages_target_base(branch, version, target)
 
     if len(packages) == 0:
         current_app.logger.warning(f"No packages found for {target}")
         return
+
+    current_app.logger.debug(f"{version}/{target}: Found {len(packages)}")
 
     r.sadd(f"packages-{branch['name']}-{version}-{target}", *list(packages.keys()))
 
@@ -194,10 +193,7 @@ def update_target_packages(branch: dict, version: str, target: str):
 
     (output_path / "index.json").write_text(
         json.dumps(
-            {
-                "architecture": branch["targets"][target],
-                "packages": package_index,
-            },
+            package_index,
             sort_keys=True,
             separators=(",", ":"),
         )
@@ -212,22 +208,11 @@ def update_arch_packages(branch: dict, arch: str):
     r = get_redis()
 
     packages_path = branch["path_packages"].format(branch=branch["name"])
-    packages_modified_local = r.get(f"last-modified-packages-{branch['name']}-{arch}")
-    if packages_modified_local:
-        packages_modified_local = packages_modified_local.decode("utf-8")
-    packages_modified_remote = requests.head(
+    if not is_modified(
         current_app.config["UPSTREAM_URL"] + f"/{packages_path}/{arch}/feeds.conf"
-    ).headers.get("last-modified")
-
-    if packages_modified_local:
-        if packages_modified_local == packages_modified_remote:
-            current_app.logger.debug(f"Skip {branch['name']}/{arch} package update")
-            return
-
-    if packages_modified_remote:
-        r.set(
-            f"last-modified-packages-{branch['name']}-{arch}", packages_modified_remote
-        )
+    ):
+        current_app.logger.debug(f"{branch['name']}/{arch}: Skip package update")
+        return
 
     packages = {}
 
@@ -238,10 +223,14 @@ def update_arch_packages(branch: dict, arch: str):
 
     # update default repositories afterwards so they overwrite redundancies
     for repo in branch["repos"]:
-        packages.update(get_packages_arch_repo(branch, arch, repo))
+        repo_packages = get_packages_arch_repo(branch, arch, repo)
+        current_app.logger.debug(
+            f"{branch['name']}/{arch}/{repo}: Found {len(repo_packages)} packages"
+        )
+        packages.update(repo_packages)
 
     if len(packages) == 0:
-        current_app.logger.warning(f"No packages found for {arch}")
+        current_app.logger.warning(f"{branch['name']}/{arch}: No packages found")
         return
 
     output_path = current_app.config["JSON_PATH"] / packages_path
@@ -269,7 +258,7 @@ def update_target_profiles(branch: dict, version: str, target: str):
         version(str): Version within branch
         target(str): Target within version
     """
-    current_app.logger.info(f"Checking profiles of {branch['name']}/{version}/{target}")
+    current_app.logger.info(f"{version}/{target}: Update profiles")
     r = get_redis()
     version_path = branch["path"].format(version=version)
     req = requests.head(
@@ -279,36 +268,23 @@ def update_target_profiles(branch: dict, version: str, target: str):
 
     if req.status_code != 200:
         current_app.logger.warning(
-            f"Could not download profiles.json for {version}/{target}"
+            f"{version}/{target}: Could not download profiles.json"
         )
         return
 
-    profiles_modified_local = r.get(
-        f"last-modified-profiles-{branch['name']}-{version}-{target}"
-    )
-    if profiles_modified_local:
-        profiles_modified_local = profiles_modified_local.decode("utf-8")
-
-    profiles_modified_remote = req.headers.get("last-modified")
-
-    if profiles_modified_local:
-        if profiles_modified_local == profiles_modified_remote:
-            current_app.logger.debug(f"Skip {branch['name']}/{version} profiles update")
-            return
-
-    if profiles_modified_remote:
-        r.set(
-            f"last-modified-profiles-{branch['name']}-{version}-{target}",
-            profiles_modified_remote,
-        )
-
-    req = requests.get(
+    profiles_url = (
         current_app.config["UPSTREAM_URL"]
         + f"/{version_path}/targets/{target}/profiles.json"
     )
 
-    metadata = req.json()
+    if not is_modified(profiles_url):
+        current_app.logger.debug(f"{version}/{target}: Skip profiles update")
+        return
+
+    metadata = requests.get(profiles_url).json()
     profiles = metadata.pop("profiles", {})
+
+    r.sadd(f"architectures-{branch['name']}", metadata["arch_packages"])
 
     queue = Queue(connection=r)
     registry = FinishedJobRegistry(queue=queue)
@@ -317,7 +293,7 @@ def update_target_profiles(branch: dict, version: str, target: str):
         version_code = version_code.decode()
         for request_hash in r.smembers(f"builds-{version_code}-{target}"):
             current_app.logger.warning(
-                f"Delete outdated job build with {version_code}/{target}"
+                f"{version_code}/{target}: Delete outdated job build"
             )
             try:
                 request_hash = request_hash.decode()
@@ -333,12 +309,18 @@ def update_target_profiles(branch: dict, version: str, target: str):
         metadata["version_code"],
     )
 
-    current_app.logger.info(f"{version}: Found {len(profiles)} profiles")
+    current_app.logger.info(f"{version}/{target}: Found {len(profiles)} profiles")
 
     for profile, data in profiles.items():
         for supported in data.get("supported_devices", []):
-            r.hset(f"mapping-{branch['name']}-{version}-{target}", supported, profile)
-            current_app.logger.info(f"Add profile mapping {supported} -> {profile}")
+            if not r.hexists(f"mapping-{branch['name']}-{version}-{target}", supported):
+                current_app.logger.info(
+                    f"{version}/{target}: Add profile mapping {supported} -> {profile}"
+                )
+                r.hset(
+                    f"mapping-{branch['name']}-{version}-{target}", supported, profile
+                )
+
         r.sadd(f"profiles-{branch['name']}-{version}-{target}", profile)
         profile_path = (
             current_app.config["JSON_PATH"]
@@ -378,7 +360,7 @@ def update(interval):
     while True:
         for branch in current_app.config["BRANCHES"].values():
             if not branch.get("enabled"):
-                current_app.logger.info(f"Skip disabled version {branch['name']}")
+                current_app.logger.info(f"{branch['name']}: Skip disabled branch")
                 continue
 
             current_app.logger.info(f"Update {branch['name']}")
