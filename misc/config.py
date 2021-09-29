@@ -13,6 +13,8 @@ STORE_PATH = Path.cwd() / "public/store/"
 # where to store JSON files
 JSON_PATH = Path.cwd() / "public/json/v1/"
 
+MAPPING_ABI = {"libubus20191227": "libubus"}
+
 # supported versions
 BRANCHES = {
     "SNAPSHOT": {

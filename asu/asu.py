@@ -137,6 +137,10 @@ def create_app(test_config: dict = None) -> Flask:
             branch_stats=branch_stats,
         )
 
+    for package, source in app.config.get("MAPPING_ABI", {}).items():
+        if not app.config["REDIS_CONN"].hexists("mapping-abi", package):
+            app.config["REDIS_CONN"].hset("mapping-abi", package, source)
+
     cnxn.add_api("openapi.yml", validate_responses=True)
 
     return app
