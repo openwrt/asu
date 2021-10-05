@@ -50,9 +50,10 @@ respond to requests without rebuilding existing images again.
 
 ### Active server
 
-*   [asu.aparcar.org](https://asu.aparcar.org)
-*   ~~[chef.libremesh.org](https://chef.libremesh.org)~~ (This domain will be
-    shortly forewarded to the new server.
+* [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
+* [asu.aparcar.org](https://asu.aparcar.org)
+* ~~[chef.libremesh.org](https://chef.libremesh.org)~~ (`CNAME` to
+  asu.aparcar.org)
 
 ## Run your own server
 
@@ -126,4 +127,4 @@ the dependencies:
 The API is documented via *OpenAPI* and can be viewed interactively on the
 server:
 
-https://asu.aparcar.org/ui/
+https://sysupgrade.openwrt.org/ui/
