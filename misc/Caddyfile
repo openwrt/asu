@@ -1,3 +1,20 @@
+#{
+#	auto_https disable_redirects
+#	preferred_chains {
+#		root_common_name "ISRG Root X1"
+#	}
+#}
+#
+#sysupgrade.openwrt.org sysupgrade.openwrt.org:80 {
+#	root * /path/to/asu/
+#	file_server /json/
+#	file_server /store/
+#	header Access-Control-Allow-Methods "POST, GET, OPTIONS"
+#	header Access-Control-Allow-Headers "*"
+#	header Access-Control-Allow-Origin "*"
+#	reverse_proxy * localhost:8000
+#}
+
 :80 {
 	root * /site/
 	file_server browse
