@@ -27,6 +27,7 @@ def create_app(test_config: dict = None) -> Flask:
     cnxn = connexion.FlaskApp(__name__)
     app = cnxn.app
     app.config.from_mapping(
+        JSON_PATH = Path.cwd() / "public/json/v1/",
         REDIS_CONN=Redis(host=redis_host, port=redis_port, password=redis_password),
         TESTING=False,
         DEBUG=False,
