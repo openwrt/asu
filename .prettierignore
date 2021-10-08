@@ -1,0 +1,11 @@
+# Ignore artifacts:
+build
+coverage
+tests
+.direnv
+.github
+
+
+# Ignore individual files
+*.yml
+*.py

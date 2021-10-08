@@ -14,7 +14,7 @@ def create_app(test_config: dict = None) -> Flask:
     """Create the main Flask application
 
     Args:
-        test_config (dict): A dictionry containing a configuration during tests
+        test_config (dict): A dictionary containing a configuration during tests
 
     Returns:
         Flask: The application
