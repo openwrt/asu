@@ -27,26 +27,52 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
-@pytest.fixture
-def redis():
-    r = FakeStrictRedis()
-    r.sadd(
+def redis_load_mock_data(redis):
+    redis.sadd(
         "packages-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget", "test1", "test2", "test3"
     )
-    r.sadd("profiles-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget", "testprofile")
-    r.hset(
+    redis.sadd("profiles-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget", "testprofile")
+    redis.hset(
         "mapping-SNAPSHOT-SNAPSHOT-testtarget/testsubtarget",
         mapping={"testvendor,testprofile": "testprofile"},
     )
-    r.sadd("targets-SNAPSHOT", "testtarget/testsubtarget", "x86/64")
-    r.sadd("targets-21.02", "testtarget/testsubtarget")
-    r.hset("mapping-abi", mapping={"test1-1": "test1"})
-    yield r
+    redis.sadd("targets-SNAPSHOT", "testtarget/testsubtarget", "x86/64")
+    redis.sadd("targets-21.02", "testtarget/testsubtarget")
+    redis.hset("mapping-abi", mapping={"test1-1": "test1"})
+    redis.zadd(
+        f"stats-profiles-SNAPSHOT",
+        {
+            "linksys_e8450-ubi": 543,
+            "rpi-4": 63,
+            "tplink_archer-c60-v1": 39,
+            "generic": 38,
+            "xiaomi_mi-router-4a-gigabit": 35,
+        },
+    )
+
+    redis.zadd(
+        f"stats-profiles-21.02",
+        {
+            "xiaomi_mi-router-4a-gigabit": 71,
+            "generic": 62,
+            "rip-4": 59,
+            "linksys_wrt1900acs": 39,
+            "xiaomi_mi-router-3g": 38,
+        },
+    )
+
+    redis.zadd(
+        "stats-versions",
+        {"SNAPSHOT": 1257, "21.02.0": 755, "19.07.8": 115},
+    )
+
+    redis.set("stats-images", 1245)
+    redis.set("stats-images-custom", 200)
 
 
-@pytest.fixture
-def app(redis):
-    test_path = tempfile.mkdtemp()
+def mock_app(test_path="."):
+    redis = FakeStrictRedis()
+    redis_load_mock_data(redis)
     app = create_app(
         {
             "JSON_PATH": test_path + "/json",
@@ -100,8 +126,13 @@ def app(redis):
         }
     )
 
-    yield app
+    return app
 
+
+@pytest.fixture
+def app():
+    test_path = tempfile.mkdtemp()
+    yield mock_app(test_path)
     shutil.rmtree(test_path)
 
 
