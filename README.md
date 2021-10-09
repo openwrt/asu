@@ -118,7 +118,7 @@ After cloning this repository, create a Python virtual environment and install t
     source .direnv/bin/activate
     pip install -r requirements.txt
     export FLASK_APP=asu.asu  # set Flask app to asu
-    export FLASK_DEBUG=1      # run Flask in debug mode (autoreload)
+    export FLASK_APP=tests.conftest:mock_app FLASK_DEBUG=1 # run Flask in debug mode with mock data
     flask run
 
 ### Code formatting
