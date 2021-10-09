@@ -1,75 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8"/>
+  <head>
+    <meta charset="utf-8" />
 
     <title>OpenWrt Sysupgrade Server</title>
     <link
-            href="{{ url_for('static', filename='style.css') }}"
-            rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+      rel="stylesheet"
     />
-</head>
+  </head>
 
-<body>
-<header>
-    <div>
+  <body>
+    <header>
+      <div>
         <img
-                src="{{ url_for('static', filename='logo.png') }}"
-                alt="Download OpenWrt Firmware"
+          src="{{ url_for('static', filename='logo.png') }}"
+          alt="Download OpenWrt Firmware"
         />
-    </div>
-</header>
-<div class="container">
-    <h1>OpenWrt Sysupgrade Server ({{ version }})</h1>
-    <div class="grid-container">
+      </div>
+    </header>
+    <div class="container">
+      <h1>OpenWrt Sysupgrade Server ({{ version }})</h1>
+      <div class="grid-container">
         <div class="grid-item">
-            <h2>About the Sysupgrade Server</h2>
-            <p>This server listens to requests for custom sysupgrade images.
-                It then builds an image for the proper target incorporating any requested packages, and
-                returns that image to the requestor.
-            </p>
-            <p>This is the basis for two clients that can automatically upgrade a device, either from LuCI or from the
-                command
-                line:
-            <ul>
-                <li>
-                    <a href="https://github.com/aparcar/asu#luci-app" target="_blank">LuCI Client:</a>
-                    <code>opkg install luci-app-attendedsysupgrade</code>
-                </li>
-                <li><a href="https://github.com/aparcar/asu#cli" target="_blank">Terminal Client:</a> <code>opkg install
-                    auc</code></li>
-            </ul>
-            </p>
-            <p>
-                See the <a href="/ui/" target="_blank">API documentation</a> on how to request images.
-            </p>
-            <p>
-                Please
-                <a href="https://github.com/aparcar/asu/issues" target="_blank">report issues!</a>
-            </p>
-            <p><a href="/stats" target="_parent">Get statistics</a> on the ASU Server</p>
+          <h2>About the Sysupgrade Server</h2>
+          <p>
+            This server listens for requests to build custom sysupgrade images.
+            It starts an ImageBuilder process for the specified target,
+            incorporates any requested packages, and returns that image to the
+            requestor. The server also provides an
+            <a href="/ui/" target="_blank">API</a> for common operations.
+          </p>
+          <p>
+            There are at least two clients that can request a new image from the
+            Sysupgrade Server:
+          </p>
+          <ul>
+            <li>
+              <a href="https://github.com/aparcar/asu#luci-app" target="_blank"
+                >LuCI Client:</a
+              >
+              <code>opkg install luci-app-attendedsysupgrade</code>
+            </li>
+            <li>
+              <a href="https://github.com/aparcar/asu#cli" target="_blank"
+                >Terminal Client:</a
+              >
+              <code>opkg install auc</code>
+            </li>
+          </ul>
 
-
-            <b>Available branches:</b>
-            {% for branch, data in branches.items() -%}
-            <ul>
-                {% for version in data.versions %}
-                <li>{{ version }}</li>
-                {%- endfor -%}
-            </ul>
+          <p>
+            Please
+            <a href="https://github.com/aparcar/asu/issues" target="_blank"
+              >report issues!</a
+            >
+          </p>
+          <p><b>View the Server Stats:</b> <a href="/stats">Server Stats</a></p>
+          <hr />
+          <h2>Sysupgrade Server Configuration:</h2>
+          <b>Available branches on this server:</b>
+          {% for branch, data in branches.items() -%}
+          <ul>
+            {% for version in data.versions %}
+            <li>{{ version }}</li>
             {%- endfor -%}
+          </ul>
+          {%- endfor -%}
 
-            <b>Allow custom UCI defaults:</b> {{ defaults }} <br/>
+          <p>
+            <b>Allow custom UCI defaults:</b> {{ defaults }} <br />
             <b>Latest versions:</b> {{ latest }}
+          </p>
         </div>
-        <div class="grid-item">
-            <h2>Sysupgrade Server Stats</h2>
-            This is a bunch of stuff to put on the site, but maybe flow to the bottom if the page gets
-            narrow
-
-
-        </div>
+      </div>
     </div>
-</div>
-</body>
+  </body>
 </html>

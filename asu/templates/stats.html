@@ -1,43 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8"/>
+  <head>
+    <meta charset="utf-8" />
 
     <title>OpenWrt Sysupgrade Server</title>
     <link
-            href="{{ url_for('static', filename='style.css') }}"
-            rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+      rel="stylesheet"
     />
-</head>
-<body>
-<header>
-    <div>
+  </head>
+  <body>
+    <header>
+      <div>
         <img
-                src="{{ url_for('static', filename='logo.png') }}"
-                alt="Download OpenWrt Firmware"
+          src="{{ url_for('static', filename='logo.png') }}"
+          alt="Download OpenWrt Firmware"
         />
-    </div>
-</header>
-<div class="container">
-    <h1>ASU Server Stats</h1>
+      </div>
+    </header>
+    <div class="container">
+      <h1>ASU Server Stats</h1>
 
-    <h2>Builds per version:</h2>
+      <p><b>Back to the Sysupgrade Home Page:</b> <a href="/">Home Page</a></p>
 
-    <ul>
+      <h2>Builds per version:</h2>
+      <p>Counts of each firmware release...</p>
+      <ul>
         {%- for builds, version in versions %}
         <li><b>{{ version }}:</b> {{ builds }}</li>
         {%- endfor %}
-    </ul>
+      </ul>
 
-    <h2>Popular Profiles</h2>
-    {% for branch, stats in branch_stats.items() %}
-    <b>{{ branch }}: </b>
-    <ul>
+      <h2>Popular Profiles</h2>
+      <p>Counts of each profile, by firmware release...</p>
+
+      {% for branch, stats in branch_stats.items() %}
+      <b>{{ branch }}: </b>
+      <ul>
         {%- for builds, profile in stats.profiles %}
         <li><b>{{ profile }}:</b> {{ builds }}</li>
         {%- endfor %}
-    </ul>
-    {% endfor %}
-</div>
-</body>
+      </ul>
+      {% endfor %}
+    </div>
+  </body>
 </html>

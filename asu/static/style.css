@@ -327,19 +327,12 @@ td {
 }
 
 .grid-container {
-display: grid;
-  grid-template-columns: repeat(auto-fit);
+  display: grid;
+  grid-gap: 20px;
 }
 
 .grid-item {
-    border: 1px solid lightgrey;
-    margin 2px;
-    width: 1fr;
-}
-
-@media only screen and (max-width: 768px) {
-  /* For mobile phones: */
-  class="grid-item" {
-    width: 100%;
-  }
+  /* border: 1px solid lightgrey; */
+  margin: 2px;
+  width: 1fr;
 }
