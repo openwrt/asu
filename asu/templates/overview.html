@@ -1,45 +1,56 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-        <title>OpenWrt Sysupgrade Server</title>
+    <meta charset="utf-8"/>
+
+    <title>OpenWrt Sysupgrade Server</title>
+    <link
+            href="{{ url_for('static', filename='style.css') }}"
+            rel="stylesheet"
+    />
 </head>
 
 <body>
-        <pre>
+<header>
+    <div>
+        <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt="Download OpenWrt Firmware"
+        />
+    </div>
+</header>
+<div class="container">
+    <h1>Welcome to the OpenWrt sysupgrade server ({{ version }})!</h1>
 
+    <p>Request and receive custom sysupgrade images on demand.</p>
+    <p>
+        See the <a href="/ui/">API documentation</a> on how to request images.
+    </p>
+    <p>
+        Please
+        <a href="https://github.com/aparcar/asu/issues">report issues!</a>
+    </p>
+    <p><a href="/stats">Get statistics</a> on the ASU Server</p>
+    <ul>
+        <li>
+            To use the LuCI Client:
+            <code>opkg install luci-app-attendedsysupgrade</code>
+        </li>
+        <li>To use the Terminal Client: <code>opkg install auc</code></li>
+    </ul>
 
-		# Welcome to the OpenWrt sysupgrade server ({{ version }})!
+    <h2>Available versions:</h2>
+    {% for branch, data in branches.items() -%}
+    <ul>
+        {% for version in data.versions %}
+        <li>{{ version }}</li>
+        {%- endfor -%}
+    </ul>
 
-		
-		Request and receive custom sysupgrade images on demand.
-		See the <a href="/ui/">API documentation</a> on how to request images.
+    Allow custom UCI defaults: {{ defaults }}
+    Latest versions: {{ latest }}
+    {%- endfor -%}
 
-		Please <a href="https://github.com/aparcar/asu/issues">report issues</a>!
-
-
-		## LuCI Client:
-			
-			opkg install luci-app-attendedsysupgrade
-
-		## Terminal Client:
-
-			opkg install auc
-
-
-		Enabled versions:
-		{% for branch, data in branches.items() -%}
-		{% for version in data.versions %}
-			* {{ version }}
-		{%- endfor -%}
-		{% endfor %}
-
-		Allow custom UCI defaults: {{ defaults }}
-
-		Latest versions: {{ latest }}
-
-		<a href="/stats">Server Stats</a>
-	</pre>
+</div>
 </body>
-
 </html>
