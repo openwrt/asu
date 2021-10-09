@@ -1,11 +1,8 @@
-# Ignore artifacts:
-build
-coverage
-tests
+# Ignore config and test directories:
 .direnv
 .github
+tests
 
-
-# Ignore individual files
+# Ignore individual files:
 *.yml
 *.py

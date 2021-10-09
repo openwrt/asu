@@ -121,10 +121,15 @@ After cloning this repository, create a Python virtual environment and install t
     export FLASK_DEBUG=1      # run Flask in debug mode (autoreload)
     flask run
 
-As a final step before publishing, use [Prettier](https://prettier.io) to clean up the HTML templates (and possibly
-other files) by running:
+### Code formatting
 
-    prettier --write file-to-be-reformatted
+As a final step before publishing, use [Prettier](https://prettier.io) to clean up files by running:
+
+    prettier --write .
+
+The `.prettierrc.json` file specifies options to override the defaults (none, in our case) and the `.prettierignore`
+file describes files/folders to ignore. Check which files will be edited by running `prettier --check .` from the home
+directory.
 
 ## API
 

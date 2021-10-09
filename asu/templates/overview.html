@@ -1,53 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
+<head>
+    <meta charset="utf-8"/>
 
     <title>OpenWrt Sysupgrade Server</title>
     <link
-      href="{{ url_for('static', filename='style.css') }}"
-      rel="stylesheet"
+            href="{{ url_for('static', filename='style.css') }}"
+            rel="stylesheet"
     />
-  </head>
+</head>
 
-  <body>
-    <header>
-      <div>
+<body>
+<header>
+    <div>
         <img
-          src="{{ url_for('static', filename='logo.png') }}"
-          alt="Download OpenWrt Firmware"
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt="Download OpenWrt Firmware"
         />
-      </div>
-    </header>
-    <div class="container">
-      <h1>Welcome to the OpenWrt sysupgrade server ({{ version }})!</h1>
+    </div>
+</header>
+<div class="container">
+    <h1>Welcome to the OpenWrt sysupgrade server ({{ version }})!</h1>
 
-      <p>Request and receive custom sysupgrade images on demand.</p>
-      <p>
+    <p>Request and receive custom sysupgrade images on demand.</p>
+    <p>
         See the <a href="/ui/">API documentation</a> on how to request images.
-      </p>
-      <p>
+    </p>
+    <p>
         Please
         <a href="https://github.com/aparcar/asu/issues">report issues!</a>
-      </p>
-      <p><a href="/stats">Get statistics</a> on the ASU Server</p>
-      <ul>
+    </p>
+    <p><a href="/stats">Get statistics</a> on the ASU Server</p>
+    <ul>
         <li>
-          To use the LuCI Client:
-          <code>opkg install luci-app-attendedsysupgrade</code>
+            To use the LuCI Client:
+            <code>opkg install luci-app-attendedsysupgrade</code>
         </li>
         <li>To use the Terminal Client: <code>opkg install auc</code></li>
-      </ul>
+    </ul>
 
-      <h2>Available versions:</h2>
-      {% for branch, data in branches.items() -%}
-      <ul>
+    <h2>Available versions:</h2>
+    {% for branch, data in branches.items() -%}
+    <ul>
         {% for version in data.versions %}
-        <li>{{ version }} {%- endfor -%}</li>
-      </ul>
+        <li>{{ version }}</li>
+        {%- endfor -%}
+    </ul>
 
-      {% endfor %} Allow custom UCI defaults: {{ defaults }} Latest versions: {{
-      latest }}
-    </div>
-  </body>
+    Allow custom UCI defaults: {{ defaults }}
+    Latest versions: {{ latest }}
+    {%- endfor -%}
+
+</div>
+</body>
 </html>

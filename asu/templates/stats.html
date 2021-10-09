@@ -1,30 +1,45 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+
     <title>OpenWrt Sysupgrade Server</title>
-  </head>
+    <link
+            href="{{ url_for('static', filename='style.css') }}"
+            rel="stylesheet"
+    />
+</head>
+<body>
+<header>
+    <div>
+        <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt="Download OpenWrt Firmware"
+        />
+    </div>
+</header>
+<div class="container">
+    <h1>ASU Server Stats</h1>
 
-  <body>
-    <pre>
+    <p>Builds per versions:</p>
 
+    <ul>
+        {%- for builds, version in versions %}
+        <li>{{ builds }}x {{ version }}</li>
+        {%- endfor %}
+    </ul>
 
-		# Server Stats
-
-		
-		Builds per versions:
-		{%- for builds, version in versions %}
-			* {{ builds }}x {{ version }}
-		{%- endfor %}
-
-		{% for branch, stats in branch_stats.items() %}
-		## {{ branch }}:
-
-		Popular profiles:
-		{%- for builds, profile in stats.profiles %}
-			* {{ builds }}x {{ profile }}
-		{%- endfor %}
-		{% endfor %}
-	</pre
-    >
-  </body>
+    {% for branch, stats in branch_stats.items() %}
+    <h2>{{ branch }}</h2>
+    <p>
+        <b>Popular profiles:</b>
+    <ul>
+        {%- for builds, profile in stats.profiles %}
+        <li>{{ builds }}x {{ profile }}</li>
+    </ul>
+    {%- endfor %}
+    </p>
+    {% endfor %}
+</div>
+</body>
 </html>
