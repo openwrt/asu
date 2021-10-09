@@ -20,37 +20,56 @@
     </div>
 </header>
 <div class="container">
-    <h1>Welcome to the OpenWrt sysupgrade server ({{ version }})!</h1>
+    <h1>OpenWrt Sysupgrade Server ({{ version }})</h1>
+    <div class="grid-container">
+        <div class="grid-item">
+            <h2>About the Sysupgrade Server</h2>
+            <p>This server listens to requests for custom sysupgrade images.
+                It then builds an image for the proper target incorporating any requested packages, and
+                returns that image to the requestor.
+            </p>
+            <p>This is the basis for two clients that can automatically upgrade a device, either from LuCI or from the
+                command
+                line:
+            <ul>
+                <li>
+                    <a href="https://github.com/aparcar/asu#luci-app" target="_blank">LuCI Client:</a>
+                    <code>opkg install luci-app-attendedsysupgrade</code>
+                </li>
+                <li><a href="https://github.com/aparcar/asu#cli" target="_blank">Terminal Client:</a> <code>opkg install
+                    auc</code></li>
+            </ul>
+            </p>
+            <p>
+                See the <a href="/ui/" target="_blank">API documentation</a> on how to request images.
+            </p>
+            <p>
+                Please
+                <a href="https://github.com/aparcar/asu/issues" target="_blank">report issues!</a>
+            </p>
+            <p><a href="/stats" target="_parent">Get statistics</a> on the ASU Server</p>
 
-    <p>Request and receive custom sysupgrade images on demand.</p>
-    <p>
-        See the <a href="/ui/">API documentation</a> on how to request images.
-    </p>
-    <p>
-        Please
-        <a href="https://github.com/aparcar/asu/issues">report issues!</a>
-    </p>
-    <p><a href="/stats">Get statistics</a> on the ASU Server</p>
-    <ul>
-        <li>
-            To use the LuCI Client:
-            <code>opkg install luci-app-attendedsysupgrade</code>
-        </li>
-        <li>To use the Terminal Client: <code>opkg install auc</code></li>
-    </ul>
 
-    <h2>Available versions:</h2>
-    {% for branch, data in branches.items() -%}
-    <ul>
-        {% for version in data.versions %}
-        <li>{{ version }}</li>
-        {%- endfor -%}
-    </ul>
+            <b>Available branches:</b>
+            {% for branch, data in branches.items() -%}
+            <ul>
+                {% for version in data.versions %}
+                <li>{{ version }}</li>
+                {%- endfor -%}
+            </ul>
+            {%- endfor -%}
 
-    Allow custom UCI defaults: {{ defaults }}
-    Latest versions: {{ latest }}
-    {%- endfor -%}
+            <b>Allow custom UCI defaults:</b> {{ defaults }} <br/>
+            <b>Latest versions:</b> {{ latest }}
+        </div>
+        <div class="grid-item">
+            <h2>Sysupgrade Server Stats</h2>
+            This is a bunch of stuff to put on the site, but maybe flow to the bottom if the page gets
+            narrow
 
+
+        </div>
+    </div>
 </div>
 </body>
 </html>

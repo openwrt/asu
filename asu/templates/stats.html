@@ -21,24 +21,22 @@
 <div class="container">
     <h1>ASU Server Stats</h1>
 
-    <p>Builds per versions:</p>
+    <h2>Builds per version:</h2>
 
     <ul>
         {%- for builds, version in versions %}
-        <li>{{ builds }}x {{ version }}</li>
+        <li><b>{{ version }}:</b> {{ builds }}</li>
         {%- endfor %}
     </ul>
 
+    <h2>Popular Profiles</h2>
     {% for branch, stats in branch_stats.items() %}
-    <h2>{{ branch }}</h2>
-    <p>
-        <b>Popular profiles:</b>
+    <b>{{ branch }}: </b>
     <ul>
         {%- for builds, profile in stats.profiles %}
-        <li>{{ builds }}x {{ profile }}</li>
+        <li><b>{{ profile }}:</b> {{ builds }}</li>
+        {%- endfor %}
     </ul>
-    {%- endfor %}
-    </p>
     {% endfor %}
 </div>
 </body>

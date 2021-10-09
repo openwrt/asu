@@ -1,0 +1,74 @@
+{
+  "latest": [
+    "SNAPSHOT",
+    "21.02.0",
+    "19.07.7"
+  ],
+  "branches": {
+    "SNAPSHOT": {
+      "name": "SNAPSHOT",
+      "enabled": true,
+      "snapshot": true,
+      "versions": [
+        "SNAPSHOT"
+      ],
+      "git_branch": "master",
+      "path": "snapshots",
+      "path_packages": "snapshots/packages",
+      "repos": [
+        "base"
+      ],
+      "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
+      "updates": "dev",
+      "targets": {
+        "testtarget/testsubtarget": "testarch",
+        "x86/64": "x86_64"
+      }
+    },
+    "21.02": {
+      "name": "21.02",
+      "enabled": true,
+      "snapshot": true,
+      "versions": [
+        "21.02.0",
+        "21.02.0-rc4",
+        "21.02-SNAPSHOT"
+      ],
+      "git_branch": "openwrt-21.02",
+      "path": "releases/{version}",
+      "path_packages": "releases/packages-{branch}",
+      "repos": [
+        "base"
+      ],
+      "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
+      "updates": "rc",
+      "targets": {
+        "testtarget/testsubtarget": "testarch"
+      }
+    },
+    "19.07": {
+      "name": "19.07",
+      "enabled": true,
+      "versions": [
+        "19.07.7",
+        "19.07.6"
+      ],
+      "git_branch": "openwrt-19.07",
+      "path": "releases/{version}",
+      "path_packages": "releases/packages-{branch}",
+      "repos": [
+        "base"
+      ],
+      "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
+      "updates": "stable",
+      "targets": {
+        "testtarget/testsubtarget": "testarch"
+      }
+    }
+  },
+  "server": {
+    "version": "dev",
+    "contact": "mail@aparcar.org",
+    "allow_defaults": false
+  }
+}

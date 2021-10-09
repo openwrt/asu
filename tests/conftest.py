@@ -55,9 +55,20 @@ def redis_load_mock_data(redis):
         {
             "xiaomi_mi-router-4a-gigabit": 71,
             "generic": 62,
-            "rip-4": 59,
+            "rpi-4": 59,
             "linksys_wrt1900acs": 39,
             "xiaomi_mi-router-3g": 38,
+        },
+    )
+
+    redis.zadd(
+        f"stats-profiles-19.07",
+        {
+            "archer_c7_v2": 22,
+            "generic": 14,
+            "rpi-4": 47,
+            "linksys_wrt1900acs": 62,
+            "xiaomi_mi-router-3g": 65,
         },
     )
 
@@ -101,7 +112,7 @@ def mock_app(test_path="."):
                     "name": "21.02",
                     "enabled": True,
                     "snapshot": True,
-                    "versions": ["21.02.0-rc1", "21.02-SNAPSHOT"],
+                    "versions": ["21.02.0", "21.02.0-rc4", "21.02-SNAPSHOT"],
                     "git_branch": "openwrt-21.02",
                     "path": "releases/{version}",
                     "path_packages": "releases/packages-{branch}",
