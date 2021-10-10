@@ -1,8 +1,0 @@
-# Ignore config and test directories:
-.direnv
-.github
-tests
-
-# Ignore individual files:
-*.yml
-*.py
