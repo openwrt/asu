@@ -174,7 +174,7 @@ def test_api_build_prerelease_rc(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="21.02.0-rc1",
+            version="21.02.0",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],

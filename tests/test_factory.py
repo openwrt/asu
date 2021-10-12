@@ -16,7 +16,7 @@ def test_other(app):
 def test_json_path_latest(client):
     response = client.get("/json/latest.json")
     assert "19.07.7" in response.json["latest"]
-    assert "21.02.0-rc1" in response.json["latest"]
+    assert "21.02.0" in response.json["latest"]
     assert "SNAPSHOT" in response.json["latest"]
     assert response.status == "200 OK"
 
