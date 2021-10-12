@@ -1,0 +1,338 @@
+/*
+@media (min-resolution: 200dpi), (max-width: 1000px) {
+  .container {
+    width: 100% !important;
+  }
+}
+*/
+
+/* move version selection in a new line*/
+/*
+@media (min-resolution: 400dpi), (max-width: 600px) { 
+ #models-autocomplete {
+    flex-direction: column;
+  }
+  #versions {
+    margin-top: 0.5em;
+  }
+  .autocomplete > input {
+    margin-right: 0px !important;
+  }
+}
+*/
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+  padding: 0;
+  margin: 0;
+}
+
+/* OpenWrt Wiki link color is #337ab7; */
+/* Original little-steps link color is very dark:  #337ab7; */
+/* OpenWrt Logo Guidelines says bright blue color should be #00B5E2; */
+/* But... the actual SVG in 43b0e8; */
+
+a {
+  color: #00b5e2;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+#models-autocomplete {
+  display: flex;
+  padding-top: 20px;
+}
+
+.autocomplete {
+  position: relative;
+}
+
+.autocomplete > input {
+  border: 0.06em solid transparent;
+  background-color: #f1f1f1;
+  padding: 0.8em;
+  flex-grow: 1;
+  margin-right: 5px;
+  border-radius: 0.2em;
+  font-size: inherit;
+}
+
+.autocomplete-items {
+  position: absolute;
+  border: 0.1em solid #d4d4d4;
+  border-bottom: none;
+  font-size: inherit;
+  border-top: none;
+  z-index: 99;
+  /*position the autocomplete items to be the same width as the container:*/
+  top: 100%;
+  left: 0;
+  right: 0;
+}
+
+.autocomplete-items div {
+  padding: 0.8em;
+  cursor: pointer;
+  background-color: #fff;
+  border-bottom: 0.1em solid #d4d4d4;
+}
+
+/*when hovering an item:*/
+.autocomplete-items div:hover {
+  background-color: #e9e9e9;
+}
+
+/*when navigating through the items using the arrow keys:*/
+.autocomplete-active {
+  background-color: DodgerBlue !important;
+  color: #ffffff;
+}
+
+header {
+  margin-right: auto;
+  margin-left: auto;
+  font-weight: 500;
+  width: 100%;
+  z-index: 1100;
+  box-shadow: 0em 0.125em 0.25em -0.06em rgba(0, 0, 0, 0.2),
+    0em 0.25em 0.3em 0em rgba(0, 0, 0, 0.14),
+    0em 0.06em 0.625em 0em rgba(0, 0, 0, 0.12);
+  background-color: #002b49;
+}
+
+header > div {
+  margin-right: auto;
+  margin-left: auto;
+  width: auto;
+  display: flex;
+  position: relative;
+  align-items: center;
+  color: #fff;
+}
+
+header > div > img {
+  height: 3em;
+  padding: 0.75em;
+}
+
+h6 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.0075em;
+}
+
+header > div {
+  padding-left: 1.5em;
+  padding-right: 1.5em;
+  min-height: 4em;
+
+  display: flex;
+  position: relative;
+  align-items: center;
+  color: #fff;
+}
+
+.container {
+  padding-left: 1.2em;
+  padding-right: 1.2em;
+  width: 60%;
+  box-sizing: border-box;
+  margin-top: 1.2em;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/*.container > div {
+  padding: 0.625em 20px;
+  text-align: left;
+  box-shadow: 0em 0.06em 0.19em 0em rgba(0, 0, 0, 0.2),
+    0em 0.06em 0.06em 0em rgba(0, 0, 0, 0.14),
+    0em 0.125em 0.06em -0.06em rgba(0, 0, 0, 0.12);
+  border-radius: 0.25em;
+  color: rgba(0, 0, 0, 0.87);
+  transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  background-color: #fff;
+}*/
+
+#versions {
+  border: 0.06em solid transparent;
+  background-color: #f1f1f1;
+  padding: 0.8em;
+  min-width: 4em;
+  border-radius: 0.25em;
+  font-size: inherit;
+}
+
+.download-link {
+  text-decoration: none;
+  border-radius: 0.2em;
+  padding: 0.8em;
+  margin: 0.2em;
+  font-size: inherit;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0em 0.06em 0.3em 0em rgba(0, 0, 0, 0.2),
+    0em 0.125em 0.125em 0em rgba(0, 0, 0, 0.14),
+    0em 0.19em 0.06em -0.125em rgba(0, 0, 0, 0.12);
+  color: #fff;
+  background-color: #00a3e1;
+}
+
+.download-link-hover {
+  background-color: #038fc6;
+}
+
+.download-link :first-child {
+  width: 30px;
+  margin-right: 15px;
+  margin-top: -0.125em;
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z' fill='%23fff'%3E%3C/path%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3C/svg%3E");
+}
+
+#image-info {
+  width: 1em;
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -256 1850 1850' width='100%25' height='100%25'%3E%3Cg transform='matrix(1,0,0,-1,30.372881,1426.9492)'%3E%3Cpath d='M 1408,608 V 288 Q 1408,169 1323.5,84.5 1239,0 1120,0 H 288 Q 169,0 84.5,84.5 0,169 0,288 v 832 Q 0,1239 84.5,1323.5 169,1408 288,1408 h 704 q 14,0 23,-9 9,-9 9,-23 v -64 q 0,-14 -9,-23 -9,-9 -23,-9 H 288 q -66,0 -113,-47 -47,-47 -47,-113 V 288 q 0,-66 47,-113 47,-47 113,-47 h 832 q 66,0 113,47 47,47 47,113 v 320 q 0,14 9,23 9,9 23,9 h 64 q 14,0 23,-9 9,-9 9,-23 z m 384,864 V 960 q 0,-26 -19,-45 -19,-19 -45,-19 -26,0 -45,19 L 1507,1091 855,439 q -10,-10 -23,-10 -13,0 -23,10 L 695,553 q -10,10 -10,23 0,13 10,23 l 652,652 -176,176 q -19,19 -19,45 0,26 19,45 19,19 45,19 h 512 q 26,0 45,-19 19,-19 19,-45 z' /%3E%3C/g%3E%3C/svg%3E%0A");
+}
+
+.row {
+  display: flex;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.col1 {
+  display: inline-block;
+  width: 6em;
+}
+
+.col2 {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#image-model {
+  font-weight: bold;
+}
+
+.hide {
+  display: none;
+}
+
+.download-help {
+  margin-top: 0.5em;
+}
+
+#help {
+  margin: 20px 0;
+}
+
+#footer {
+  font-size: 0.8em;
+  text-align: right;
+  margin-top: 1em;
+}
+
+#footer a {
+  text-decoration: none;
+}
+
+#notfound h3 {
+  text-align: center;
+}
+
+table {
+  /*table-layout:  fixed;*/
+  font-size: 14px;
+  box-shadow: 0 0 0.5em #999;
+  margin: 0;
+  border: none !important;
+  margin-bottom: 2em;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+th {
+  background: #002b49;
+  line-height: 24px;
+  border: none;
+  text-align: left;
+  color: #fff;
+}
+
+tr {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+tr:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+tr:nth-child(2n + 1) {
+  background: #eee;
+}
+
+th,
+td {
+  height: 20px;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: 0.2em 0.5em;
+  border-bottom: 1px solid #ccc;
+}
+
+.n {
+  font-weight: bold;
+}
+
+.s {
+  text-align: right;
+}
+
+.d {
+  text-align: center;
+}
+
+.sh {
+  font-family: monospace;
+}
+
+/* We start writing out flexbox here. The above is just page setup */
+.flex-container {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  /*border:10px solid white;*/
+  /*height:100vh;*/
+}
+
+.flex-item {
+  /*height: 300px;*/
+  /* width: 350px; */
+  flex: 1;
+  background-color: white;
+  border: 1px solid lightgrey;
+  padding: 10px 20px;
+  margin: 2px;
+}
+
+.grid-container {
+  display: grid;
+  grid-gap: 20px;
+}
+
+.grid-item {
+  /* border: 1px solid lightgrey; */
+  margin: 2px;
+  width: 1fr;
+}

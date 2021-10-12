@@ -1,45 +1,75 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-        <title>OpenWrt Sysupgrade Server</title>
+    <meta charset="utf-8"/>
+
+    <title>OpenWrt Sysupgrade Server</title>
+    <link href="{{ url_for('static', filename='style.css') }}"
+          rel="stylesheet"/>
 </head>
-
 <body>
-        <pre>
+<header>
+    <div>
+        <img src="{{ url_for('static', filename='logo.png') }}"
+             alt="OpenWrt Firmware logo"/>
+    </div>
+</header>
+<div class="container">
+    <h1>OpenWrt Sysupgrade Server ({{ version }})</h1>
+  
+    <div class="grid-container">
+        <div class="grid-item">
+            <h2>About the Sysupgrade Server</h2>
+            <p>
+                This server listens for requests to build custom OpenWrt
+                sysupgrade images.
+                It starts an ImageBuilder process for the specified target,
+                incorporates any requested packages, and returns that image
+                to the requestor.
+                The server also provides an <a href="/ui/"
+                                               target="_blank">API</a>
+                for common operations.
+                Learn more on <a href="https://github.com/aparcar/asu"
+                                 target="_blank">Github.</a>
+                Please <a href="https://github.com/aparcar/asu/issues"
+                          target="_blank">report issues!</a>
+            </p>
+            <p>
+                <b>How to use this server:</b> There are at least two clients
+                that can request a new image from the Sysupgrade Server:
+            </p>
+            <ul>
+                <li>
+                    <a href="https://github.com/aparcar/asu#luci-app"
+                       target="_blank">LuCI Package:</a>
+                    <code>opkg install luci-app-attendedsysupgrade</code>
+                </li>
+                <li>
+                    <a href="https://github.com/aparcar/asu#cli"
+                       target="_blank">Command line/SSH:</a>
+                    <code>opkg install auc</code>
+                </li>
+            </ul>
 
+            <p><b>View the Server Stats:</b> <a href="/stats">Server Stats</a>
+            </p>
+            <hr/>
+            <h2>Sysupgrade Server Configuration:</h2>
+            <b>Available branches on this server:</b>
+            {% for branch, data in branches.items() -%}
+            <ul>
+                {% for version in data.versions %}
+                <li>{{ version }}</li>
+                {%- endfor -%}
+            </ul>
+            {%- endfor -%}
 
-		# Welcome to the OpenWrt sysupgrade server ({{ version }})!
-
-		
-		Request and receive custom sysupgrade images on demand.
-		See the <a href="/ui/">API documentation</a> on how to request images.
-
-		Please <a href="https://github.com/aparcar/asu/issues">report issues</a>!
-
-
-		## LuCI Client:
-			
-			opkg install luci-app-attendedsysupgrade
-
-		## Terminal Client:
-
-			opkg install auc
-
-
-		Enabled versions:
-		{% for branch, data in branches.items() -%}
-		{% for version in data.versions %}
-			* {{ version }}
-		{%- endfor -%}
-		{% endfor %}
-
-		Allow custom UCI defaults: {{ defaults }}
-
-		Latest versions: {{ latest }}
-
-		<a href="/stats">Server Stats</a>
-	</pre>
+            <p>
+                <b>Allow custom UCI defaults:</b> {{ defaults }} <br/>
+                <b>Latest versions:</b> {{ latest }}
+            </p>
+        </div>
+    </div>
+</div>
 </body>
-
 </html>
