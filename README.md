@@ -73,15 +73,18 @@ Install _asu_:
 
     pip install asu
 
+Create a `config.py`.
+You can use `misc/config.py` as an example.
+
 Start the server via the following commands:
 
     export FLASK_APP=asu.asu  # set Flask app to asu
-    flask janitor update      # download upstream profiles/packages
-    flask run                 # run development server
+    flask janitor update      # download upstream profiles/packages - this runs forever
+    flask run                 # run development server - this runs forever
 
 Start the worker via the following comand:
 
-    rq worker
+    rq worker                 # this runs forever
 
 ### Docker
 
