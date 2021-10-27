@@ -43,7 +43,7 @@ def parse_packages_file(url, repo):
                 if source_name != package_name:
                     mapping[package_name] = source_name
             else:
-                current_app.logger.warning(f"Something wired about {package}")
+                current_app.logger.warning(f"Something weird about {package}")
             linebuffer = ""
         else:
             linebuffer += line + "\n"
