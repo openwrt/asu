@@ -1,7 +1,6 @@
 import email
 import json
 from datetime import datetime
-from multiprocessing import Pool
 from shutil import rmtree
 from time import sleep
 
@@ -106,55 +105,47 @@ def update_branch(branch):
 
     for version in branch["versions"]:
         current_app.logger.info(f"Update {branch['name']}/{version}")
-        with Pool() as pool:
-            # TODO: ugly
-            version_path = branch["path"].format(version=version)
-            version_path_abs = current_app.config["JSON_PATH"] / version_path
-            output_path = current_app.config["JSON_PATH"] / packages_path
-            version_path_abs.mkdir(exist_ok=True, parents=True)
-            packages_symlink = version_path_abs / "packages"
+        # TODO: ugly
+        version_path = branch["path"].format(version=version)
+        version_path_abs = current_app.config["JSON_PATH"] / version_path
+        output_path = current_app.config["JSON_PATH"] / packages_path
+        version_path_abs.mkdir(exist_ok=True, parents=True)
+        packages_symlink = version_path_abs / "packages"
 
-            if not packages_symlink.exists():
-                packages_symlink.symlink_to(output_path)
+        if not packages_symlink.exists():
+            packages_symlink.symlink_to(output_path)
 
-            pool.starmap(
-                update_target_packages, map(lambda t: (branch, version, t), targets)
+        for target in targets:
+            update_target_packages(branch, version, target)
+
+        for target in targets:
+            update_target_profiles(branch, version, target)
+
+        overview = {
+            "branch": branch["name"],
+            "release": version,
+            "image_url": current_app.config["UPSTREAM_URL"]
+            + f"/{version_path}/targets/{{target}}",
+            "profiles": [],
+        }
+
+        for profile_file in (version_path_abs / "targets").rglob("**/*.json"):
+            if profile_file.stem in ["index", "manifest", "overview"]:
+                continue
+            profile = json.loads(profile_file.read_text())
+            overview["profiles"].append(
+                {
+                    "id": profile_file.stem,
+                    "target": profile["target"],
+                    "titles": profile["titles"],
+                }
             )
-            pool.starmap(
-                update_target_profiles, map(lambda t: (branch, version, t), targets)
-            )
-
-            overview = {
-                "branch": branch["name"],
-                "release": version,
-                "image_url": current_app.config["UPSTREAM_URL"]
-                + f"/{version_path}/targets/{{target}}",
-                "profiles": [],
-            }
-
-            for profile_file in (version_path_abs / "targets").rglob("**/*.json"):
-                if profile_file.stem in ["index", "manifest", "overview"]:
-                    continue
-                profile = json.loads(profile_file.read_text())
-                overview["profiles"].append(
-                    {
-                        "id": profile_file.stem,
-                        "target": profile["target"],
-                        "titles": profile["titles"],
-                    }
-                )
-            (version_path_abs / "overview.json").write_text(
-                json.dumps(overview, sort_keys=True, separators=(",", ":"))
-            )
-
-    with Pool() as pool:
-        pool.starmap(
-            update_arch_packages,
-            map(
-                lambda a: (branch, a.decode("utf-8")),
-                r.smembers(f"architectures-{branch['name']}"),
-            ),
+        (version_path_abs / "overview.json").write_text(
+            json.dumps(overview, sort_keys=True, separators=(",", ":"))
         )
+
+    for arch in r.smembers(f"architectures-{branch['name']}"):
+        update_arch_packages(branch, arch.decode("utf-8"))
 
 
 def update_target_packages(branch: dict, version: str, target: str):
