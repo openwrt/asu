@@ -6,40 +6,44 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [ 3.7, 3.8, 3.9 ]
     name: Python ${{ matrix.python-version }}
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Install ImageBuilder prereqs
+
       run: sudo apt-get install -y libncurses5-dev
     - uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Display Python version
       run: python -c "import sys; print(sys.version)"
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r dev-requirements.txt
-        pip install -e .
+        python -m pip install --upgrade poetry
+        poetry install
+
     - name: Lint with flake8
       run: |
-        pip install flake8
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        poetry run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Stylecheck with black
       run: |
-        pip install black
-        black asu/ tests/
+        poetry run black asu/ tests/
+
     - name: Test with pytest
       run: |
-        pip install pytest
-        pip install coverage
-        coverage run -m pytest --runslow
-        coverage xml
+        poetry run coverage run -m pytest --runslow
+        poetry run coverage xml
+
     - name: Codecov
       uses: codecov/codecov-action@v1
