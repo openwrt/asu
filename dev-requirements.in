@@ -1,4 +1,0 @@
--c requirements.txt
-fakeredis
-pytest
-pytest-httpserver

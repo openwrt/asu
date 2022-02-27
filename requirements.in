@@ -1,6 +1,0 @@
-connexion
-connexion[swagger-ui]
-pynacl
-redis
-requests
-rq==1.10.0
