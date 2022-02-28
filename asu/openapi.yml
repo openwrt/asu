@@ -348,7 +348,7 @@ components:
             Custom shell script embedded in firmware image to be run on first
             boot. This feature might be dropped in the future. Size is limited
             to 10kB and can not be exceeded.
-          maxLength: 10240
+          maxLength: 20480
 
       example:
         version: 19.07.8
