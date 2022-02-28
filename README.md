@@ -98,6 +98,7 @@ is required. Suggestions on how to improve this setup are welcome.
 
     mkdir ./asu-service/
     chmod 777 ./asu-service/
+    cp ./misc/config.py ./asu-service/
     docker-compose up
 
 A webserver should proxy API calls to port 8000 of the `server` service while
