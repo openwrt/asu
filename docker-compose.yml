@@ -1,23 +1,22 @@
+version: "2"
+
 services:
   server:
-    image: aparcar/asu-server
-    build:
-      context: ./
-      dockerfile: Dockerfile.server
+    image: "aparcar/asu-server:latest"
+    environment:
+      - REDIS_HOST=redis
     volumes:
       - "./asu-service:/home/build/asu/"
     ports:
-      - 8000
+      - "8000"
     depends_on:
       - redis
 
   janitor:
-    image: aparcar/asu-server
-    build:
-      context: ./
-      dockerfile: Dockerfile.server
+    image: "aparcar/asu-server:latest"
     environment:
       - FLASK_APP=asu.asu
+      - REDIS_HOST=redis
     command: flask janitor update
     volumes:
       - "./asu-service:/home/build/asu/"
@@ -25,24 +24,10 @@ services:
       - redis
 
   worker:
-    image: aparcar/asu-worker
-    build:
-      context: ./
-      dockerfile: Dockerfile.worker
+    image: "aparcar/asu-worker:latest"
     volumes:
       - "./asu-service/public:/home/build/asu/public"
       - "./asu-service/cache:/home/build/asu/cache"
-    depends_on:
-      - redis
-
-  worker2:
-    image: aparcar/asu-worker
-    build:
-      context: ./
-      dockerfile: Dockerfile.worker
-    volumes:
-      - "./asu-service/public:/home/build/asu/public"
-      - "./asu-service/cache2:/home/build/asu/cache"
     depends_on:
       - redis
 
@@ -55,4 +40,4 @@ services:
       - "./misc/Caddyfile:/etc/caddy/Caddyfile"
       - "./asu-service:/site/"
     ports:
-      - 80:80
+      - "8080:80"

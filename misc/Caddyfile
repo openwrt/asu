@@ -17,9 +17,10 @@
 
 :80 {
 	root * /site/
-	file_server browse
+	file_server /json/
+	file_server /store/
 	header Access-Control-Allow-Methods "POST, GET, OPTIONS"
 	header Access-Control-Allow-Headers "*"
 	header Access-Control-Allow-Origin "*"
-	reverse_proxy /api/* server:8000
+	reverse_proxy * server:8000
 }
