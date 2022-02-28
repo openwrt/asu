@@ -239,24 +239,24 @@ def validate_request(req):
         current_app.logger.debug("Use generic profile for {req['target']}")
         req["profile"] = "generic"
     else:
-        mapped_profile = r.hget(
-            f"mapping-{req['branch']}-{req['version']}-{req['target']}",
-            req["profile"],
-        )
-
-        if mapped_profile:
-            req["profile"] = mapped_profile.decode()
-
-        current_app.logger.debug("Profile after mapping " + req["profile"])
-
-        if not r.sismember(
+        if r.sismember(
             f"profiles-{req['branch']}-{req['version']}-{req['target']}",
-            req["profile"],
+            req["profile"].replace(",", "_"),
         ):
-            return (
-                {"detail": f"Unsupported profile: {req['profile']}", "status": 400},
-                400,
+            req["profile"] = req["profile"].replace(",", "_")
+        else:
+            mapped_profile = r.hget(
+                f"mapping-{req['branch']}-{req['version']}-{req['target']}",
+                req["profile"],
             )
+
+            if mapped_profile:
+                req["profile"] = mapped_profile.decode()
+            else:
+                return (
+                    {"detail": f"Unsupported profile: {req['profile']}", "status": 400},
+                    400,
+                )
 
     package_problems = validate_packages(req)
     if package_problems:
