@@ -31,7 +31,7 @@ def create_app(test_config: dict = None) -> Flask:
         REDIS_CONN=Redis(host=redis_host, port=redis_port, password=redis_password),
         TESTING=False,
         DEBUG=False,
-        UPSTREAM_URL="https://downloads.cdn.openwrt.org",
+        UPSTREAM_URL="https://downloads.openwrt.org",
         BRANCHES={},
         ALLOW_DEFAULTS=False,
     )
