@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "asu"
-version = "0.6.4"
+version = "0.0.0"
 description = "An image on demand server for OpenWrt based distributions"
 authors = ["Paul Spooren <mail@aparcar.org>"]
 license = "GPL-2.0"

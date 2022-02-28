@@ -1,4 +1,4 @@
-name: Upload Python Package
+name: Upload Python Package and Docker Container
 
 on:
   release:
@@ -6,9 +6,7 @@ on:
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
 
@@ -20,36 +18,42 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+        pip install poetry
 
-    - name: Set __version__
+    - name: Set __version__ and poetry version
       run: |
-        echo "__version__ = \"${GITHUB_REF##*/}\"" > asu/__init__.py
+        TAG="$(git describe --tags --abbrev=0)"
+        echo "TAG=$TAG" >> "$GITHUB_ENV"
+        echo "__version__ = \"$TAG\"" > asu/__init__.py
+        poetry version "$TAG"
 
     - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+        poetry build
+        poetry publish \
+          --username  ${{ secrets.PYPI_USERNAME }} \
+          --password ${{ secrets.PYPI_PASSWORD }}
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Push ASU server to Docker Hub
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: aparcar/asu-server
-        tag_with_ref: true
-        tags: latest
-        dockerfile: Dockerfile.server
+        tags: |
+          aparcar/asu-server:latest
+          aparcar/asu-server:$TAG
+        file: Dockerfile.server
+        push: true
 
     - name: Push ASU worker to Docker Hub
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: aparcar/asu-worker
-        tag_with_ref: true
-        tags: latest
-        dockerfile: Dockerfile.worker
+        tags: |
+          aparcar/asu-worker:latest
+          aparcar/asu-worker:$TAG
+        file: Dockerfile.worker
+        push: true
