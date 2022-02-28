@@ -1,6 +1,6 @@
-name: Python application
+name: Test Pull Request
 
-on: [push]
+on: [pull_request]
 
 jobs:
   build:
@@ -8,15 +8,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ 3.7, 3.8, 3.9 ]
+        python-version: [ 3.7, 3.8, 3.9, 3.10 ]
     name: Python ${{ matrix.python-version }}
 
     steps:
     - uses: actions/checkout@v2
 
     - name: Install ImageBuilder prereqs
-
       run: sudo apt-get install -y libncurses5-dev
+
     - uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
