@@ -4,9 +4,6 @@ on:
   release:
     types:
       - created
-  push:
-    tags:
-      - "v*"
 
 jobs:
   deploy:
@@ -41,7 +38,7 @@ jobs:
         id: meta_server
         uses: docker/metadata-action@v3
         with:
-          images: aparcar/asu-worker
+          images: aparcar/asu-server
           tags: |
             type=semver,pattern={{version}}
 
