@@ -26,8 +26,7 @@ services:
   worker:
     image: "aparcar/asu-worker:latest"
     volumes:
-      - "./asu-service/public:/home/build/asu/public"
-      - "./asu-service/cache:/home/build/asu/cache"
+      - "./asu-service/:/home/build/asu/"
     depends_on:
       - redis
 
@@ -40,4 +39,4 @@ services:
       - "./misc/Caddyfile:/etc/caddy/Caddyfile"
       - "./asu-service:/site/"
     ports:
-      - "8080:80"
+      - "8000:80"
