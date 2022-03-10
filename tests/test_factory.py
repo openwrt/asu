@@ -1,5 +1,6 @@
-from asu.asu import create_app
 from pathlib import PosixPath
+
+from asu.asu import create_app
 
 
 def test_pathlib(app):

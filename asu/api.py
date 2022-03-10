@@ -4,7 +4,7 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
 from .build import build
-from .common import get_request_hash, stats_versions, stats_profiles
+from .common import get_request_hash, stats_profiles, stats_versions
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 

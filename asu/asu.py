@@ -6,8 +6,8 @@ import connexion
 from flask import Flask, redirect, render_template, send_from_directory
 from redis import Redis
 
-from asu import __version__
 import asu.common
+from asu import __version__
 
 
 def create_app(test_config: dict = None) -> Flask:

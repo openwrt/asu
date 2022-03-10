@@ -1,7 +1,7 @@
-import pytest
 import shutil
 import tempfile
 
+import pytest
 from fakeredis import FakeStrictRedis
 
 from asu.asu import create_app

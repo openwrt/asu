@@ -1,7 +1,6 @@
-from pathlib import PosixPath
 import os
 import tempfile
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 from asu.common import *
 

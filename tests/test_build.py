@@ -1,10 +1,9 @@
-from asu.build import build
-from asu.build import StorePathMissingError
 from pathlib import Path
 
 import pytest
-
 from pytest_httpserver import HTTPServer
+
+from asu.build import StorePathMissingError, build
 
 
 @pytest.fixture

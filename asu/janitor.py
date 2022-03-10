@@ -354,7 +354,9 @@ def update(interval):
     current_app.logger.info("Init ASU janitor")
     while True:
         if not current_app.config["BRANCHES"]:
-            current_app.logger.error("No BRANCHES defined in config, nothing to do, exiting")
+            current_app.logger.error(
+                "No BRANCHES defined in config, nothing to do, exiting"
+            )
             return
         for branch in current_app.config["BRANCHES"].values():
             if not branch.get("enabled"):
