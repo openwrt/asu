@@ -23,4 +23,5 @@
 	header Access-Control-Allow-Headers "*"
 	header Access-Control-Allow-Origin "*"
 	reverse_proxy * server:8000
+	reverse_proxy /stats grafana:3000
 }
