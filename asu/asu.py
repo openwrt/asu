@@ -1,10 +1,14 @@
 import json
+
+# from msilib.schema import Registry
 from os import getenv
 from pathlib import Path
 
 import connexion
-from flask import Flask, redirect, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory
+from prometheus_client import CollectorRegistry, make_wsgi_app
 from redis import Redis
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 import asu.common
 from asu import __version__
@@ -26,6 +30,7 @@ def create_app(test_config: dict = None) -> Flask:
 
     cnxn = connexion.FlaskApp(__name__)
     app = cnxn.app
+
     app.config.from_mapping(
         JSON_PATH=Path.cwd() / "public/json/v1/",
         REDIS_CONN=Redis(host=redis_host, port=redis_port, password=redis_password),
@@ -34,6 +39,7 @@ def create_app(test_config: dict = None) -> Flask:
         UPSTREAM_URL="https://downloads.openwrt.org",
         BRANCHES={},
         ALLOW_DEFAULTS=False,
+        ASYNC_QUEUE=True,
     )
 
     if not test_config:
@@ -45,6 +51,7 @@ def create_app(test_config: dict = None) -> Flask:
                 print(f"Loading {config_file}")
                 app.config.from_pyfile(config_file)
                 break
+        app.config["REGISTRY"] = CollectorRegistry()
     else:
         app.config.from_mapping(test_config)
 
@@ -52,6 +59,10 @@ def create_app(test_config: dict = None) -> Flask:
         if option.endswith("_PATH") and isinstance(value, (Path, str)):
             app.config[option] = Path(value)
             app.config[option].mkdir(parents=True, exist_ok=True)
+
+    app.wsgi_app = DispatcherMiddleware(
+        app.wsgi_app, {"/metrics": make_wsgi_app(app.config["REGISTRY"])}
+    )
 
     (Path().cwd()).mkdir(exist_ok=True, parents=True)
 
@@ -73,6 +84,10 @@ def create_app(test_config: dict = None) -> Flask:
     from . import api
 
     app.register_blueprint(api.bp)
+
+    from . import metrics
+
+    app.config["REGISTRY"].register(metrics.BuildCollector(app.config["REDIS_CONN"]))
 
     branches = dict(
         map(
@@ -142,6 +157,6 @@ def create_app(test_config: dict = None) -> Flask:
         if not app.config["REDIS_CONN"].hexists("mapping-abi", package):
             app.config["REDIS_CONN"].hset("mapping-abi", package, source)
 
-    cnxn.add_api("openapi.yml", validate_responses=True)
+    cnxn.add_api("openapi.yml", validate_responses=app.config["TESTING"])
 
     return app

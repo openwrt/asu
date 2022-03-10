@@ -1,7 +1,8 @@
 {
 	"metadata_version": 1,
+	"source_date_epoch": 1612136917,
 	"target": "testtarget/testsubtarget",
-	"version_commit": "r99999-999999999",
+	"version_code": "r15666-8019c54d8a",
 	"version_number": "SNAPSHOT",
 	"profiles": {
 		"testprofile": {
@@ -9,16 +10,19 @@
 				"testprofile"
 			],
 			"image_prefix": "openwrt-testtarget-testsubtarget-testprofile",
-			"images": [{
-				"name": "openwrt-testtarget-testsubtarget-testprofile-sysupgrade.bin",
-				"sha256": "000",
-				"type": "sysupgrade"
-			}],
-			"titles": [{
-				"model": "Test1",
-				"vendor": "The Test Comp"
-			}]
-
+			"images": [
+				{
+					"name": "openwrt-testtarget-testsubtarget-testprofile-sysupgrade.bin",
+					"sha256": "000",
+					"type": "sysupgrade"
+				}
+			],
+			"titles": [
+				{
+					"model": "Test1",
+					"vendor": "The Test Comp"
+				}
+			]
 		}
 	}
 }

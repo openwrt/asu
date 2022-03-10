@@ -296,7 +296,7 @@ def update_target_profiles(branch: dict, version: str, target: str):
                 rmtree(current_app.config["STORE_PATH"] / request_hash)
 
             except NoSuchJobError:
-                current_app.logger.warning(f"Job was already deleted")
+                current_app.logger.warning("Job was already deleted")
         r.delete(f"build-{version_code}-{target}")
 
     r.set(

@@ -1,46 +1,98 @@
 {
 	"arch_packages": "testarch",
-	"default_packages": ["base-files", "ca-bundle", "dropbear", "fstools", "libc", "libgcc", "libustream-wolfssl", "logd", "mtd", "netifd", "opkg", "uci", "uclient-fetch", "urandom-seed", "urngd", "busybox", "procd", "partx-utils", "mkf2fs", "e2fsprogs", "kmod-button-hotplug", "dnsmasq", "firewall", "ip6tables", "iptables", "kmod-ipt-offload", "odhcp6c", "odhcpd-ipv6only", "ppp", "ppp-mod-pppoe", "partx-utils", "mkf2fs", "e2fsprogs", "kmod-button-hotplug"],
+	"default_packages": [
+		"base-files",
+		"ca-bundle",
+		"dropbear",
+		"fstools",
+		"libc",
+		"libgcc",
+		"libustream-wolfssl",
+		"logd",
+		"mtd",
+		"netifd",
+		"opkg",
+		"uci",
+		"uclient-fetch",
+		"urandom-seed",
+		"urngd",
+		"busybox",
+		"procd",
+		"partx-utils",
+		"mkf2fs",
+		"e2fsprogs",
+		"kmod-button-hotplug",
+		"dnsmasq",
+		"firewall",
+		"ip6tables",
+		"iptables",
+		"kmod-ipt-offload",
+		"odhcp6c",
+		"odhcpd-ipv6only",
+		"ppp",
+		"ppp-mod-pppoe",
+		"partx-utils",
+		"mkf2fs",
+		"e2fsprogs",
+		"kmod-button-hotplug"
+	],
 	"metadata_version": 1,
 	"profiles": {
 		"generic": {
-			"device_packages": ["kmod-bnx2", "kmod-e1000e", "kmod-e1000", "kmod-forcedeth", "kmod-igb", "kmod-ixgbe", "kmod-r8169"],
+			"device_packages": [
+				"kmod-bnx2",
+				"kmod-e1000e",
+				"kmod-e1000",
+				"kmod-forcedeth",
+				"kmod-igb",
+				"kmod-ixgbe",
+				"kmod-r8169"
+			],
 			"image_prefix": "openwrt-x86-64-generic",
-			"images": [{
-				"filesystem": "squashfs",
-				"name": "openwrt-x86-64-generic-squashfs-rootfs.img.gz",
-				"sha256": "dad02f19c22a0f95a5ea8af6203f9be0582b7ad92ae261f5851c471a494c8163",
-				"type": "rootfs"
-			}, {
-				"filesystem": "ext4",
-				"name": "openwrt-x86-64-generic-ext4-rootfs.img.gz",
-				"sha256": "4800c1df7d9207fcac97d0a175942dfd00de9317a1fcc275d064bf338b1ed1bf",
-				"type": "rootfs"
-			}, {
-				"filesystem": "squashfs",
-				"name": "openwrt-x86-64-generic-squashfs-combined-efi.img.gz",
-				"sha256": "f1ab9b40193df4bacfc41d2724b35790013074628c44e5dfe83ef683ae465db8",
-				"type": "combined-efi"
-			}, {
-				"filesystem": "ext4",
-				"name": "openwrt-x86-64-generic-ext4-combined-efi.img.gz",
-				"sha256": "b00a557dce04c0679001c764099fac620acd56c6a245c1a218a6df5c02bdd0ed",
-				"type": "combined-efi"
-			}, {
-				"filesystem": "ext4",
-				"name": "openwrt-x86-64-generic-ext4-combined.img.gz",
-				"sha256": "cd4aadeadbce6ea3209cbea6bc066850a7cf526c63ae137d882601665dd3fc4e",
-				"type": "combined"
-			}, {
-				"filesystem": "squashfs",
-				"name": "openwrt-x86-64-generic-squashfs-combined.img.gz",
-				"sha256": "43b7b5233b096d794fd3a52b4ac0e352e690fd9b4cd45a29efc828973e2c36b3",
-				"type": "combined"
-			}],
+			"images": [
+				{
+					"filesystem": "squashfs",
+					"name": "openwrt-x86-64-generic-squashfs-rootfs.img.gz",
+					"sha256": "dad02f19c22a0f95a5ea8af6203f9be0582b7ad92ae261f5851c471a494c8163",
+					"type": "rootfs"
+				},
+				{
+					"filesystem": "ext4",
+					"name": "openwrt-x86-64-generic-ext4-rootfs.img.gz",
+					"sha256": "4800c1df7d9207fcac97d0a175942dfd00de9317a1fcc275d064bf338b1ed1bf",
+					"type": "rootfs"
+				},
+				{
+					"filesystem": "squashfs",
+					"name": "openwrt-x86-64-generic-squashfs-combined-efi.img.gz",
+					"sha256": "f1ab9b40193df4bacfc41d2724b35790013074628c44e5dfe83ef683ae465db8",
+					"type": "combined-efi"
+				},
+				{
+					"filesystem": "ext4",
+					"name": "openwrt-x86-64-generic-ext4-combined-efi.img.gz",
+					"sha256": "b00a557dce04c0679001c764099fac620acd56c6a245c1a218a6df5c02bdd0ed",
+					"type": "combined-efi"
+				},
+				{
+					"filesystem": "ext4",
+					"name": "openwrt-x86-64-generic-ext4-combined.img.gz",
+					"sha256": "cd4aadeadbce6ea3209cbea6bc066850a7cf526c63ae137d882601665dd3fc4e",
+					"type": "combined"
+				},
+				{
+					"filesystem": "squashfs",
+					"name": "openwrt-x86-64-generic-squashfs-combined.img.gz",
+					"sha256": "43b7b5233b096d794fd3a52b4ac0e352e690fd9b4cd45a29efc828973e2c36b3",
+					"type": "combined"
+				}
+			],
 			"supported_devices": [],
-			"titles": [{
-				"title": "Generic x86/64"
-			}]
+			"titles": [
+				{
+					"title": "Generic x86/64"
+				}
+			]
 		}
 	},
 	"source_date_epoch": "1612136917",

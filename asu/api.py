@@ -4,7 +4,7 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
 from .build import build
-from .common import get_request_hash, stats_profiles, stats_versions
+from .common import get_request_hash
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -37,7 +37,9 @@ def get_queue() -> Queue:
     """
     if "queue" not in g:
         with Connection():
-            g.queue = Queue(connection=get_redis())
+            g.queue = Queue(
+                connection=get_redis(), is_async=current_app.config["ASYNC_QUEUE"]
+            )
     return g.queue
 
 
@@ -55,77 +57,6 @@ def api_v1_revision(version, target, subtarget):
 @bp.route("/latest")
 def api_latest():
     return redirect("/json/v1/latest.json")
-
-
-def api_v1_stats_images():
-    return jsonify(
-        {
-            "total": int((get_redis().get("stats-images") or b"0").decode("utf-8")),
-            "custom": int(
-                (get_redis().get("stats-images-custom") or b"0").decode("utf-8")
-            ),
-        }
-    )
-
-
-def api_v1_stats_versions():
-    return jsonify({"versions": stats_versions()})
-
-
-def api_v1_stats_targets(branch="SNAPSHOT"):
-    if branch not in current_app.config["BRANCHES"]:
-        return "", 404
-
-    return jsonify(
-        {
-            "branch": branch,
-            "targets": [
-                (s, p.decode("utf-8"))
-                for p, s in get_redis().zrevrange(
-                    f"stats-targets-{branch}", 0, -1, withscores=True
-                )
-            ],
-        }
-    )
-
-
-@bp.route("/v1/stats/targets/")
-def api_v1_stats_targets_default():
-    return redirect("/api/v1/stats/targets/SNAPSHOT")
-
-
-def api_v1_stats_packages(branch="SNAPSHOT"):
-    if branch not in current_app.config["BRANCHES"]:
-        return "", 404
-
-    return jsonify(
-        {
-            "branch": branch,
-            "packages": [
-                (s, p.decode("utf-8"))
-                for p, s in get_redis().zrevrange(
-                    f"stats-packages-{branch}", 0, -1, withscores=True
-                )
-            ],
-        }
-    )
-
-
-@bp.route("/v1/stats/packages/")
-def api_v1_stats_packages_default():
-    return redirect("/api/v1/stats/packages/SNAPSHOT")
-
-
-def api_v1_stats_profiles(branch):
-    if branch not in current_app.config["BRANCHES"]:
-        return "", 404
-
-    return jsonify({"branch": branch, "profiles": stats_profiles(branch)})
-
-
-@bp.route("/v1/stats/profiles/")
-def api_v1_stats_profiles_default():
-    return redirect("/api/v1/stats/profiles/SNAPSHOT")
 
 
 def validate_packages(req):
@@ -188,7 +119,7 @@ def validate_request(req):
 
     if "defaults" in req and not current_app.config["ALLOW_DEFAULTS"]:
         return (
-            {"detail": f"Handling `defaults` not enabled on server", "status": 400},
+            {"detail": "Handling `defaults` not enabled on server", "status": 400},
             400,
         )
 
@@ -272,7 +203,7 @@ def return_job_v1(job):
         response.update(job.meta)
 
     if job.is_failed:
-        response.update({"status": 500, "detail": job.exc_info.strip().split("\n")[-1]})
+        response.update({"status": 500})
 
     elif job.is_queued:
         response.update(
@@ -294,10 +225,12 @@ def return_job_v1(job):
         headers = {"X-Imagebuilder-Status": response.get("imagebuilder_status", "init")}
 
     elif job.is_finished:
-        response.update({"status": 200, "build_at": job.ended_at, **job.result})
+        response.update({"status": 200, **job.result})
 
     response["enqueued_at"] = job.enqueued_at
     response["request_hash"] = job.id
+
+    print(response)
 
     current_app.logger.debug(response)
     return response, response["status"], headers
@@ -367,7 +300,7 @@ def return_job(job):
     status = 500
 
     if job.is_failed:
-        response["message"] = job.exc_info.strip().split("\n")[-1]
+        response["message"] = job.meta["detail"]
 
     elif job.is_queued:
         status = 202
