@@ -2,7 +2,7 @@ import json
 import logging
 import re
 import subprocess
-import urllib.request
+import requests
 from pathlib import Path
 from shutil import rmtree
 
@@ -61,6 +61,9 @@ class ExtractArchiveError(Exception):
 
 
 class TooManyPackages(Exception):
+    pass
+
+class DownloadError(Exception):
     pass
 
 
@@ -183,32 +186,37 @@ def build(req: dict):
                         cache folder
         """
         log.debug(f"Downloading {filename}")
-        urllib.request.urlretrieve(
+        r = requests.get(
             req["upstream_url"]
             + "/"
             + req["branch_data"]["path"].format(version=req["version"])
             + "/targets/"
             + req["target"]
             + "/"
-            + filename,
-            dest or (cache / filename),
+            + filename
         )
+
+        if r.status_code == 200:
+            with open(dest or (cache / filename), "wb") as f:
+                f.write(r.content)
+        else:
+            raise DownloadError()
 
     cache.mkdir(parents=True, exist_ok=True)
 
     stamp_file = cache / f"{subtarget}_stamp"
 
-    sig_file_headers = urllib.request.urlopen(
+    sig_file_headers = requests.head(
         req["upstream_url"]
         + "/"
         + req["branch_data"]["path"].format(version=req["version"])
         + "/targets/"
         + req["target"]
         + "/sha256sums.sig"
-    ).info()
+    ).headers
     log.debug(f"sig_file_headers: \n{sig_file_headers}")
 
-    origin_modified = sig_file_headers.get("Last-Modified")
+    origin_modified = sig_file_headers.get("last-modified")
     log.info("Origin %s", origin_modified)
 
     if stamp_file.is_file():
