@@ -112,11 +112,6 @@ def build(req: dict):
         repos_path = cache / subtarget / "repositories.conf"
         repos = repos_path.read_text()
 
-        # speed up downloads with HTTP and (optionally) CDN
-        repos = repos.replace("https://downloads.openwrt.org", req["upstream_url"])
-        repos = repos.replace("http://downloads.openwrt.org", req["upstream_url"])
-        repos = repos.replace("https", "http")
-
         extra_repos = req["branch_data"].get("extra_repos")
         if extra_repos:
             log.debug("Found extra repos")
