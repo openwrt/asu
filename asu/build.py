@@ -123,6 +123,26 @@ def build(req: dict):
         repos_path.write_text(repos)
         log.debug(f"Repos:\n{repos}")
 
+        if req.get("filesystem"):
+            log.info("Limit filesytem to %s", req["filesystem"])
+            config_path = cache / subtarget / ".config"
+            config = config_path.read_text()
+
+            if req["filesystem"] == "squashfs":
+                config = config.replace(
+                    "CONFIG_TARGET_ROOTFS_EXT4FS=y",
+                    "# CONFIG_TARGET_ROOTFS_EXT4FS is not set",
+                )
+
+            elif req["filesystem"] == "ext4":
+                config = config.replace(
+                    "CONFIG_TARGET_ROOTFS_SQUASHFS=y",
+                    "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set",
+                )
+
+            log.debug(config)
+            config_path.write_text(config)
+
         if (Path.cwd() / "seckey").exists():
             # link key-build to imagebuilder
             (cache / subtarget / "key-build").symlink_to(Path.cwd() / "seckey")

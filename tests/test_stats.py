@@ -12,7 +12,7 @@ def test_stats_image_builds(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "1d6d1b2addd0fa2ed47ae2a0662c3266"
+    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
@@ -31,7 +31,7 @@ def test_stats_image_builds(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "f2f873d412c45a0b0e8f0bcdcecd3c19"
+    assert response.json.get("request_hash") == "0f959015710e622bc42c088951b7585c"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
