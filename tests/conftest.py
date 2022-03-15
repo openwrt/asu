@@ -80,6 +80,7 @@ def app(test_path, redis_server):
             "JSON_PATH": test_path + "/json",
             "REDIS_CONN": redis_server,
             "STORE_PATH": test_path + "/store",
+            "CACHE_PATH": test_path,
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",
             "BRANCHES": {
