@@ -248,6 +248,15 @@ components:
             It is not possible to specify what package version to request. Only
             the latest version of a package can be requested, which can be
             retrieved via provided package indexes.
+        filesystem:
+          type: string
+          enum:
+            - squashfs
+            - ext4
+          description: |
+            Ability to specify filesystem running on device. Attaching this
+            optional parameter will limit the ImageBuilder to only build
+            firmware with that filesystem.
         defaults:
           type: string
           description: |

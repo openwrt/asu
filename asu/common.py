@@ -107,6 +107,7 @@ def get_request_hash(req: dict) -> str:
         get_packages_hash(req.get("packages", "")),
         get_manifest_hash(req.get("packages_versions", {})),
         str(req.get("diff_packages", False)),
+        req.get("filesystem", ""),
     ]
 
     if "defaults" in req:
