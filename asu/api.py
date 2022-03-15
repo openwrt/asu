@@ -230,8 +230,6 @@ def return_job_v1(job):
     response["enqueued_at"] = job.enqueued_at
     response["request_hash"] = job.id
 
-    print(response)
-
     current_app.logger.debug(response)
     return response, response["status"], headers
 
@@ -270,6 +268,7 @@ def api_v1_build_post():
             return response, status
 
         req["store_path"] = current_app.config["STORE_PATH"]
+        req["cache_path"] = current_app.config.get("CACHE_PATH")
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
         req["request_hash"] = request_hash
@@ -353,6 +352,7 @@ def api_build_post():
             return response, status
 
         req["store_path"] = current_app.config["STORE_PATH"]
+        req["cache_path"] = current_app.config.get("CACHE_PATH")
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
         req["request_hash"] = request_hash

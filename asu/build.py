@@ -43,7 +43,9 @@ def build(req: dict):
     job.save_meta()
 
     log.debug(f"Building {req}")
-    cache = (Path.cwd() / "cache" / req["version"] / req["target"]).parent
+    cache = (
+        req.get("cache_path", Path.cwd()) / "cache" / req["version"] / req["target"]
+    ).parent
     target, subtarget = req["target"].split("/")
     sums_file = Path(cache / f"{subtarget}_sums")
     sig_file = Path(cache / f"{subtarget}_sums.sig")
