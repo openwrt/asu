@@ -253,6 +253,8 @@ components:
           enum:
             - squashfs
             - ext4
+            - ubifs
+            - jffs2
           description: |
             Ability to specify filesystem running on device. Attaching this
             optional parameter will limit the ImageBuilder to only build
