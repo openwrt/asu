@@ -4,7 +4,7 @@ import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from shutil import rmtree
+from shutil import rmtree, copyfile
 
 import requests
 from rq import get_current_job
@@ -123,25 +123,8 @@ def build(req: dict):
         repos_path.write_text(repos)
         log.debug(f"Repos:\n{repos}")
 
-        if req.get("filesystem"):
-            log.info("Limit filesytem to %s", req["filesystem"])
-            config_path = cache / subtarget / ".config"
-            config = config_path.read_text()
-
-            if req["filesystem"] == "squashfs":
-                config = config.replace(
-                    "CONFIG_TARGET_ROOTFS_EXT4FS=y",
-                    "# CONFIG_TARGET_ROOTFS_EXT4FS is not set",
-                )
-
-            elif req["filesystem"] == "ext4":
-                config = config.replace(
-                    "CONFIG_TARGET_ROOTFS_SQUASHFS=y",
-                    "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set",
-                )
-
-            log.debug(config)
-            config_path.write_text(config)
+        # backup original configuration to keep default filesystems
+        copyfile(cache / subtarget / ".config", cache / subtarget / ".config.orig")
 
         if (Path.cwd() / "seckey").exists():
             # link key-build to imagebuilder
@@ -281,6 +264,32 @@ def build(req: dict):
     (req["store_path"] / bin_dir).mkdir(parents=True, exist_ok=True)
 
     log.debug("Created store path: %s", req["store_path"] / bin_dir)
+
+
+
+    if "filesystem" in req:
+        config_path = cache / subtarget / ".config"
+        config = config_path.read_text()
+
+        for filesystem in ["squashfs", "ext4fs", "ubifs", "jffs2"]:
+            # this implementation uses `startswith` since a running device thinks
+            # it's running `ext4` while really there is `ext4fs` running
+            if not req.get("filesystem", filesystem).startswith(filesystem):
+                log.debug(f"Disable {filesystem}")
+                config = config.replace(
+                    f"CONFIG_TARGET_ROOTFS_{filesystem.upper()}=y",
+                    f"# CONFIG_TARGET_ROOTFS_{filesystem.upper()} is not set",
+                )
+            else:
+                log.debug(f"Enable {filesystem}")
+                config = config.replace(
+                    f"# CONFIG_TARGET_ROOTFS_{filesystem.upper()} is not set",
+                    f"CONFIG_TARGET_ROOTFS_{filesystem.upper()}=y",
+            )
+
+        config_path.write_text(config)
+    else:
+        copyfile(cache / subtarget / ".config.orig", cache / subtarget / ".config")
 
     build_cmd = [
         "make",
