@@ -34,13 +34,12 @@ def test_api_build_filesystem_ext4(app, upstream):
     )
     assert response.status == "200 OK"
     assert response.json.get("request_hash") == "daae6bc8045962aa86c8e9d885dae499"
-    assert (
-        "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set"
-        in (
-            app.config["CACHE_PATH"]
-            / "cache/TESTVERSION/testtarget/testsubtarget/.config"
-        ).read_text()
-    )
+
+    config = (
+        app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+    ).read_text()
+    assert "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set" in config
+    assert "CONFIG_TARGET_ROOTFS_EXT4FS=y" in config
 
 
 def test_api_build_filesystem_squashfs(app, upstream):
@@ -57,13 +56,11 @@ def test_api_build_filesystem_squashfs(app, upstream):
     )
     assert response.status == "200 OK"
     assert response.json.get("request_hash") == "40cc1368f667923f3414914a2ccecc89"
-    assert (
-        "# CONFIG_TARGET_ROOTFS_EXT4FS is not set"
-        in (
-            app.config["CACHE_PATH"]
-            / "cache/TESTVERSION/testtarget/testsubtarget/.config"
-        ).read_text()
-    )
+    config = (
+        app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+    ).read_text()
+    assert "# CONFIG_TARGET_ROOTFS_EXT4FS is not set" in config
+    assert "CONFIG_TARGET_ROOTFS_SQUASHFS=y" in config
 
 
 def test_api_build_filesystem_reset(app, upstream):
@@ -329,7 +326,7 @@ def test_api_build_real_x86(app):
             version="SNAPSHOT",
             packages=["tmux", "vim"],
             profile="some_random_cpu_which_doesnt_exists_as_profile",
-            filesystem="ext4"
+            filesystem="ext4",
         ),
     )
 
@@ -361,7 +358,7 @@ def test_api_build_real_ath79(app):
             version="SNAPSHOT",
             packages=["tmux", "vim"],
             profile="tplink_tl-wdr4300-v1",
-            filesystem="squashfs"
+            filesystem="squashfs",
         ),
     )
 
