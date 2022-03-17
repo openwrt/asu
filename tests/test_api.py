@@ -322,6 +322,20 @@ def test_api_build_real_x86(app):
     assert response.status == "200 OK"
     assert response.json.get("id") == "generic"
 
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            target="x86/64",
+            version="SNAPSHOT",
+            packages=["tmux", "vim"],
+            profile="some_random_cpu_which_doesnt_exists_as_profile",
+            filesystem="ext4"
+        ),
+    )
+
+    assert response.status == "200 OK"
+    assert response.json.get("id") == "generic"
+
 
 @pytest.mark.slow
 def test_api_build_real_ath79(app):
@@ -334,6 +348,20 @@ def test_api_build_real_ath79(app):
             version="SNAPSHOT",
             packages=["tmux", "vim"],
             profile="tplink_tl-wdr4300-v1",
+        ),
+    )
+
+    assert response.status == "200 OK"
+    assert response.json.get("id") == "tplink_tl-wdr4300-v1"
+
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            target="ath79/generic",
+            version="SNAPSHOT",
+            packages=["tmux", "vim"],
+            profile="tplink_tl-wdr4300-v1",
+            filesystem="squashfs"
         ),
     )
 
