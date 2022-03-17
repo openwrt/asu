@@ -274,7 +274,7 @@ def build(req: dict):
         for filesystem in ["squashfs", "ext4fs", "ubifs", "jffs2"]:
             # this implementation uses `startswith` since a running device thinks
             # it's running `ext4` while really there is `ext4fs` running
-            if not req.get("filesystem", filesystem).startswith(filesystem):
+            if not filesystem.startswith(req.get("filesystem", filesystem)):
                 log.debug(f"Disable {filesystem}")
                 config = config.replace(
                     f"CONFIG_TARGET_ROOTFS_{filesystem.upper()}=y",
