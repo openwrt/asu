@@ -263,6 +263,7 @@ def api_v1_build_post():
     failure_ttl = "12h"
 
     if job is None:
+        get_redis().incr("stats-cache-miss")
         response, status = validate_request(req)
         if response:
             return response, status
@@ -281,6 +282,9 @@ def api_v1_build_post():
             failure_ttl=failure_ttl,
             job_timeout="10m",
         )
+    else:
+        if job.is_finished:
+            get_redis().incr("stats-cache-hit")
 
     return return_job_v1(job)
 
