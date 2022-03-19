@@ -34,3 +34,14 @@ class BuildCollector(object):
         yield GaugeMetricFamily(
             "cache_misses", "Cache misses of build images in percent", value=misses
         )
+
+        extra_package_installs = GaugeMetricFamily(
+            "extra_package_installs",
+            "Package installation that are not installed by default",
+            labels=["package"],
+        )
+
+        for package, count in self.connection.hgetall("stats-packages").items():
+            extra_package_installs.add_metric([package.decode()], count)
+
+        yield extra_package_installs
