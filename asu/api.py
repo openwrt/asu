@@ -47,7 +47,7 @@ def api_v1_revision(version, target, subtarget):
     return jsonify(
         {
             "revision": get_redis()
-            .get(f"revision-{version}-{target}/{subtarget}" or b"")
+            .get(f"revision-{version}-{target}/{subtarget}")
             .decode()
         }
     )

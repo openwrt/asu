@@ -4,7 +4,7 @@ import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from shutil import rmtree, copyfile
+from shutil import copyfile, rmtree
 
 import requests
 from rq import get_current_job
@@ -201,19 +201,20 @@ def build(req: dict):
                 f"Received inncorrect version {version_code} (requested {req['version_code']})"
             )
 
+    default_packages = set(
+        re.search(r"Default Packages: (.*)\n", info_run.stdout).group(1).split()
+    )
+    profile_packages = set(
+        re.search(
+            r"{}:\n    .+\n    Packages: (.*?)\n".format(req["profile"]),
+            info_run.stdout,
+            re.MULTILINE,
+        )
+        .group(1)
+        .split()
+    )
+
     if req.get("diff_packages", False):
-        default_packages = set(
-            re.search(r"Default Packages: (.*)\n", info_run.stdout).group(1).split()
-        )
-        profile_packages = set(
-            re.search(
-                r"{}:\n    .+\n    Packages: (.*?)\n".format(req["profile"]),
-                info_run.stdout,
-                re.MULTILINE,
-            )
-            .group(1)
-            .split()
-        )
         remove_packages = (default_packages | profile_packages) - req["packages"]
         req["packages"] = req["packages"] | set(map(lambda p: f"-{p}", remove_packages))
 
@@ -265,8 +266,6 @@ def build(req: dict):
 
     log.debug("Created store path: %s", req["store_path"] / bin_dir)
 
-
-
     if "filesystem" in req:
         config_path = cache / subtarget / ".config"
         config = config_path.read_text()
@@ -285,7 +284,7 @@ def build(req: dict):
                 config = config.replace(
                     f"# CONFIG_TARGET_ROOTFS_{filesystem.upper()} is not set",
                     f"CONFIG_TARGET_ROOTFS_{filesystem.upper()}=y",
-            )
+                )
 
         config_path.write_text(config)
     else:
@@ -363,6 +362,12 @@ def build(req: dict):
             [req["branch_data"]["name"], req["version"], req["target"], req["profile"]]
         ),
     )
+
+    extra_packages = set(req.get("packages", [])) - (
+        default_packages | profile_packages
+    )
+    for package in extra_packages:
+        job.connection.hincrby("stats-packages", package)
 
     log.debug("JSON content %s", json_content)
 
