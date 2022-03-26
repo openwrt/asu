@@ -327,9 +327,7 @@ def build(req: dict):
     job.save_meta()
 
     if image_build.returncode:
-        job.meta["details"] = "image build error"
-        job.save_meta()
-        return False
+        report_error("Error while building firmware. See stdout/stderr")
 
     if "is too big" in image_build.stderr:
         report_error("Selected packages exceed device storage")
