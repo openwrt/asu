@@ -14,6 +14,7 @@ requests = "^2.27.1"
 rq = "^1.10.1"
 connexion = {extras = ["swagger-ui"], version = "^2.12.0"}
 prometheus-client = "^0.13.1"
+gunicorn = "^20.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
