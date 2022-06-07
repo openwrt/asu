@@ -194,7 +194,6 @@ def update_target_packages(branch: dict, version: str, target: str):
     )
 
     current_app.logger.info(f"{version}: found {len(package_index.keys())} packages")
-    r.sadd(f"packages-{branch['name']}-{version}", *package_index.keys())
 
 
 def update_arch_packages(branch: dict, arch: str):
