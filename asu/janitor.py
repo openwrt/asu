@@ -173,6 +173,17 @@ def update_target_packages(branch: dict, version: str, target: str):
 
     r.sadd(f"packages-{branch['name']}-{version}-{target}", *list(packages.keys()))
 
+    virtual_packages = {
+        vpkg.split("=")[0]
+        for pkg in packages.values()
+        if (provides := pkg.get("provides"))
+        for vpkg in provides.split(", ")
+    }
+    r.sadd(
+        f"packages-{branch['name']}-{version}-{target}",
+        *(virtual_packages | packages.keys()),
+    )
+
     output_path = current_app.config["JSON_PATH"] / version_path / "targets" / target
     output_path.mkdir(exist_ok=True, parents=True)
 
@@ -242,6 +253,14 @@ def update_arch_packages(branch: dict, arch: str):
 
     current_app.logger.info(f"{arch}: found {len(package_index.keys())} packages")
     r.sadd(f"packages-{branch['name']}-{arch}", *package_index.keys())
+
+    virtual_packages = {
+        vpkg.split("=")[0]
+        for pkg in packages.values()
+        if (provides := pkg.get("provides"))
+        for vpkg in provides.split(", ")
+    }
+    r.sadd(f"packages-{branch['name']}-{arch}", *(virtual_packages | packages.keys()))
 
 
 def update_target_profiles(branch: dict, version: str, target: str):
