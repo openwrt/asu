@@ -16,6 +16,13 @@ from asu.common import get_redis, is_modified
 bp = Blueprint("janitor", __name__)
 
 
+def update_set(key: str, *data: list):
+    pipeline = get_redis().pipeline(True)
+    pipeline.delete(key)
+    pipeline.sadd(key, *data)
+    pipeline.execute()
+
+
 def parse_packages_file(url, repo):
     r = get_redis()
     req = requests.get(url)
@@ -96,12 +103,14 @@ def update_branch(branch):
         current_app.logger.warning("No targets found for {branch['name']}")
         return
 
-    r.sadd(f"targets-{branch['name']}", *list(targets))
+    update_set(f"targets-{branch['name']}", *list(targets))
 
     packages_path = branch["path_packages"].format(branch=branch["name"])
     packages_path = branch["path_packages"].format(branch=branch["name"])
     output_path = current_app.config["JSON_PATH"] / packages_path
     output_path.mkdir(exist_ok=True, parents=True)
+
+    architectures = set()
 
     for version in branch["versions"]:
         current_app.logger.info(f"Update {branch['name']}/{version}")
@@ -119,7 +128,8 @@ def update_branch(branch):
             update_target_packages(branch, version, target)
 
         for target in targets:
-            update_target_profiles(branch, version, target)
+            if target_arch := update_target_profiles(branch, version, target):
+                architectures.add(target_arch)
 
         overview = {
             "branch": branch["name"],
@@ -144,8 +154,8 @@ def update_branch(branch):
             json.dumps(overview, sort_keys=True, separators=(",", ":"))
         )
 
-    for arch in r.smembers(f"architectures-{branch['name']}"):
-        update_arch_packages(branch, arch.decode("utf-8"))
+    for architecture in architectures:
+        update_arch_packages(branch, architecture)
 
 
 def update_target_packages(branch: dict, version: str, target: str):
@@ -171,7 +181,7 @@ def update_target_packages(branch: dict, version: str, target: str):
 
     current_app.logger.debug(f"{version}/{target}: Found {len(packages)}")
 
-    r.sadd(f"packages-{branch['name']}-{version}-{target}", *list(packages.keys()))
+    update_set(f"packages-{branch['name']}-{version}-{target}", *list(packages.keys()))
 
     virtual_packages = {
         vpkg.split("=")[0]
@@ -251,7 +261,7 @@ def update_arch_packages(branch: dict, arch: str):
     )
 
     current_app.logger.info(f"{arch}: found {len(package_index.keys())} packages")
-    r.sadd(f"packages-{branch['name']}-{arch}", *package_index.keys())
+    update_set(f"packages-{branch['name']}-{arch}", *package_index.keys())
 
     virtual_packages = {
         vpkg.split("=")[0]
@@ -262,7 +272,7 @@ def update_arch_packages(branch: dict, arch: str):
     r.sadd(f"packages-{branch['name']}-{arch}", *(virtual_packages | packages.keys()))
 
 
-def update_target_profiles(branch: dict, version: str, target: str):
+def update_target_profiles(branch: dict, version: str, target: str) -> str:
     """Update available profiles of a specific version
 
     Args:
@@ -296,7 +306,6 @@ def update_target_profiles(branch: dict, version: str, target: str):
     metadata = requests.get(profiles_url).json()
     profiles = metadata.pop("profiles", {})
 
-    r.sadd(f"architectures-{branch['name']}", metadata["arch_packages"])
     r.hset(f"architecture-{branch['name']}", target, metadata["arch_packages"])
 
     queue = Queue(connection=r)
@@ -324,6 +333,9 @@ def update_target_profiles(branch: dict, version: str, target: str):
 
     current_app.logger.info(f"{version}/{target}: Found {len(profiles)} profiles")
 
+    pipeline = r.pipeline(True)
+    pipeline.delete(f"profiles-{branch['name']}-{version}-{target}")
+
     for profile, data in profiles.items():
         for supported in data.get("supported_devices", []):
             if not r.hexists(f"mapping-{branch['name']}-{version}-{target}", supported):
@@ -334,7 +346,8 @@ def update_target_profiles(branch: dict, version: str, target: str):
                     f"mapping-{branch['name']}-{version}-{target}", supported, profile
                 )
 
-        r.sadd(f"profiles-{branch['name']}-{version}-{target}", profile)
+        pipeline.sadd(f"profiles-{branch['name']}-{version}-{target}", profile)
+
         profile_path = (
             current_app.config["JSON_PATH"]
             / version_path
@@ -359,6 +372,10 @@ def update_target_profiles(branch: dict, version: str, target: str):
         )
 
         data["target"] = target
+
+    pipeline.execute()
+
+    return metadata["arch_packages"]
 
 
 @bp.cli.command("update")
