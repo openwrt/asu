@@ -43,12 +43,11 @@ def build(req: dict):
     job.save_meta()
 
     log.debug(f"Building {req}")
-    cache = (
-        req.get("cache_path", Path.cwd()) / "cache" / req["version"] / req["target"]
-    ).parent
     target, subtarget = req["target"].split("/")
-    sums_file = Path(cache / f"{subtarget}_sums")
-    sig_file = Path(cache / f"{subtarget}_sums.sig")
+    cache = req.get("cache_path", Path.cwd()) / "cache" / req["version"]
+    cache_workdir = cache / target / subtarget
+    sums_file = Path(cache / target / f"{subtarget}_sums")
+    sig_file = Path(cache / target / f"{subtarget}_sums.sig")
 
     def setup_ib():
         """Setup ImageBuilder based on `req`
@@ -58,8 +57,8 @@ def build(req: dict):
         upstream.
         """
         log.debug("Setting up ImageBuilder")
-        if (cache / subtarget).is_dir():
-            rmtree(cache / subtarget)
+        if (cache_workdir).is_dir():
+            rmtree(cache_workdir)
 
         download_file("sha256sums.sig", sig_file)
         download_file("sha256sums", sums_file)
@@ -85,17 +84,17 @@ def build(req: dict):
 
         download_file(ib_archive)
 
-        if ib_hash != get_file_hash(cache / ib_archive):
+        if ib_hash != get_file_hash(cache / target / ib_archive):
             report_error("Bad Checksum")
 
-        (cache / subtarget).mkdir(parents=True, exist_ok=True)
+        (cache_workdir).mkdir(parents=True, exist_ok=True)
 
         job.meta["imagebuilder_status"] = "unpack_imagebuilder"
         job.save_meta()
 
         extract_archive = subprocess.run(
             ["tar", "--strip-components=1", "-xf", ib_archive, "-C", subtarget],
-            cwd=cache,
+            cwd=cache / target,
         )
 
         if extract_archive.returncode:
@@ -103,15 +102,15 @@ def build(req: dict):
 
         log.debug(f"Extracted TAR {ib_archive}")
 
-        (cache / ib_archive).unlink()
+        (cache / target / ib_archive).unlink()
 
         for key in req["branch_data"].get("extra_keys", []):
             fingerprint = fingerprint_pubkey_usign(key)
-            (cache / subtarget / "keys" / fingerprint).write_text(
+            (cache_workdir / "keys" / fingerprint).write_text(
                 f"untrusted comment: ASU extra key {fingerprint}\n{key}"
             )
 
-        repos_path = cache / subtarget / "repositories.conf"
+        repos_path = cache_workdir / "repositories.conf"
         repos = repos_path.read_text()
 
         extra_repos = req["branch_data"].get("extra_repos")
@@ -123,18 +122,15 @@ def build(req: dict):
         repos_path.write_text(repos)
         log.debug(f"Repos:\n{repos}")
 
-        # backup original configuration to keep default filesystems
-        copyfile(cache / subtarget / ".config", cache / subtarget / ".config.orig")
-
         if (Path.cwd() / "seckey").exists():
             # link key-build to imagebuilder
-            (cache / subtarget / "key-build").symlink_to(Path.cwd() / "seckey")
+            (cache_workdir / "key-build").symlink_to(Path.cwd() / "seckey")
         if (Path.cwd() / "pubkey").exists():
             # link key-build.pub to imagebuilder
-            (cache / subtarget / "key-build.pub").symlink_to(Path.cwd() / "pubkey")
+            (cache_workdir / "key-build.pub").symlink_to(Path.cwd() / "pubkey")
         if (Path.cwd() / "newcert").exists():
             # link key-build.ucert to imagebuilder
-            (cache / subtarget / "key-build.ucert").symlink_to(Path.cwd() / "newcert")
+            (cache_workdir / "key-build.ucert").symlink_to(Path.cwd() / "newcert")
 
     def download_file(filename: str, dest: str = None):
         """Download file from upstream target path
@@ -157,12 +153,12 @@ def build(req: dict):
             + filename
         )
 
-        with open(dest or (cache / filename), "wb") as f:
+        with open(dest or (cache / target / filename), "wb") as f:
             f.write(r.content)
 
-    cache.mkdir(parents=True, exist_ok=True)
+    (cache / target).mkdir(parents=True, exist_ok=True)
 
-    stamp_file = cache / f"{subtarget}_stamp"
+    stamp_file = cache / target / f"{subtarget}_stamp"
 
     sig_file_headers = requests.head(
         req["upstream_url"]
@@ -187,10 +183,17 @@ def build(req: dict):
         log.debug("New ImageBuilder upstream available")
         setup_ib()
 
+    if not (cache_workdir / ".config.orig").exists():
+        # backup original configuration to keep default filesystems
+        copyfile(
+            cache_workdir / ".config",
+            cache_workdir / ".config.orig",
+        )
+
     stamp_file.write_text(origin_modified)
 
     info_run = subprocess.run(
-        ["make", "info"], text=True, capture_output=True, cwd=cache / subtarget
+        ["make", "info"], text=True, capture_output=True, cwd=cache_workdir
     )
 
     version_code = re.search('Current Revision: "(r.+)"', info_run.stdout).group(1)
@@ -230,17 +233,19 @@ def build(req: dict):
             "STRIP_ABI=1",
         ],
         text=True,
-        cwd=cache / subtarget,
+        cwd=cache_workdir,
         capture_output=True,
     )
 
     if manifest_run.returncode:
         if "Package size mismatch" in manifest_run.stderr:
-            rmtree(cache / subtarget)
+            rmtree(cache_workdir)
             return build(req)
         else:
             job.meta["stdout"] = manifest_run.stdout
             job.meta["stderr"] = manifest_run.stderr
+            print(manifest_run.stdout)
+            print(manifest_run.stderr)
             report_error("Impossible package selection")
 
     manifest = dict(map(lambda pv: pv.split(" - "), manifest_run.stdout.splitlines()))
@@ -267,7 +272,7 @@ def build(req: dict):
     log.debug("Created store path: %s", req["store_path"] / bin_dir)
 
     if "filesystem" in req:
-        config_path = cache / subtarget / ".config"
+        config_path = cache_workdir / ".config"
         config = config_path.read_text()
 
         for filesystem in ["squashfs", "ext4fs", "ubifs", "jffs2"]:
@@ -288,7 +293,10 @@ def build(req: dict):
 
         config_path.write_text(config)
     else:
-        copyfile(cache / subtarget / ".config.orig", cache / subtarget / ".config")
+        copyfile(
+            cache_workdir / ".config.orig",
+            cache_workdir / ".config",
+        )
 
     build_cmd = [
         "make",
@@ -317,7 +325,7 @@ def build(req: dict):
     image_build = subprocess.run(
         build_cmd,
         text=True,
-        cwd=cache / subtarget,
+        cwd=cache_workdir,
         capture_output=True,
     )
 
@@ -342,6 +350,8 @@ def build(req: dict):
     if req["profile"] not in json_content["profiles"]:
         report_error("Profile not found in JSON file")
 
+    now_timestamp = int(datetime.now().timestamp())
+
     json_content.update({"manifest": manifest})
     json_content.update(json_content["profiles"][req["profile"]])
     json_content["id"] = req["profile"]
@@ -352,6 +362,8 @@ def build(req: dict):
     ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     json_content["detail"] = "done"
 
+    log.debug("JSON content %s", json_content)
+
     job.connection.sadd(f"builds:{version_code}:{req['target']}", req["request_hash"])
 
     job.connection.hincrby(
@@ -361,6 +373,32 @@ def build(req: dict):
         ),
     )
 
-    log.debug("JSON content %s", json_content)
+    # Set last build timestamp for current target/subtarget to now
+    job.connection.hset(
+        f"worker:{job.worker_name}:last_build", req["target"], now_timestamp
+    )
+
+    # Iterate over all targets/subtargets of the worker and remove the once inactive for a week
+    for target_subtarget, last_build_timestamp in job.connection.hgetall(
+        f"worker:{job.worker_name}:last_build"
+    ).items():
+        target_subtarget = target_subtarget.decode()
+
+        log.debug("now_timestamp        %s %s", target_subtarget, now_timestamp)
+        log.debug(
+            "last_build_timestamp %s %s",
+            target_subtarget,
+            last_build_timestamp.decode(),
+        )
+
+        if now_timestamp - int(last_build_timestamp.decode()) > 60 * 60 * 24 * 7:
+            log.info("Removing unused ImageBuilder for %s", target_subtarget)
+            job.connection.hdel(
+                f"worker:{job.worker_name}:last_build", target_subtarget
+            )
+            if cache / target_subtarget:
+                rmtree(cache / target_subtarget)
+        else:
+            log.debug("Keeping ImageBuilder for %s", target_subtarget)
 
     return json_content
