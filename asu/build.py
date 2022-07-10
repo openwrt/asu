@@ -361,12 +361,6 @@ def build(req: dict):
         ),
     )
 
-    extra_packages = set(req.get("packages", [])) - (
-        default_packages | profile_packages
-    )
-    for package in extra_packages:
-        job.connection.hincrby("stats-packages", package)
-
     log.debug("JSON content %s", json_content)
 
     return json_content
