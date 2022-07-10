@@ -120,7 +120,7 @@ time an image is built. Find a basic configuration in at `misc/squid.conf`
 which should be copied to `/etc/squid/squid.conf`.
 
 If you want to use `systemd` find the service files `asu.service` and
-`rqworker.service` in the `misc` folder as well.
+`worker@.service` in the `misc` folder as well.
 
 ### Development
 
