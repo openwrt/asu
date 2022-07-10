@@ -47,7 +47,7 @@ def api_v1_revision(version, target, subtarget):
     return jsonify(
         {
             "revision": get_redis()
-            .get(f"revision-{version}-{target}/{subtarget}")
+            .get(f"revision:{version}:{target}/{subtarget}")
             .decode()
         }
     )
@@ -88,8 +88,8 @@ def validate_packages(req):
     pipeline.expire(temp, 5)
     pipeline.sdiff(
         temp,
-        f"packages-{req['branch']}-{req['version']}-{req['target']}",
-        f"packages-{req['branch']}-{req['arch']}",
+        f"packages:{req['branch']}:{req['version']}:{req['target']}",
+        f"packages:{req['branch']}:{req['arch']}",
     )
     unknown_packages = list(map(lambda p: p.decode(), pipeline.execute()[-1]))
 
@@ -154,7 +154,7 @@ def validate_request(req):
     current_app.logger.debug("Profile before mapping " + req["profile"])
 
     if not r.sismember(
-        f"targets-{req['branch']}",
+        f"targets:{req['branch']}",
         req["target"],
     ):
         return (
@@ -163,7 +163,7 @@ def validate_request(req):
         )
 
     req["arch"] = (
-        r.hget(f"architecture-{req['branch']}", req["target"]) or b""
+        r.hget(f"architecture:{req['branch']}", req["target"]) or b""
     ).decode()
 
     if req["target"] in ["x86/64", "x86/generic", "x86/geode", "x86/legacy"]:
@@ -171,13 +171,13 @@ def validate_request(req):
         req["profile"] = "generic"
     else:
         if r.sismember(
-            f"profiles-{req['branch']}-{req['version']}-{req['target']}",
+            f"profiles:{req['branch']}:{req['version']}:{req['target']}",
             req["profile"].replace(",", "_"),
         ):
             req["profile"] = req["profile"].replace(",", "_")
         else:
             mapped_profile = r.hget(
-                f"mapping-{req['branch']}-{req['version']}-{req['target']}",
+                f"mapping:{req['branch']}:{req['version']}:{req['target']}",
                 req["profile"],
             )
 
@@ -263,7 +263,7 @@ def api_v1_build_post():
     failure_ttl = "12h"
 
     if job is None:
-        get_redis().incr("stats-cache-miss")
+        get_redis().incr("stats:cache-miss")
         response, status = validate_request(req)
         if response:
             return response, status
@@ -285,7 +285,7 @@ def api_v1_build_post():
         )
     else:
         if job.is_finished:
-            get_redis().incr("stats-cache-hit")
+            get_redis().incr("stats:cache-hit")
 
     return return_job_v1(job)
 
