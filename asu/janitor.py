@@ -324,7 +324,7 @@ def update_target_profiles(branch: dict, version: str, target: str) -> str:
 
             except NoSuchJobError:
                 current_app.logger.warning("Job was already deleted")
-        r.delete(f"build:{version_code}:{target}")
+        r.delete(f"builds:{version_code}:{target}")
 
     r.set(
         f"revision:{version}:{target}",
