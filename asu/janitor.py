@@ -103,7 +103,7 @@ def update_branch(branch):
         current_app.logger.warning("No targets found for {branch['name']}")
         return
 
-    update_set(f"targets-{branch['name']}", *list(targets))
+    update_set(f"targets:{branch['name']}", *list(targets))
 
     packages_path = branch["path_packages"].format(branch=branch["name"])
     packages_path = branch["path_packages"].format(branch=branch["name"])
@@ -181,7 +181,7 @@ def update_target_packages(branch: dict, version: str, target: str):
 
     current_app.logger.debug(f"{version}/{target}: Found {len(packages)}")
 
-    update_set(f"packages-{branch['name']}-{version}-{target}", *list(packages.keys()))
+    update_set(f"packages:{branch['name']}:{version}:{target}", *list(packages.keys()))
 
     virtual_packages = {
         vpkg.split("=")[0]
@@ -190,7 +190,7 @@ def update_target_packages(branch: dict, version: str, target: str):
         for vpkg in provides.split(", ")
     }
     r.sadd(
-        f"packages-{branch['name']}-{version}-{target}",
+        f"packages:{branch['name']}:{version}:{target}",
         *(virtual_packages | packages.keys()),
     )
 
@@ -261,7 +261,7 @@ def update_arch_packages(branch: dict, arch: str):
     )
 
     current_app.logger.info(f"{arch}: found {len(package_index.keys())} packages")
-    update_set(f"packages-{branch['name']}-{arch}", *package_index.keys())
+    update_set(f"packages:{branch['name']}:{arch}", *package_index.keys())
 
     virtual_packages = {
         vpkg.split("=")[0]
@@ -269,7 +269,7 @@ def update_arch_packages(branch: dict, arch: str):
         if (provides := pkg.get("provides"))
         for vpkg in provides.split(", ")
     }
-    r.sadd(f"packages-{branch['name']}-{arch}", *(virtual_packages | packages.keys()))
+    r.sadd(f"packages:{branch['name']}:{arch}", *(virtual_packages | packages.keys()))
 
 
 def update_target_profiles(branch: dict, version: str, target: str) -> str:
@@ -306,14 +306,14 @@ def update_target_profiles(branch: dict, version: str, target: str) -> str:
     metadata = requests.get(profiles_url).json()
     profiles = metadata.pop("profiles", {})
 
-    r.hset(f"architecture-{branch['name']}", target, metadata["arch_packages"])
+    r.hset(f"architecture:{branch['name']}", target, metadata["arch_packages"])
 
     queue = Queue(connection=r)
     registry = FinishedJobRegistry(queue=queue)
-    version_code = r.get(f"revision-{version}-{target}")
+    version_code = r.get(f"revision:{version}:{target}")
     if version_code:
         version_code = version_code.decode()
-        for request_hash in r.smembers(f"builds-{version_code}-{target}"):
+        for request_hash in r.smembers(f"builds:{version_code}:{target}"):
             current_app.logger.warning(
                 f"{version_code}/{target}: Delete outdated job build"
             )
@@ -324,29 +324,29 @@ def update_target_profiles(branch: dict, version: str, target: str) -> str:
 
             except NoSuchJobError:
                 current_app.logger.warning("Job was already deleted")
-        r.delete(f"build-{version_code}-{target}")
+        r.delete(f"build:{version_code}:{target}")
 
     r.set(
-        f"revision-{version}-{target}",
+        f"revision:{version}:{target}",
         metadata["version_code"],
     )
 
     current_app.logger.info(f"{version}/{target}: Found {len(profiles)} profiles")
 
     pipeline = r.pipeline(True)
-    pipeline.delete(f"profiles-{branch['name']}-{version}-{target}")
+    pipeline.delete(f"profiles:{branch['name']}:{version}:{target}")
 
     for profile, data in profiles.items():
         for supported in data.get("supported_devices", []):
-            if not r.hexists(f"mapping-{branch['name']}-{version}-{target}", supported):
+            if not r.hexists(f"mapping:{branch['name']}:{version}:{target}", supported):
                 current_app.logger.info(
                     f"{version}/{target}: Add profile mapping {supported} -> {profile}"
                 )
                 r.hset(
-                    f"mapping-{branch['name']}-{version}-{target}", supported, profile
+                    f"mapping:{branch['name']}:{version}:{target}", supported, profile
                 )
 
-        pipeline.sadd(f"profiles-{branch['name']}-{version}-{target}", profile)
+        pipeline.sadd(f"profiles:{branch['name']}:{version}:{target}", profile)
 
         profile_path = (
             current_app.config["JSON_PATH"]

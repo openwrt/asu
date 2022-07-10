@@ -31,25 +31,25 @@ def pytest_collection_modifyitems(config, items):
 
 def redis_load_mock_data(redis):
     redis.sadd(
-        "packages-TESTVERSION-TESTVERSION-testtarget/testsubtarget",
+        "packages:TESTVERSION:TESTVERSION:testtarget/testsubtarget",
         "test1",
         "test2",
         "test3",
     )
     redis.sadd(
-        "profiles-TESTVERSION-TESTVERSION-testtarget/testsubtarget", "testprofile"
+        "profiles:TESTVERSION:TESTVERSION:testtarget/testsubtarget", "testprofile"
     )
-    redis.sadd("profiles-SNAPSHOT-SNAPSHOT-ath79/generic", "tplink_tl-wdr4300-v1")
-    redis.sadd("packages-SNAPSHOT-SNAPSHOT-ath79/generic", "vim", "tmux")
-    redis.sadd("packages-SNAPSHOT-SNAPSHOT-x86/64", "vim", "tmux")
+    redis.sadd("profiles:SNAPSHOT:SNAPSHOT:ath79/generic", "tplink_tl-wdr4300-v1")
+    redis.sadd("packages:SNAPSHOT:SNAPSHOT:ath79/generic", "vim", "tmux")
+    redis.sadd("packages:SNAPSHOT:SNAPSHOT:x86/64", "vim", "tmux")
 
     redis.hset(
-        "mapping-TESTVERSION-TESTVERSION-testtarget/testsubtarget",
+        "mapping:TESTVERSION:TESTVERSION:testtarget/testsubtarget",
         mapping={"testvendor,testprofile": "testprofile"},
     )
-    redis.sadd("targets-TESTVERSION", "testtarget/testsubtarget")
-    redis.sadd("targets-SNAPSHOT", "ath79/generic", "x86/64")
-    redis.sadd("targets-21.02", "testtarget/testsubtarget")
+    redis.sadd("targets:TESTVERSION", "testtarget/testsubtarget")
+    redis.sadd("targets:SNAPSHOT", "ath79/generic", "x86/64")
+    redis.sadd("targets:21.02", "testtarget/testsubtarget")
     redis.hset("mapping-abi", mapping={"test1-1": "test1"})
 
 
