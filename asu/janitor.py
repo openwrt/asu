@@ -283,28 +283,24 @@ def update_target_profiles(branch: dict, version: str, target: str) -> str:
     current_app.logger.info(f"{version}/{target}: Update profiles")
     r = get_redis()
     version_path = branch["path"].format(version=version)
-    req = requests.head(
-        current_app.config["UPSTREAM_URL"]
-        + f"/{version_path}/targets/{target}/profiles.json"
-    )
-
-    if req.status_code != 200:
-        current_app.logger.warning(
-            f"{version}/{target}: Could not download profiles.json"
-        )
-        return
 
     profiles_url = (
         current_app.config["UPSTREAM_URL"]
         + f"/{version_path}/targets/{target}/profiles.json"
     )
 
+    req = requests.get(profiles_url)
+
+    if req.status_code != 200:
+        current_app.logger.warning("Couldn't download %s", profiles_url)
+        return False
+
+    metadata = req.json()
+    profiles = metadata.pop("profiles", {})
+
     if not is_modified(profiles_url):
         current_app.logger.debug(f"{version}/{target}: Skip profiles update")
-        return
-
-    metadata = requests.get(profiles_url).json()
-    profiles = metadata.pop("profiles", {})
+        return metadata["arch_packages"]
 
     r.hset(f"architecture:{branch['name']}", target, metadata["arch_packages"])
 
