@@ -396,7 +396,7 @@ def build(req: dict):
             job.connection.hdel(
                 f"worker:{job.worker_name}:last_build", target_subtarget
             )
-            if cache / target_subtarget:
+            if (cache / target_subtarget).exists():
                 rmtree(cache / target_subtarget)
         else:
             log.debug("Keeping ImageBuilder for %s", target_subtarget)
