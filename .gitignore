@@ -1,6 +1,10 @@
 *$py.class
+*.pub
 *.py[cod]
+*.sec
+*.sig
 *.swp
+.DS_Store
 .coverage
 .coverage.*
 .direnv/
@@ -9,12 +13,14 @@ __pycache__/
 asu.egg-info/
 asu/__pycache__/
 cache/
+config.py
 coverage.xml
 dist/
 htmlcov/
 instance/
+json/
+poetry.lock
 public/
 site/
 store/
 var/
-json/
