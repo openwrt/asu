@@ -1,4 +1,4 @@
-FROM python:3.7-buster
+FROM python:3.10-slim
 
 RUN useradd -c "OpenWrt Builder" -m -d /home/build -s /bin/bash build
 
