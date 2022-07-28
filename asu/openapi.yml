@@ -186,6 +186,11 @@ components:
       type: object
       additionalProperties: false
       properties:
+        client:
+          type: string
+          example: luci - git-22.073.39928-701ea94
+          description: |
+            Client name and version that requests the image,
         distro:
           type: string
           example: openwrt

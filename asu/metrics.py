@@ -16,6 +16,16 @@ class BuildCollector(object):
 
         yield stats_builds
 
+        stats_clients = CounterMetricFamily(
+            "clients",
+            "Clients requesting images",
+            labels=["name", "version"],
+        )
+        for client, count in self.connection.hgetall("stats:clients").items():
+            stats_clients.add_metric(client.decode().split("/"), count)
+
+        yield stats_clients
+
         hits = self.connection.get("stats:cache-hit")
         if hits:
             hits = int(hits.decode())

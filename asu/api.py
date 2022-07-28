@@ -262,6 +262,17 @@ def api_v1_build_post():
     result_ttl = "7d"
     failure_ttl = "12h"
 
+    if "client" in req:
+        get_redis().hincrby("stats:clients", req["client"])
+    else:
+        if request.headers.get("user-agent").startswith("auc"):
+            get_redis().hincrby(
+                "stats:clients",
+                request.headers.get("user-agent").replace(" (", "/").replace(")", ""),
+            )
+        else:
+            get_redis().hincrby("stats:clients", "unknown/0")
+
     if job is None:
         get_redis().incr("stats:cache-miss")
         response, status = validate_request(req)
