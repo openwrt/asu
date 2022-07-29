@@ -391,7 +391,7 @@ def build(req: dict):
             last_build_timestamp.decode(),
         )
 
-        if now_timestamp - int(last_build_timestamp.decode()) > 60 * 60 * 24 * 7:
+        if now_timestamp - int(last_build_timestamp.decode()) > 60 * 60 * 24:
             log.info("Removing unused ImageBuilder for %s", target_subtarget)
             job.connection.hdel(
                 f"worker:{job.worker_name}:last_build", target_subtarget
