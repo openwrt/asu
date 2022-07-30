@@ -271,7 +271,7 @@ def build(req: dict):
 
     log.debug("Created store path: %s", req["store_path"] / bin_dir)
 
-    if "filesystem" in req:
+    if req.get("filesystem"):
         config_path = cache_workdir / ".config"
         config = config_path.read_text()
 
@@ -293,6 +293,7 @@ def build(req: dict):
 
         config_path.write_text(config)
     else:
+        log.debug("Enable default filesystems")
         copyfile(
             cache_workdir / ".config.orig",
             cache_workdir / ".config",

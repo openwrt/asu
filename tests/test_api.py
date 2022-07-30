@@ -62,6 +62,26 @@ def test_api_build_filesystem_squashfs(app, upstream):
     assert "# CONFIG_TARGET_ROOTFS_EXT4FS is not set" in config
     assert "CONFIG_TARGET_ROOTFS_SQUASHFS=y" in config
 
+def test_api_build_filesystem_empty(app, upstream):
+    client = app.test_client()
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            filesystem="",
+        ),
+    )
+    assert response.status == "200 OK"
+    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    config = (
+        app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+    ).read_text()
+    assert "CONFIG_TARGET_ROOTFS_EXT4FS=y" in config
+    assert "CONFIG_TARGET_ROOTFS_SQUASHFS=y" in config
+
 
 def test_api_build_filesystem_reset(app, upstream):
     client = app.test_client()
