@@ -1,6 +1,3 @@
-import json
-
-# from msilib.schema import Registry
 from os import getenv
 from pathlib import Path
 
@@ -95,40 +92,6 @@ def create_app(test_config: dict = None) -> Flask:
             filter(lambda b: b.get("enabled"), app.config["BRANCHES"].values()),
         )
     )
-    latest = list(
-        map(
-            lambda b: b["versions"][0],
-            filter(
-                lambda b: b.get("enabled"),
-                app.config["BRANCHES"].values(),
-            ),
-        )
-    )
-
-    app.config["OVERVIEW"] = {
-        "latest": latest,
-        "branches": branches,
-        "server": {
-            "version": __version__,
-            "contact": "mail@aparcar.org",
-            "allow_defaults": app.config["ALLOW_DEFAULTS"],
-        },
-    }
-
-    # legacy
-    (app.config["JSON_PATH"] / "branches.json").write_text(
-        json.dumps(list(branches.values()))
-    )
-
-    # tdb
-    (app.config["JSON_PATH"] / "latest.json").write_text(json.dumps({"latest": latest}))
-
-    (app.config["JSON_PATH"] / "overview.json").write_text(
-        json.dumps(
-            app.config["OVERVIEW"],
-            indent=2,
-        )
-    )
 
     @app.route("/")
     def overview():
@@ -136,7 +99,6 @@ def create_app(test_config: dict = None) -> Flask:
             "overview.html",
             branches=branches,
             defaults=app.config["ALLOW_DEFAULTS"],
-            latest=latest,
             version=__version__,
         )
 

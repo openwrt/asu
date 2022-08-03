@@ -11,6 +11,7 @@ from rq import Queue
 from rq.exceptions import NoSuchJobError
 from rq.registry import FinishedJobRegistry
 
+from asu import __version__
 from asu.common import get_redis, is_modified
 
 bp = Blueprint("janitor", __name__)
@@ -86,8 +87,6 @@ def get_packages_arch_repo(branch, arch, repo):
 
 
 def update_branch(branch):
-    r = get_redis()
-
     version_path = branch["path"].format(version=branch["versions"][0])
     targets = list(
         filter(
@@ -374,6 +373,64 @@ def update_target_profiles(branch: dict, version: str, target: str) -> str:
     return metadata["arch_packages"]
 
 
+def update_meta_json():
+    latest = list(
+        map(
+            lambda b: b["versions"][0],
+            filter(
+                lambda b: b.get("enabled"),
+                current_app.config["BRANCHES"].values(),
+            ),
+        )
+    )
+
+    branches = dict(
+        map(
+            lambda b: (
+                b["name"],
+                {
+                    **b,
+                    "targets": dict(
+                        map(
+                            lambda a: (a[0].decode(), a[1].decode()),
+                            get_redis().hgetall(f"architecture:{b['name']}").items(),
+                        )
+                    ),
+                },
+            ),
+            filter(
+                lambda b: b.get("enabled"),
+                current_app.config["BRANCHES"].values(),
+            ),
+        )
+    )
+
+    current_app.config["OVERVIEW"] = {
+        "latest": latest,
+        "branches": branches,
+        "server": {
+            "version": __version__,
+            "contact": "mail@aparcar.org",
+            "allow_defaults": current_app.config["ALLOW_DEFAULTS"],
+        },
+    }
+
+    (current_app.config["JSON_PATH"] / "overview.json").write_text(
+        json.dumps(
+            current_app.config["OVERVIEW"],
+            indent=2,
+        )
+    )
+
+    (current_app.config["JSON_PATH"] / "branches.json").write_text(
+        json.dumps(list(branches.values()))
+    )
+
+    (current_app.config["JSON_PATH"] / "latest.json").write_text(
+        json.dumps({"latest": latest})
+    )
+
+
 @bp.cli.command("update")
 @click.option("-i", "--interval", default=10, type=int)
 def update(interval):
@@ -396,6 +453,8 @@ def update(interval):
 
             current_app.logger.info(f"Update {branch['name']}")
             update_branch(branch)
+
+        update_meta_json()
 
         if interval > 0:
             current_app.logger.info(f"Next reload in { interval } minutes")

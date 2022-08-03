@@ -1,11 +1,6 @@
 import pytest
 
 
-def test_api_version(client, app):
-    response = client.get("/api/branches")
-    assert response.status == "200 OK"
-
-
 def test_api_build(client, upstream):
     response = client.post(
         "/api/v1/build",
@@ -61,6 +56,7 @@ def test_api_build_filesystem_squashfs(app, upstream):
     ).read_text()
     assert "# CONFIG_TARGET_ROOTFS_EXT4FS is not set" in config
     assert "CONFIG_TARGET_ROOTFS_SQUASHFS=y" in config
+
 
 def test_api_build_filesystem_empty(app, upstream):
     client = app.test_client()
