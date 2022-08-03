@@ -59,6 +59,11 @@ def api_latest():
     return redirect("/json/v1/latest.json")
 
 
+@bp.route("/overview")
+def api_v1_overview():
+    return redirect("/json/v1/overview.json")
+
+
 def validate_packages(req):
     if req.get("packages_versions") and not req.get("packages"):
         req["packages"] = req["packages_versions"].keys()
@@ -235,11 +240,6 @@ def return_job_v1(job):
 
 
 # legacy offering /api/overview
-@bp.route("/overview")
-def api_v1_overview():
-    return jsonify(current_app.config["OVERVIEW"])
-
-
 def api_v1_build_get(request_hash):
     job = get_queue().fetch_job(request_hash)
     if not job:

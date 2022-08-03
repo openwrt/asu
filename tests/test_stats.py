@@ -131,6 +131,7 @@ def test_stats_clients_auc(client, upstream):
         as_text=True
     )
 
+
 def test_stats_clients_auc_possible_new_format(client, upstream):
     response = client.post(
         "/api/v1/build",
