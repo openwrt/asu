@@ -46,8 +46,8 @@ def build(req: dict):
     target, subtarget = req["target"].split("/")
     cache = req.get("cache_path", Path.cwd()) / "cache" / req["version"]
     cache_workdir = cache / target / subtarget
-    sums_file = Path(cache / target / f"{subtarget}_sums")
-    sig_file = Path(cache / target / f"{subtarget}_sums.sig")
+    sums_file = Path(cache / target / f"{subtarget}.sha256sums")
+    sig_file = Path(cache / target / f"{subtarget}.sha256sums.sig")
 
     def setup_ib():
         """Setup ImageBuilder based on `req`
@@ -158,7 +158,7 @@ def build(req: dict):
 
     (cache / target).mkdir(parents=True, exist_ok=True)
 
-    stamp_file = cache / target / f"{subtarget}_stamp"
+    stamp_file = cache / target / f"{subtarget}.stamp"
 
     sig_file_headers = requests.head(
         req["upstream_url"]
@@ -399,6 +399,9 @@ def build(req: dict):
             )
             if (cache / target_subtarget).exists():
                 rmtree(cache / target_subtarget)
+                _, subtarget = target_subtarget.split("/")
+                for suffix in [".stamp", ".sha256sums", ".sha256sums.sig"]:
+                    (cache / subtarget).with_suffix(suffix).unlink()
         else:
             log.debug("Keeping ImageBuilder for %s", target_subtarget)
 
