@@ -398,9 +398,8 @@ def build(req: dict):
             )
             if (cache / target_subtarget).exists():
                 rmtree(cache / target_subtarget)
-                _, subtarget = target_subtarget.split("/")
                 for suffix in [".stamp", ".sha256sums", ".sha256sums.sig"]:
-                    (cache / subtarget).with_suffix(suffix).unlink()
+                    (cache / target_subtarget).with_suffix(suffix).unlink(missing_ok=True)
         else:
             log.debug("Keeping ImageBuilder for %s", target_subtarget)
 
