@@ -518,3 +518,24 @@ def test_api_build_package_to_replace(client, upstream):
     )
     assert response.status == "200 OK"
     assert response.json.get("request_hash") == "8dd81d51057d322b46aa3739ccf4a8a6"
+
+
+def test_api_build_cleanup(app, upstream):
+    client = app.test_client()
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            filesystem="ext4",
+        ),
+    )
+    assert response.status == "200 OK"
+    assert not (
+        app.config["CACHE_PATH"]
+        / "cache/TESTVERSION/testtarget/testsubtarget"
+        / "pseudo_kernel_build_dir/tmp/"
+        / "fake_trash"
+    ).exists()

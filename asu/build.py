@@ -9,8 +9,12 @@ from shutil import copyfile, rmtree
 import requests
 from rq import get_current_job
 
-from .common import (fingerprint_pubkey_usign, get_file_hash,
-                     get_packages_hash, verify_usign)
+from .common import (
+    fingerprint_pubkey_usign,
+    get_file_hash,
+    get_packages_hash,
+    verify_usign,
+)
 
 log = logging.getLogger("rq.worker")
 log.setLevel(logging.DEBUG)
@@ -337,6 +341,24 @@ def build(req: dict):
 
     if "is too big" in image_build.stderr:
         report_error("Selected packages exceed device storage")
+
+    kernel_build_dir_run = subprocess.run(
+        ["make", "val.KERNEL_BUILD_DIR"],
+        text=True,
+        cwd=cache_workdir,
+        capture_output=True,
+    )
+
+    if kernel_build_dir_run.returncode:
+        report_error("Couldn't determine KERNEL_BUILD_DIR")
+
+    kernel_build_dir_tmp = Path(kernel_build_dir_run.stdout.strip()) / "tmp"
+
+    if kernel_build_dir_tmp.exists():
+        log.info("Removing KDIR_TMP at %s", kernel_build_dir_tmp)
+        rmtree(kernel_build_dir_tmp)
+    else:
+        log.warning("KDIR_TMP missing at %s", kernel_build_dir_tmp)
 
     json_file = Path(req["store_path"] / bin_dir / "profiles.json")
 
