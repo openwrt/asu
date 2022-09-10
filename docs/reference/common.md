@@ -1,3 +1,0 @@
-# asu.common
-
-::: asu.common

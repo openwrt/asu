@@ -1,4 +1,0 @@
-site_name: asu
-plugins:
-  - search
-  - mkdocstrings
