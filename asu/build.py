@@ -232,13 +232,15 @@ def build(req: dict):
         capture_output=True,
     )
 
+    job.meta["stdout"] = manifest_run.stdout
+    job.meta["stderr"] = manifest_run.stderr
+    job.save_meta()
+
     if manifest_run.returncode:
         if "Package size mismatch" in manifest_run.stderr:
             rmtree(cache_workdir)
             return build(req)
         else:
-            job.meta["stdout"] = manifest_run.stdout
-            job.meta["stderr"] = manifest_run.stderr
             print(manifest_run.stdout)
             print(manifest_run.stderr)
             report_error("Impossible package selection")
