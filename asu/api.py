@@ -86,6 +86,18 @@ def validate_packages(req):
 
     req["packages"] = tr
 
+    if req.get("diff_packages", False):
+        for package, change in (
+            current_app.config["BRANCHES"][req["branch"]]
+            .get("package_changes", {})
+            .items()
+        ):
+            if package in req["packages"]:
+                current_app.logger.debug("changes to package %s", package)
+                req["packages"].remove(package)
+                if isinstance(change, str):
+                    req["packages"].add(change)
+
     # store request packages temporary in Redis and create a diff
     temp = str(uuid4())
     pipeline = r.pipeline(True)

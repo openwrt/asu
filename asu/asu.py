@@ -57,6 +57,13 @@ def create_app(test_config: dict = None) -> Flask:
             app.config[option] = Path(value)
             app.config[option].mkdir(parents=True, exist_ok=True)
 
+    if not "BRANCHES" in app.config:
+        if "BRANCHES_FILE" not in app.config:
+            app.config["BRANCHES_FILE"] = resource_filename(__name__, "branches.yml")
+
+        with open(app.config["BRANCHES_FILE"], "r") as branches:
+            app.config["BRANCHES"] = safe_load(branches)["branches"]
+
     app.wsgi_app = DispatcherMiddleware(
         app.wsgi_app, {"/metrics": make_wsgi_app(app.config["REGISTRY"])}
     )

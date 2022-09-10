@@ -33,13 +33,20 @@ def test_update_branch(app, upstream):
     assert (app.config["JSON_PATH"] / "snapshots/overview.json").is_file()
 
 
-def test_update_meta_json(app):
+def test_update_meta_latest_json(app):
     with app.app_context():
         update_meta_json()
     latest_json = json.loads((app.config["JSON_PATH"] / "latest.json").read_text())
     assert "19.07.7" in latest_json["latest"]
     assert "21.02.0" in latest_json["latest"]
     assert "SNAPSHOT" in latest_json["latest"]
+
+
+def test_update_meta_overview_json(app):
+    with app.app_context():
+        update_meta_json()
+    overview_json = json.loads((app.config["JSON_PATH"] / "overview.json").read_text())
+    assert "package_changes" in overview_json["branches"]["TESTVERSION"]
 
 
 def test_parse_packages_file(app, upstream):

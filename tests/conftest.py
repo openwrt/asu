@@ -35,6 +35,7 @@ def redis_load_mock_data(redis):
         "test1",
         "test2",
         "test3",
+        "valid_new_package",
     )
     redis.sadd(
         "profiles:TESTVERSION:TESTVERSION:testtarget/testsubtarget", "testprofile"
@@ -113,6 +114,10 @@ def app(test_path, redis_server):
                         "testtarget/testsubtarget": "testarch",
                         "x86/64": "x86_64",
                     },
+                    "package_changes": {
+                        "package_to_remove": None,
+                        "package_to_replace": "valid_new_package",
+                    },
                 },
                 "21.02": {
                     "name": "21.02",
@@ -140,6 +145,51 @@ def app(test_path, redis_server):
                     "targets": {"testtarget/testsubtarget": "testarch"},
                 },
             },
+        }
+    )
+
+    return mock_app
+
+
+@pytest.fixture
+def app_using_branches_yml(test_path, redis_server):
+    redis_load_mock_data(redis_server)
+
+    registry = prometheus_client.CollectorRegistry(auto_describe=True)
+
+    mock_app = create_app(
+        {
+            "REGISTRY": registry,
+            "ASYNC_QUEUE": False,
+            "JSON_PATH": test_path + "/json",
+            "REDIS_CONN": redis_server,
+            "STORE_PATH": test_path + "/store",
+            "CACHE_PATH": test_path,
+            "TESTING": True,
+            "UPSTREAM_URL": "http://localhost:8001",
+            "BRANCHES_FILE": "./asu/branches.yml",
+        }
+    )
+
+    return mock_app
+
+
+@pytest.fixture
+def app_using_default_branches(test_path, redis_server):
+    redis_load_mock_data(redis_server)
+
+    registry = prometheus_client.CollectorRegistry(auto_describe=True)
+
+    mock_app = create_app(
+        {
+            "REGISTRY": registry,
+            "ASYNC_QUEUE": False,
+            "JSON_PATH": test_path + "/json",
+            "REDIS_CONN": redis_server,
+            "STORE_PATH": test_path + "/store",
+            "CACHE_PATH": test_path,
+            "TESTING": True,
+            "UPSTREAM_URL": "http://localhost:8001",
         }
     )
 
