@@ -3,9 +3,11 @@ from pathlib import Path
 
 import connexion
 from flask import Flask, render_template, send_from_directory
+from pkg_resources import resource_filename
 from prometheus_client import CollectorRegistry, make_wsgi_app
 from redis import Redis
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from yaml import safe_load
 
 import asu.common
 from asu import __version__
@@ -34,7 +36,6 @@ def create_app(test_config: dict = None) -> Flask:
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.openwrt.org",
-        BRANCHES={},
         ALLOW_DEFAULTS=False,
         ASYNC_QUEUE=True,
     )

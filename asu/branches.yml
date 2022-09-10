@@ -1,0 +1,71 @@
+branches:
+  '21.02':
+    enabled: true
+    extra_keys: []
+    extra_repos: {}
+    git_branch: openwrt-21.02
+    name: '21.02'
+    path: releases/{version}
+    path_packages: releases/packages-{branch}
+    pubkey: RWQviwuY4IMGvwLfs6842A0m4EZU1IjczTxKMSk3BQP8DAQLHBwdQiaU
+    release_date: '2021-08-04'
+    repos:
+    - base
+    - packages
+    - luci
+    - routing
+    - telephony
+    snapshot: false
+    updates: features
+    versions:
+    - 21.02.3
+    - 21.02-SNAPSHOT
+
+  '22.03':
+    enabled: true
+    extra_keys: []
+    extra_repos: {}
+    git_branch: openwrt-22.03
+    name: '22.03'
+    path: releases/{version}
+    path_packages: releases/packages-{branch}
+    pubkey: RWRNAX5vHtXWFmt+n5di7XX8rTu0w+c8X7Ihv4oCyD6tzsUwmH0A6kO0
+    release_date: '2022-09-06'
+    repos:
+    - base
+    - packages
+    - luci
+    - routing
+    - telephony
+    snapshot: false
+    updates: features
+    versions:
+    - 22.03.0
+    - 22.03.0-rc6
+    - 22.03-SNAPSHOT
+    package_changes:
+      kmod-nft-nat6:
+      firewall: firewall4
+    
+  SNAPSHOT:
+    enabled: true
+    extra_keys: []
+    extra_repos: {}
+    git_branch: master
+    name: SNAPSHOT
+    path: snapshots
+    path_packages: snapshots/packages
+    pubkey: RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+
+    repos:
+    - base
+    - packages
+    - luci
+    - routing
+    - telephony
+    snapshot: true
+    updates: dev
+    versions:
+    - SNAPSHOT
+    package_changes:
+      kmod-nft-nat6:
+      firewall: firewall4

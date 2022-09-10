@@ -5,6 +5,7 @@ description = "An image on demand server for OpenWrt based distributions"
 authors = ["Paul Spooren <mail@aparcar.org>"]
 license = "GPL-2.0"
 readme = "README.md"
+include = ["asu/branches.yml"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
