@@ -9,3 +9,6 @@ manifest:
 
 info:
 	@cat ./openwrt-testtarget-testsubtarget-testprofile.info
+
+val.KERNEL_BUILD_DIR:
+	@echo "$$(pwd)/pseudo_kernel_build_dir/"
