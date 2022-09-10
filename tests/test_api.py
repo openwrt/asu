@@ -474,3 +474,47 @@ def test_api_build_bad_packages(client):
     )
     assert response.json.get("detail") == "Unsupported package(s): test4"
     assert response.status == "422 UNPROCESSABLE ENTITY"
+
+
+def test_api_build_package_to_remove_diff_packages_true(client, upstream):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2", "package_to_remove"],
+            diff_packages=True,
+        ),
+    )
+    assert response.status == "200 OK"
+    assert response.json.get("request_hash") == "b7b991edc9a53302df840f842603288e"
+
+
+def test_api_build_package_to_remove_diff_packages_false(client, upstream):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2", "package_to_remove"],
+            diff_packages=False,
+        ),
+    )
+    assert response.status == "422 UNPROCESSABLE ENTITY"
+
+
+def test_api_build_package_to_replace(client, upstream):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2", "package_to_replace"],
+            diff_packages=True,
+        ),
+    )
+    assert response.status == "200 OK"
+    assert response.json.get("request_hash") == "8dd81d51057d322b46aa3739ccf4a8a6"
