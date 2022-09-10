@@ -26,7 +26,7 @@ services:
   worker:
     image: "aparcar/asu-worker:latest"
     volumes:
-      - "./asu-service/:/home/build/asu/"
+      - "./asu-service/public/:/home/build/asu/public/"
     depends_on:
       - redis
 
