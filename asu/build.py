@@ -9,12 +9,8 @@ from shutil import copyfile, rmtree
 import requests
 from rq import get_current_job
 
-from .common import (
-    fingerprint_pubkey_usign,
-    get_file_hash,
-    get_packages_hash,
-    verify_usign,
-)
+from .common import (fingerprint_pubkey_usign, get_file_hash,
+                     get_packages_hash, verify_usign)
 
 log = logging.getLogger("rq.worker")
 log.setLevel(logging.DEBUG)
@@ -399,7 +395,9 @@ def build(req: dict):
             if (cache / target_subtarget).exists():
                 rmtree(cache / target_subtarget)
                 for suffix in [".stamp", ".sha256sums", ".sha256sums.sig"]:
-                    (cache / target_subtarget).with_suffix(suffix).unlink(missing_ok=True)
+                    (cache / target_subtarget).with_suffix(suffix).unlink(
+                        missing_ok=True
+                    )
         else:
             log.debug("Keeping ImageBuilder for %s", target_subtarget)
 
