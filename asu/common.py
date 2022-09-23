@@ -1,10 +1,6 @@
-import base64
 import hashlib
 import json
-import struct
-from pathlib import Path
 
-import nacl.signing
 import requests
 from flask import current_app
 
@@ -129,46 +125,3 @@ def get_packages_hash(packages: list) -> str:
         str: hash of `req`
     """
     return get_str_hash(" ".join(sorted(list(set(packages)))), 12)
-
-
-def fingerprint_pubkey_usign(pubkey: str) -> str:
-    """Return fingerprint of signify/usign public key
-
-    Args:
-        pubkey (str): signify/usign public key
-
-    Returns:
-        str: string containing the fingerprint
-    """
-    keynum = base64.b64decode(pubkey.splitlines()[-1])[2:10]
-    return "".join(format(x, "02x") for x in keynum)
-
-
-def verify_usign(sig_file: Path, msg_file: Path, pub_key: str) -> bool:
-    """Verify a signify/usign signature
-
-    This implementation uses pynacl
-
-    Args:
-        sig_file (Path): signature file
-        msg_file (Path): message file to be verified
-        pub_key (str): public key to use for verification
-
-    Returns:
-        bool: Sucessfull verification
-
-    Todo:
-         Currently ignores keynum and pkalg
-
-    """
-    pkalg, keynum, pubkey = struct.unpack("!2s8s32s", base64.b64decode(pub_key))
-    sig = base64.b64decode(sig_file.read_text().splitlines()[-1])
-
-    pkalg, keynum, sig = struct.unpack("!2s8s64s", sig)
-
-    verify_key = nacl.signing.VerifyKey(pubkey, encoder=nacl.encoding.RawEncoder)
-    try:
-        verify_key.verify(msg_file.read_bytes(), sig)
-        return True
-    except nacl.exceptions.CryptoError:
-        return False

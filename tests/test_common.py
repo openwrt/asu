@@ -44,27 +44,3 @@ def test_get_request_hash_diff_packages():
     }
 
     assert get_request_hash(request) == "caaa8f25efadb5456f8fd32b5a4ba032"
-
-
-def test_fingerprint_pubkey_usign():
-    pub_key = "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89"
-    assert fingerprint_pubkey_usign(pub_key) == "ab1df166947b2551"
-
-
-def test_verify_usign():
-    sig = b"\nRWSrHfFmlHslUQ9dCB1AJr/PoIIbBJJKtofZ5frLOuG03SlwAwgU1tYOaJs2eVGdo1C8S9LNcMBLPIfDDCWSdrLK3WJ6JV6HNQM="
-    msg_fd, msg_path = tempfile.mkstemp()
-    sig_fd, sig_path = tempfile.mkstemp()
-    os.write(msg_fd, b"test\n")
-    os.write(sig_fd, sig)
-
-    pub_key = "RWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SU89"
-    pub_key_bad = "rWSrHfFmlHslUcLbXFIRp+eEikWF9z1N77IJiX5Bt/nJd1a/x+L+SXXX"
-
-    assert verify_usign(Path(sig_path), Path(msg_path), pub_key)
-    assert not verify_usign(Path(sig_path), Path(msg_path), pub_key_bad)
-
-    os.close(msg_fd)
-    os.close(sig_fd)
-    os.unlink(msg_path)
-    os.unlink(sig_path)

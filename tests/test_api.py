@@ -31,7 +31,7 @@ def test_api_build_filesystem_ext4(app, upstream):
     assert response.json.get("request_hash") == "daae6bc8045962aa86c8e9d885dae499"
 
     config = (
-        app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+        app.config["CACHE_PATH"] / "TESTVERSION/testtarget/testsubtarget/.config"
     ).read_text()
     assert "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set" in config
     assert "CONFIG_TARGET_ROOTFS_EXT4FS=y" in config
@@ -52,7 +52,7 @@ def test_api_build_filesystem_squashfs(app, upstream):
     assert response.status == "200 OK"
     assert response.json.get("request_hash") == "40cc1368f667923f3414914a2ccecc89"
     config = (
-        app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+        app.config["CACHE_PATH"] / "TESTVERSION/testtarget/testsubtarget/.config"
     ).read_text()
     assert "# CONFIG_TARGET_ROOTFS_EXT4FS is not set" in config
     assert "CONFIG_TARGET_ROOTFS_SQUASHFS=y" in config
@@ -73,7 +73,7 @@ def test_api_build_filesystem_empty(app, upstream):
     assert response.status == "200 OK"
     assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
     config = (
-        app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+        app.config["CACHE_PATH"] / "TESTVERSION/testtarget/testsubtarget/.config"
     ).read_text()
     assert "CONFIG_TARGET_ROOTFS_EXT4FS=y" in config
     assert "CONFIG_TARGET_ROOTFS_SQUASHFS=y" in config
@@ -96,8 +96,7 @@ def test_api_build_filesystem_reset(app, upstream):
     assert (
         "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set"
         in (
-            app.config["CACHE_PATH"]
-            / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+            app.config["CACHE_PATH"] / "TESTVERSION/testtarget/testsubtarget/.config"
         ).read_text()
     )
 
@@ -115,8 +114,7 @@ def test_api_build_filesystem_reset(app, upstream):
     assert (
         "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set"
         not in (
-            app.config["CACHE_PATH"]
-            / "cache/TESTVERSION/testtarget/testsubtarget/.config"
+            app.config["CACHE_PATH"] / "TESTVERSION/testtarget/testsubtarget/.config"
         ).read_text()
     )
 
@@ -475,6 +473,7 @@ def test_api_build_bad_packages(client):
     assert response.json.get("detail") == "Unsupported package(s): test4"
     assert response.status == "422 UNPROCESSABLE ENTITY"
 
+
 def test_api_build_package_to_remove_diff_packages_false(client, upstream):
     response = client.post(
         "/api/v1/build",
@@ -504,7 +503,7 @@ def test_api_build_cleanup(app, upstream):
     assert response.status == "200 OK"
     assert not (
         app.config["CACHE_PATH"]
-        / "cache/TESTVERSION/testtarget/testsubtarget"
+        / "TESTVERSION/testtarget/testsubtarget"
         / "pseudo_kernel_build_dir/tmp/"
         / "fake_trash"
     ).exists()

@@ -81,7 +81,7 @@ def app(test_path, redis_server):
             "JSON_PATH": test_path + "/json",
             "REDIS_CONN": redis_server,
             "STORE_PATH": test_path + "/store",
-            "CACHE_PATH": test_path,
+            "CACHE_PATH": test_path + "/cache",
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",
             "BRANCHES": {
@@ -213,7 +213,7 @@ def httpserver_listen_address():
 
 @pytest.fixture
 def upstream(httpserver):
-    base_url = "/snapshots/targets/testtarget/testsubtarget"
+    base_url = "/releases/TESTVERSION/targets/testtarget/testsubtarget"
     upstream_path = Path("./tests/upstream/snapshots/targets/testtarget/testsubtarget/")
     expected_file_requests = [
         "sha256sums.sig",
