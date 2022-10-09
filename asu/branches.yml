@@ -22,8 +22,12 @@ branches:
       - 22.03.0-rc6
       - 22.03-SNAPSHOT
     package_changes:
-      kmod-nft-nat6:
-      firewall: firewall4
+      - source: kmod-nft-nat6
+        revision: 19160
+        mandatory: true
+      - source: firewall
+        target: firewall4
+        revision: 18611
 
   "21.02":
     enabled: true
@@ -67,5 +71,9 @@ branches:
     versions:
       - SNAPSHOT
     package_changes:
-      kmod-nft-nat6:
-      firewall: firewall4
+      - source: kmod-nft-nat6
+        revision: 20282
+        mandatory: true
+      - source: firewall
+        target: firewall4
+        revision: 18611
