@@ -98,7 +98,7 @@ def test_is_outdated(tmpdir):
     os.utime(str(ib.workdir / "Makefile"), (0, 0))
     assert ib.is_outdated()
 
-    os.utime(str(ib.workdir / "Makefile"), (1650340906, 1650340906))
+    os.utime(str(ib.workdir / "Makefile"), (2650340906, 2650340906))
     assert not ib.is_outdated()
 
 
