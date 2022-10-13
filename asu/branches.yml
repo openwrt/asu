@@ -4,6 +4,7 @@ branches:
     extra_keys: []
     extra_repos: {}
     git_branch: openwrt-22.03
+    branch_off_rev: 19160
     name: "22.03"
     path: releases/{version}
     path_packages: releases/packages-{branch}
@@ -35,6 +36,7 @@ branches:
     extra_keys: []
     extra_repos: {}
     git_branch: openwrt-21.02
+    branch_off_rev: 15812
     name: "21.02"
     path: releases/{version}
     path_packages: releases/packages-{branch}
