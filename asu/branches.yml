@@ -8,7 +8,7 @@ branches:
     path: releases/{version}
     path_packages: releases/packages-{branch}
     pubkey: RWRNAX5vHtXWFmt+n5di7XX8rTu0w+c8X7Ihv4oCyD6tzsUwmH0A6kO0
-    release_date: "2022-09-06"
+    release_date: 2022-10-13
     repos:
       - base
       - packages
@@ -18,6 +18,7 @@ branches:
     snapshot: false
     updates: features
     versions:
+      - 22.03.1
       - 22.03.0
       - 22.03.0-rc6
       - 22.03-SNAPSHOT
@@ -38,7 +39,7 @@ branches:
     path: releases/{version}
     path_packages: releases/packages-{branch}
     pubkey: RWQviwuY4IMGvwLfs6842A0m4EZU1IjczTxKMSk3BQP8DAQLHBwdQiaU
-    release_date: "2021-08-04"
+    release_date: 2022-10-13
     repos:
       - base
       - packages
@@ -48,6 +49,7 @@ branches:
     snapshot: false
     updates: features
     versions:
+      - 21.02.4
       - 21.02.3
       - 21.02-SNAPSHOT
 
