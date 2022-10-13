@@ -6,8 +6,14 @@ After=network.target
 User=debian
 Group=debian
 WorkingDirectory=/home/debian/asu/
-Environment="PATH=/home/debian/.local/bin/"
-ExecStart=/home/debian/.local/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 -m 007 "asu.asu:create_app()"
+Environment="BRANCHES_FILE=./branches.yml"
+ExecStart=/home/debian/.local/bin/gunicorn \
+    --bind 127.0.0.1:8000 \
+    --extra-reload-file "$BRANCHES_FILE" \
+    --reload \
+    --umask 007 \
+    --workers 3 \
+    "asu.asu:create_app()"
 
 [Install]
 WantedBy=multi-user.target
