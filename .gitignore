@@ -8,6 +8,7 @@
 .coverage
 .coverage.*
 .direnv/
+.venv/
 .vscode/
 __pycache__/
 asu.egg-info/
