@@ -38,6 +38,7 @@ def create_app(test_config: dict = None) -> Flask:
         UPSTREAM_URL="https://downloads.openwrt.org",
         ALLOW_DEFAULTS=False,
         ASYNC_QUEUE=True,
+        BRANCHES_FILE=getenv("BRANCHES_FILE"),
     )
 
     if not test_config:
@@ -58,8 +59,8 @@ def create_app(test_config: dict = None) -> Flask:
             app.config[option] = Path(value)
             app.config[option].mkdir(parents=True, exist_ok=True)
 
-    if not "BRANCHES" in app.config:
-        if "BRANCHES_FILE" not in app.config:
+    if "BRANCHES" not in app.config:
+        if app.config["BRANCHES_FILE"] is None:
             app.config["BRANCHES_FILE"] = resource_filename(__name__, "branches.yml")
 
         with open(app.config["BRANCHES_FILE"], "r") as branches:
