@@ -69,7 +69,7 @@ def build(req: dict):
             report_error("Bad signature of ImageBuilder archive")
 
         ib_search = re.search(
-            r"^(.{64}) \*(openwrt-imagebuilder-.+?\.Linux-x86_64\.tar\.xz)$",
+            r"^(.{64}) \*([a-z]+-imagebuilder-.+?\.Linux-x86_64\.tar\.xz)$",
             sums_file.read_text(),
             re.MULTILINE,
         )
