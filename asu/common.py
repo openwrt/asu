@@ -99,21 +99,22 @@ def get_request_hash(req: dict) -> str:
     Returns:
         str: hash of `req`
     """
-    request_array = [
-        req.get("distro", ""),
-        req.get("version", ""),
-        req.get("version_code", ""),
-        req.get("profile", "").replace(",", "_"),
-        get_packages_hash(req.get("packages", "")),
-        get_manifest_hash(req.get("packages_versions", {})),
-        str(req.get("diff_packages", False)),
-        req.get("filesystem", ""),
-    ]
-
-    if "defaults" in req:
-        request_array.append(get_str_hash(req.get("defaults", "")))
-
-    return get_str_hash(" ".join(request_array), 32)
+    return get_str_hash(
+        " ".join(
+            [
+                req.get("distro", ""),
+                req.get("version", ""),
+                req.get("version_code", ""),
+                req.get("profile", "").replace(",", "_"),
+                get_packages_hash(req.get("packages", "")),
+                get_manifest_hash(req.get("packages_versions", {})),
+                str(req.get("diff_packages", False)),
+                req.get("filesystem", ""),
+                get_str_hash(req.get("defaults", "")),
+            ]
+        ),
+        32,
+    )
 
 
 def get_packages_hash(packages: list) -> str:
