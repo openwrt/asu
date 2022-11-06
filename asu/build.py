@@ -10,13 +10,29 @@ from .imagebuilder import ImageBuilder
 log = logging.getLogger("rq.worker")
 
 
-def set_stats(job, req):
+def set_stats(job, ib, req):
     job.connection.hincrby(
         "stats:builds",
         "#".join(
             [req["branch_data"]["name"], req["version"], req["target"], req["profile"]]
         ),
     )
+
+    job.connection.sadd(
+        f"builds:{ib.version_code}:{req['target']}", req["request_hash"]
+    )
+
+
+def create_build_json(ib, req, manifest):
+    ib.profiles_json.update({"manifest": manifest})
+    ib.profiles_json.update(ib.profiles_json["profiles"][req["profile"]])
+    ib.profiles_json["id"] = req["profile"]
+    ib.profiles_json["bin_dir"] = str(ib.bin_dir)
+    ib.profiles_json.pop("profiles")
+    ib.profiles_json["build_at"] = datetime.utcfromtimestamp(
+        int(ib.profiles_json.get("source_date_epoch", 0))
+    ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    ib.profiles_json["detail"] = "done"
 
 
 def cleanup_imagebuilders(job, req):
@@ -163,23 +179,11 @@ def build(req: dict):
     if req["profile"] not in ib.profiles_json["profiles"]:
         report_error("Profile not found in JSON file")
 
-    ib.profiles_json.update({"manifest": manifest})
-    ib.profiles_json.update(ib.profiles_json["profiles"][req["profile"]])
-    ib.profiles_json["id"] = req["profile"]
-    ib.profiles_json["bin_dir"] = str(ib.bin_dir)
-    ib.profiles_json.pop("profiles")
-    ib.profiles_json["build_at"] = datetime.utcfromtimestamp(
-        int(ib.profiles_json.get("source_date_epoch", 0))
-    ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-    ib.profiles_json["detail"] = "done"
+    create_build_json(ib, req, manifest)
 
     log.debug("JSON content %s", ib.profiles_json)
 
-    job.connection.sadd(
-        f"builds:{ib.version_code}:{req['target']}", req["request_hash"]
-    )
-
-    set_stats(job, req)
+    set_stats(job, ib, req)
 
     cleanup_imagebuilders(job, req)
 

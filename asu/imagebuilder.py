@@ -89,6 +89,7 @@ class ImageBuilder(object):
         keys=Path.cwd(),
         files=None,
         custom_public_key=None,
+        use_docker=True,
     ):
         self.distro = distro
         self.version = version
@@ -109,6 +110,15 @@ class ImageBuilder(object):
         self.stderr = ""
         self.build_cmd = []
         self.profiles_json = None
+
+        if use_docker:
+            import docker
+
+            self.docker = docker.DockerClient(
+                base_url="unix:///Users/user/.colima/default/docker.sock"
+            )
+        else:
+            self.docker = None
 
     @property
     def public_key(self):
@@ -289,6 +299,17 @@ class ImageBuilder(object):
     def _make(self, cmd: list):
         return run(cmd, text=True, cwd=self.workdir, capture_output=True)
 
+    def _docker(self, cmd: list):
+        return self.docker.containers.run(
+            image="openwrt/imagebuilder",
+            command=" ".join(cmd),
+            volumes={
+                str(self.workdir): {"bind": str(self.workdir), "mode": "ro"},
+                str(self.bin_dir): {"bind": str(self.bin_dir), "mode": "rw"},
+            },
+            working_dir=str(self.workdir),
+        )
+
     def cleanup(self):
         kernel_build_dir_run = self._make(["make", "val.KERNEL_BUILD_DIR"])
 
@@ -301,24 +322,32 @@ class ImageBuilder(object):
             pass
             # log.warning("KDIR_TMP missing at %s", kernel_build_dir_tmp)
 
-    def manifest(self, profile, packages):
-        manifest_run = self._make(
-            [
-                "make",
-                "manifest",
-                f"PROFILE={profile}",
-                f"PACKAGES={' '.join(self._packages(packages))}",
-                "STRIP_ABI=1",
-            ]
-        )
+    def manifest(self, profile: str, packages: list):
+        manifest_cmd = [
+            "make",
+            "manifest",
+            f"PROFILE={profile}",
+            f"PACKAGES={' '.join(self._packages(packages))}",
+            "STRIP_ABI=1",
+        ]
 
-        self.stdout = manifest_run.stdout
-        self.stderr = manifest_run.stderr
+        if self.docker:
+            self.stdout = self._docker(manifest_cmd)
 
-        if manifest_run.returncode:
-            raise ValueError("Package selection caused error")
+            try:
+                pass
+            except docker.errors.ContainerError:
+                raise ValueError("Package selection caused error")
+        else:
+            manifest_run = self._make(manifest_cmd)
 
-        return dict(map(lambda pv: pv.split(" - "), manifest_run.stdout.splitlines()))
+            self.stdout = manifest_run.stdout
+            self.stderr = manifest_run.stderr
+
+            if manifest_run.returncode:
+                raise ValueError("Package selection caused error")
+
+        return dict(map(lambda pv: pv.split(" - "), self.stdout.splitlines()))
 
     def set_filesystem(self, filesystem):
         config = self.config.read_text()

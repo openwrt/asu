@@ -122,7 +122,7 @@ def validate_request(req):
 
     """
 
-    if "defaults" in req and not current_app.config["ALLOW_DEFAULTS"]:
+    if req.get("defaults") and not current_app.config["ALLOW_DEFAULTS"]:
         return (
             {"detail": "Handling `defaults` not enabled on server", "status": 400},
             400,
