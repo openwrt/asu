@@ -12,7 +12,7 @@ def test_api_build(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    assert response.json.get("request_hash") == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
 
 
 def test_api_build_filesystem_ext4(app, upstream):
@@ -28,7 +28,7 @@ def test_api_build_filesystem_ext4(app, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "daae6bc8045962aa86c8e9d885dae499"
+    assert response.json.get("request_hash") == "ad75ad5848b4b054393f8eedde61e2a8"
 
     config = (
         app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
@@ -50,7 +50,7 @@ def test_api_build_filesystem_squashfs(app, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "40cc1368f667923f3414914a2ccecc89"
+    assert response.json.get("request_hash") == "a7228bb7886a63850ff3e9e5c3e8b452"
     config = (
         app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
     ).read_text()
@@ -71,7 +71,7 @@ def test_api_build_filesystem_empty(app, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    assert response.json.get("request_hash") == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
     config = (
         app.config["CACHE_PATH"] / "cache/TESTVERSION/testtarget/testsubtarget/.config"
     ).read_text()
@@ -92,7 +92,7 @@ def test_api_build_filesystem_reset(app, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "daae6bc8045962aa86c8e9d885dae499"
+    assert response.json.get("request_hash") == "ad75ad5848b4b054393f8eedde61e2a8"
     assert (
         "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set"
         in (
@@ -111,7 +111,7 @@ def test_api_build_filesystem_reset(app, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    assert response.json.get("request_hash") == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
     assert (
         "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set"
         not in (
@@ -151,7 +151,7 @@ def test_api_build_mapping(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "515560ee99aced26b9a1176b69a62894"
+    assert response.json.get("request_hash") == "29c5a7ba0a14105e12ee1d4f96b0832e"
 
 
 def test_api_build_mapping_abi(client, upstream):
@@ -165,7 +165,7 @@ def test_api_build_mapping_abi(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "0c445af0015c2a83e1eea189ae0c4936"
+    assert response.json.get("request_hash") == "333eb925b5ae7382ea5959455afb02d6"
 
 
 def test_api_build_bad_target(client):
@@ -194,10 +194,10 @@ def test_api_build_get(client, upstream):
             packages=["test1", "test2"],
         ),
     )
-    assert response.json["request_hash"] == "33377fbd91c50c4236343f1dfd67f9ae"
-    response = client.get("/api/v1/build/33377fbd91c50c4236343f1dfd67f9ae")
+    assert response.json["request_hash"] == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
+    response = client.get("/api/v1/build/7eb856bfaccac42d16ba5ecfa6b2ebe5")
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    assert response.json.get("request_hash") == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
 
 
 def test_api_build_packages_versions(client, upstream):
@@ -210,10 +210,10 @@ def test_api_build_packages_versions(client, upstream):
             packages_versions={"test1": "1.0", "test2": "2.0"},
         ),
     )
-    assert response.json["request_hash"] == "2a80a9af3453d2d19dd3b7c7e5058426"
-    response = client.get("/api/v1/build/2a80a9af3453d2d19dd3b7c7e5058426")
+    assert response.json["request_hash"] == "eb06f1e283c6a7c0c209b1cbb8670a0e"
+    response = client.get("/api/v1/build/eb06f1e283c6a7c0c209b1cbb8670a0e")
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "2a80a9af3453d2d19dd3b7c7e5058426"
+    assert response.json.get("request_hash") == "eb06f1e283c6a7c0c209b1cbb8670a0e"
 
 
 def test_api_build_packages_duplicate(client, upstream):
@@ -251,7 +251,7 @@ def test_api_build_empty_packages_list(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "fd1286d75a476f071feae75505f95fe8"
+    assert response.json.get("request_hash") == "fd6956b610cc8e21b4edfc9c5a307451"
 
 
 def test_api_build_withouth_packages_list(client, upstream):
@@ -264,7 +264,7 @@ def test_api_build_withouth_packages_list(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "fd1286d75a476f071feae75505f95fe8"
+    assert response.json.get("request_hash") == "fd6956b610cc8e21b4edfc9c5a307451"
 
 
 def test_api_build_prerelease_snapshot(client):
@@ -475,6 +475,7 @@ def test_api_build_bad_packages(client):
     assert response.json.get("detail") == "Unsupported package(s): test4"
     assert response.status == "422 UNPROCESSABLE ENTITY"
 
+
 def test_api_build_package_to_remove_diff_packages_false(client, upstream):
     response = client.post(
         "/api/v1/build",
@@ -508,3 +509,47 @@ def test_api_build_cleanup(app, upstream):
         / "pseudo_kernel_build_dir/tmp/"
         / "fake_trash"
     ).exists()
+
+
+def test_api_build_defaults_empty(client, upstream):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            defaults="",
+        ),
+    )
+    assert response.status == "200 OK"
+    assert response.json.get("request_hash") == "fd6956b610cc8e21b4edfc9c5a307451"
+
+
+def test_api_build_defaults_filled_not_allowed(client, upstream):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            defaults="echo",
+        ),
+    )
+
+    assert response.status == "400 BAD REQUEST"
+
+
+def test_api_build_defaults_filled_allowed(app, upstream):
+    app.config["ALLOW_DEFAULTS"] = True
+    client = app.test_client()
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            defaults="echo",
+        ),
+    )
+    assert response.status == "200 OK"
+    assert response.json.get("request_hash") == "df8705df95b8bd3f9c180e09c1c22c89"

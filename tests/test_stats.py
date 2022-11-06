@@ -12,7 +12,7 @@ def test_stats_image_builds(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    assert response.json.get("request_hash") == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
@@ -31,7 +31,7 @@ def test_stats_image_builds(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "0f959015710e622bc42c088951b7585c"
+    assert response.json.get("request_hash") == "3729c16c93b893121be36f99809f8354"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
@@ -52,7 +52,7 @@ def test_stats_cache(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    assert response.json.get("request_hash") == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
@@ -68,7 +68,7 @@ def test_stats_cache(client, upstream):
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "33377fbd91c50c4236343f1dfd67f9ae"
+    assert response.json.get("request_hash") == "7eb856bfaccac42d16ba5ecfa6b2ebe5"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
