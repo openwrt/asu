@@ -16,6 +16,7 @@ services:
     image: "aparcar/asu-server:latest"
     environment:
       - FLASK_APP=asu.asu
+      - FLASK_DEBUG=1
       - REDIS_HOST=redis
     command: flask janitor update
     volumes:

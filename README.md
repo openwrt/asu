@@ -96,8 +96,8 @@ images.
 Currently all services share the same folder and therefore a very "open" access
 is required. Suggestions on how to improve this setup are welcome.
 
-    mkdir ./asu-service/
-    chmod 777 ./asu-service/
+    mkdir -p ./asu-service/public/
+    chmod -R 777 ./asu-service/
     cp ./misc/config.py ./asu-service/
     docker-compose up
 
