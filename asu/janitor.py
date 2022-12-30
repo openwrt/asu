@@ -419,11 +419,18 @@ def update_meta_json():
         json.dumps(
             current_app.config["OVERVIEW"],
             indent=2,
+            sort_keys=False,
+            default=str
         )
     )
 
     (current_app.config["JSON_PATH"] / "branches.json").write_text(
-        json.dumps(list(branches.values()))
+        json.dumps(
+            list(branches.values()),
+            indent=2,
+            sort_keys=False,
+            default=str
+        )
     )
 
     (current_app.config["JSON_PATH"] / "latest.json").write_text(
