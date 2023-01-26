@@ -228,7 +228,7 @@ def build(req: dict):
             "make",
             "manifest",
             f"PROFILE={req['profile']}",
-            f"PACKAGES={' '.join(sorted(req.get('packages', [])))}",
+            f"PACKAGES={' '.join(req.get('packages', ''))}",
             "STRIP_ABI=1",
         ],
         text=True,
@@ -304,7 +304,7 @@ def build(req: dict):
         "make",
         "image",
         f"PROFILE={req['profile']}",
-        f"PACKAGES={' '.join(sorted(req.get('packages', [])))}",
+        f"PACKAGES={' '.join(req.get('packages', []))}",
         f"EXTRA_IMAGE_NAME={packages_hash}",
         f"BIN_DIR={req['store_path'] / bin_dir}",
     ]
