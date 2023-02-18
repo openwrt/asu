@@ -11,6 +11,9 @@ from subprocess import run
 import nacl.signing
 import requests
 from urlpath import URL
+import logging
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 def verify_usign(signature: str, message: str, public_key: str) -> bool:
@@ -94,7 +97,10 @@ class ImageBuilder(object):
         self.distro = distro
         self.version = version
         self.target = target.lower()
-        self.cache = Path(cache)
+        if cache:
+            self.cache = Path(cache)
+        else:
+            self.cache = Path.cwd() / "cache"
         self.upstream_url = URL(upstream_url)
         self.keys = Path(keys)
         self.workdir = self.cache / self.version / self.target
@@ -217,6 +223,7 @@ class ImageBuilder(object):
         return self.archive_sum == get_file_hash(self.cache / self.archive_name)
 
     def download(self):
+        logging.info(f"Download { self.version}/{self.target}")
         self.cache.mkdir(exist_ok=True, parents=True)
 
         return self._download_file(
@@ -252,6 +259,9 @@ class ImageBuilder(object):
                 (self.workdir / file.name).symlink_to(file)
 
     def setup(self, check_online=False):
+        if self.docker:
+            return None
+
         if not self.is_outdated():
             return None
 
@@ -297,18 +307,33 @@ class ImageBuilder(object):
         return sorted(list(set(packages)))
 
     def _make(self, cmd: list):
-        return run(cmd, text=True, cwd=self.workdir, capture_output=True)
+        make_run = run(cmd, text=True, cwd=self.workdir, capture_output=True)
+        self.stdout = make_run.stdout
+        self.stderr = make_run.stderr
+        return make_run.returncode
 
     def _docker(self, cmd: list):
-        return self.docker.containers.run(
-            image="openwrt/imagebuilder",
+        container = self.docker.containers.run(
+            # image=f"openwrt/imagebuilder",
+            image=f"openwrt/imagebuilder:{ self.target.replace('/', '-') }-{ self.version.lower() }",
             command=" ".join(cmd),
+            detach=True,
             volumes={
-                str(self.workdir): {"bind": str(self.workdir), "mode": "ro"},
+                # f"{self.workdir}/.config": {"bind": f"{self.workdir}/.config", "mode": "ro"},
+                f"{self.workdir}/files/": {
+                    "bind": f"{self.workdir}/files/",
+                    "mode": "ro",
+                },
                 str(self.bin_dir): {"bind": str(self.bin_dir), "mode": "rw"},
             },
-            working_dir=str(self.workdir),
+            # working_dir=str(self.workdir),
         )
+
+        returncode = container.wait()["StatusCode"]
+        self.stdout = container.logs(stdout=True, stderr=False).decode("utf-8")
+        self.stderr = container.logs(stdout=False, stderr=True).decode("utf-8")
+        container.remove()
+        return returncode
 
     def cleanup(self):
         kernel_build_dir_run = self._make(["make", "val.KERNEL_BUILD_DIR"])
@@ -322,7 +347,7 @@ class ImageBuilder(object):
             pass
             # log.warning("KDIR_TMP missing at %s", kernel_build_dir_tmp)
 
-    def manifest(self, profile: str, packages: list):
+    def manifest(self, profile: str, packages: list) -> dict:
         manifest_cmd = [
             "make",
             "manifest",
@@ -332,20 +357,17 @@ class ImageBuilder(object):
         ]
 
         if self.docker:
-            self.stdout = self._docker(manifest_cmd)
+            returncode = self._docker(manifest_cmd)
 
-            try:
-                pass
-            except docker.errors.ContainerError:
-                raise ValueError("Package selection caused error")
         else:
-            manifest_run = self._make(manifest_cmd)
+            returncode = self._make(manifest_cmd)
 
-            self.stdout = manifest_run.stdout
-            self.stderr = manifest_run.stderr
+        logging.debug(self.stderr)
+        logging.debug(self.stdout)
+        logging.debug(returncode)
 
-            if manifest_run.returncode:
-                raise ValueError("Package selection caused error")
+        if returncode:
+            raise ValueError("Package selection caused error")
 
         return dict(map(lambda pv: pv.split(" - "), self.stdout.splitlines()))
 
@@ -391,27 +413,28 @@ class ImageBuilder(object):
         ]
 
         defaults_file = self.files / "files/etc/uci-defaults/99-asu-defaults"
+        defaults_file.parent.mkdir(parents=True)
 
         if defaults:
-            defaults_file.parent.mkdir(parents=True)
             defaults_file.write_text(defaults)
             self.build_cmd.append(f"FILES={self.files / 'files'}")
         else:
             defaults_file.unlink(missing_ok=True)
 
-        build_run = self._make(self.build_cmd)
+        if self.docker:
+            returncode = self._docker(self.build_cmd)
+        else:
+            returncode = self._make(self.build_cmd)
 
-        self.stdout = build_run.stdout
-        self.stderr = build_run.stderr
-
-        if build_run.returncode:
+        if returncode:
             raise ValueError("Error while building firmware. See stdout/stderr")
 
-        if "is too big" in build_run.stderr:
+        if "is too big" in self.stderr:
             raise ValueError("Selected packages exceed device storage")
 
         profiles_json_path = self.bin_dir / "profiles.json"
         if profiles_json_path.exists():
             self.profiles_json = json.loads(profiles_json_path.read_text())
 
-        self.cleanup()
+        if not self.docker:
+            self.cleanup()
