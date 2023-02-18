@@ -84,7 +84,7 @@ def validate_packages(req):
         else:
             tr.add(p)
 
-    req["packages"] = tr
+    req["packages"] = list(map(lambda x: x.removeprefix("+"), sorted(tr)))
 
     # store request packages temporary in Redis and create a diff
     temp = str(uuid4())
