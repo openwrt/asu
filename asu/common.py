@@ -174,3 +174,18 @@ def verify_usign(sig_file: Path, msg_file: Path, pub_key: str) -> bool:
         return True
     except nacl.exceptions.CryptoError:
         return False
+
+
+def remove_prefix(text, prefix):
+    """Remove prefix from text
+
+    TODO: remove once 3.8 is dropped
+
+    Args:
+        text (str): text to remove prefix from
+        prefix (str): prefix to remove
+
+    Returns:
+        str: text without prefix
+    """
+    return text[text.startswith(prefix) and len(prefix) :]
