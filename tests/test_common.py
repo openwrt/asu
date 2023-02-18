@@ -68,3 +68,9 @@ def test_verify_usign():
     os.close(sig_fd)
     os.unlink(msg_path)
     os.unlink(sig_path)
+
+
+def test_remove_prefix():
+    assert remove_prefix("test", "test") == ""
+    assert remove_prefix("+test", "+") == "test"
+    assert remove_prefix("++test", "+") == "+test"

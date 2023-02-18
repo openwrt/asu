@@ -4,7 +4,7 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
 from .build import build
-from .common import get_request_hash
+from .common import get_request_hash, remove_prefix
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -84,7 +84,7 @@ def validate_packages(req):
         else:
             tr.add(p)
 
-    req["packages"] = tr
+    req["packages"] = list(map(lambda x: remove_prefix(x, "+"), sorted(tr)))
 
     # store request packages temporary in Redis and create a diff
     temp = str(uuid4())
