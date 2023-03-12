@@ -80,6 +80,8 @@ def build(req: dict):
         request (dict): Contains all properties of requested image
     """
 
+    job = get_current_job()
+
     def report_error(msg):
         log.warning(f"Error: {msg}")
         job.meta["detail"] = f"Error: {msg}"
@@ -87,9 +89,8 @@ def build(req: dict):
         raise
 
     if not req["store_path"].is_dir():
-        report_error("Store path missing")
+        report_error(f"Store path missing: {req['store_path']}")
 
-    job = get_current_job()
     job.meta["detail"] = "init"
     job.save_meta()
 

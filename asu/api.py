@@ -288,7 +288,7 @@ def api_v1_build_post():
         job = get_queue().enqueue(
             build,
             req,
-            job_id=request_hash,
+            # job_id=request_hash,
             result_ttl=result_ttl,
             failure_ttl=failure_ttl,
             job_timeout="10m",

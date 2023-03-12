@@ -92,7 +92,7 @@ class ImageBuilder(object):
         keys=Path.cwd(),
         files=None,
         custom_public_key=None,
-        use_docker=True,
+        use_podman=True,
     ):
         self.distro = distro
         self.version = version
@@ -117,14 +117,16 @@ class ImageBuilder(object):
         self.build_cmd = []
         self.profiles_json = None
 
-        if use_docker:
-            import docker
+        if use_podman:
+            from podman import PodmanClient
 
-            self.docker = docker.DockerClient(
-                base_url="unix:///Users/user/.colima/default/docker.sock"
+            self.podman = PodmanClient(
+                # base_url="unix:///Users/user/.colima/default/podman.sock"
+                # base_url="unix:///Users/user/podman.sock"
+                base_url="unix:///run/user/1000/podman/podman.sock"
             )
         else:
-            self.docker = None
+            self.podman = None
 
     @property
     def public_key(self):
@@ -145,6 +147,10 @@ class ImageBuilder(object):
         else:
             return "snapshots"
 
+    # create function that returns root of number
+    def root(self, x, n):
+        return x ** (1 / n)
+
     def get_sha256sums(self):
         if not self.sha256sums:
             self.sha256sums = self._download_file("sha256sums").text
@@ -152,12 +158,21 @@ class ImageBuilder(object):
         return self.sha256sums
 
     def get_sha256sums_sig(self):
+        """Return sha256sums.sig file
+        
+        :return: sha256sums.sig file"""
         if not self.sha256sums_sig:
             self.sha256sums_sig = self._download_file("sha256sums.sig").content
 
         return self.sha256sums_sig
 
     def _download_header(self, filename):
+        """Return header of file
+        
+        :param filename: filename to download
+        :return: header of file
+        """
+        print(self.imagebuilder_url )
         return requests.head(self.imagebuilder_url / filename).headers
 
     def _download_file(self, filename, path: Path = None):
@@ -185,6 +200,8 @@ class ImageBuilder(object):
         )
 
         local_stamp = datetime.fromtimestamp(makefile.stat().st_mtime)
+
+        logging.debug(f"{local_stamp} vs {remote_stamp}")
 
         if remote_stamp > local_stamp:
             return True
@@ -236,6 +253,7 @@ class ImageBuilder(object):
         run(
             [
                 "tar",
+                "--modification-time",
                 "--strip-components=1",
                 "-xf",
                 self.cache / self.archive_name,
@@ -259,8 +277,8 @@ class ImageBuilder(object):
                 (self.workdir / file.name).symlink_to(file)
 
     def setup(self, check_online=False):
-        if self.docker:
-            return None
+        # if self.podman:
+        #     return None
 
         if not self.is_outdated():
             return None
@@ -312,26 +330,46 @@ class ImageBuilder(object):
         self.stderr = make_run.stderr
         return make_run.returncode
 
-    def _docker(self, cmd: list):
-        container = self.docker.containers.run(
+    def _podman(self, cmd: list):
+        # self.podman.containers.pull(f"openwrt/imagebuilder")
+
+        self.podman.images.pull("openwrt/imagebuilder", tag=f"{ self.target.replace('/', '-') }-{ self.version.lower() }")
+        print(str(self.workdir))
+        print(str(self.bin_dir))
+        container = self.podman.containers.run(
             # image=f"openwrt/imagebuilder",
             image=f"openwrt/imagebuilder:{ self.target.replace('/', '-') }-{ self.version.lower() }",
-            command=" ".join(cmd),
+            command=cmd,
             detach=True,
-            volumes={
-                # f"{self.workdir}/.config": {"bind": f"{self.workdir}/.config", "mode": "ro"},
-                f"{self.workdir}/files/": {
-                    "bind": f"{self.workdir}/files/",
-                    "mode": "ro",
-                },
-                str(self.bin_dir): {"bind": str(self.bin_dir), "mode": "rw"},
-            },
+            # overlay_volumes=[
+            #     { "destination": str(self.workdir), "soruce": str(self.workdir)}
+            # ],
+            mounts=[
+                     {
+                        "type": "bind",
+                        "source": str(self.bin_dir),
+                        "target": str(self.bin_dir),
+                        "read_only": False,
+                    },
+            ],
+            # volumes={
+            #     str(self.bin_dir): {"bind": str(self.bin_dir), "mode": "rw"},
+            # },
+                # f"{self.workdir}/.config": {"bind": f"{self.workdir}/.config" },
+                # f"{self.workdir}/files/": {
+                #     "bind": f"{self.workdir}/files/",
+                #     "mode": "ro",
+                # },
+                # str(self.bin_dir): {"bind": f"/home/build/openwrt/bin/targets/{self.target}/", "mode": "rw"},
+                # "./": {"bind": str(self.bin_dir), "mode": "rw"},
+            # },
             # working_dir=str(self.workdir),
         )
 
-        returncode = container.wait()["StatusCode"]
-        self.stdout = container.logs(stdout=True, stderr=False).decode("utf-8")
-        self.stderr = container.logs(stdout=False, stderr=True).decode("utf-8")
+        returncode = container.wait()
+        print(returncode)
+        self.stdout = b"\n".join(container.logs(stdout=True, stderr=False)).decode("utf-8")
+        self.stderr = b"\n".join(container.logs(stdout=False, stderr=True)).decode("utf-8")
         container.remove()
         return returncode
 
@@ -356,8 +394,8 @@ class ImageBuilder(object):
             "STRIP_ABI=1",
         ]
 
-        if self.docker:
-            returncode = self._docker(manifest_cmd)
+        if self.podman:
+            returncode = self._podman(manifest_cmd)
 
         else:
             returncode = self._make(manifest_cmd)
@@ -409,11 +447,10 @@ class ImageBuilder(object):
             f"PROFILE={profile}",
             f"PACKAGES={' '.join(self._packages(packages))}",
             f"EXTRA_IMAGE_NAME={extra_image_name}",
-            f"BIN_DIR={self.bin_dir}",
         ]
 
         defaults_file = self.files / "files/etc/uci-defaults/99-asu-defaults"
-        defaults_file.parent.mkdir(parents=True)
+        defaults_file.parent.mkdir(parents=True, exist_ok=True)
 
         if defaults:
             defaults_file.write_text(defaults)
@@ -421,8 +458,8 @@ class ImageBuilder(object):
         else:
             defaults_file.unlink(missing_ok=True)
 
-        if self.docker:
-            returncode = self._docker(self.build_cmd)
+        if self.podman:
+            returncode = self._podman(self.build_cmd)
         else:
             returncode = self._make(self.build_cmd)
 
@@ -436,5 +473,5 @@ class ImageBuilder(object):
         if profiles_json_path.exists():
             self.profiles_json = json.loads(profiles_json_path.read_text())
 
-        if not self.docker:
+        if not self.podman:
             self.cleanup()

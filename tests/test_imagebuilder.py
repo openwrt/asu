@@ -121,6 +121,7 @@ def test_verify_usign():
     assert verify_usign(sig, "test\n", pub_key)
     assert not verify_usign(sig, "test\n", pub_key_bad)
 
+
 def test_manifest():
     ib = ImageBuilder(version="21.02.3")
     # ib.setup()
