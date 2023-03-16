@@ -39,6 +39,7 @@ def create_app(test_config: dict = None) -> Flask:
         ALLOW_DEFAULTS=False,
         ASYNC_QUEUE=True,
         BRANCHES_FILE=getenv("BRANCHES_FILE"),
+        MAX_CUSTOM_ROOTFS_SIZE_MB=100,
     )
 
     if not test_config:
@@ -128,6 +129,12 @@ def create_app(test_config: dict = None) -> Flask:
         if not app.config["REDIS_CONN"].hexists("mapping-abi", package):
             app.config["REDIS_CONN"].hset("mapping-abi", package, source)
 
-    cnxn.add_api("openapi.yml", validate_responses=app.config["TESTING"])
+    cnxn.add_api(
+        "openapi.yml",
+        arguments={
+            "rootfs_size_mb_max": app.config["MAX_CUSTOM_ROOTFS_SIZE_MB"],
+        },
+        validate_responses=app.config["TESTING"],
+    )
 
     return app

@@ -265,6 +265,15 @@ components:
             Ability to specify filesystem running on device. Attaching this
             optional parameter will limit the ImageBuilder to only build
             firmware with that filesystem.
+        rootfs_size_mb:
+          type: integer
+          minimum: 1
+          maximum: {{ rootfs_size_mb_max }}
+          example: 100
+          description: |
+            Ability to specify a custom CONFIG_TARGET_ROOTFS_PARTSIZE for the
+            resulting image. Attaching this optional parameter will cause
+            ImageBuilder to build a rootfs with that size in MB.
         defaults:
           type: string
           description: |

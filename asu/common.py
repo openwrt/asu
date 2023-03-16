@@ -111,6 +111,7 @@ def get_request_hash(req: dict) -> str:
                 str(req.get("diff_packages", False)),
                 req.get("filesystem", ""),
                 get_str_hash(req.get("defaults", "")),
+                str(req.get("rootfs_size_mb", "")),
             ]
         ),
         32,

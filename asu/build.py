@@ -308,6 +308,8 @@ def build(req: dict):
         f"EXTRA_IMAGE_NAME={packages_hash}",
         f"BIN_DIR={req['store_path'] / bin_dir}",
     ]
+    if rootfs_size_mb := req.get("rootfs_size_mb"):
+        build_cmd.append(f"ROOTFS_PARTSIZE={rootfs_size_mb}")
 
     log.debug("Build command: %s", build_cmd)
 

@@ -16,6 +16,9 @@ CACHE_PATH = None
 # where to store JSON files
 JSON_PATH = Path.cwd() / "public/json/v1/"
 
+# maximum custom rootfs size
+MAX_CUSTOM_ROOTFS_SIZE_MB = 100
+
 # manual mapping of package ABI changes
 MAPPING_ABI = {"libubus20191227": "libubus"}
 
