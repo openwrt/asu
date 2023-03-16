@@ -8,23 +8,23 @@ readme = "README.md"
 include = ["asu/branches.yml"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 PyNaCl = "^1.5.0"
-redis = "^4.1.1"
-requests = "^2.27.1"
-rq = "^1.10.1"
-connexion = {extras = ["swagger-ui"], version = "^2.12.0"}
+redis = "^4.5.1"
+requests = "^2.28.2"
+rq = "^1.13.0"
+connexion = {extras = ["swagger-ui"], version = "^2.14.2"}
 prometheus-client = "^0.13.1"
 gunicorn = "^20.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
-pytest-httpserver = "^1.0.3"
-fakeredis = "^1.7.1"
+pytest-httpserver = "^1.0.6"
+fakeredis = "^2.10.1"
 flake8 = "^4.0.1"
-black = "^22.1.0"
-coverage = "^6.3.2"
-isort = "^5.10.1"
+black = "^22.12.0"
+coverage = "^6.5.0"
+isort = "^5.12.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
