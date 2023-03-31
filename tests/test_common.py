@@ -31,7 +31,7 @@ def test_get_request_hash():
         "package_hash": get_packages_hash(["test"]),
     }
 
-    assert get_request_hash(request) == "41161864b596eac1556bed40023a83e8"
+    assert get_request_hash(request) == "289a492f0ed178ab35cdd24f9b6b01cf"
 
 
 def test_get_request_hash_diff_packages():
@@ -43,7 +43,7 @@ def test_get_request_hash_diff_packages():
         "diff_packages": True,
     }
 
-    assert get_request_hash(request) == "bad147b0ce42839028fd02c7d5d3d79e"
+    assert get_request_hash(request) == "fe8893a4c872d14e7da222b0810bfd99"
 
 
 def test_fingerprint_pubkey_usign():
