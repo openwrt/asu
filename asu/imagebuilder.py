@@ -159,7 +159,7 @@ class ImageBuilder(object):
 
     def get_sha256sums_sig(self):
         """Return sha256sums.sig file
-        
+
         :return: sha256sums.sig file"""
         if not self.sha256sums_sig:
             self.sha256sums_sig = self._download_file("sha256sums.sig").content
@@ -168,11 +168,11 @@ class ImageBuilder(object):
 
     def _download_header(self, filename):
         """Return header of file
-        
+
         :param filename: filename to download
         :return: header of file
         """
-        print(self.imagebuilder_url )
+        print(self.imagebuilder_url)
         return requests.head(self.imagebuilder_url / filename).headers
 
     def _download_file(self, filename, path: Path = None):
@@ -333,7 +333,10 @@ class ImageBuilder(object):
     def _podman(self, cmd: list):
         # self.podman.containers.pull(f"openwrt/imagebuilder")
 
-        self.podman.images.pull("openwrt/imagebuilder", tag=f"{ self.target.replace('/', '-') }-{ self.version.lower() }")
+        self.podman.images.pull(
+            "openwrt/imagebuilder",
+            tag=f"{ self.target.replace('/', '-') }-{ self.version.lower() }",
+        )
         print(str(self.workdir))
         print(str(self.bin_dir))
         container = self.podman.containers.run(
@@ -345,31 +348,35 @@ class ImageBuilder(object):
             #     { "destination": str(self.workdir), "soruce": str(self.workdir)}
             # ],
             mounts=[
-                     {
-                        "type": "bind",
-                        "source": str(self.bin_dir),
-                        "target": str(self.bin_dir),
-                        "read_only": False,
-                    },
+                {
+                    "type": "bind",
+                    "source": str(self.bin_dir),
+                    "target": str(self.bin_dir),
+                    "read_only": False,
+                },
             ],
             # volumes={
             #     str(self.bin_dir): {"bind": str(self.bin_dir), "mode": "rw"},
             # },
-                # f"{self.workdir}/.config": {"bind": f"{self.workdir}/.config" },
-                # f"{self.workdir}/files/": {
-                #     "bind": f"{self.workdir}/files/",
-                #     "mode": "ro",
-                # },
-                # str(self.bin_dir): {"bind": f"/home/build/openwrt/bin/targets/{self.target}/", "mode": "rw"},
-                # "./": {"bind": str(self.bin_dir), "mode": "rw"},
+            # f"{self.workdir}/.config": {"bind": f"{self.workdir}/.config" },
+            # f"{self.workdir}/files/": {
+            #     "bind": f"{self.workdir}/files/",
+            #     "mode": "ro",
+            # },
+            # str(self.bin_dir): {"bind": f"/home/build/openwrt/bin/targets/{self.target}/", "mode": "rw"},
+            # "./": {"bind": str(self.bin_dir), "mode": "rw"},
             # },
             # working_dir=str(self.workdir),
         )
 
         returncode = container.wait()
         print(returncode)
-        self.stdout = b"\n".join(container.logs(stdout=True, stderr=False)).decode("utf-8")
-        self.stderr = b"\n".join(container.logs(stdout=False, stderr=True)).decode("utf-8")
+        self.stdout = b"\n".join(container.logs(stdout=True, stderr=False)).decode(
+            "utf-8"
+        )
+        self.stderr = b"\n".join(container.logs(stdout=False, stderr=True)).decode(
+            "utf-8"
+        )
         container.remove()
         return returncode
 
