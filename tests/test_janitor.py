@@ -1,9 +1,7 @@
 from pathlib import Path
 
 import pytest
-from pytest_httpserver import HTTPServer
 
-from asu.build import build
 from asu.janitor import *
 
 
@@ -46,7 +44,7 @@ def test_update_meta_overview_json(app):
     with app.app_context():
         update_meta_json()
     overview_json = json.loads((app.config["JSON_PATH"] / "overview.json").read_text())
-    assert "package_changes" in overview_json["branches"]["TESTVERSION"]
+    assert "package_changes" in overview_json["branches"]["1.2"]
 
 
 def test_parse_packages_file(app, upstream):

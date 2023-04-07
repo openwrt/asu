@@ -1,58 +1,55 @@
 from prometheus_client import REGISTRY
 
 
-def test_stats_image_builds(client, upstream):
+def test_stats_image_builds(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "df1dfbb6f6deca36b389e4b2917cb8f0"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
     assert (
-        'builds_total{branch="TESTVERSION",profile="testprofile",target="testtarget/testsubtarget",version="TESTVERSION"} 1.0'
+        'builds_total{profile="testprofile",target="testtarget/testsubtarget",version="1.2.3"} 1.0'
         in response.get_data(as_text=True)
     )
 
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1"],
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "39bfd960818b32759982b09989e62809"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
     assert (
-        'builds_total{branch="TESTVERSION",profile="testprofile",target="testtarget/testsubtarget",version="TESTVERSION"} 2.0'
+        'builds_total{profile="testprofile",target="testtarget/testsubtarget",version="1.2.3"} 2.0'
         in response.get_data(as_text=True)
     )
 
 
-def test_stats_cache(client, upstream):
+def test_stats_cache(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "df1dfbb6f6deca36b389e4b2917cb8f0"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
@@ -61,25 +58,24 @@ def test_stats_cache(client, upstream):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
         ),
     )
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "df1dfbb6f6deca36b389e4b2917cb8f0"
 
     response = client.get("/metrics")
     print(response.get_data(as_text=True))
     assert "cache_hits 1.0" in response.get_data(as_text=True)
 
 
-def test_stats_clients_luci(client, upstream):
+def test_stats_clients_luci(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
@@ -95,11 +91,11 @@ def test_stats_clients_luci(client, upstream):
     )
 
 
-def test_stats_clients_unknown(client, upstream):
+def test_stats_clients_unknown(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
@@ -113,11 +109,11 @@ def test_stats_clients_unknown(client, upstream):
     )
 
 
-def test_stats_clients_auc(client, upstream):
+def test_stats_clients_auc(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
@@ -132,11 +128,11 @@ def test_stats_clients_auc(client, upstream):
     )
 
 
-def test_stats_clients_auc_possible_new_format(client, upstream):
+def test_stats_clients_auc_possible_new_format(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="TESTVERSION",
+            version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],

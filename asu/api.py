@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
@@ -64,50 +62,6 @@ def api_v1_overview():
     return redirect("/json/v1/overview.json")
 
 
-def validate_packages(req):
-    if req.get("packages_versions") and not req.get("packages"):
-        req["packages"] = req["packages_versions"].keys()
-
-    if not req.get("packages"):
-        return
-
-    req["packages"] = set(req["packages"]) - {"kernel", "libc", "libgcc"}
-
-    r = get_redis()
-
-    # translate packages to remove their ABI version for 19.07.x compatibility
-    tr = set()
-    for p in req["packages"]:
-        p_tr = r.hget("mapping-abi", p)
-        if p_tr:
-            tr.add(p_tr.decode())
-        else:
-            tr.add(p)
-
-    req["packages"] = set(map(lambda x: remove_prefix(x, "+"), sorted(tr)))
-
-    # store request packages temporary in Redis and create a diff
-    temp = str(uuid4())
-    pipeline = r.pipeline(True)
-    pipeline.sadd(temp, *set(map(lambda p: p.strip("-"), req["packages"])))
-    pipeline.expire(temp, 5)
-    pipeline.sdiff(
-        temp,
-        f"packages:{req['branch']}:{req['version']}:{req['target']}",
-        f"packages:{req['branch']}:{req['arch']}",
-    )
-    unknown_packages = list(map(lambda p: p.decode(), pipeline.execute()[-1]))
-
-    if unknown_packages:
-        return (
-            {
-                "detail": f"Unsupported package(s): {', '.join(unknown_packages)}",
-                "status": 422,
-            },
-            422,
-        )
-
-
 def validate_request(req):
     """Validate an image request and return found errors with status code
 
@@ -154,6 +108,13 @@ def validate_request(req):
             400,
         )
 
+    req["packages"] = set(
+        map(
+            lambda x: remove_prefix(x, "+"),
+            sorted(req.get("packages_versions", {}).keys() or req.get("packages", [])),
+        )
+    )
+
     r = get_redis()
 
     current_app.logger.debug("Profile before mapping " + req["profile"])
@@ -194,10 +155,6 @@ def validate_request(req):
                     400,
                 )
 
-    package_problems = validate_packages(req)
-    if package_problems:
-        return package_problems
-
     return ({}, None)
 
 
@@ -208,7 +165,7 @@ def return_job_v1(job):
         response.update(job.meta)
 
     if job.is_failed:
-        response.update({"status": 500})
+        response.update({"status": 500, "error": job.latest_result().exc_string})
 
     elif job.is_queued:
         response.update(
@@ -282,10 +239,8 @@ def api_v1_build_post():
             return response, status
 
         req["store_path"] = current_app.config["STORE_PATH"]
-        if current_app.config.get("CACHE_PATH"):
-            req["cache_path"] = current_app.config.get("CACHE_PATH")
-        req["upstream_url"] = current_app.config["UPSTREAM_URL"]
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
+        req["repository_allow_list"] = current_app.config["REPOSITORY_ALLOW_LIST"]
         req["request_hash"] = request_hash
 
         job = get_queue().enqueue(

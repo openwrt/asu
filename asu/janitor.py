@@ -412,25 +412,18 @@ def update_meta_json():
             "version": __version__,
             "contact": "mail@aparcar.org",
             "allow_defaults": current_app.config["ALLOW_DEFAULTS"],
+            "repository_allow_list": current_app.config["REPOSITORY_ALLOW_LIST"],
         },
     }
 
     (current_app.config["JSON_PATH"] / "overview.json").write_text(
         json.dumps(
-            current_app.config["OVERVIEW"],
-            indent=2,
-            sort_keys=False,
-            default=str
+            current_app.config["OVERVIEW"], indent=2, sort_keys=False, default=str
         )
     )
 
     (current_app.config["JSON_PATH"] / "branches.json").write_text(
-        json.dumps(
-            list(branches.values()),
-            indent=2,
-            sort_keys=False,
-            default=str
-        )
+        json.dumps(list(branches.values()), indent=2, sort_keys=False, default=str)
     )
 
     (current_app.config["JSON_PATH"] / "latest.json").write_text(

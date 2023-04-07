@@ -9,7 +9,7 @@ class BuildCollector(object):
         stats_builds = CounterMetricFamily(
             "builds",
             "Total number of built images",
-            labels=["branch", "version", "target", "profile"],
+            labels=["version", "target", "profile"],
         )
         for build, count in self.connection.hgetall("stats:builds").items():
             stats_builds.add_metric(build.decode().split("#"), count)
