@@ -40,6 +40,7 @@ def create_app(test_config: dict = None) -> Flask:
         ASYNC_QUEUE=True,
         BRANCHES_FILE=getenv("BRANCHES_FILE"),
         MAX_CUSTOM_ROOTFS_SIZE_MB=100,
+        REPOSITORY_ALLOW_LIST=[],
     )
 
     if not test_config:

@@ -13,8 +13,8 @@ externalDocs:
   description: README.md
   url: https://github.com/aparcar/asu/blob/master/README.md
 servers:
-- url: https://asu.aparcar.org
-  description: Running instance of ASU
+  - url: https://asu.aparcar.org
+    description: Running instance of ASU
 paths:
   /api/v1/overview:
     get:
@@ -30,7 +30,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JsonSchemaOverview'
+                $ref: "#/components/schemas/JsonSchemaOverview"
   /api/v1/build:
     post:
       summary: Request a custom firmware image
@@ -56,22 +56,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BuildRequest'
+              $ref: "#/components/schemas/BuildRequest"
       responses:
         "200":
-          $ref: '#/components/responses/ResponseSuccessfull'
+          $ref: "#/components/responses/ResponseSuccessfull"
 
         "202":
-          $ref: '#/components/responses/ResponseActive'
+          $ref: "#/components/responses/ResponseActive"
 
         "400":
-          $ref: '#/components/responses/ResponseError'
+          $ref: "#/components/responses/ResponseError"
 
         "422":
-          $ref: '#/components/responses/ResponseBadPackage'
+          $ref: "#/components/responses/ResponseBadPackage"
 
         "500":
-          $ref: '#/components/responses/ResponseError'
+          $ref: "#/components/responses/ResponseError"
 
   /api/v1/build/{request_hash}:
     get:
@@ -83,62 +83,62 @@ paths:
         Ideally clients requests status updates no more then every 5 seconds.
       operationId: asu.api.api_v1_build_get
       parameters:
-      - name: request_hash
-        in: path
-        description: |
-          The hashed request is responded after a successful build request at
-          `/api/v1/build`.
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: request_hash
+          in: path
+          description: |
+            The hashed request is responded after a successful build request at
+            `/api/v1/build`.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         "200":
-          $ref: '#/components/responses/ResponseSuccessfull'
+          $ref: "#/components/responses/ResponseSuccessfull"
 
         "202":
-          $ref: '#/components/responses/ResponseActive'
+          $ref: "#/components/responses/ResponseActive"
 
         "404":
-          $ref: '#/components/responses/ResponseError'
+          $ref: "#/components/responses/ResponseError"
 
   /api/v1/revision/{version}/{target}/{subtarget}:
     get:
       summary: receive revision of current target
       operationId: asu.api.api_v1_revision
       parameters:
-      - name: version
-        in: path
-        description: Version in question
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
-      - name: target
-        in: path
-        description: Target used on device
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
-      - name: subtarget
-        in: path
-        description: Target used on device
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: version
+          in: path
+          description: Version in question
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: target
+          in: path
+          description: Target used on device
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: subtarget
+          in: path
+          description: Target used on device
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         "200":
           description: Revision found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JsonSchemaRevision'
+                $ref: "#/components/schemas/JsonSchemaRevision"
 
 components:
   responses:
@@ -147,7 +147,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/BuildResponseSuccess'
+            $ref: "#/components/schemas/BuildResponseSuccess"
 
     ResponseActive:
       description: |
@@ -159,30 +159,30 @@ components:
             type: integer
             description: Current position in build queue
       content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BuildResponseActive'
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BuildResponseActive"
 
     ResponseError:
       description: Invalid build request
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/BuildResponseError'
+            $ref: "#/components/schemas/BuildResponseError"
 
     ResponseBadPackage:
       description: Unknown package(s) in request
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/BuildResponseError'
+            $ref: "#/components/schemas/BuildResponseError"
 
   schemas:
     BuildRequest:
       required:
-      - profile
-      - target
-      - version
+        - profile
+        - target
+        - version
       type: object
       additionalProperties: false
       properties:
@@ -229,8 +229,8 @@ components:
         packages:
           type: array
           example:
-          - vim
-          - tmux
+            - vim
+            - tmux
           items:
             type: string
           description: |
@@ -281,6 +281,27 @@ components:
             boot. This feature might be dropped in the future. Size is limited
             to 10kB and can not be exceeded.
           maxLength: 20480
+        repository_keys:
+          type: array
+          example:
+            - RWRNAX5vHtXWFmt+n5di7XX8rTu0w+c8X7Ihv4oCyD6tzsUwmH0A6kO0
+          items:
+            type: string
+          description: |
+            List of signify/usign keys for repositories
+        repositories:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            openwrt_core: https://downloads.openwrt.org/snapshots/targets/x86/64/packages
+            openwrt_base: https://downloads.openwrt.org/snapshots/packages/x86_64/base
+            openwrt_luci: https://downloads.openwrt.org/snapshots/packages/x86_64/luci
+            openwrt_packages: https://downloads.openwrt.org/snapshots/packages/x86_64/packages
+            openwrt_routing: https://downloads.openwrt.org/snapshots/packages/x86_64/routing
+            openwrt_telephony: https://downloads.openwrt.org/snapshots/packages/x86_64/telephony
+          description: |
+            List of repositories to load packages from
 
       example:
         version: 19.07.8
@@ -308,14 +329,12 @@ components:
         status:
           type: integer
           example: 500
-          description:
-            Always the same as the responding HTTP status code.
+          description: Always the same as the responding HTTP status code.
         enqueued_at:
           type: string
           format: date-time
           example: "2021-08-15T09:59:27.754430Z"
-          description:
-            Time and date of the build request.
+          description: Time and date of the build request.
         request_hash:
           type: string
           example: "5992c73895fb"
@@ -342,8 +361,7 @@ components:
           type: string
           format: date-time
           example: "2021-08-15T09:59:27.754430Z"
-          description:
-            Time and date of the build request.
+          description: Time and date of the build request.
         request_hash:
           type: string
           example: "5992c73895fb"
@@ -353,8 +371,7 @@ components:
         status:
           type: integer
           example: 202
-          description:
-            Always the same as the responding HTTP status code.
+          description: Always the same as the responding HTTP status code.
         queue_position:
           type: integer
           example: 2
@@ -447,8 +464,8 @@ components:
             oneOf:
               - type: object
                 required:
-                - model
-                - vendor
+                  - model
+                  - vendor
                 properties:
                   vendor:
                     type: string
@@ -530,8 +547,7 @@ components:
           type: string
           format: date
           example: "2021-08-15"
-          description:
-            Date of branch end of life
+          description: Date of branch end of life
         path:
           type: string
           example: "releases/{version}"
@@ -580,7 +596,7 @@ components:
         branches:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/JsonSchemaBranch'
+            $ref: "#/components/schemas/JsonSchemaBranch"
         server:
           type: object
           properties:

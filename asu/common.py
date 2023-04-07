@@ -1,12 +1,17 @@
 import base64
 import hashlib
 import json
+import logging
 import struct
 from pathlib import Path
+from re import match
+from shutil import unpack_archive
+from tempfile import NamedTemporaryFile
 
 import nacl.signing
 import requests
 from flask import current_app
+from podman import PodmanClient
 
 
 def get_redis():
@@ -112,6 +117,8 @@ def get_request_hash(req: dict) -> str:
                 req.get("filesystem", ""),
                 get_str_hash(req.get("defaults", "")),
                 str(req.get("rootfs_size_mb", "")),
+                str(req.get("repository_keys", "")),
+                str(req.get("repositories", "")),
             ]
         ),
         32,
@@ -189,3 +196,138 @@ def remove_prefix(text, prefix):
         str: text without prefix
     """
     return text[text.startswith(prefix) and len(prefix) :]
+
+
+def get_container_version_tag(version: str) -> str:
+    if match(r"^\d+\.\d+\.\d+$", version):
+        logging.debug("Version is a release version")
+        version: str = "v" + version
+    else:
+        logging.info(f"Version {version} is a branch")
+        if version == "SNAPSHOT":
+            version: str = "master"
+        else:
+            version: str = "openwrt-" + version.rstrip("-SNAPSHOT")
+
+    return version
+
+
+def diff_packages(requested_packages: set, default_packages: set):
+    """Return a list of packages to install and remove
+
+    Args:
+        requested_packages (set): Set of requested packages
+        default_packages (set): Set of default packages
+
+    Returns:
+        set: Set of packages to install and remove"""
+    remove_packages = default_packages - requested_packages
+    return requested_packages | set(
+        map(lambda p: f"-{p}".replace("--", "-"), remove_packages)
+    )
+
+
+def run_container(image, command, mounts=[], copy=[]):
+    """Run a container and return the returncode, stdout and stderr
+
+    Args:
+        image (str): Image to run
+        command (list): Command to run
+        mounts (list, optional): List of mounts. Defaults to [].
+
+    Returns:
+        tuple: (returncode, stdout, stderr)
+    """
+    podman = PodmanClient().from_env()
+
+    logging.info(f"Running {image} {command} {mounts}")
+    container = podman.containers.run(
+        image=image,
+        command=command,
+        detach=True,
+        mounts=mounts,
+        userns_mode="keep-id",
+        cap_drop=["all"],
+        no_new_privileges=True,
+        privileged=False,
+    )
+
+    returncode = container.wait()
+
+    # Podman 4.x changed the way logs are returned
+    if podman.version()["Version"].startswith("3"):
+        delimiter = b"\n"
+    else:
+        delimiter = b""
+
+    stdout = delimiter.join(container.logs(stdout=True, stderr=False)).decode("utf-8")
+    stderr = delimiter.join(container.logs(stdout=False, stderr=True)).decode("utf-8")
+
+    logging.debug(f"returncode: {returncode}")
+    logging.debug(f"stdout: {stdout}")
+    logging.debug(f"stderr: {stderr}")
+
+    if copy:
+        logging.debug(f"Copying {copy[0]} from container to {copy[1]}")
+        container_tar, _ = container.get_archive(copy[0])
+        logging.debug(f"Container tar: {container_tar}")
+
+        host_tar = NamedTemporaryFile(delete=True)
+        logging.debug(f"Host tar: {host_tar}")
+
+        host_tar.write(b"".join(container_tar))
+
+        logging.debug(f"Copied {container_tar} to {host_tar}")
+
+        unpack_archive(
+            host_tar.name,
+            copy[1],
+            "tar",
+        )
+        logging.debug(f"Unpacked {host_tar} to {copy[1]}")
+
+        host_tar.close()
+        logging.debug(f"Closed {host_tar}")
+
+    container.remove(v=True)
+
+    return returncode, stdout, stderr
+
+
+def report_error(job, msg):
+    logging.warning(f"Error: {msg}")
+    job.meta["detail"] = f"Error: {msg}"
+    job.save_meta()
+    raise
+
+
+def parse_manifest(manifest_content: str):
+    """Parse a manifest file and return a dictionary
+
+    Args:
+        manifest (str): Manifest file content
+
+    Returns:
+        dict: Dictionary of packages and versions
+    """
+    return dict(map(lambda pv: pv.split(" - "), manifest_content.splitlines()))
+
+
+def check_manifest(manifest, packages_versions):
+    """Validate a manifest file
+
+    Args:
+        manifest (str): Manifest file content
+        packages_versions (dict): Dictionary of packages and versions
+
+    Returns:
+        str: Error message or None
+    """
+    for package, version in packages_versions.items():
+        if package not in manifest:
+            return f"Impossible package selection: {package} not in manifest"
+        if version != manifest[package]:
+            return (
+                f"Impossible package selection: {package} version not as requested: "
+                f"{version} vs. {manifest[package]}"
+            )

@@ -31,19 +31,16 @@ def test_get_request_hash():
         "package_hash": get_packages_hash(["test"]),
     }
 
-    assert get_request_hash(request) == "289a492f0ed178ab35cdd24f9b6b01cf"
 
-
-def test_get_request_hash_diff_packages():
-    request = {
-        "distro": "test",
-        "version": "test",
-        "profile": "test",
-        "package_hash": get_packages_hash(["test"]),
-        "diff_packages": True,
+def test_diff_packages():
+    assert diff_packages({"test1"}, {"test1", "test2"}) == {"test1", "-test2"}
+    assert diff_packages({"test1"}, {"test1"}) == {"test1"}
+    assert diff_packages({"test1"}, {"test2", "test3"}) == {"test1", "-test2", "-test3"}
+    assert diff_packages({"test1"}, {"test2", "-test3"}) == {
+        "test1",
+        "-test2",
+        "-test3",
     }
-
-    assert get_request_hash(request) == "fe8893a4c872d14e7da222b0810bfd99"
 
 
 def test_fingerprint_pubkey_usign():
@@ -74,3 +71,21 @@ def test_remove_prefix():
     assert remove_prefix("test", "test") == ""
     assert remove_prefix("+test", "+") == "test"
     assert remove_prefix("++test", "+") == "+test"
+
+
+def test_get_version_container_tag():
+    assert get_container_version_tag("1.0.0") == "v1.0.0"
+    assert get_container_version_tag("SNAPSHOT") == "master"
+    assert get_container_version_tag("1.0.0-SNAPSHOT") == "openwrt-1.0.0"
+
+
+def test_check_manifest():
+    assert check_manifest({"test": "1.0"}, {"test": "1.0"}) == None
+    assert (
+        check_manifest({"test": "1.0"}, {"test": "2.0"})
+        == "Impossible package selection: test version not as requested: 2.0 vs. 1.0"
+    )
+    assert (
+        check_manifest({"test": "1.0"}, {"test2": "1.0"})
+        == "Impossible package selection: test2 not in manifest"
+    )

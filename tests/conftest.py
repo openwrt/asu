@@ -1,6 +1,5 @@
 import shutil
 import tempfile
-from pathlib import Path
 
 import prometheus_client
 import pytest
@@ -31,24 +30,22 @@ def pytest_collection_modifyitems(config, items):
 
 def redis_load_mock_data(redis):
     redis.sadd(
-        "packages:TESTVERSION:TESTVERSION:testtarget/testsubtarget",
+        "packages:1.2:1.2.3:testtarget/testsubtarget",
         "test1",
         "test2",
         "test3",
         "valid_new_package",
     )
-    redis.sadd(
-        "profiles:TESTVERSION:TESTVERSION:testtarget/testsubtarget", "testprofile"
-    )
+    redis.sadd("profiles:1.2:1.2.3:testtarget/testsubtarget", "testprofile")
     redis.sadd("profiles:SNAPSHOT:SNAPSHOT:ath79/generic", "tplink_tl-wdr4300-v1")
     redis.sadd("packages:SNAPSHOT:SNAPSHOT:ath79/generic", "vim", "tmux")
     redis.sadd("packages:SNAPSHOT:SNAPSHOT:x86/64", "vim", "tmux")
 
     redis.hset(
-        "mapping:TESTVERSION:TESTVERSION:testtarget/testsubtarget",
+        "mapping:1.2:1.2.3:testtarget/testsubtarget",
         mapping={"testvendor,testprofile": "testprofile"},
     )
-    redis.sadd("targets:TESTVERSION", "testtarget/testsubtarget")
+    redis.sadd("targets:1.2", "testtarget/testsubtarget")
     redis.sadd("targets:SNAPSHOT", "ath79/generic", "x86/64")
     redis.sadd("targets:21.02", "testtarget/testsubtarget")
     redis.hset("mapping-abi", mapping={"test1-1": "test1"})
@@ -84,6 +81,7 @@ def app(test_path, redis_server):
             "CACHE_PATH": test_path,
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",
+            "REPOSITORY_ALLOW_LIST": [],
             "BRANCHES": {
                 "SNAPSHOT": {
                     "name": "SNAPSHOT",
@@ -99,11 +97,11 @@ def app(test_path, redis_server):
                     "extra_repos": {},
                     "extra_keys": [],
                 },
-                "TESTVERSION": {
-                    "name": "TESTVERSION",
+                "1.2": {
+                    "name": "1.2",
                     "enabled": True,
                     "snapshot": True,
-                    "versions": ["TESTVERSION"],
+                    "versions": ["1.2.3"],
                     "git_branch": "master",
                     "path": "snapshots",
                     "path_packages": "snapshots/packages",
@@ -201,30 +199,6 @@ def client(app):
     return app.test_client()
 
 
-@pytest.fixture
-def runner(app):
-    return app.test_cli_runner()
-
-
 @pytest.fixture(scope="session")
 def httpserver_listen_address():
     return ("127.0.0.1", 8001)
-
-
-@pytest.fixture
-def upstream(httpserver):
-    base_url = "/snapshots/targets/testtarget/testsubtarget"
-    upstream_path = Path("./tests/upstream/snapshots/targets/testtarget/testsubtarget/")
-    expected_file_requests = [
-        "sha256sums.sig",
-        "sha256sums",
-        "openwrt-imagebuilder-testtarget-testsubtarget.Linux-x86_64.tar.xz",
-    ]
-
-    for f in expected_file_requests:
-        httpserver.expect_request(f"{base_url}/{f}").respond_with_data(
-            (upstream_path / f).read_bytes(),
-            headers={"Last-Modified": "Thu, 19 Mar 2020 20:27:41 GMT"},
-        )
-
-    httpserver.check_assertions()
