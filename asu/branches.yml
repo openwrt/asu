@@ -19,10 +19,9 @@ branches:
     snapshot: false
     updates: features
     versions:
+      - 22.03.4
+      - 22.03.3
       - 22.03.2
-      - 22.03.1
-      - 22.03.0
-      - 22.03.0-rc6
       - 22.03-SNAPSHOT
     package_changes:
       - source: kmod-nft-nat6
@@ -52,9 +51,9 @@ branches:
     snapshot: false
     updates: features
     versions:
+      - 21.02.6
       - 21.02.5
       - 21.02.4
-      - 21.02.3
       - 21.02-SNAPSHOT
 
   SNAPSHOT:
