@@ -30,6 +30,9 @@ branches:
       - source: firewall
         target: firewall4
         revision: 18611
+      - source: procd-ujail-console
+        target: uxc
+        revision: 18611
 
   "21.02":
     enabled: true
@@ -81,4 +84,7 @@ branches:
         mandatory: true
       - source: firewall
         target: firewall4
+        revision: 18611
+      - source: procd-ujail-console
+        target: uxc
         revision: 18611
