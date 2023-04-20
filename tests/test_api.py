@@ -554,3 +554,17 @@ def test_api_build_defaults_filled_allowed(app, upstream):
     )
     assert response.status == "200 OK"
     assert response.json.get("request_hash") == "95850740d931c460d77f8de35f298b9a"
+
+def test_api_build_diff_packages(client, upstream):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="TESTVERSION",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            diff_packages=True,
+        ),
+    )
+
+    assert response.status == "200 OK"
