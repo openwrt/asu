@@ -10,7 +10,7 @@ services:
     volumes:
       - "./asu-service/public/:/app/public/"
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       - redis
 
@@ -50,6 +50,7 @@ services:
     volumes:
       - redis:/data/
 
+<<<<<<< HEAD
   webserver:
     image: caddy
     volumes:
@@ -59,3 +60,15 @@ services:
       - "8000:8081"
     depends_on:
       - server
+=======
+# Podman may not allow ports 1024, consider using an external web server
+# webserver:
+#   image: caddy
+#   volumes:
+#     - "./misc/Caddyfile:/etc/caddy/Caddyfile"
+#     - "./asu-service:/site/"
+#   ports:
+#     - "8000:8081"
+#   depends_on:
+#     - server
+>>>>>>> 74650f6 (podman-compose: rework)
