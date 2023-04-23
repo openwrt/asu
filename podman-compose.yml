@@ -1,0 +1,61 @@
+version: "2"
+volumes:
+  podman-sock:
+  redis:
+services:
+  server:
+    image: "aparcar/asu:latest"
+    environment:
+      - REDIS_HOST=redis
+    volumes:
+      - "./asu-service/public/:/app/public/"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  janitor:
+    image: "aparcar/asu:latest"
+    environment:
+      - FLASK_APP=asu.asu
+      - FLASK_DEBUG=1
+      - REDIS_HOST=redis
+    command: flask janitor update
+    volumes:
+      - "./asu-service/public/:/app/public/"
+    depends_on:
+      - redis
+
+  worker:
+    image: "aparcar/asu:latest"
+    command: rqworker --url "redis://redis"
+    environment:
+      - CONTAINER_HOST=unix:///tmp/socket/podman.sock
+    volumes:
+      - ./asu-service/public/:/app/public/
+      - podman-sock:/tmp/socket/
+    depends_on:
+      - redis
+      - podman
+
+  podman:
+    image: quay.io/podman/stable
+    user: podman
+    volumes:
+      - podman-sock:/tmp/socket/
+    command: sh -c "mkdir -p /tmp/socket && podman system service --time=0 unix:///tmp/socket/podman.sock"
+
+  redis:
+    image: "redis:alpine"
+    volumes:
+      - redis:/data/
+
+  webserver:
+    image: caddy
+    volumes:
+      - "./misc/Caddyfile:/etc/caddy/Caddyfile"
+      - "./asu-service:/site/"
+    ports:
+      - "8000:8081"
+    depends_on:
+      - server
