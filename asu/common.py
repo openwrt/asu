@@ -12,14 +12,11 @@ import nacl.signing
 import requests
 from flask import current_app
 from podman import PodmanClient
-
-
-def get_redis():
-    return current_app.config["REDIS_CONN"]
+from rq import Queue, get_current_job
 
 
 def is_modified(url: str) -> bool:
-    r = get_redis()
+    r = get_current_job().connection
 
     modified_local = r.hget("last-modified", url)
     if modified_local:
