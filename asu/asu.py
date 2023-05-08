@@ -5,12 +5,14 @@ import connexion
 from flask import Flask, render_template, send_from_directory
 from pkg_resources import resource_filename
 from prometheus_client import CollectorRegistry, make_wsgi_app
-from redis import Redis
+from rq import Queue
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from yaml import safe_load
 
 import asu.common
 from asu import __version__
+from asu.janitor import update
+from redis import Redis
 
 
 def create_app(test_config: dict = None) -> Flask:
@@ -136,6 +138,20 @@ def create_app(test_config: dict = None) -> Flask:
             "rootfs_size_mb_max": app.config["MAX_CUSTOM_ROOTFS_SIZE_MB"],
         },
         validate_responses=app.config["TESTING"],
+    )
+
+    queue = Queue(
+        connection=app.config["REDIS_CONN"],
+        is_async=app.config["ASYNC_QUEUE"],
+    )
+    queue.enqueue(
+        update,
+        {
+            "JSON_PATH": app.config["JSON_PATH"],
+            "BRANCHES": app.config["BRANCHES"],
+            "UPSTREAM_URL": app.config["UPSTREAM_URL"],
+        },
+        job_timeout="10m",
     )
 
     return app

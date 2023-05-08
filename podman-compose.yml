@@ -5,6 +5,9 @@ volumes:
 services:
   server:
     image: "aparcar/asu:latest"
+    build:
+      context: ./
+      dockerfile: Containerfile
     environment:
       - REDIS_HOST=redis
     volumes:
@@ -14,20 +17,26 @@ services:
     depends_on:
       - redis
 
-  janitor:
-    image: "aparcar/asu:latest"
-    environment:
-      - FLASK_APP=asu.asu
-      - FLASK_DEBUG=1
-      - REDIS_HOST=redis
-    command: flask janitor update
-    volumes:
-      - "./asu-service/public/:/app/public/"
-    depends_on:
-      - redis
-
   worker:
     image: "aparcar/asu:latest"
+    build:
+      context: ./
+      dockerfile: Containerfile
+    command: rqworker --url "redis://redis"
+    environment:
+      - CONTAINER_HOST=unix:///tmp/socket/podman.sock
+    volumes:
+      - ./asu-service/public/:/app/public/
+      - podman-sock:/tmp/socket/
+    depends_on:
+      - redis
+      - podman
+
+  worker2:
+    image: "aparcar/asu:latest"
+    build:
+      context: ./
+      dockerfile: Containerfile
     command: rqworker --url "redis://redis"
     environment:
       - CONTAINER_HOST=unix:///tmp/socket/podman.sock
@@ -50,17 +59,6 @@ services:
     volumes:
       - redis:/data/
 
-<<<<<<< HEAD
-  webserver:
-    image: caddy
-    volumes:
-      - "./misc/Caddyfile:/etc/caddy/Caddyfile"
-      - "./asu-service:/site/"
-    ports:
-      - "8000:8081"
-    depends_on:
-      - server
-=======
 # Podman may not allow ports 1024, consider using an external web server
 # webserver:
 #   image: caddy
@@ -71,4 +69,3 @@ services:
 #     - "8000:8081"
 #   depends_on:
 #     - server
->>>>>>> 74650f6 (podman-compose: rework)
