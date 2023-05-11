@@ -1,4 +1,3 @@
-import email
 import json
 import logging
 from datetime import datetime, timedelta
@@ -28,68 +27,6 @@ def update_set(key: str, *data: list):
     pipeline.execute()
 
 
-def parse_packages_file(url, repo):
-    r = get_redis()
-    req = requests.get(url)
-
-    if req.status_code != 200:
-        logging.warning(f"No Packages found at {url}")
-        return {}
-
-    packages = {}
-    mapping = {}
-    linebuffer = ""
-    for line in req.text.splitlines():
-        if line == "":
-            parser = email.parser.Parser()
-            package = parser.parsestr(linebuffer)
-            source_name = package.get("SourceName")
-            if source_name:
-                packages[source_name] = dict(
-                    (name.lower().replace("-", "_"), val)
-                    for name, val in package.items()
-                )
-                packages[source_name]["repository"] = repo
-                package_name = package.get("Package")
-                if source_name != package_name:
-                    mapping[package_name] = source_name
-            else:
-                logging.warning(f"Something weird about {package}")
-            linebuffer = ""
-        else:
-            linebuffer += line + "\n"
-
-    for package, source in mapping.items():
-        if not r.hexists("mapping-abi", package):
-            logging.info(f"{repo}: Add ABI mapping {package} -> {source}")
-            r.hset("mapping-abi", package, source)
-
-    return packages
-
-
-def get_packages_target_base(config, branch, version, target):
-    version_path = branch["path"].format(version=version)
-    return parse_packages_file(
-        config["UPSTREAM_URL"]
-        + "/"
-        + version_path
-        + f"/targets/{target}/packages/Packages.manifest",
-        target,
-    )
-
-
-def get_packages_arch_repo(config, branch, arch, repo):
-    version_path = branch["path"].format(version=branch["versions"][0])
-    # https://mirror-01.infra.openwrt.org/snapshots/packages/aarch64_cortex-a53/base/
-    return parse_packages_file(
-        config["UPSTREAM_URL"]
-        + "/"
-        + version_path
-        + f"/packages/{arch}/{repo}/Packages.manifest",
-        repo,
-    )
-
-
 def update_branch(config, branch):
     version_path = branch["path"].format(version=branch["versions"][0])
     targets = list(
@@ -107,11 +44,6 @@ def update_branch(config, branch):
 
     update_set(f"targets:{branch['name']}", *list(targets))
 
-    packages_path = branch["path_packages"].format(branch=branch["name"])
-    packages_path = branch["path_packages"].format(branch=branch["name"])
-    output_path = config["JSON_PATH"] / packages_path
-    output_path.mkdir(exist_ok=True, parents=True)
-
     architectures = set()
 
     for version in branch["versions"]:
@@ -119,15 +51,7 @@ def update_branch(config, branch):
         # TODO: ugly
         version_path = branch["path"].format(version=version)
         version_path_abs = config["JSON_PATH"] / version_path
-        output_path = config["JSON_PATH"] / packages_path
         version_path_abs.mkdir(exist_ok=True, parents=True)
-        packages_symlink = version_path_abs / "packages"
-
-        if not packages_symlink.exists():
-            packages_symlink.symlink_to(output_path)
-
-        for target in targets:
-            update_target_packages(config, branch, version, target)
 
         for target in targets:
             if target_arch := update_target_profiles(config, branch, version, target):
@@ -154,121 +78,6 @@ def update_branch(config, branch):
         (version_path_abs / "overview.json").write_text(
             json.dumps(overview, sort_keys=True, separators=(",", ":"))
         )
-
-    for architecture in architectures:
-        update_arch_packages(config, branch, architecture)
-
-
-def update_target_packages(config, branch: dict, version: str, target: str):
-    logging.info(f"{version}/{target}: Update packages")
-
-    version_path = branch["path"].format(version=version)
-    r = get_redis()
-
-    if not is_modified(
-        config["UPSTREAM_URL"]
-        + "/"
-        + version_path
-        + f"/targets/{target}/packages/Packages.manifest"
-    ):
-        logging.debug(f"{version}/{target}: Skip package update")
-        return
-
-    packages = get_packages_target_base(config, branch, version, target)
-
-    if len(packages) == 0:
-        logging.warning(f"No packages found for {target}")
-        return
-
-    logging.debug(f"{version}/{target}: Found {len(packages)}")
-
-    update_set(f"packages:{branch['name']}:{version}:{target}", *list(packages.keys()))
-
-    virtual_packages = {
-        vpkg.split("=")[0]
-        for pkg in packages.values()
-        if (provides := pkg.get("provides"))
-        for vpkg in provides.split(", ")
-    }
-    r.sadd(
-        f"packages:{branch['name']}:{version}:{target}",
-        *(virtual_packages | packages.keys()),
-    )
-
-    output_path = config["JSON_PATH"] / version_path / "targets" / target
-    output_path.mkdir(exist_ok=True, parents=True)
-
-    (output_path / "manifest.json").write_text(
-        json.dumps(packages, sort_keys=True, separators=(",", ":"))
-    )
-
-    package_index = dict(map(lambda p: (p[0], p[1]["version"]), packages.items()))
-
-    (output_path / "index.json").write_text(
-        json.dumps(
-            {
-                "architecture": packages["base-files"]["architecture"],
-                "packages": package_index,
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-    )
-
-    logging.info(f"{version}: found {len(package_index.keys())} packages")
-
-
-def update_arch_packages(config, branch: dict, arch: str):
-    logging.info(f"Update {branch['name']}/{arch}")
-    r = get_redis()
-
-    packages_path = branch["path_packages"].format(branch=branch["name"])
-    if not is_modified(config["UPSTREAM_URL"] + f"/{packages_path}/{arch}/feeds.conf"):
-        logging.debug(f"{branch['name']}/{arch}: Skip package update")
-        return
-
-    packages = {}
-
-    # first update extra repos in case they contain redundant packages to core
-    for name, url in branch.get("extra_repos", {}).items():
-        logging.debug(f"Update extra repo {name} at {url}")
-        packages.update(parse_packages_file(f"{url}/Packages.manifest", name))
-
-    # update default repositories afterwards so they overwrite redundancies
-    for repo in branch["repos"]:
-        repo_packages = get_packages_arch_repo(config, branch, arch, repo)
-        logging.debug(
-            f"{branch['name']}/{arch}/{repo}: Found {len(repo_packages)} packages"
-        )
-        packages.update(repo_packages)
-
-    if len(packages) == 0:
-        logging.warning(f"{branch['name']}/{arch}: No packages found")
-        return
-
-    output_path = config["JSON_PATH"] / packages_path
-    output_path.mkdir(exist_ok=True, parents=True)
-
-    (output_path / f"{arch}-manifest.json").write_text(
-        json.dumps(packages, sort_keys=True, separators=(",", ":"))
-    )
-
-    package_index = dict(map(lambda p: (p[0], p[1]["version"]), packages.items()))
-
-    (output_path / f"{arch}-index.json").write_text(
-        json.dumps(package_index, sort_keys=True, separators=(",", ":"))
-    )
-
-    logging.info(f"{arch}: found {len(package_index.keys())} packages")
-    update_set(f"packages:{branch['name']}:{arch}", *package_index.keys())
-
-    virtual_packages = {
-        vpkg.split("=")[0]
-        for pkg in packages.values()
-        if (provides := pkg.get("provides"))
-        for vpkg in provides.split(", ")
-    }
-    r.sadd(f"packages:{branch['name']}:{arch}", *(virtual_packages | packages.keys()))
 
 
 def update_target_profiles(config, branch: dict, version: str, target: str) -> str:
@@ -423,7 +232,7 @@ def update_meta_json(config):
 def update(config):
     """Update the data required to run the server
 
-    For this all available packages and profiles for all enabled versions is
+    For this all available profiles for all enabled versions is
     downloaded and stored in the Redis database.
     """
 
