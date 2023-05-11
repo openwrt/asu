@@ -236,7 +236,7 @@ def update_arch_packages(config, branch: dict, arch: str):
 
     # update default repositories afterwards so they overwrite redundancies
     for repo in branch["repos"]:
-        repo_packages = get_packages_arch_repo(branch, arch, repo)
+        repo_packages = get_packages_arch_repo(config, branch, arch, repo)
         logging.debug(
             f"{branch['name']}/{arch}/{repo}: Found {len(repo_packages)} packages"
         )
