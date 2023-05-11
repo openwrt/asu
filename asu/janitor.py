@@ -440,4 +440,9 @@ def update(config):
 
     update_meta_json(config)
 
-    # get_queue().enqueue_in(timedelta(minutes=10), update)
+    Queue(connection=get_redis()).enqueue_in(
+        timedelta(minutes=10),
+        update,
+        config,
+        job_timeout="1m",
+    )
