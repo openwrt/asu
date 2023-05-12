@@ -1,4 +1,4 @@
-# Attendedsysupgrade Server for OpenWrt (GSoC 2017)
+# Attendedsysupgrade Server (GSoC 2017)
 
 [![codecov](https://codecov.io/gh/aparcar/asu/branch/master/graph/badge.svg)](https://codecov.io/gh/aparcar/asu)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -9,11 +9,8 @@ devices running OpenWrt or distributions based on it. These tools offer an easy
 way to reflash the router with a new firmware version
 (including all packages) without the need to use `opkg`.
 
-It's called Attended SysUpgrade (ASU) because the upgrade process is not started
-automatically, but is initiated by a user who waits until it's done.
-
-ASU is based on an API (described below) to request custom firmware images with
-any selection of packages pre-installed. This avoids the need to set up a build
+ASU is based on an [API](#api) to request custom firmware images with any
+selection of packages pre-installed. This avoids the need to set up a build
 environment, and makes it possible to create a custom firmware image even using
 a mobile device.
 
@@ -59,81 +56,56 @@ immediately without rebuilding.
 ### Active server
 
 - [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
-- [asu.aparcar.org](https://asu.aparcar.org)
-- ~~[chef.libremesh.org](https://chef.libremesh.org)~~ (`CNAME` to
-  asu.aparcar.org)
+- [asu.aparcar.org](http://asu.aparcar.org:8000)
+- [asu.hauke-m.de](http://asu.hauke-m.de:8000)
 
 ## Run your own server
 
-Redis is required to store image requests:
+For security reasons each build happens inside a container so that one build
+can't affect another build. For this to work a Podman container runs an API
+service so workers can themselfs execute builds inside containers.
 
-    sudo apt install redis-server tar
+Please install Podman and test if it works:
 
-Install _asu_:
+    podman run --rm -it docker.io/library/alpine:latest
 
-    pip install asu
+Once Podman works, install `podman-compose`:
 
-Create a `config.py`.
-You can use `misc/config.py` as an example.
+    pip install podman-compose
 
-Start the server via the following commands:
-
-    export FLASK_APP=asu.asu  # set Flask app to asu
-    flask janitor update      # download upstream profiles/packages - this runs forever
-    flask run                 # run development server - this runs forever
-
-Start the worker via the following comand:
-
-    rq worker                 # this runs forever
-
-### Docker
-
-Run the service inside multiple Docker containers. The services include the _
-ASU_ server itself, a _janitor_ service which fills the Redis database with
-known packages and profiles as well as a `rqworker` which actually builds
-images.
-
-Currently all services share the same folder and therefore a very "open" access
-is required. Suggestions on how to improve this setup are welcome.
+Now it's possible to run all services via `podman-compose`:
 
     mkdir -p ./asu-service/public/
-    chmod -R 777 ./asu-service/
-    cp ./misc/config.py ./asu-service/
-    docker-compose up
+    podman-compose up -d
 
-A webserver should proxy API calls to port 8000 of the `server` service while
-the `asu/` folder should be file hosted as-is.
+This will start the server, the Podman API container and two workers. The first
+run needs a few minutes since available packages are parsed from teh upstream
+server. Once the server is running, it's possible to request images via the API
+on `http://localhost:8000`. Modify `podman-compose.yml` to change the port.
 
 ### Production
 
-It is recommended to run _ASU_ via `gunicorn` proxied by `nginx` or
-`caddyserver`. Find a possible server configurations in the `misc/` folder.
+For production it's recommended to use a reverse proxy like `nginx` or `caddy`.
 
-The _ASU_ server will try `$PWD/config.py` and `/etc/asu/config.py` to find a
-configuration. Find an example configuration in the `misc/` folder.
+#### System requirements
 
-    pip install gunicorn
-    gunicorn "asu.asu:create_app()"
-
-Ideally use the tool `squid` to cache package indexes, which are reloaded every
-time an image is built. Find a basic configuration in at `misc/squid.conf`
-which should be copied to `/etc/squid/squid.conf`.
-
-If you want to use `systemd` find the service files `asu.service` and
-`worker@.service` in the `misc` folder as well.
-
+- 2 GB RAM (4 GB recommended)
+- 2 CPU cores (4 cores recommended)
+- 50 GB disk space (200 GB recommended)
+  
 ### Development
 
 After cloning this repository, create a Python virtual environment and install
 the dependencies:
 
-    python3 -m venv .direnv
-    source .direnv/bin/activate
-    pip install -r requirements.txt
-    export FLASK_APP=asu.asu  # set Flask app to asu
-    export FLASK_APP=tests.conftest:mock_app FLASK_DEBUG=1 # run Flask in debug mode with mock data
-    flask run
+#### Running the server
 
+    poetry install
+    poetry run flask run
+
+#### Running a worker
+
+    poetry run rq worker
 ### API
 
 The API is documented via _OpenAPI_ and can be viewed interactively on the
