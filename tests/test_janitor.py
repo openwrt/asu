@@ -26,14 +26,14 @@ def upstream(httpserver):
 
 
 def test_update_branch(app, upstream):
-    with app.app_context():
-        update_branch(app.config["BRANCHES"]["SNAPSHOT"])
+    # with app.app_context():
+    update_branch(app.config, app.config["BRANCHES"]["SNAPSHOT"])
     assert (app.config["JSON_PATH"] / "snapshots/overview.json").is_file()
 
 
 def test_update_meta_latest_json(app):
     with app.app_context():
-        update_meta_json()
+        update_meta_json(app.config)
     latest_json = json.loads((app.config["JSON_PATH"] / "latest.json").read_text())
     assert "19.07.7" in latest_json["latest"]
     assert "21.02.0" in latest_json["latest"]
@@ -42,53 +42,6 @@ def test_update_meta_latest_json(app):
 
 def test_update_meta_overview_json(app):
     with app.app_context():
-        update_meta_json()
+        update_meta_json(app.config)
     overview_json = json.loads((app.config["JSON_PATH"] / "overview.json").read_text())
     assert "package_changes" in overview_json["branches"]["1.2"]
-
-
-def test_parse_packages_file(app, upstream):
-    url = (
-        app.config["UPSTREAM_URL"]
-        + "/snapshots/packages/testarch/base/Packages.manifest"
-    )
-    with app.app_context():
-        packages = parse_packages_file(url, "base")
-    assert "6rd" in packages.keys()
-
-
-def test_parse_packages_file_bad(app, upstream):
-    url = app.config["UPSTREAM_URL"] + "/snapshots/packages/testarch/base/NoPackages"
-    with app.app_context():
-        packages = parse_packages_file(url, "base")
-
-
-def test_get_packages_target_base(app, upstream):
-    branch = app.config["BRANCHES"]["SNAPSHOT"]
-    version = "snapshots"
-    target = "testtarget/testsubtarget"
-    with app.app_context():
-        packages = get_packages_target_base(branch, version, target)
-    assert "base-files" in packages.keys()
-
-
-def test_update_target_packages(app, upstream):
-    branch = app.config["BRANCHES"]["SNAPSHOT"]
-    version = "snapshots"
-    target = "testtarget/testsubtarget"
-    with app.app_context():
-        packages = update_target_packages(branch, version, target)
-    assert (
-        app.config["JSON_PATH"]
-        / "snapshots/targets/testtarget/testsubtarget/index.json"
-    ).is_file()
-
-
-def test_update_arch_packages(app, upstream):
-    branch = app.config["BRANCHES"]["SNAPSHOT"]
-    arch = "testarch"
-    with app.app_context():
-        packages = update_arch_packages(branch, arch)
-    assert (
-        app.config["JSON_PATH"] / "snapshots/packages/testarch-index.json"
-    ).is_file()

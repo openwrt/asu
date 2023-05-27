@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from datetime import datetime
+from os import getenv
 from pathlib import Path
 
 from podman import PodmanClient
@@ -39,7 +40,13 @@ def build(req: dict, job=None):
 
     log.debug(f"Building {req}")
 
-    podman = PodmanClient().from_env()
+    if getenv("CONTAINER_HOST"):
+        podman = PodmanClient().from_env()
+    else:
+        podman = PodmanClient(
+            base_url="unix:///Users/user/.lima/default/sock/podman.sock"
+        )
+
     log.debug(f"Podman version: {podman.version()}")
 
     container_version_tag = get_container_version_tag(req["version"])
@@ -57,7 +64,7 @@ def build(req: dict, job=None):
     log.info(f"Pulling {image}... done")
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
-        image, ["make", "info"]
+        podman, image, ["make", "info"]
     )
 
     job.save_meta()
@@ -144,6 +151,7 @@ def build(req: dict, job=None):
         )
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
+        podman,
         image,
         [
             "make",
@@ -206,6 +214,7 @@ def build(req: dict, job=None):
         )
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
+        podman,
         image,
         job.meta["build_cmd"],
         mounts=mounts,

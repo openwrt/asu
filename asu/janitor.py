@@ -5,23 +5,18 @@ from shutil import rmtree
 
 import requests
 from flask import Blueprint
-from rq import Queue, get_current_job
+from rq import Queue
 from rq.exceptions import NoSuchJobError
 from rq.registry import FinishedJobRegistry
 
 from asu import __version__
-from asu.common import is_modified
+from asu.common import get_redis_client, is_modified
 
 bp = Blueprint("janitor", __name__)
 
 
-def get_redis():
-    job = get_current_job()
-    return job.connection
-
-
-def update_set(key: str, *data: list):
-    pipeline = get_redis().pipeline(True)
+def update_set(config: dict, key: str, *data: list):
+    pipeline = get_redis_client(config).pipeline(True)
     pipeline.delete(key)
     pipeline.sadd(key, *data)
     pipeline.execute()
@@ -42,7 +37,7 @@ def update_branch(config, branch):
         logging.warning("No targets found for {branch['name']}")
         return
 
-    update_set(f"targets:{branch['name']}", *list(targets))
+    update_set(config, f"targets:{branch['name']}", *list(targets))
 
     architectures = set()
 
@@ -89,7 +84,7 @@ def update_target_profiles(config, branch: dict, version: str, target: str) -> s
         target(str): Target within version
     """
     logging.info(f"{version}/{target}: Update profiles")
-    r = get_redis()
+    r = get_redis_client(config)
     version_path = branch["path"].format(version=version)
 
     profiles_url = (
@@ -105,7 +100,7 @@ def update_target_profiles(config, branch: dict, version: str, target: str) -> s
     metadata = req.json()
     profiles = metadata.pop("profiles", {})
 
-    if not is_modified(profiles_url):
+    if not is_modified(config, profiles_url):
         logging.debug(f"{version}/{target}: Skip profiles update")
         return metadata["arch_packages"]
 
@@ -195,7 +190,9 @@ def update_meta_json(config):
                     "targets": dict(
                         map(
                             lambda a: (a[0].decode(), a[1].decode()),
-                            get_redis().hgetall(f"architecture:{b['name']}").items(),
+                            get_redis_client(config)
+                            .hgetall(f"architecture:{b['name']}")
+                            .items(),
                         )
                     ),
                 },
@@ -249,7 +246,7 @@ def update(config):
 
     update_meta_json(config)
 
-    Queue(connection=get_redis()).enqueue_in(
+    Queue(connection=get_redis_client(config)).enqueue_in(
         timedelta(minutes=10),
         update,
         config,
