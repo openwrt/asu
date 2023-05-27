@@ -10,10 +10,9 @@ from rq import Queue
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from yaml import safe_load
 
-import asu.common
 from asu import __version__
+from asu.common import get_redis_client
 from asu.janitor import update
-from redis import Redis
 
 
 def create_app(test_config: dict = None) -> Flask:
@@ -26,17 +25,13 @@ def create_app(test_config: dict = None) -> Flask:
         Flask: The application
     """
 
-    redis_host = getenv("REDIS_HOST", "localhost")
-    redis_port = getenv("REDIS_PORT", 6379)
-    redis_password = getenv("REDIS_PASSWORD", "")
-
     cnxn = connexion.FlaskApp(__name__)
     app = cnxn.app
     CORS(app)
 
     app.config.from_mapping(
         JSON_PATH=Path.cwd() / "public/json/v1/",
-        REDIS_CONN=Redis(host=redis_host, port=redis_port, password=redis_password),
+        REDIS_URL=getenv("REDIS_URL"),
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.openwrt.org",
@@ -99,7 +94,9 @@ def create_app(test_config: dict = None) -> Flask:
 
     from . import metrics
 
-    app.config["REGISTRY"].register(metrics.BuildCollector(app.config["REDIS_CONN"]))
+    redis_client = get_redis_client(app.config["REDIS_URL"])
+
+    app.config["REGISTRY"].register(metrics.BuildCollector(redis_client))
 
     branches = dict(
         map(
@@ -131,8 +128,8 @@ def create_app(test_config: dict = None) -> Flask:
         )
 
     for package, source in app.config.get("MAPPING_ABI", {}).items():
-        if not app.config["REDIS_CONN"].hexists("mapping-abi", package):
-            app.config["REDIS_CONN"].hset("mapping-abi", package, source)
+        if not redis_client.hexists("mapping-abi", package):
+            redis_client.hset("mapping-abi", package, source)
 
     cnxn.add_api(
         "openapi.yml",
@@ -142,18 +139,19 @@ def create_app(test_config: dict = None) -> Flask:
         validate_responses=app.config["TESTING"],
     )
 
-    queue = Queue(
-        connection=app.config["REDIS_CONN"],
-        is_async=app.config["ASYNC_QUEUE"],
-    )
-    queue.enqueue(
-        update,
-        {
-            "JSON_PATH": app.config["JSON_PATH"],
-            "BRANCHES": app.config["BRANCHES"],
-            "UPSTREAM_URL": app.config["UPSTREAM_URL"],
-        },
-        job_timeout="10m",
-    )
+    if not app.config["TESTING"]:
+        queue = Queue(
+            connection=redis_client,
+            is_async=app.config["ASYNC_QUEUE"],
+        )
+        queue.enqueue(
+            update,
+            {
+                "JSON_PATH": app.config["JSON_PATH"],
+                "BRANCHES": app.config["BRANCHES"],
+                "UPSTREAM_URL": app.config["UPSTREAM_URL"],
+            },
+            job_timeout="10m",
+        )
 
     return app

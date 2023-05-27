@@ -1,8 +1,8 @@
 from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
-from .build import build
-from .common import get_request_hash, remove_prefix
+from asu.build import build
+from asu.common import get_redis_client, get_request_hash, remove_prefix
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -16,14 +16,14 @@ def get_distros() -> list:
     return ["openwrt"]
 
 
-def get_redis():
+def redis_client():
     """Return Redis connectio
 
     Returns:
         Redis: Configured used Redis connection
     """
     if "redis" not in g:
-        g.redis = current_app.config["REDIS_CONN"]
+        g.redis = get_redis_client(current_app.config)
     return g.redis
 
 
@@ -36,7 +36,7 @@ def get_queue() -> Queue:
     if "queue" not in g:
         with Connection():
             g.queue = Queue(
-                connection=get_redis(), is_async=current_app.config["ASYNC_QUEUE"]
+                connection=redis_client(), is_async=current_app.config["ASYNC_QUEUE"]
             )
     return g.queue
 
@@ -44,7 +44,7 @@ def get_queue() -> Queue:
 def api_v1_revision(version, target, subtarget):
     return jsonify(
         {
-            "revision": get_redis()
+            "revision": redis_client()
             .get(f"revision:{version}:{target}/{subtarget}")
             .decode()
         }
@@ -115,7 +115,7 @@ def validate_request(req):
         )
     )
 
-    r = get_redis()
+    r = redis_client()
 
     current_app.logger.debug("Profile before mapping " + req["profile"])
 
@@ -222,18 +222,18 @@ def api_v1_build_post():
     failure_ttl = "12h"
 
     if "client" in req:
-        get_redis().hincrby("stats:clients", req["client"])
+        redis_client().hincrby("stats:clients", req["client"])
     else:
         if request.headers.get("user-agent").startswith("auc"):
-            get_redis().hincrby(
+            redis_client().hincrby(
                 "stats:clients",
                 request.headers.get("user-agent").replace(" (", "/").replace(")", ""),
             )
         else:
-            get_redis().hincrby("stats:clients", "unknown/0")
+            redis_client().hincrby("stats:clients", "unknown/0")
 
     if job is None:
-        get_redis().incr("stats:cache-miss")
+        redis_client().incr("stats:cache-miss")
         response, status = validate_request(req)
         if response:
             return response, status
@@ -253,7 +253,7 @@ def api_v1_build_post():
         )
     else:
         if job.is_finished:
-            get_redis().incr("stats:cache-hit")
+            redis_client().incr("stats:cache-hit")
 
     return return_job_v1(job)
 

@@ -1,5 +1,6 @@
 import os
 import tempfile
+from os import getenv
 from pathlib import Path, PosixPath
 
 from asu.common import *
@@ -89,3 +90,20 @@ def test_check_manifest():
         check_manifest({"test": "1.0"}, {"test2": "1.0"})
         == "Impossible package selection: test2 not in manifest"
     )
+
+
+def test_run_container():
+    if getenv("CONTAINER_HOST"):
+        podman = PodmanClient().from_env()
+    else:
+        podman = PodmanClient(
+            base_url="unix:///Users/user/.lima/default/sock/podman.sock"
+        )
+    returncode, stdout, stderr = run_container(
+        podman,
+        "ghcr.io/openwrt/imagebuilder:testtarget-testsubtarget-v1.2.3",
+        ["make", "info"],
+    )
+
+    assert returncode == 0
+    assert "testtarget/testsubtarget" in stdout

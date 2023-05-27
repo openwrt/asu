@@ -10,13 +10,17 @@ from tempfile import NamedTemporaryFile
 
 import nacl.signing
 import requests
-from flask import current_app
 from podman import PodmanClient
-from rq import Queue, get_current_job
+
+import redis
 
 
-def is_modified(url: str) -> bool:
-    r = get_current_job().connection
+def get_redis_client(config):
+    return redis.from_url(config["REDIS_URL"])
+
+
+def is_modified(config, url: str) -> bool:
+    r = get_redis_client(config)
 
     modified_local = r.hget("last-modified", url)
     if modified_local:
@@ -224,10 +228,11 @@ def diff_packages(requested_packages: set, default_packages: set):
     )
 
 
-def run_container(image, command, mounts=[], copy=[]):
+def run_container(podman: PodmanClient, image, command, mounts=[], copy=[]):
     """Run a container and return the returncode, stdout and stderr
 
     Args:
+        podman (PodmanClient): Podman client
         image (str): Image to run
         command (list): Command to run
         mounts (list, optional): List of mounts. Defaults to [].
@@ -235,8 +240,6 @@ def run_container(image, command, mounts=[], copy=[]):
     Returns:
         tuple: (returncode, stdout, stderr)
     """
-    podman = PodmanClient().from_env()
-
     logging.info(f"Running {image} {command} {mounts}")
     container = podman.containers.run(
         image=image,

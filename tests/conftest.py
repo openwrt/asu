@@ -1,31 +1,13 @@
 import shutil
 import tempfile
+from pathlib import Path
 
 import prometheus_client
 import pytest
 from fakeredis import FakeStrictRedis
+from pytest import MonkeyPatch
 
 from asu.asu import create_app
-
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
-    )
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
-
-
-def pytest_collection_modifyitems(config, items):
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
 
 
 def redis_load_mock_data(redis):
@@ -51,23 +33,54 @@ def redis_load_mock_data(redis):
     redis.hset("mapping-abi", mapping={"test1-1": "test1"})
 
 
-@pytest.fixture()
+@pytest.fixture
 def redis_server():
     r = FakeStrictRedis()
+    redis_load_mock_data(r)
     yield r
     r.flushall()
 
 
 @pytest.fixture
+def mocked_redis(monkeypatch, redis_server):
+    def mocked_redis_client(*args, **kwargs):
+        return redis_server
+
+    monkeypatch.setattr("asu.common.get_redis_client", mocked_redis_client)
+    monkeypatch.setattr("asu.janitor.get_redis_client", mocked_redis_client)
+    monkeypatch.setattr("asu.api.get_redis_client", mocked_redis_client)
+    monkeypatch.setattr("asu.asu.get_redis_client", mocked_redis_client)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests"
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        # --runslow given in cli: do not skip slow tests
+        return
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
+
+
+@pytest.fixture
 def test_path():
-    test_path = tempfile.mkdtemp()
+    test_path = tempfile.mkdtemp(dir=Path.cwd() / "tests")
     yield test_path
     shutil.rmtree(test_path)
 
 
 @pytest.fixture
-def app(test_path, redis_server):
-    redis_load_mock_data(redis_server)
+def app(mocked_redis, test_path):
 
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
 
@@ -76,7 +89,7 @@ def app(test_path, redis_server):
             "REGISTRY": registry,
             "ASYNC_QUEUE": False,
             "JSON_PATH": test_path + "/json",
-            "REDIS_CONN": redis_server,
+            "REDIS_URL": "foobar",
             "STORE_PATH": test_path + "/store",
             "CACHE_PATH": test_path,
             "TESTING": True,
@@ -150,8 +163,7 @@ def app(test_path, redis_server):
 
 
 @pytest.fixture
-def app_using_branches_yml(test_path, redis_server):
-    redis_load_mock_data(redis_server)
+def app_using_branches_yml(mocked_redis, test_path):
 
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
 
@@ -160,7 +172,6 @@ def app_using_branches_yml(test_path, redis_server):
             "REGISTRY": registry,
             "ASYNC_QUEUE": False,
             "JSON_PATH": test_path + "/json",
-            "REDIS_CONN": redis_server,
             "STORE_PATH": test_path + "/store",
             "CACHE_PATH": test_path,
             "TESTING": True,
@@ -173,8 +184,7 @@ def app_using_branches_yml(test_path, redis_server):
 
 
 @pytest.fixture
-def app_using_default_branches(test_path, redis_server):
-    redis_load_mock_data(redis_server)
+def app_using_default_branches(mocked_redis, test_path):
 
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
 
@@ -183,7 +193,6 @@ def app_using_default_branches(test_path, redis_server):
             "REGISTRY": registry,
             "ASYNC_QUEUE": False,
             "JSON_PATH": test_path + "/json",
-            "REDIS_CONN": redis_server,
             "STORE_PATH": test_path + "/store",
             "CACHE_PATH": test_path,
             "TESTING": True,
@@ -195,7 +204,7 @@ def app_using_default_branches(test_path, redis_server):
 
 
 @pytest.fixture
-def client(app):
+def client(mocked_redis, app):
     return app.test_client()
 
 
