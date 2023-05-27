@@ -114,19 +114,6 @@ def create_app(test_config: dict = None) -> Flask:
             version=__version__,
         )
 
-    @app.route("/stats")
-    def stats():
-        branch_stats = {}
-        for branch, data in branches.items():
-            branch_stats.setdefault(branch, {})["profiles"] = asu.common.stats_profiles(
-                branch
-            )[0:5]
-        return render_template(
-            "stats.html",
-            versions=asu.common.stats_versions(),
-            branch_stats=branch_stats,
-        )
-
     for package, source in app.config.get("MAPPING_ABI", {}).items():
         if not redis_client.hexists("mapping-abi", package):
             redis_client.hset("mapping-abi", package, source)
