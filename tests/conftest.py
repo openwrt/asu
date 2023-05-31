@@ -81,7 +81,6 @@ def test_path():
 
 @pytest.fixture
 def app(mocked_redis, test_path):
-
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
 
     mock_app = create_app(
@@ -164,7 +163,6 @@ def app(mocked_redis, test_path):
 
 @pytest.fixture
 def app_using_branches_yml(mocked_redis, test_path):
-
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
 
     mock_app = create_app(
@@ -185,7 +183,6 @@ def app_using_branches_yml(mocked_redis, test_path):
 
 @pytest.fixture
 def app_using_default_branches(mocked_redis, test_path):
-
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
 
     mock_app = create_app(
