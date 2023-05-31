@@ -4,45 +4,47 @@ volumes:
   redis:
 services:
   server:
-    image: "aparcar/asu:latest"
+    image: "localhost/aparcar/asu:latest"
     build:
       context: ./
       dockerfile: Containerfile
     environment:
-      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis/
     volumes:
-      - "./asu-service/public/:/app/public/"
+      - "./asu-service/public/:/app/public/:rw"
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
       - redis
 
   worker:
-    image: "aparcar/asu:latest"
+    image: "localhost/aparcar/asu:latest"
     build:
       context: ./
       dockerfile: Containerfile
     command: rqworker --url "redis://redis"
     environment:
       - CONTAINER_HOST=unix:///tmp/socket/podman.sock
+      - REDIS_URL=redis://redis/
     volumes:
-      - ./asu-service/public/:/app/public/
-      - podman-sock:/tmp/socket/
+      - ./asu-service/public/:/app/public/:rw
+      - podman-sock:/tmp/socket/:rw
     depends_on:
       - redis
       - podman
 
   worker2:
-    image: "aparcar/asu:latest"
+    image: "localhost/aparcar/asu:latest"
     build:
       context: ./
       dockerfile: Containerfile
     command: rqworker --url "redis://redis"
     environment:
       - CONTAINER_HOST=unix:///tmp/socket/podman.sock
+      - REDIS_URL=redis://redis/
     volumes:
-      - ./asu-service/public/:/app/public/
-      - podman-sock:/tmp/socket/
+      - ./asu-service/public/:/app/public/:rw
+      - podman-sock:/tmp/socket/:rw
     depends_on:
       - redis
       - podman
@@ -55,9 +57,9 @@ services:
     command: sh -c "mkdir -p /tmp/socket && podman system service --time=0 unix:///tmp/socket/podman.sock"
 
   redis:
-    image: "redis:alpine"
+    image: "docker.io/redis:alpine"
     volumes:
-      - redis:/data/
+      - redis:/data/:rw
 
 # Podman may not allow ports 1024, consider using an external web server
 # webserver:

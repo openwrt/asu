@@ -3,20 +3,20 @@ import hashlib
 import json
 import logging
 import struct
+from os import getenv
 from pathlib import Path
 from re import match
 from shutil import unpack_archive
 from tempfile import NamedTemporaryFile
 
 import nacl.signing
+import redis
 import requests
 from podman import PodmanClient
 
-import redis
-
 
 def get_redis_client(config):
-    return redis.from_url(config["REDIS_URL"])
+    return redis.from_url(getenv("REDIS_URL") or config["REDIS_URL"])
 
 
 def is_modified(config, url: str) -> bool:

@@ -94,7 +94,7 @@ def create_app(test_config: dict = None) -> Flask:
 
     from . import metrics
 
-    redis_client = get_redis_client(app.config["REDIS_URL"])
+    redis_client = get_redis_client(app.config)
 
     app.config["REGISTRY"].register(metrics.BuildCollector(redis_client))
 
