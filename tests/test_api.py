@@ -243,7 +243,7 @@ def test_api_build_prerelease_rc(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="21.02.0",
+            version="21.02.7",
             target="testtarget/testsubtarget",
             profile="testprofile",
             packages=["test1", "test2"],
@@ -284,7 +284,7 @@ def test_api_build_real_x86(app):
         "/api/v1/build",
         json=dict(
             target="x86/64",
-            version="SNAPSHOT",
+            version="21.02.7",
             packages=["tmux", "vim"],
             profile="some_random_cpu_which_doesnt_exists_as_profile",
         ),
@@ -297,7 +297,7 @@ def test_api_build_real_x86(app):
         "/api/v1/build",
         json=dict(
             target="x86/64",
-            version="SNAPSHOT",
+            version="21.02.7",
             packages=["tmux", "vim"],
             profile="some_random_cpu_which_doesnt_exists_as_profile",
             filesystem="ext4",
@@ -316,7 +316,7 @@ def test_api_build_real_ath79(app):
         "/api/v1/build",
         json=dict(
             target="ath79/generic",
-            version="SNAPSHOT",
+            version="21.02.7",
             packages=["tmux", "vim"],
             profile="tplink_tl-wdr4300-v1",
         ),
@@ -329,7 +329,7 @@ def test_api_build_real_ath79(app):
         "/api/v1/build",
         json=dict(
             target="ath79/generic",
-            version="SNAPSHOT",
+            version="21.02.7",
             packages=["tmux", "vim"],
             profile="tplink_tl-wdr4300-v1",
             filesystem="squashfs",
