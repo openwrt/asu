@@ -36,7 +36,7 @@ def test_update_meta_latest_json(app):
         update_meta_json(app.config)
     latest_json = json.loads((app.config["JSON_PATH"] / "latest.json").read_text())
     assert "19.07.7" in latest_json["latest"]
-    assert "21.02.0" in latest_json["latest"]
+    assert "21.02.7" in latest_json["latest"]
     assert "SNAPSHOT" in latest_json["latest"]
 
 

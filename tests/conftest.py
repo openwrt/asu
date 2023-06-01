@@ -23,13 +23,17 @@ def redis_load_mock_data(redis):
     redis.sadd("packages:SNAPSHOT:SNAPSHOT:ath79/generic", "vim", "tmux")
     redis.sadd("packages:SNAPSHOT:SNAPSHOT:x86/64", "vim", "tmux")
 
+    redis.sadd("profiles:21.02:21.02.7:ath79/generic", "tplink_tl-wdr4300-v1")
+    redis.sadd("packages:21.02:21.02.7:ath79/generic", "vim", "tmux")
+    redis.sadd("packages:21.02:21.02.7:x86/64", "vim", "tmux")
+
     redis.hset(
         "mapping:1.2:1.2.3:testtarget/testsubtarget",
         mapping={"testvendor,testprofile": "testprofile"},
     )
     redis.sadd("targets:1.2", "testtarget/testsubtarget")
     redis.sadd("targets:SNAPSHOT", "ath79/generic", "x86/64")
-    redis.sadd("targets:21.02", "testtarget/testsubtarget")
+    redis.sadd("targets:21.02", "testtarget/testsubtarget", "ath79/generic", "x86/64")
     redis.hset("mapping-abi", mapping={"test1-1": "test1"})
 
 
@@ -133,7 +137,7 @@ def app(mocked_redis, test_path):
                     "name": "21.02",
                     "enabled": True,
                     "snapshot": True,
-                    "versions": ["21.02.0", "21.02.0-rc4", "21.02-SNAPSHOT"],
+                    "versions": ["21.02.7", "21.02.0", "21.02.0-rc4", "21.02-SNAPSHOT"],
                     "git_branch": "openwrt-21.02",
                     "path": "releases/{version}",
                     "path_packages": "releases/packages-{branch}",
