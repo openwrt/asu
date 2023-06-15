@@ -132,7 +132,7 @@ def validate_request(req):
         r.hget(f"architecture:{req['branch']}", req["target"]) or b""
     ).decode()
 
-    if req["target"] in ["x86/64", "x86/generic", "x86/geode", "x86/legacy"]:
+    if req["target"] in ["x86/64", "x86/generic", "x86/geode", "x86/legacy", "armsr/armv7", "armsr/armv8"]:
         current_app.logger.debug("Use generic profile for {req['target']}")
         req["profile"] = "generic"
     else:
