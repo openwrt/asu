@@ -41,12 +41,7 @@ def build(req: dict, job=None):
 
     log.debug(f"Building {req}")
 
-    if getenv("CONTAINER_HOST"):
-        podman = PodmanClient().from_env()
-    else:
-        podman = PodmanClient(
-            base_url="unix:///Users/user/.lima/default/sock/podman.sock"
-        )
+    podman = PodmanClient().from_env()
 
     log.debug(f"Podman version: {podman.version()}")
 
