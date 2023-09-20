@@ -137,6 +137,9 @@ def create_app(test_config: dict = None) -> Flask:
                 "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1",
                 "BRANCHES": app.config["BRANCHES"],
                 "UPSTREAM_URL": app.config["UPSTREAM_URL"],
+                "ALLOW_DEFAULTS": app.config["ALLOW_DEFAULTS"],
+                "REPOSITORY_ALLOW_LIST": app.config["REPOSITORY_ALLOW_LIST"],
+                "REDIS_URL": app.config["REDIS_URL"],
             },
             job_timeout="10m",
         )
