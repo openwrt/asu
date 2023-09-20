@@ -1,4 +1,35 @@
 branches:
+  "23.05":
+    enabled: true
+    extra_keys: []
+    extra_repos: {}
+    git_branch: openwrt-23.05
+    branch_off_rev: 23069
+    name: "23.05"
+    path: releases/{version}
+    path_packages: releases/packages-{branch}
+    pubkey: RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+
+    release_date: "2023-06-09"
+    repos:
+      - base
+      - packages
+      - luci
+      - routing
+      - telephony
+    snapshot: false
+    updates: features
+    versions:
+      - 23.05.0-rc3
+      - 23.05.0-rc2
+      - 23.05-SNAPSHOT
+    package_changes:
+      - source: kmod-nft-nat6
+        revision: 19160
+        mandatory: true
+      - source: firewall
+        target: firewall4
+        revision: 18611
+
   "22.03":
     enabled: true
     extra_keys: []
@@ -9,7 +40,7 @@ branches:
     path: releases/{version}
     path_packages: releases/packages-{branch}
     pubkey: RWRNAX5vHtXWFmt+n5di7XX8rTu0w+c8X7Ihv4oCyD6tzsUwmH0A6kO0
-    release_date: 2022-10-17
+    release_date: "2022-10-17"
     repos:
       - base
       - packages
@@ -21,7 +52,6 @@ branches:
     versions:
       - 22.03.5
       - 22.03.4
-      - 22.03.3
       - 22.03-SNAPSHOT
     package_changes:
       - source: kmod-nft-nat6
@@ -29,9 +59,6 @@ branches:
         mandatory: true
       - source: firewall
         target: firewall4
-        revision: 18611
-      - source: procd-ujail-console
-        target: uxc
         revision: 18611
 
   "21.02":
@@ -44,7 +71,7 @@ branches:
     path: releases/{version}
     path_packages: releases/packages-{branch}
     pubkey: RWQviwuY4IMGvwLfs6842A0m4EZU1IjczTxKMSk3BQP8DAQLHBwdQiaU
-    release_date: 2022-10-17
+    release_date: "2022-10-17"
     repos:
       - base
       - packages
@@ -56,7 +83,6 @@ branches:
     versions:
       - 21.02.7
       - 21.02.6
-      - 21.02.5
       - 21.02-SNAPSHOT
 
   SNAPSHOT:
@@ -84,7 +110,4 @@ branches:
         mandatory: true
       - source: firewall
         target: firewall4
-        revision: 18611
-      - source: procd-ujail-console
-        target: uxc
         revision: 18611
