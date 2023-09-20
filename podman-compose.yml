@@ -9,6 +9,7 @@ services:
     build:
       context: ./
       dockerfile: Containerfile
+    restart: always
     environment:
       - REDIS_URL=redis://redis/
       - ALLOW_DEFAULTS
@@ -23,6 +24,7 @@ services:
     build:
       context: ./
       dockerfile: Containerfile
+    restart: always
     command: rqworker
     environment:
       - CONTAINER_HOST=unix://$CONTAINER_SOCK
@@ -38,6 +40,7 @@ services:
     build:
       context: ./
       dockerfile: Containerfile
+    restart: always
     command: rqworker
     environment:
       - CONTAINER_HOST=unix://$CONTAINER_SOCK
@@ -50,16 +53,6 @@ services:
 
   redis:
     image: "docker.io/redis:alpine"
+    restart: always
     volumes:
       - redis:/data/:rw
-
-# Podman may not allow ports 1024, consider using an external web server
-# webserver:
-#   image: caddy
-#   volumes:
-#     - "./misc/Caddyfile:/etc/caddy/Caddyfile"
-#     - "./asu-service:/site/"
-#   ports:
-#     - "8000:8081"
-#   depends_on:
-#     - server
