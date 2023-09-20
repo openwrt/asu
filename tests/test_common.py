@@ -93,12 +93,7 @@ def test_check_manifest():
 
 
 def test_run_container():
-    if getenv("CONTAINER_HOST"):
-        podman = PodmanClient().from_env()
-    else:
-        podman = PodmanClient(
-            base_url="unix:///Users/user/.lima/default/sock/podman.sock"
-        )
+    podman = PodmanClient().from_env()
     returncode, stdout, stderr = run_container(
         podman,
         "ghcr.io/openwrt/imagebuilder:testtarget-testsubtarget-v1.2.3",
