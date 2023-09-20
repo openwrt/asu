@@ -238,7 +238,7 @@ def api_v1_build_post():
         if response:
             return response, status
 
-        req["store_path"] = current_app.config["STORE_PATH"]
+        req["public_path"] = current_app.config["PUBLIC_PATH"]
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
         req["repository_allow_list"] = current_app.config["REPOSITORY_ALLOW_LIST"]
         req["request_hash"] = request_hash
@@ -324,7 +324,7 @@ def api_build_post():
         if response:
             return response, status
 
-        req["store_path"] = current_app.config["STORE_PATH"]
+        req["public_path"] = current_app.config["PUBLIC_PATH"]
         if current_app.config.get("CACHE_PATH"):
             req["cache_path"] = current_app.config.get("CACHE_PATH")
         req["upstream_url"] = current_app.config["UPSTREAM_URL"]

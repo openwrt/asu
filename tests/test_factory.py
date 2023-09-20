@@ -2,10 +2,8 @@ from pathlib import PosixPath
 
 
 def test_pathlib(app):
-    assert isinstance(app.config["STORE_PATH"], PosixPath)
-    assert isinstance(app.config["JSON_PATH"], PosixPath)
-    assert app.config["STORE_PATH"].is_dir()
-    assert app.config["JSON_PATH"].is_dir()
+    assert isinstance(app.config["PUBLIC_PATH"], PosixPath)
+    assert app.config["PUBLIC_PATH"].is_dir()
 
 
 def test_branches_yaml(app_using_branches_yml):

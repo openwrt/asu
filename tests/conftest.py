@@ -91,9 +91,8 @@ def app(mocked_redis, test_path):
         {
             "REGISTRY": registry,
             "ASYNC_QUEUE": False,
-            "JSON_PATH": test_path + "/json",
+            "PUBLIC_PATH": test_path,
             "REDIS_URL": "foobar",
-            "STORE_PATH": test_path + "/store",
             "CACHE_PATH": test_path,
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",
@@ -173,8 +172,7 @@ def app_using_branches_yml(mocked_redis, test_path):
         {
             "REGISTRY": registry,
             "ASYNC_QUEUE": False,
-            "JSON_PATH": test_path + "/json",
-            "STORE_PATH": test_path + "/store",
+            "PUBLIC_PATH": test_path,
             "CACHE_PATH": test_path,
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",
@@ -193,8 +191,7 @@ def app_using_default_branches(mocked_redis, test_path):
         {
             "REGISTRY": registry,
             "ASYNC_QUEUE": False,
-            "JSON_PATH": test_path + "/json",
-            "STORE_PATH": test_path + "/store",
+            "PUBLIC_PATH": test_path,
             "CACHE_PATH": test_path,
             "TESTING": True,
             "UPSTREAM_URL": "http://localhost:8001",

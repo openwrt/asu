@@ -31,8 +31,9 @@ def build(req: dict, job=None):
     Args:
         request (dict): Contains all properties of requested image
     """
-    req["store_path"].mkdir(parents=True, exist_ok=True)
-    log.debug(f"Store path: {req['store_path']}")
+    store_path = req["public_path"] / "store"
+    store_path.mkdir(parents=True, exist_ok=True)
+    log.debug(f"Store path: {store_path}")
 
     job = job or get_current_job()
     job.meta["detail"] = "init"
@@ -105,8 +106,8 @@ def build(req: dict, job=None):
     mounts = []
 
     bin_dir = req["request_hash"]
-    (req["store_path"] / bin_dir / "keys").mkdir(parents=True, exist_ok=True)
-    log.debug("Created store path: %s", req["store_path"] / bin_dir)
+    (store_path / bin_dir / "keys").mkdir(parents=True, exist_ok=True)
+    log.debug("Created store path: %s", store_path / bin_dir)
 
     if "repository_keys" in req:
         log.debug("Found extra keys")
@@ -115,14 +116,14 @@ def build(req: dict, job=None):
             fingerprint = fingerprint_pubkey_usign(key)
             log.debug(f"Found key {fingerprint}")
 
-            (req["store_path"] / bin_dir / "keys" / fingerprint).write_text(
+            (store_path / bin_dir / "keys" / fingerprint).write_text(
                 f"untrusted comment: {fingerprint}\n{key}"
             )
 
             mounts.append(
                 {
                     "type": "bind",
-                    "source": str(req["store_path"] / bin_dir / "keys" / fingerprint),
+                    "source": str(store_path / bin_dir / "keys" / fingerprint),
                     "target": "/builder/keys/" + fingerprint,
                     "read_only": True,
                 },
@@ -139,12 +140,12 @@ def build(req: dict, job=None):
 
         repositories += "src imagebuilder file:packages\noption check_signature"
 
-        (req["store_path"] / bin_dir / "repositories.conf").write_text(repositories)
+        (store_path / bin_dir / "repositories.conf").write_text(repositories)
 
         mounts.append(
             {
                 "type": "bind",
-                "source": str(req["store_path"] / bin_dir / "repositories.conf"),
+                "source": str(store_path / bin_dir / "repositories.conf"),
                 "target": "/builder/repositories.conf",
                 "read_only": True,
             },
@@ -198,17 +199,16 @@ def build(req: dict, job=None):
 
     if req.get("defaults"):
         log.debug("Found defaults")
-        defaults_file = (
-            req["store_path"] / bin_dir / "files/etc/uci-defaults/99-asu-defaults"
-        )
+
+        defaults_file = store_path / bin_dir / "files/etc/uci-defaults/99-asu-defaults"
         defaults_file.parent.mkdir(parents=True)
         defaults_file.write_text(req["defaults"])
-        job.meta["build_cmd"].append(f"FILES={req['store_path'] / bin_dir / 'files'}")
+        job.meta["build_cmd"].append(f"FILES={store_path / bin_dir / 'files'}")
         mounts.append(
             {
                 "type": "bind",
-                "source": str(req["store_path"] / bin_dir / "files"),
-                "target": str(req["store_path"] / bin_dir / "files"),
+                "source": str(store_path / bin_dir / "files"),
+                "target": str(store_path / bin_dir / "files"),
                 "read_only": True,
             },
         )
@@ -218,7 +218,7 @@ def build(req: dict, job=None):
         image,
         job.meta["build_cmd"],
         mounts=mounts,
-        copy=["/builder/" + bin_dir, req["store_path"]],
+        copy=["/builder/" + bin_dir, store_path],
     )
 
     job.save_meta()
@@ -229,7 +229,7 @@ def build(req: dict, job=None):
     if "is too big" in job.meta["stderr"]:
         report_error(job, "Selected packages exceed device storage")
 
-    json_file = Path(req["store_path"] / bin_dir / "profiles.json")
+    json_file = store_path / bin_dir / "profiles.json"
 
     if not json_file.is_file():
         report_error(job, "No JSON file found")

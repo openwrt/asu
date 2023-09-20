@@ -27,14 +27,21 @@ def upstream(httpserver):
 
 def test_update_branch(app, upstream):
     # with app.app_context():
-    update_branch(app.config, app.config["BRANCHES"]["SNAPSHOT"])
-    assert (app.config["JSON_PATH"] / "snapshots/overview.json").is_file()
+    update_branch(
+        {**app.config, "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1"},
+        app.config["BRANCHES"]["SNAPSHOT"],
+    )
+    assert (app.config["PUBLIC_PATH"] / "json/v1/snapshots/overview.json").is_file()
 
 
 def test_update_meta_latest_json(app):
     with app.app_context():
-        update_meta_json(app.config)
-    latest_json = json.loads((app.config["JSON_PATH"] / "latest.json").read_text())
+        update_meta_json(
+            {**app.config, "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1"}
+        )
+    latest_json = json.loads(
+        (app.config["PUBLIC_PATH"] / "json/v1/latest.json").read_text()
+    )
     assert "19.07.7" in latest_json["latest"]
     assert "21.02.7" in latest_json["latest"]
     assert "SNAPSHOT" in latest_json["latest"]
@@ -42,6 +49,10 @@ def test_update_meta_latest_json(app):
 
 def test_update_meta_overview_json(app):
     with app.app_context():
-        update_meta_json(app.config)
-    overview_json = json.loads((app.config["JSON_PATH"] / "overview.json").read_text())
+        update_meta_json(
+            {**app.config, "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1"}
+        )
+    overview_json = json.loads(
+        (app.config["PUBLIC_PATH"] / "json/v1/overview.json").read_text()
+    )
     assert "package_changes" in overview_json["branches"]["1.2"]
