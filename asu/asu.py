@@ -31,7 +31,7 @@ def create_app(test_config: dict = None) -> Flask:
 
     app.config.from_mapping(
         PUBLIC_PATH=getenv("PUBLIC_PATH", Path.cwd() / "public"),
-        REDIS_URL=getenv("REDIS_URL"),
+        REDIS_URL=getenv("REDIS_URL") or "redis://localhost:6379",
         TESTING=False,
         DEBUG=False,
         UPSTREAM_URL="https://downloads.openwrt.org",

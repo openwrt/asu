@@ -28,7 +28,7 @@ REPOSITORY_ALLOW_LIST = [
 ]
 
 # connection string for Redis
-# REDIS_CONN = Redis(host=redis_host, port=redis_port, password=redis_password)
+# REDIS_URL = "redis://localhost:6379"
 
 # run jobs in worker processes or on the server (for testing)
 # ASYNC_QUEUE = True
