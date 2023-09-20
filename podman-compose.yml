@@ -1,60 +1,52 @@
 version: "2"
+
 volumes:
-  podman-sock:
   redis:
+
 services:
   server:
-    image: "localhost/aparcar/asu:latest"
+    image: "asu:latest"
     build:
       context: ./
       dockerfile: Containerfile
     environment:
       - REDIS_URL=redis://redis/
-    volumes:
-      - "./asu-service/public/:/app/public/:rw"
+      - ALLOW_DEFAULTS
+      - PUBLIC_PATH
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
       - redis
 
   worker:
-    image: "localhost/aparcar/asu:latest"
+    image: "asu:latest"
     build:
       context: ./
       dockerfile: Containerfile
-    command: rqworker --url "redis://redis"
+    command: rqworker
     environment:
-      - CONTAINER_HOST=unix:///tmp/socket/podman.sock
+      - CONTAINER_HOST=unix://$CONTAINER_SOCK
       - REDIS_URL=redis://redis/
     volumes:
-      - ./asu-service/public/:/app/public/:rw
-      - podman-sock:/tmp/socket/:rw
+      - $PUBLIC_PATH:$PUBLIC_PATH:rw
+      - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
     depends_on:
       - redis
-      - podman
 
   worker2:
-    image: "localhost/aparcar/asu:latest"
+    image: "asu:latest"
     build:
       context: ./
       dockerfile: Containerfile
-    command: rqworker --url "redis://redis"
+    command: rqworker
     environment:
-      - CONTAINER_HOST=unix:///tmp/socket/podman.sock
+      - CONTAINER_HOST=unix://$CONTAINER_SOCK
       - REDIS_URL=redis://redis/
     volumes:
-      - ./asu-service/public/:/app/public/:rw
-      - podman-sock:/tmp/socket/:rw
+      - $PUBLIC_PATH:$PUBLIC_PATH:rw
+      - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
     depends_on:
       - redis
-      - podman
-
-  podman:
-    image: quay.io/podman/stable
-    user: podman
-    volumes:
-      - podman-sock:/tmp/socket/
-    command: sh -c "mkdir -p /tmp/socket && podman system service --time=0 unix:///tmp/socket/podman.sock"
 
   redis:
     image: "docker.io/redis:alpine"
