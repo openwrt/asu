@@ -461,4 +461,4 @@ def test_api_build_defaults_filled_allowed(app):
     )
 
     assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "ca6122559630df13592439686ae32ebe"
+    assert response.json.get("request_hash") == "0e4cbc84b22e7cbf885102248cc9c965"
