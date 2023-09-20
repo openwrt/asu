@@ -75,7 +75,10 @@ Once Podman works, install `podman-compose`:
 
 Now it's possible to run all services via `podman-compose`:
 
-    mkdir -p ./asu-service/public/
+    # where to store images and json files
+    export PUBLIC_PATH=$(pwd)/public
+    # absolute path to podman socket mounted into worker containers
+    export CONTAINER_SOCK=/run/user/1001/podman/podman.sock
     podman-compose up -d
 
 This will start the server, the Podman API container and two workers. The first
@@ -105,6 +108,8 @@ the dependencies:
 
 #### Running a worker
 
+    # podman unix socket (not path), no need to mount anything
+    export CONTAINER_HOST=unix:///run/user/1001/podman/podman.sock
     poetry run rq worker
 ### API
 
