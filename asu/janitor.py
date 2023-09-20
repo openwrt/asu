@@ -215,6 +215,8 @@ def update_meta_json(config):
         },
     }
 
+    config["JSON_PATH"].mkdir(exist_ok=True, parents=True)
+
     (config["JSON_PATH"] / "overview.json").write_text(
         json.dumps(config["OVERVIEW"], indent=2, sort_keys=False, default=str)
     )

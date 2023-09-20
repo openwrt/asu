@@ -30,7 +30,7 @@ def create_app(test_config: dict = None) -> Flask:
     CORS(app)
 
     app.config.from_mapping(
-        JSON_PATH=Path.cwd() / "public/json/v1/",
+        PUBLIC_PATH=getenv("PUBLIC_PATH", Path.cwd() / "public"),
         REDIS_URL=getenv("REDIS_URL"),
         TESTING=False,
         DEBUG=False,
@@ -77,12 +77,12 @@ def create_app(test_config: dict = None) -> Flask:
     @app.route("/json/<path:path>")
     @app.route("/json/v1/<path:path>")
     def json_path(path="index.html"):
-        return send_from_directory(app.config["JSON_PATH"], path)
+        return send_from_directory(app.config["PUBLIC_PATH"] / "json/v1", path)
 
     @app.route("/store/")
     @app.route("/store/<path:path>")
     def store_path(path="index.html"):
-        return send_from_directory(app.config["STORE_PATH"], path)
+        return send_from_directory(app.config["PUBLIC_PATH"] / "public", path)
 
     from . import janitor
 
@@ -134,7 +134,7 @@ def create_app(test_config: dict = None) -> Flask:
         queue.enqueue(
             update,
             {
-                "JSON_PATH": app.config["JSON_PATH"],
+                "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1",
                 "BRANCHES": app.config["BRANCHES"],
                 "UPSTREAM_URL": app.config["UPSTREAM_URL"],
             },
