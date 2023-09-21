@@ -201,7 +201,7 @@ def remove_prefix(text, prefix):
 
 
 def get_container_version_tag(version: str) -> str:
-    if match(r"^\d+\.\d+\.\d+$", version):
+    if match(r"^\d+\.\d+\.\d+(-rc\d+)?$", version):
         logging.debug("Version is a release version")
         version: str = "v" + version
     else:
