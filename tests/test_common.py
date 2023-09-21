@@ -78,6 +78,7 @@ def test_get_version_container_tag():
     assert get_container_version_tag("1.0.0") == "v1.0.0"
     assert get_container_version_tag("SNAPSHOT") == "master"
     assert get_container_version_tag("1.0.0-SNAPSHOT") == "openwrt-1.0.0"
+    assert get_container_version_tag("23.05.0-rc3") == "v23.05.0-rc3"
 
 
 def test_check_manifest():
