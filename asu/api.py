@@ -108,7 +108,7 @@ def validate_request(req):
             400,
         )
 
-    req["packages"] = set(
+    req["packages"] = list(
         map(
             lambda x: remove_prefix(x, "+"),
             sorted(req.get("packages_versions", {}).keys() or req.get("packages", [])),
@@ -245,7 +245,7 @@ def api_v1_build_post():
         if response:
             return response, status
 
-        req["public_path"] = current_app.config["PUBLIC_PATH"]
+        req["public_path"] = str(current_app.config["PUBLIC_PATH"])
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
         req["repository_allow_list"] = current_app.config["REPOSITORY_ALLOW_LIST"]
         req["request_hash"] = request_hash

@@ -113,7 +113,7 @@ def get_request_hash(req: dict) -> str:
                 req.get("version_code", ""),
                 req.get("target", ""),
                 req.get("profile", "").replace(",", "_"),
-                get_packages_hash(req.get("packages", "")),
+                get_packages_hash(req.get("packages", [])),
                 get_manifest_hash(req.get("packages_versions", {})),
                 str(req.get("diff_packages", False)),
                 req.get("filesystem", ""),
@@ -224,8 +224,11 @@ def diff_packages(requested_packages: set, default_packages: set):
     Returns:
         set: Set of packages to install and remove"""
     remove_packages = default_packages - requested_packages
-    return requested_packages | set(
-        map(lambda p: f"-{p}".replace("--", "-"), remove_packages)
+    return list(
+        sorted(
+            requested_packages
+            | set(map(lambda p: f"-{p}".replace("--", "-"), remove_packages))
+        )
     )
 
 

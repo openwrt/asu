@@ -34,14 +34,14 @@ def test_get_request_hash():
 
 
 def test_diff_packages():
-    assert diff_packages({"test1"}, {"test1", "test2"}) == {"test1", "-test2"}
-    assert diff_packages({"test1"}, {"test1"}) == {"test1"}
-    assert diff_packages({"test1"}, {"test2", "test3"}) == {"test1", "-test2", "-test3"}
-    assert diff_packages({"test1"}, {"test2", "-test3"}) == {
-        "test1",
+    assert diff_packages({"test1"}, {"test1", "test2"}) == ["-test2", "test1"]
+    assert diff_packages({"test1"}, {"test1"}) == ["test1"]
+    assert diff_packages({"test1"}, {"test2", "test3"}) == ["-test2", "-test3", "test1"]
+    assert diff_packages({"test1"}, {"test2", "-test3"}) == [
         "-test2",
         "-test3",
-    }
+        "test1",
+    ]
 
 
 def test_fingerprint_pubkey_usign():
