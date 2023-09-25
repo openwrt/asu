@@ -31,12 +31,13 @@ def build(req: dict, job=None):
     Args:
         request (dict): Contains all properties of requested image
     """
-    store_path = req["public_path"] / "store"
+    store_path = Path(req["public_path"]) / "store"
     store_path.mkdir(parents=True, exist_ok=True)
     log.debug(f"Store path: {store_path}")
 
     job = job or get_current_job()
     job.meta["detail"] = "init"
+    job.meta["request"] = req
     job.save_meta()
 
     log.debug(f"Building {req}")
@@ -90,10 +91,10 @@ def build(req: dict, job=None):
     )
 
     if req.get("diff_packages"):
-        req["packages"] = diff_packages(
-            req["packages"], default_packages | profile_packages
+        req["build_cmd_packages"] = diff_packages(
+            set(req["packages"]), default_packages | profile_packages
         )
-        log.debug(f"Diffed packages: {req['packages']}")
+        log.debug(f"Diffed packages: {req['build_cmd_packages']}")
 
     job.meta["imagebuilder_status"] = "calculate_packages_hash"
     job.save_meta()
@@ -153,7 +154,7 @@ def build(req: dict, job=None):
             "make",
             "manifest",
             f"PROFILE={req['profile']}",
-            f"PACKAGES={' '.join(sorted(req.get('packages', [])))}",
+            f"PACKAGES={' '.join(sorted(req.get('build_cmd_packages', [])))}",
             "STRIP_ABI=1",
         ],
         mounts=mounts,
@@ -178,7 +179,7 @@ def build(req: dict, job=None):
         "make",
         "image",
         f"PROFILE={req['profile']}",
-        f"PACKAGES={' '.join(sorted(req.get('packages', [])))}",
+        f"PACKAGES={' '.join(sorted(req.get('build_cmd_packages', [])))}",
         f"EXTRA_IMAGE_NAME={packages_hash}",
         f"BIN_DIR=/builder/{bin_dir}",
     ]
