@@ -3,7 +3,6 @@ from pathlib import Path
 
 import connexion
 from flask import Flask, render_template, send_from_directory
-from flask_cors import CORS
 from pkg_resources import resource_filename
 from prometheus_client import CollectorRegistry, make_wsgi_app
 from rq import Queue
@@ -27,8 +26,6 @@ def create_app(test_config: dict = None) -> Flask:
 
     cnxn = connexion.FlaskApp(__name__)
     app = cnxn.app
-    CORS(app)
-
     app.config.from_mapping(
         PUBLIC_PATH=getenv("PUBLIC_PATH", Path.cwd() / "public"),
         REDIS_URL=getenv("REDIS_URL") or "redis://localhost:6379",
