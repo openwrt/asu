@@ -272,14 +272,8 @@ def run_container(
 
     returncode = container.wait()
 
-    # Podman 4.x changed the way logs are returned
-    if podman.version()["Version"].startswith("3"):
-        delimiter = b"\n"
-    else:
-        delimiter = b""
-
-    stdout = delimiter.join(container.logs(stdout=True, stderr=False)).decode("utf-8")
-    stderr = delimiter.join(container.logs(stdout=False, stderr=True)).decode("utf-8")
+    stdout = b"".join(container.logs(stdout=True, stderr=False)).decode("utf-8")
+    stderr = b"".join(container.logs(stdout=False, stderr=True)).decode("utf-8")
 
     logging.debug(f"returncode: {returncode}")
     logging.debug(f"stdout: {stdout}")
