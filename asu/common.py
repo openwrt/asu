@@ -232,7 +232,16 @@ def diff_packages(requested_packages: set, default_packages: set):
     )
 
 
-def run_container(podman: PodmanClient, image, command, mounts=[], copy=[]):
+def run_container(
+    podman: PodmanClient,
+    image,
+    command,
+    mounts=[],
+    copy=[],
+    user=None,
+    environment={},
+    working_dir=None,
+):
     """Run a container and return the returncode, stdout and stderr
 
     Args:
@@ -250,10 +259,12 @@ def run_container(podman: PodmanClient, image, command, mounts=[], copy=[]):
         command=command,
         detach=True,
         mounts=mounts,
-        userns_mode="keep-id",
         cap_drop=["all"],
         no_new_privileges=True,
         privileged=False,
+        user=user,
+        working_dir=working_dir,
+        environment=environment,
     )
 
     returncode = container.wait()
