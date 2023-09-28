@@ -236,6 +236,77 @@ def build(req: dict, job=None):
     if req["profile"] not in json_content["profiles"]:
         report_error(job, "Profile not found in JSON file")
 
+    # get list of installable images to sign (i.e. don't sign kernel)
+    images = list(
+        map(
+            lambda i: i["name"],
+            filter(
+                lambda i: i["type"]
+                in ["sysupgrade", "factory", "combined", "combined-efi"],
+                json_content["profiles"][req["profile"]]["images"],
+            ),
+        )
+    )
+
+    log.info(f"Signing images: {images}")
+
+    # job.meta["imagebuilder_status"] = "signing_images"
+    job.save_meta()
+
+    build_key = getenv("BUILD_KEY") or str(Path.cwd() / "key-build")
+
+    if Path(build_key).is_file():
+        log.info(f"Signing images with key {build_key}")
+        returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
+            podman,
+            image,
+            [
+                "bash",
+                "-c",
+                (
+                    "env;"
+                    "for IMAGE in $IMAGES_TO_SIGN; do "
+                    "touch ${IMAGE}.test;"
+                    'fwtool -t -s /dev/null "$IMAGE" && echo "sign entfern";'
+                    'cp "/builder/key-build.ucert" "$IMAGE.ucert" && echo "moved";'
+                    'usign -S -m "$IMAGE" -s "/builder/key-build" -x "$IMAGE.sig"  && echo "usign";'
+                    'ucert -A -c "$IMAGE.ucert" -x "$IMAGE.sig" && echo "ucert";'
+                    'fwtool -S "$IMAGE.ucert" "$IMAGE" && echo "fwtool";'
+                    "done"
+                ),
+            ],
+            mounts=[
+                {
+                    "type": "bind",
+                    "source": build_key,
+                    "target": "/builder/key-build",
+                    "read_only": True,
+                },
+                {
+                    "type": "bind",
+                    "source": build_key + ".ucert",
+                    "target": "/builder/key-build.ucert",
+                    "read_only": True,
+                },
+                {
+                    "type": "bind",
+                    "source": str(store_path / bin_dir),
+                    "target": str(store_path / bin_dir),
+                    "read_only": False,
+                },
+            ],
+            user="root",  # running as root to have write access to the mounted volume
+            working_dir=str(store_path / bin_dir),
+            environment={
+                "IMAGES_TO_SIGN": " ".join(images),
+                "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/builder/staging_dir/host/bin",
+            },
+        )
+        job.save_meta()
+
+    else:
+        log.warning("No build key found, skipping signing")
+
     json_content.update({"manifest": manifest})
     json_content.update(json_content["profiles"][req["profile"]])
     json_content["id"] = req["profile"]
