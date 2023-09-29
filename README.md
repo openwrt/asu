@@ -24,6 +24,8 @@ It offers a device search based on model names and show links either to
 _asu_ API. Please join in the development at
 [GitLab repository](https://gitlab.com/openwrt/web/firmware-selector-openwrt-org)
 
+* https://firmware-selector.openwrt.org
+
 ![ofs](misc/ofs.png)
 
 ### LuCI app
