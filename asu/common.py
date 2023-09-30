@@ -304,8 +304,11 @@ def run_container(
         host_tar.close()
         logging.debug(f"Closed {host_tar}")
 
-    container.remove(v=True)
-    podman.volumes.prune()  # TODO: remove once v=True works
+    try:
+        container.remove(v=True)
+        podman.volumes.prune()  # TODO: remove once v=True works
+    except Exception as e:
+        logging.warning(f"Failed to remove container: {e}")
 
     return returncode, stdout, stderr
 
