@@ -19,8 +19,8 @@ branches:
     snapshot: false
     updates: features
     versions:
+      - 23.05.0-rc4
       - 23.05.0-rc3
-      - 23.05.0-rc2
       - 23.05-SNAPSHOT
     package_changes:
       - source: kmod-nft-nat6
