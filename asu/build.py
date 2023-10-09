@@ -90,6 +90,10 @@ def build(req: dict, job=None):
         .split()
     )
 
+    if req["target"] == "mediatek/mt7622" and req["version"].startswith("23.05"):
+        req["packages"].append("kmod-mt7622-firmware")
+        log.debug(f"Added kmod-mt7622-firmware to packages")
+
     if req.get("diff_packages"):
         req["build_cmd_packages"] = diff_packages(
             set(req["packages"]), default_packages | profile_packages
