@@ -1,13 +1,10 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from shutil import rmtree
 
 import requests
 from flask import Blueprint
 from rq import Queue
-from rq.exceptions import NoSuchJobError
-from rq.registry import FinishedJobRegistry
 
 from asu import __version__
 from asu.common import get_redis_client, is_modified

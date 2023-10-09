@@ -10,9 +10,10 @@ from shutil import unpack_archive
 from tempfile import NamedTemporaryFile
 
 import nacl.signing
-import redis
 import requests
 from podman import PodmanClient
+
+import redis
 
 
 def get_redis_client(config):
