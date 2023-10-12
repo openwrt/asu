@@ -9,7 +9,7 @@ branches:
     path: releases/{version}
     path_packages: releases/packages-{branch}
     pubkey: RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+
-    release_date: "2023-06-09"
+    release_date: "2023-10-14"
     repos:
       - base
       - packages
@@ -19,6 +19,7 @@ branches:
     snapshot: false
     updates: features
     versions:
+      - 23.05.0
       - 23.05.0-rc4
       - 23.05.0-rc3
       - 23.05-SNAPSHOT
