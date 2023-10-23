@@ -95,6 +95,8 @@ def build(req: dict, job=None):
             set(req["packages"]), default_packages | profile_packages
         )
         log.debug(f"Diffed packages: {req['build_cmd_packages']}")
+    else:
+        req["build_cmd_packages"] = req["packages"]
 
     job.meta["imagebuilder_status"] = "calculate_packages_hash"
     job.save_meta()
