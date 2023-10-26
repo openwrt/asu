@@ -94,6 +94,24 @@ def build(req: dict, job=None):
         req["packages"].append("kmod-mt7622-firmware")
         log.debug(f"Added kmod-mt7622-firmware to packages")
 
+    if req["target"] == "ath79/generic" and req["version"].startswith("23.05"):
+        if req["profile"] in {
+            "buffalo_wzr-hp-g300nh-s",
+            "dlink_dir-825-b1",
+            "netgear_wndr3700",
+            "netgear_wndr3700-v2",
+            "netgear_wndr3800",
+            "netgear_wndr3800ch",
+            "netgear_wndrmac-v1",
+            "netgear_wndrmac-v2",
+            "trendnet_tew-673gru",
+        }:
+            req["packages"].append("kmod-switch-rtl8366s")
+            log.debug("Added kmod-switch-rtl8366s to packages")
+        if req["profile"] == "buffalo_wzr-hp-g300nh-rb":
+            req["packages"].append("kmod-switch-rtl8366rb")
+            log.debug("Added kmod-switch-rtl8366rb to packages")
+
     if req.get("diff_packages"):
         req["build_cmd_packages"] = diff_packages(
             set(req["packages"]), default_packages | profile_packages
