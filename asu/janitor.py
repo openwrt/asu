@@ -218,22 +218,25 @@ def update(config):
     downloaded and stored in the Redis database.
     """
 
-    if not config["BRANCHES"]:
-        logging.error("No BRANCHES defined in config, nothing to do, exiting")
-        return
-    for branch in config["BRANCHES"].values():
-        if not branch.get("enabled"):
-            logging.info(f"{branch['name']}: Skip disabled branch")
-            continue
+    try:
+        if not config["BRANCHES"]:
+            logging.error("No BRANCHES defined in config, nothing to do, exiting")
+            return
+        for branch in config["BRANCHES"].values():
+            if not branch.get("enabled"):
+                logging.info(f"{branch['name']}: Skip disabled branch")
+                continue
 
-        logging.info(f"Update {branch['name']}")
-        update_branch(config, branch)
+            logging.info(f"Update {branch['name']}")
+            update_branch(config, branch)
 
-    update_meta_json(config)
+        update_meta_json(config)
+    except Exception:
+        logging.exception("Failed to update")
 
     Queue(connection=get_redis_client(config)).enqueue_in(
         timedelta(minutes=10),
         update,
         config,
-        job_timeout="1m",
+        job_timeout="10m",
     )

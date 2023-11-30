@@ -25,7 +25,7 @@ services:
       context: ./
       dockerfile: Containerfile
     restart: always
-    command: rqworker
+    command: rqworker --with-scheduler
     environment:
       - CONTAINER_HOST=unix://$CONTAINER_SOCK
       - REDIS_URL=redis://redis/
@@ -41,7 +41,7 @@ services:
       context: ./
       dockerfile: Containerfile
     restart: always
-    command: rqworker
+    command: rqworker --with-scheduler
     environment:
       - CONTAINER_HOST=unix://$CONTAINER_SOCK
       - REDIS_URL=redis://redis/
