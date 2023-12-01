@@ -379,13 +379,13 @@ toml = ["tomli"]
 
 [[package]]
 name = "fakeredis"
-version = "2.19.0"
+version = "2.20.0"
 description = "Python implementation of redis API, can be used for testing purposes."
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "fakeredis-2.19.0-py3-none-any.whl", hash = "sha256:83dbf922d07244d114103843d8d4e760fa25119a5fc88cfc21b4548ea2d6353c"},
-    {file = "fakeredis-2.19.0.tar.gz", hash = "sha256:e136cd13bddd7e7f71270cc7c4693d14f975d929135eb0f8625ef55f204eee25"},
+    {file = "fakeredis-2.20.0-py3-none-any.whl", hash = "sha256:c9baf3c7fd2ebf40db50db4c642c7c76b712b1eed25d91efcc175bba9bc40ca3"},
+    {file = "fakeredis-2.20.0.tar.gz", hash = "sha256:69987928d719d1ae1665ae8ebb16199d22a5ebae0b7d0d0d6586fc3a1a67428c"},
 ]
 
 [package.dependencies]
@@ -1272,4 +1272,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "5f5f07c57e55909d4f4ececa1286aee67d538bd6fab5a8446c7c638148cbaf75"
+content-hash = "c0188a72004982fe51139e74b6b2b92e21dcdd73b97455910b08de5e55292282"
