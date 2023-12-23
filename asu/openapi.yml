@@ -279,7 +279,7 @@ components:
           description: |
             Custom shell script embedded in firmware image to be run on first
             boot. This feature might be dropped in the future. Size is limited
-            to 10kB and can not be exceeded.
+            to 20kB and can not be exceeded.
           maxLength: 20480
         repository_keys:
           type: array
