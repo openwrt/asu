@@ -13,7 +13,7 @@ PyNaCl = "^1.5.0"
 redis = ">=4.5.1,<6.0.0"
 requests = "^2.28.2"
 rq = "^1.13.0"
-connexion = {extras = ["swagger-ui"], version = "^2.14.2"}
+connexion = {extras = ["swagger-ui"], version = ">=2.14.2,<4.0.0"}
 prometheus-client = ">=0.13.1,<0.20.0"
 gunicorn = ">=20.1,<22.0"
 podman = "^4.4.1"
