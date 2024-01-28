@@ -84,7 +84,7 @@ Now it's possible to run all services via `podman-compose`:
     podman-compose up -d
 
 This will start the server, the Podman API container and two workers. The first
-run needs a few minutes since available packages are parsed from teh upstream
+run needs a few minutes since available packages are parsed from the upstream
 server. Once the server is running, it's possible to request images via the API
 on `http://localhost:8000`. Modify `podman-compose.yml` to change the port.
 
