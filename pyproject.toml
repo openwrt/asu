@@ -23,7 +23,7 @@ pytest = "^7.4.3"
 pytest-httpserver = "^1.0.6"
 fakeredis = "^2.20.1"
 flake8 = "^5.0.4"
-black = "^23.12.1"
+black = "^24.1.1"
 coverage = "^7.4.0"
 isort = "^5.13.2"
 
