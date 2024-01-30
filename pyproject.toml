@@ -24,7 +24,7 @@ pytest-httpserver = "^1.0.6"
 fakeredis = "^2.20.1"
 flake8 = "^5.0.4"
 black = "^24.1.1"
-coverage = "^7.4.0"
+coverage = "^7.4.1"
 isort = "^5.13.2"
 
 [build-system]
