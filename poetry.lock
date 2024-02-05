@@ -396,13 +396,13 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fakeredis"
-version = "2.20.1"
+version = "2.21.0"
 description = "Python implementation of redis API, can be used for testing purposes."
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "fakeredis-2.20.1-py3-none-any.whl", hash = "sha256:d1cb22ed76b574cbf807c2987ea82fc0bd3e7d68a7a1e3331dd202cc39d6b4e5"},
-    {file = "fakeredis-2.20.1.tar.gz", hash = "sha256:a2a5ccfcd72dc90435c18cde284f8cdd0cb032eb67d59f3fed907cde1cbffbbd"},
+    {file = "fakeredis-2.21.0-py3-none-any.whl", hash = "sha256:dcea37c57a1aaf39bed1227aea20de052fb19dc030ccac3f8a73324b2ec90cee"},
+    {file = "fakeredis-2.21.0.tar.gz", hash = "sha256:1b3ff9c068e39c43725f2373b105228cd03e6a50fc79a5698e852b7601b1201b"},
 ]
 
 [package.dependencies]
@@ -410,9 +410,11 @@ redis = ">=4"
 sortedcontainers = ">=2,<3"
 
 [package.extras]
-bf = ["pybloom-live (>=4.0,<5.0)"]
+bf = ["pyprobables (>=0.6,<0.7)"]
+cf = ["pyprobables (>=0.6,<0.7)"]
 json = ["jsonpath-ng (>=1.6,<2.0)"]
 lua = ["lupa (>=1.14,<3.0)"]
+probabilistic = ["pyprobables (>=0.6,<0.7)"]
 
 [[package]]
 name = "flake8"
@@ -1250,4 +1252,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "966ee6eb9b7b319e2630a20b80c357cfddbfb3ce88e58b8e270c8d8853f03e1f"
+content-hash = "56b323c4363cff9ebf6fbf55ddcdcf9b83043149f636192cc13409a2e5d2a9d5"
