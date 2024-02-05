@@ -36,7 +36,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: aparcar/asu
+          images: openwrt/asu
           tags: |
             type=semver,pattern={{version}}
 
