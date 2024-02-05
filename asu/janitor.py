@@ -9,6 +9,16 @@ from rq import Queue
 from asu import __version__
 from asu.common import get_redis_client, is_modified
 
+from pathlib import Path
+import importlib.util
+
+for config_file in ["/etc/asu/config.py", "misc/config.py"]:
+    if Path(config_file).exists():
+        spec = importlib.util.spec_from_file_location("spec", config_file)
+        settings = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(settings)
+        break
+
 bp = Blueprint("janitor", __name__)
 
 session = requests.Session()
@@ -235,8 +245,8 @@ def update(config):
         logging.exception("Failed to update")
 
     Queue(connection=get_redis_client(config)).enqueue_in(
-        timedelta(minutes=10),
+        timedelta(minutes=hasattr(settings, 'GLOBAL_TIMEOUT') and int(settings.GLOBAL_TIMEOUT[:-1]) or 10),
         update,
         config,
-        job_timeout="10m",
+        job_timeout=hasattr(settings, 'GLOBAL_TIMEOUT') and settings.GLOBAL_TIMEOUT or "10m",
     )

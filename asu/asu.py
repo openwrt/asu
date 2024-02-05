@@ -37,6 +37,7 @@ def create_app(test_config: dict = None) -> Flask:
         BRANCHES_FILE=getenv("BRANCHES_FILE"),
         MAX_CUSTOM_ROOTFS_SIZE_MB=100,
         REPOSITORY_ALLOW_LIST=[],
+        GLOBAL_TIMEOUT=getenv("GLOBAL_TIMEOUT") or "10m"
     )
 
     if not test_config:
@@ -138,7 +139,7 @@ def create_app(test_config: dict = None) -> Flask:
                 "REPOSITORY_ALLOW_LIST": app.config["REPOSITORY_ALLOW_LIST"],
                 "REDIS_URL": app.config["REDIS_URL"],
             },
-            job_timeout="10m",
+            job_timeout=app.config["GLOBAL_TIMEOUT"],
         )
 
     return app
