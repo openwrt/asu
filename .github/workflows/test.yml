@@ -11,14 +11,15 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.8"
           - "3.9"
           - "3.10"
+          - "3.11"
+          - "3.12"
 
     name: Python ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Install ImageBuilder prereqs
       run: sudo apt-get install -y libncurses5-dev
