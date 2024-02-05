@@ -44,3 +44,6 @@ REPOSITORY_ALLOW_LIST = [
 
 # where to downlaod the images from
 # UPSTREAM_PATH = "https://downloads.openwrt.org"
+
+# global operations timeout (used in downloading the requested imagebuilder and updating of profiles.json)
+# GLOBAL_TIMEOUT = "30m"

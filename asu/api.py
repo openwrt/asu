@@ -256,7 +256,7 @@ def api_v1_build_post():
             job_id=request_hash,
             result_ttl=result_ttl,
             failure_ttl=failure_ttl,
-            job_timeout="10m",
+            job_timeout=current_app.config["GLOBAL_TIMEOUT"] or "10m",
         )
     else:
         if job.is_finished:
@@ -344,7 +344,7 @@ def api_build_post():
             job_id=request_hash,
             result_ttl=result_ttl,
             failure_ttl=failure_ttl,
-            job_timeout="10m",
+            job_timeout=current_app.config["GLOBAL_TIMEOUT"] or "10m",
         )
 
     return return_job(job)
