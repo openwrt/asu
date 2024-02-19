@@ -19,7 +19,7 @@ gunicorn = ">=20.1,<22.0"
 podman = "^4.4.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^8.0.0"
+pytest = "^8.0.1"
 pytest-httpserver = "^1.0.6"
 fakeredis = "^2.21.0"
 flake8 = "^5.0.4"
