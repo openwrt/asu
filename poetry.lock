@@ -396,13 +396,13 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fakeredis"
-version = "2.21.0"
+version = "2.21.1"
 description = "Python implementation of redis API, can be used for testing purposes."
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "fakeredis-2.21.0-py3-none-any.whl", hash = "sha256:dcea37c57a1aaf39bed1227aea20de052fb19dc030ccac3f8a73324b2ec90cee"},
-    {file = "fakeredis-2.21.0.tar.gz", hash = "sha256:1b3ff9c068e39c43725f2373b105228cd03e6a50fc79a5698e852b7601b1201b"},
+    {file = "fakeredis-2.21.1-py3-none-any.whl", hash = "sha256:5d1b113a92c1e5dd6e8055008d9204ace4c125e104f04ac08cca4296bc6c78d4"},
+    {file = "fakeredis-2.21.1.tar.gz", hash = "sha256:773bd03c38fe745c0c03c5b4ebb92521a25d3306f903c0ca65706bf65cf19e2a"},
 ]
 
 [package.dependencies]
@@ -1252,4 +1252,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "56b323c4363cff9ebf6fbf55ddcdcf9b83043149f636192cc13409a2e5d2a9d5"
+content-hash = "feef6935e568dbba2447c87ff102a800e1030a45422596fcbdd9441213a17745"
