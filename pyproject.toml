@@ -20,7 +20,7 @@ podman = "^4.4.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.0.0"
-pytest-httpserver = "^1.0.6"
+pytest-httpserver = "^1.0.9"
 fakeredis = "^2.21.0"
 flake8 = "^5.0.4"
 black = "^24.1.1"
