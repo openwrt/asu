@@ -5,7 +5,6 @@ from pathlib import Path
 import prometheus_client
 import pytest
 from fakeredis import FakeStrictRedis
-from pytest import MonkeyPatch
 
 from asu.asu import create_app
 

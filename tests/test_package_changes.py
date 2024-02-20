@@ -1,5 +1,3 @@
-import pytest
-
 from asu.package_changes import appy_package_changes
 
 
@@ -51,6 +49,9 @@ def test_apply_package_changes_release():
 
     original_req = req.copy()
     appy_package_changes(req)
+
+    assert req == original_req
+
 
 def test_apply_package_changes_mediatek():
     req = {
