@@ -44,3 +44,7 @@ REPOSITORY_ALLOW_LIST = [
 
 # where to downlaod the images from
 # UPSTREAM_PATH = "https://downloads.openwrt.org"
+
+# token used to trigger an update of targets
+# if an empty string is set, the update happens periodically
+UPDATE_TOKEN=""

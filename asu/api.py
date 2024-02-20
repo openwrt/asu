@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
 from asu.build import build
-from asu.common import get_redis_client, get_request_hash, remove_prefix
+from asu.common import get_branch, get_redis_client, get_request_hash, update
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -89,20 +89,17 @@ def validate_request(req):
             400,
         )
 
-    if req["version"].endswith("-SNAPSHOT"):
-        # e.g. 21.02-snapshot
-        req["branch"] = req["version"].rsplit("-", maxsplit=1)[0]
-    else:
-        # e.g. snapshot, 21.02.0-rc1 or 19.07.7
-        req["branch"] = req["version"].rsplit(".", maxsplit=1)[0]
+    req["branch"] = get_branch(req["version"])
 
-    if req["branch"] not in current_app.config["BRANCHES"].keys():
+    r = redis_client()
+
+    if not r.sismember("branches", req["branch"]):
         return (
             {"detail": f"Unsupported branch: {req['version']}", "status": 400},
             400,
         )
 
-    if req["version"] not in current_app.config["BRANCHES"][req["branch"]]["versions"]:
+    if not r.sismember(f"versions:{req['branch']}", req["version"]):
         return (
             {"detail": f"Unsupported version: {req['version']}", "status": 400},
             400,
@@ -115,22 +112,10 @@ def validate_request(req):
         )
     )
 
-    r = redis_client()
-
     current_app.logger.debug("Profile before mapping " + req["profile"])
 
-    if not r.sismember(
-        f"targets:{req['branch']}",
-        req["target"],
-    ):
-        return (
-            {"detail": f"Unsupported target: {req['target']}", "status": 400},
-            400,
-        )
-
-    req["arch"] = (
-        r.hget(f"architecture:{req['branch']}", req["target"]) or b""
-    ).decode()
+    if not r.hexists(f"targets:{req['branch']}", req["target"]):
+        return ({"detail": f"Unsupported target: {req['target']}", "status": 400}, 400)
 
     if req["target"] in [
         "x86/64",
@@ -201,6 +186,29 @@ def return_job_v1(job):
 
     current_app.logger.debug(response)
     return response, response["status"], headers
+
+
+def api_v1_update(version, target, subtarget):
+    if current_app.config.get("UPDATE_TOKEN") == request.headers.get("X-Update-Token"):
+        config = {
+            "JSON_PATH": current_app.config["PUBLIC_PATH"] / "json/v1",
+            "BRANCHES": current_app.config["BRANCHES"],
+            "UPSTREAM_URL": current_app.config["UPSTREAM_URL"],
+            "ALLOW_DEFAULTS": current_app.config["ALLOW_DEFAULTS"],
+            "REPOSITORY_ALLOW_LIST": current_app.config["REPOSITORY_ALLOW_LIST"],
+            "REDIS_URL": current_app.config["REDIS_URL"],
+        }
+        get_queue().enqueue(
+            update,
+            config=config,
+            version=version,
+            target=f"{target}/{subtarget}",
+            job_timeout="10m",
+        )
+
+        return None, 204
+    else:
+        return {"status": 403, "detail": "Forbidden"}, 403
 
 
 # legacy offering /api/overview

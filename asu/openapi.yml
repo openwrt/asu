@@ -140,6 +140,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/JsonSchemaRevision"
 
+  /api/v1/update/{version}/{target}/{subtarget}:
+    get:
+      summary: receive list of profiles for a target
+      operationId: asu.api.api_v1_update
+      parameters:
+        - name: version
+          in: path
+          description: Version in question
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: target
+          in: path
+          description: Target in question
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: subtarget
+          in: path
+          description: Subtarget in question
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Successfull request, no content
+
 components:
   responses:
     ResponseSuccessfull:
@@ -199,7 +232,7 @@ components:
             are supported.
         version:
           type: string
-          example: 19.07.8
+          example: 23.05.2
           description: |
             It is recommended to always upgrade to the latest version, however
             it is possible to request older images for testing.
@@ -304,7 +337,7 @@ components:
             List of repositories to load packages from
 
       example:
-        version: 19.07.8
+        version: 23.05.2
         target: ath79/generic
         profile: 8dev_carambola2
         packages:

@@ -11,7 +11,7 @@ from yaml import safe_load
 
 from asu import __version__
 from asu.common import get_redis_client
-from asu.janitor import update
+from asu.janitor import update_branches
 
 
 def create_app(test_config: dict = None) -> Flask:
@@ -123,13 +123,13 @@ def create_app(test_config: dict = None) -> Flask:
         validate_responses=app.config["TESTING"],
     )
 
-    if not app.config["TESTING"]:
+    if not app.config["TESTING"] and not app.config.get("UPDATE_TOKEN"):
         queue = Queue(
             connection=redis_client,
             is_async=app.config["ASYNC_QUEUE"],
         )
         queue.enqueue(
-            update,
+            update_branches,
             {
                 "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1",
                 "BRANCHES": app.config["BRANCHES"],
@@ -138,7 +138,7 @@ def create_app(test_config: dict = None) -> Flask:
                 "REPOSITORY_ALLOW_LIST": app.config["REPOSITORY_ALLOW_LIST"],
                 "REDIS_URL": app.config["REDIS_URL"],
             },
-            job_timeout="10m",
+            job_timeout="15m",
         )
 
     return app
