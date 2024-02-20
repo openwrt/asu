@@ -68,12 +68,6 @@ def test_verify_usign():
     os.unlink(sig_path)
 
 
-def test_remove_prefix():
-    assert remove_prefix("test", "test") == ""
-    assert remove_prefix("+test", "+") == "test"
-    assert remove_prefix("++test", "+") == "+test"
-
-
 def test_get_version_container_tag():
     assert get_container_version_tag("1.0.0") == "v1.0.0"
     assert get_container_version_tag("SNAPSHOT") == "master"
