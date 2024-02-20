@@ -1,9 +1,21 @@
 import os
 import tempfile
-from os import getenv
-from pathlib import Path, PosixPath
+from pathlib import Path
 
-from asu.common import *
+from podman import PodmanClient
+
+from asu.common import (
+    check_manifest,
+    diff_packages,
+    fingerprint_pubkey_usign,
+    get_container_version_tag,
+    get_file_hash,
+    get_packages_hash,
+    get_request_hash,
+    get_str_hash,
+    run_container,
+    verify_usign,
+)
 
 
 def test_get_str_hash():
@@ -31,6 +43,8 @@ def test_get_request_hash():
         "profile": "test",
         "package_hash": get_packages_hash(["test"]),
     }
+
+    assert get_request_hash(request) == "c4eb8bfd4bbd07d7cd2adf70d7ea02e4"
 
 
 def test_diff_packages():
@@ -76,7 +90,7 @@ def test_get_version_container_tag():
 
 
 def test_check_manifest():
-    assert check_manifest({"test": "1.0"}, {"test": "1.0"}) == None
+    assert check_manifest({"test": "1.0"}, {"test": "1.0"}) is None
     assert (
         check_manifest({"test": "1.0"}, {"test": "2.0"})
         == "Impossible package selection: test version not as requested: 2.0 vs. 1.0"

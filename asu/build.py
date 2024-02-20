@@ -21,7 +21,6 @@ from asu.common import (
 from asu.package_changes import appy_package_changes
 
 log = logging.getLogger("rq.worker")
-log.setLevel(logging.DEBUG)
 
 
 def build(req: dict, job=None):

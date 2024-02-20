@@ -1,6 +1,3 @@
-from prometheus_client import REGISTRY
-
-
 def test_stats_image_builds(client):
     response = client.post(
         "/api/v1/build",
