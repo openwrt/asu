@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import struct
+from datetime import datetime
 from os import getenv
 from pathlib import Path
 from re import match
@@ -14,6 +15,17 @@ import requests
 from podman import PodmanClient
 
 import redis
+
+from . import __version__
+
+
+def get_branch(version):
+    if version.endswith("-SNAPSHOT"):
+        # e.g. 21.02-snapshot
+        return version.rsplit("-", maxsplit=1)[0]
+    else:
+        # e.g. snapshot, 21.02.0-rc1 or 19.07.7
+        return version.rsplit(".", maxsplit=1)[0]
 
 
 def get_redis_client(config):
@@ -336,3 +348,179 @@ def check_manifest(manifest, packages_versions):
                 f"Impossible package selection: {package} version not as requested: "
                 f"{version} vs. {manifest[package]}"
             )
+
+
+def get_targets_upstream(config: dict, version: str) -> list:
+    """Return list of targets for a specific version
+
+    Args:
+        config (dict): Configuration
+        version (str): Version within branch
+
+    Returns:
+        list: List of targets
+    """
+    branch = config["BRANCHES"][get_branch(version)]
+    version_path = branch["path"].format(version=version)
+
+    req = requests.get(config["UPSTREAM_URL"] + f"/{version_path}/.targets.json")
+
+    return list(req.json().keys())
+
+
+def update_targets(config: dict, version) -> list:
+    branch = config["BRANCHES"][get_branch(version)]
+    version_path = branch["path"].format(version=branch["versions"][0])
+
+    targets = requests.get(
+        config["UPSTREAM_URL"] + f"/{version_path}/.targets.json"
+    ).json()
+
+    logging.info(f"{branch['name']}: Found {len(targets)} targets")
+    pipeline = get_redis_client(config).pipeline(True)
+    pipeline.delete(f"targets:{branch['name']}")
+    pipeline.hset(f"targets:{branch['name']}", mapping=targets)
+    pipeline.execute()
+
+    return targets
+
+
+def update_profiles(config, version: str, target: str) -> str:
+    """Update available profiles of a specific version
+
+    Args:
+        config (dict): Configuration
+        version(str): Version within branch
+        target(str): Target within version
+    """
+    branch = config["BRANCHES"][get_branch(version)]
+    version_path = branch["path"].format(version=version)
+    logging.debug(f"{version}/{target}: Update profiles")
+
+    r = get_redis_client(config)
+
+    r.sadd("branches", branch["name"])
+    r.sadd(f"versions:{branch['name']}", version)
+
+    profiles_url = (
+        config["UPSTREAM_URL"] + f"/{version_path}/targets/{target}/profiles.json"
+    )
+
+    req = requests.get(profiles_url)
+
+    if req.status_code != 200:
+        logging.warning("Couldn't download %s", profiles_url)
+        return False
+
+    metadata = req.json()
+    profiles = metadata.pop("profiles", {})
+    logging.info(f"{version}/{target}: Found {len(profiles)} profiles")
+
+    r.set(
+        f"revision:{version}:{target}",
+        metadata["version_code"],
+    )
+    logging.info(f"{version}/{target}: Found revision {metadata['version_code']}")
+
+    pipeline = r.pipeline(True)
+    pipeline.delete(f"profiles:{branch['name']}:{version}:{target}")
+
+    for profile, data in profiles.items():
+        for supported in data.get("supported_devices", []):
+            if not r.hexists(f"mapping:{branch['name']}:{version}:{target}", supported):
+                logging.info(
+                    f"{version}/{target}: Add profile mapping {supported} -> {profile}"
+                )
+                r.hset(
+                    f"mapping:{branch['name']}:{version}:{target}", supported, profile
+                )
+
+        pipeline.sadd(f"profiles:{branch['name']}:{version}:{target}", profile)
+
+        profile_path = (
+            config["JSON_PATH"] / version_path / "targets" / target / profile
+        ).with_suffix(".json")
+
+        profile_path.parent.mkdir(exist_ok=True, parents=True)
+        profile_path.write_text(
+            json.dumps(
+                {
+                    **metadata,
+                    **data,
+                    "id": profile,
+                    "build_at": datetime.utcfromtimestamp(
+                        int(metadata.get("source_date_epoch", 0))
+                    ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+
+        data["target"] = target
+
+    pipeline.execute()
+
+
+def update_meta_json(config):
+    latest = list(
+        map(
+            lambda b: b["versions"][0],
+            filter(
+                lambda b: b.get("enabled"),
+                config["BRANCHES"].values(),
+            ),
+        )
+    )
+
+    branches = dict(
+        map(
+            lambda b: (
+                b["name"],
+                {
+                    **b,
+                    "targets": dict(
+                        map(
+                            lambda a: (a[0].decode(), a[1].decode()),
+                            get_redis_client(config)
+                            .hgetall(f"architecture:{b['name']}")
+                            .items(),
+                        )
+                    ),
+                },
+            ),
+            filter(
+                lambda b: b.get("enabled"),
+                config["BRANCHES"].values(),
+            ),
+        )
+    )
+
+    config["OVERVIEW"] = {
+        "latest": latest,
+        "branches": branches,
+        "server": {
+            "version": __version__,
+            "contact": "mail@aparcar.org",
+            "allow_defaults": config["ALLOW_DEFAULTS"],
+            "repository_allow_list": config["REPOSITORY_ALLOW_LIST"],
+        },
+    }
+
+    config["JSON_PATH"].mkdir(exist_ok=True, parents=True)
+
+    (config["JSON_PATH"] / "overview.json").write_text(
+        json.dumps(config["OVERVIEW"], indent=2, sort_keys=False, default=str)
+    )
+
+    (config["JSON_PATH"] / "branches.json").write_text(
+        json.dumps(list(branches.values()), indent=2, sort_keys=False, default=str)
+    )
+
+    (config["JSON_PATH"] / "latest.json").write_text(json.dumps({"latest": latest}))
+
+
+def update(config, version: str, target: str):
+    update_targets(config, version)
+    update_profiles(config, version, target)
+    update_meta_json(config)

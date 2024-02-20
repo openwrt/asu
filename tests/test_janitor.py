@@ -1,8 +1,9 @@
+import json
 from pathlib import Path
 
 import pytest
 
-from asu.janitor import *
+from asu.janitor import update_meta_json
 
 
 @pytest.fixture
@@ -13,25 +14,13 @@ def upstream(httpserver):
         "packages/testarch/base/Packages.manifest",
         "targets/testtarget/testsubtarget/packages/Packages.manifest",
         "targets/testtarget/testsubtarget/profiles.json",
+        ".targets.json",
     ]
 
     for f in expected_file_requests:
         httpserver.expect_request(f"{base_url}/{f}").respond_with_data(
             (upstream_path / f).read_bytes()
         )
-
-    httpserver.expect_request(
-        f"{base_url}/targets", query_string="json-targets"
-    ).respond_with_json(["testtarget/testsubtarget"])
-
-
-def test_update_branch(app, upstream):
-    # with app.app_context():
-    update_branch(
-        {**app.config, "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1"},
-        app.config["BRANCHES"]["SNAPSHOT"],
-    )
-    assert (app.config["PUBLIC_PATH"] / "json/v1/snapshots/overview.json").is_file()
 
 
 def test_update_meta_latest_json(app):

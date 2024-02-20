@@ -23,6 +23,12 @@ def redis_load_mock_data(redis):
     redis.sadd("packages:SNAPSHOT:SNAPSHOT:ath79/generic", "vim", "tmux")
     redis.sadd("packages:SNAPSHOT:SNAPSHOT:x86/64", "vim", "tmux")
 
+    redis.sadd("branches", "SNAPSHOT", "1.2", "21.02", "19.07")
+    redis.sadd("versions:SNAPSHOT", "SNAPSHOT")
+    redis.sadd("versions:1.2", "1.2.3")
+    redis.sadd("versions:21.02", "21.02.7", "21.02.0", "21.02.0-rc4", "21.02-SNAPSHOT")
+    redis.sadd("versions:19.07", "19.07.7", "19.07.6")
+
     redis.sadd("profiles:21.02:21.02.7:ath79/generic", "tplink_tl-wdr4300-v1")
     redis.sadd("packages:21.02:21.02.7:ath79/generic", "vim", "tmux")
     redis.sadd("packages:21.02:21.02.7:x86/64", "vim", "tmux")
@@ -31,9 +37,16 @@ def redis_load_mock_data(redis):
         "mapping:1.2:1.2.3:testtarget/testsubtarget",
         mapping={"testvendor,testprofile": "testprofile"},
     )
-    redis.sadd("targets:1.2", "testtarget/testsubtarget")
-    redis.sadd("targets:SNAPSHOT", "ath79/generic", "x86/64")
-    redis.sadd("targets:21.02", "testtarget/testsubtarget", "ath79/generic", "x86/64")
+    redis.hset("targets:1.2", mapping={"testtarget/testsubtarget": "testarch"})
+    redis.hset("targets:SNAPSHOT", mapping={"ath79/generic": "", "x86/64": ""})
+    redis.hset(
+        "targets:21.02",
+        mapping={
+            "testtarget/testsubtarget": "testarch",
+            "ath79/generic": "",
+            "x86/64": "",
+        },
+    )
     redis.hset("mapping-abi", mapping={"test1-1": "test1"})
 
 
