@@ -51,10 +51,7 @@ def build(req: dict, job=None):
         f"Container version: {container_version_tag} (requested {req['version']})"
     )
 
-    BASE_CONTAINER = "ghcr.io/openwrt/imagebuilder"
-    image = (
-        f"{BASE_CONTAINER}:{req['target'].replace('/', '-')}-{container_version_tag}"
-    )
+    image = f"{req['base_container']}:{req['target'].replace('/', '-')}-{container_version_tag}"
 
     log.info(f"Pulling {image}...")
     podman.images.pull(image)

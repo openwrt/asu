@@ -48,3 +48,6 @@ REPOSITORY_ALLOW_LIST = [
 # token used to trigger an update of targets
 # if an empty string is set, the update happens periodically
 UPDATE_TOKEN=""
+
+# base container for the imagebuilder
+# BASE_CONTAINER = "ghcr.io/openwrt/imagebuilder"
