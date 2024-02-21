@@ -37,6 +37,7 @@ def create_app(test_config: dict = None) -> Flask:
         BRANCHES_FILE=getenv("BRANCHES_FILE"),
         MAX_CUSTOM_ROOTFS_SIZE_MB=100,
         REPOSITORY_ALLOW_LIST=[],
+        BASE_CONTAINER="ghcr.io/openwrt/imagebuilder",
     )
 
     if not test_config:

@@ -257,6 +257,7 @@ def api_v1_build_post():
         req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
         req["repository_allow_list"] = current_app.config["REPOSITORY_ALLOW_LIST"]
         req["request_hash"] = request_hash
+        req["base_container"] = current_app.config["BASE_CONTAINER"]
 
         job = get_queue().enqueue(
             build,
