@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 1m
+  scrape_timeout: 10s
+  evaluation_interval: 1m
+scrape_configs:
+- job_name: asu
+  honor_timestamps: true
+  scrape_interval: 2m
+  scrape_timeout: 5s
+  metrics_path: /metrics
+  scheme: http
+  follow_redirects: true
+  enable_http2: true
+  static_configs:
+  - targets:
+    - sysupgrade.openwrt.org:80
