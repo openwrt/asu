@@ -945,13 +945,13 @@ files = [
 
 [[package]]
 name = "rq"
-version = "1.16.0"
+version = "1.16.1"
 description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "rq-1.16.0-py3-none-any.whl", hash = "sha256:d71859da6f3af597bd79675b240e138587878ce9b693d1bcf681443e2a8193ce"},
-    {file = "rq-1.16.0.tar.gz", hash = "sha256:aab9e0fc90d7ffd100241b0f8dd7458c1ee4039edc2bfea9f7e2cfc0567f5710"},
+    {file = "rq-1.16.1-py3-none-any.whl", hash = "sha256:273de33f10bb9f18cd1e8ccc0a4e8dba2b8eb86a6ab2a91ae674f99bd68025f1"},
+    {file = "rq-1.16.1.tar.gz", hash = "sha256:d9a6314bc759a743b4a5d89aa467eaa3a31dbbc0a34bcd0ee82e8852d9ec166d"},
 ]
 
 [package.dependencies]
