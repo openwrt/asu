@@ -340,13 +340,13 @@ toml = ["tomli"]
 
 [[package]]
 name = "fakeredis"
-version = "2.21.2"
+version = "2.21.3"
 description = "Python implementation of redis API, can be used for testing purposes."
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "fakeredis-2.21.2-py3-none-any.whl", hash = "sha256:bdb8f07f213de77fd5f3bc6c64a069a6ffaf02483ed52619b195274cf0137b19"},
-    {file = "fakeredis-2.21.2.tar.gz", hash = "sha256:f6aeadc5dbce309e229ce3da86554729bed97f6a930f1cdf838b2262bd35ea28"},
+    {file = "fakeredis-2.21.3-py3-none-any.whl", hash = "sha256:033fe5882a20ec308ed0cf67a86c1cd982a1bffa63deb0f52eaa625bd8ce305f"},
+    {file = "fakeredis-2.21.3.tar.gz", hash = "sha256:e9e1c309d49d83c4ce1ab6f3ee2e56787f6a5573a305109017bf140334dd396d"},
 ]
 
 [package.dependencies]
