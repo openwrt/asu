@@ -148,6 +148,54 @@ def build(req: dict, job=None):
             },
         )
 
+    if "configs" in req:
+        log.debug("Found extra configs")
+        configs = ""
+        for config in req.get("configs"):
+            configs += f"{config}\n"
+
+        (store_path / bin_dir / ".config_local").write_text(configs)
+
+        mounts.append(
+            {
+                "type": "bind",
+                "source": str(store_path / bin_dir / ".config_local"),
+                "target": "/builder/.config_local",
+                "read_only": True,
+            }
+        )
+        mounts.append(
+            {
+                "type": "bind",
+                "source": str(store_path / "../../asu/apply_config_local.sh"),
+                "target": "/builder/apply_config_local.sh",
+                "read_only": True,
+            },
+        )
+
+        returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
+            podman,
+            image,
+            [
+                "/bin/sh",
+                "-c",
+                (
+                    "/builder/apply_config_local.sh"
+                ),
+            ],
+            mounts=mounts,
+            copy=["/builder/.config", store_path / bin_dir ],
+        )
+
+        mounts.append(
+            {
+                "type": "bind",
+                "source": str(store_path / bin_dir / ".config"),
+                "target": "/builder/.config",
+                "read_only": True,
+            },
+        )       
+
     returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
         podman,
         image,

@@ -249,6 +249,18 @@ components:
         profile:
           type: string
           example: 8dev_carambola2
+        configs:
+          type: array
+          example:
+            - CONFIG_VERSION_DIST=MyRouterOS
+            - CONFIG_VERSION_NUMBER=1.6
+            - CONFIG_TARGET_ROOTFS_TARGZ=y
+            - CONFIG_TARGET_ROOTFS_JFFS2=y
+            - "# CONFIG_TARGET_ROOTFS_SQUASHFS is not set"
+          items:
+            type: string
+          description: |
+            List of configs, only the few ones not related to kernel/packages as they will not be recompiled.
         diff_packages:
           type: boolean
           description: |
