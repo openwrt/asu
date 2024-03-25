@@ -9,6 +9,7 @@ branches:
     path: releases/{version}
     snapshot: false
     versions:
+      - 23.05.3
       - 23.05.2
       - 23.05.0
       - 23.05-SNAPSHOT
@@ -42,6 +43,7 @@ branches:
     path: releases/{version}
     snapshot: false
     versions:
+      - 22.03.6
       - 22.03.5
       - 22.03.4
       - 22.03.3
