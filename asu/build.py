@@ -1,10 +1,13 @@
 import json
 import logging
 import re
+import tempfile
 from datetime import datetime
 from os import getenv
 from pathlib import Path
+from shutil import rmtree
 
+import boto3
 import dotenv
 from podman import PodmanClient
 from rq import get_current_job
@@ -34,7 +37,13 @@ def build(req: dict, job=None):
     Args:
         request (dict): Contains all properties of requested image
     """
-    store_path = Path(req["public_path"]) / "store"
+    if req["s3_server"]:
+        temp_path = tempfile.TemporaryDirectory()
+        store_path = Path(temp_path.name)
+    else:
+        temp_path = None
+        store_path = Path(req["public_path"]) / "store"
+
     store_path.mkdir(parents=True, exist_ok=True)
     log.debug(f"Store path: {store_path}")
 
@@ -325,6 +334,25 @@ def build(req: dict, job=None):
     json_content["detail"] = "done"
 
     log.debug("JSON content %s", json_content)
+
+    # Upload to S3
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=req["s3_server"],
+        aws_access_key_id=req["s3_access_key"],
+        aws_secret_access_key=req["s3_secret_key"],
+    )
+    for image in json_content["images"]:
+        print(f"Uploading {image['name']} to S3")
+        s3.upload_file(
+            str(store_path / bin_dir / image["name"]),
+            req["s3_bucket"],
+            f"{req['request_hash']}/{image['name']}",
+        )
+
+    if temp_path:
+        temp_path.cleanup()
+        rmtree(store_path, ignore_errors=True)
 
     # Increment stats
     job.connection.hincrby(

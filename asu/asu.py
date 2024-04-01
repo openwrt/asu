@@ -3,7 +3,7 @@ from pathlib import Path
 
 import connexion
 import dotenv
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, redirect, render_template, send_from_directory
 from pkg_resources import resource_filename
 from prometheus_client import CollectorRegistry, make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
@@ -39,6 +39,10 @@ def create_app(test_config: dict = None) -> Flask:
         MAX_CUSTOM_ROOTFS_SIZE_MB=1024,
         REPOSITORY_ALLOW_LIST=[],
         BASE_CONTAINER="ghcr.io/openwrt/imagebuilder",
+        S3_BUCKET=None,
+        S3_ACCESS_KEY=None,
+        S3_SECRET_KEY=None,
+        S3_SERVER=None,
     )
 
     if not test_config:
@@ -81,7 +85,12 @@ def create_app(test_config: dict = None) -> Flask:
     @app.route("/store/")
     @app.route("/store/<path:path>")
     def store_path(path="index.html"):
-        return send_from_directory(app.config["PUBLIC_PATH"] / "public", path)
+        if app.config.get("S3_SERVER"):
+            return redirect(
+                f"{app.config['S3_SERVER']}/{app.config['S3_BUCKET']}/{path}"
+            )
+        else:
+            return send_from_directory(app.config["PUBLIC_PATH"] / "public", path)
 
     from . import api
 

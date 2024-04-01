@@ -260,6 +260,10 @@ def api_v1_build_post():
         req["repository_allow_list"] = current_app.config["REPOSITORY_ALLOW_LIST"]
         req["request_hash"] = request_hash
         req["base_container"] = current_app.config["BASE_CONTAINER"]
+        req["s3_bucket"] = current_app.config["S3_BUCKET"]
+        req["s3_access_key"] = current_app.config["S3_ACCESS_KEY"]
+        req["s3_secret_key"] = current_app.config["S3_SECRET_KEY"]
+        req["s3_server"] = current_app.config["S3_SERVER"]
 
         job = get_queue().enqueue(
             build,
