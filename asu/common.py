@@ -292,12 +292,17 @@ def run_container(
 
         logging.debug(f"Copied {container_tar} to {host_tar}")
 
-        unpack_archive(
-            host_tar.name,
-            copy[1],
-            "tar",
-        )
-        logging.debug(f"Unpacked {host_tar} to {copy[1]}")
+        # check if the tar is empty
+        if host_tar.tell():
+            unpack_archive(
+                host_tar.name,
+                copy[1],
+                "tar",
+            )
+            logging.debug(f"Unpacked {host_tar} to {copy[1]}")
+        else:
+            logging.warning(f"Empty tar: {host_tar}")
+            returncode = 1
 
         host_tar.close()
         logging.debug(f"Closed {host_tar}")
