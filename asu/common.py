@@ -7,7 +7,7 @@ from datetime import datetime
 from os import getenv
 from pathlib import Path
 from re import match
-from shutil import unpack_archive
+from tarfile import TarFile
 from tempfile import NamedTemporaryFile
 
 import nacl.signing
@@ -286,23 +286,14 @@ def run_container(
         logging.debug(f"Container tar: {container_tar}")
 
         host_tar = NamedTemporaryFile(delete=True)
-        logging.debug(f"Host tar: {host_tar}")
+        logging.debug(f"Copying {container_tar} to {host_tar}")
 
-        host_tar.write(b"".join(container_tar))
+        for data in container_tar:
+            host_tar.write(data)
+        host_tar.flush()
 
-        logging.debug(f"Copied {container_tar} to {host_tar}")
-
-        # check if the tar is empty
-        if host_tar.tell():
-            unpack_archive(
-                host_tar.name,
-                copy[1],
-                "tar",
-            )
-            logging.debug(f"Unpacked {host_tar} to {copy[1]}")
-        else:
-            logging.warning(f"Empty tar: {host_tar}")
-            returncode = 1
+        tar_file = TarFile(host_tar.name)
+        tar_file.extractall(copy[1])
 
         host_tar.close()
         logging.debug(f"Closed {host_tar}")
