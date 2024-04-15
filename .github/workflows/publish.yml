@@ -1,6 +1,9 @@
 name: Upload Python Package and Docker Container
 
 on:
+  push:
+    branches:
+      - main
   release:
     types:
       - created
@@ -10,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -28,6 +30,7 @@ jobs:
           poetry version "${TAG##*v}"
 
       - name: Build and publish
+        if: github.event_name == 'release'
         run: |
           poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
           poetry publish --build
@@ -51,5 +54,7 @@ jobs:
         with:
           file: Containerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            latest
+            ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
