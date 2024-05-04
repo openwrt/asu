@@ -479,7 +479,7 @@ def update_meta_json(config):
                         map(
                             lambda a: (a[0].decode(), a[1].decode()),
                             get_redis_client(config)
-                            .hgetall(f"architecture:{b['name']}")
+                            .hgetall(f"targets:{b['name']}")
                             .items(),
                         )
                     ),
