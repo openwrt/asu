@@ -19,7 +19,15 @@ import redis
 from . import __version__
 
 
-def get_branch(version):
+def get_branch(version: str) -> str:
+    """Return branch of a version
+
+    Args:
+        version (str): Version string
+
+    Returns:
+        str: Branch name
+    """
     if version.endswith("-SNAPSHOT"):
         # e.g. 21.02-snapshot
         return version.rsplit("-", maxsplit=1)[0]
@@ -346,39 +354,29 @@ def check_manifest(manifest, packages_versions):
             )
 
 
-def get_targets_upstream(config: dict, version: str) -> list:
-    """Return list of targets for a specific version
+def update_targets(config: dict, version):
+    """Update available targets of a specific version
 
     Args:
         config (dict): Configuration
-        version (str): Version within branch
-
-    Returns:
-        list: List of targets
+        version(str): Version within branch
     """
-    branch = config["BRANCHES"][get_branch(version)]
-    version_path = branch["path"].format(version=version)
-
-    req = requests.get(config["UPSTREAM_URL"] + f"/{version_path}/.targets.json")
-
-    return list(req.json().keys())
-
-
-def update_targets(config: dict, version) -> list:
     branch = config["BRANCHES"][get_branch(version)]
     version_path = branch["path"].format(version=branch["versions"][0])
 
-    targets = requests.get(
-        config["UPSTREAM_URL"] + f"/{version_path}/.targets.json"
-    ).json()
+    targets = requests.get(config["UPSTREAM_URL"] + f"/{version_path}/.targets.json")
+
+    if targets.status_code != 200:
+        logging.warning("Couldn't download %s", targets.url)
+        return
+
+    targets = targets.json()
 
     logging.info(f"{branch['name']}: Found {len(targets)} targets")
     pipeline = get_redis_client(config).pipeline(True)
     pipeline.delete(f"targets:{branch['name']}")
     pipeline.hset(f"targets:{branch['name']}", mapping=targets)
     pipeline.execute()
-
-    return targets
 
 
 def update_profiles(config, version: str, target: str) -> str:
