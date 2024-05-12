@@ -35,7 +35,7 @@ def create_app(test_config: dict = None) -> Flask:
         ALLOW_DEFAULTS=bool(getenv("ALLOW_DEFAULTS", False)),
         ASYNC_QUEUE=True,
         BRANCHES_FILE=getenv("BRANCHES_FILE"),
-        MAX_CUSTOM_ROOTFS_SIZE_MB=100,
+        MAX_CUSTOM_ROOTFS_SIZE_MB=1024,
         REPOSITORY_ALLOW_LIST=[],
         BASE_CONTAINER="ghcr.io/openwrt/imagebuilder",
     )
