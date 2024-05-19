@@ -1,7 +1,7 @@
 from os import getenv
 from pathlib import Path
 
-import connexion
+from connexion import FlaskApp
 from flask import Flask, render_template, send_from_directory
 from pkg_resources import resource_filename
 from prometheus_client import CollectorRegistry, make_wsgi_app
@@ -24,8 +24,7 @@ def create_app(test_config: dict = None) -> Flask:
         Flask: The application
     """
 
-    cnxn = connexion.FlaskApp(__name__)
-    app = cnxn.app
+    app = FlaskApp(__name__)
     app.config.from_mapping(
         PUBLIC_PATH=getenv("PUBLIC_PATH", Path.cwd() / "public"),
         REDIS_URL=getenv("REDIS_URL") or "redis://localhost:6379",
