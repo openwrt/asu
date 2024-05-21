@@ -69,7 +69,7 @@ def build(req: dict, job=None):
         if version_code != req.get("version_code"):
             report_error(
                 job,
-                f"Received inncorrect version {version_code} (requested {req['version_code']})",
+                f"Received incorrect version {version_code} (requested {req['version_code']})",
             )
 
     default_packages = set(
