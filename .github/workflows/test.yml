@@ -1,8 +1,16 @@
 name: Test Pull Request
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  TERM: xterm-color
+  PY_COLORS: 1
 
 jobs:
   build:
@@ -46,7 +54,7 @@ jobs:
       run: |
         podman system service --time=0 unix://tmp/podman.sock &
         export CONTAINER_HOST="unix:///tmp/podman.sock"
-        poetry run coverage run -m pytest --runslow
+        poetry run coverage run -m pytest -vv --runslow
         poetry run coverage xml
 
     - name: Codecov

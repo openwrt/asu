@@ -2,16 +2,17 @@ from os import getenv
 from pathlib import Path
 
 import connexion
+import dotenv
 from flask import Flask, render_template, send_from_directory
 from pkg_resources import resource_filename
 from prometheus_client import CollectorRegistry, make_wsgi_app
-from rq import Queue
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from yaml import safe_load
 
 from asu import __version__
 from asu.common import get_redis_client
-from asu.janitor import update_branches
+
+dotenv.load_dotenv()
 
 
 def create_app(test_config: dict = None) -> Flask:
@@ -82,10 +83,6 @@ def create_app(test_config: dict = None) -> Flask:
     def store_path(path="index.html"):
         return send_from_directory(app.config["PUBLIC_PATH"] / "public", path)
 
-    from . import janitor
-
-    app.register_blueprint(janitor.bp)
-
     from . import api
 
     app.register_blueprint(api.bp)
@@ -123,23 +120,5 @@ def create_app(test_config: dict = None) -> Flask:
         },
         validate_responses=app.config["TESTING"],
     )
-
-    if not app.config["TESTING"] and not app.config.get("UPDATE_TOKEN"):
-        queue = Queue(
-            connection=redis_client,
-            is_async=app.config["ASYNC_QUEUE"],
-        )
-        queue.enqueue(
-            update_branches,
-            {
-                "JSON_PATH": app.config["PUBLIC_PATH"] / "json/v1",
-                "BRANCHES": app.config["BRANCHES"],
-                "UPSTREAM_URL": app.config["UPSTREAM_URL"],
-                "ALLOW_DEFAULTS": app.config["ALLOW_DEFAULTS"],
-                "REPOSITORY_ALLOW_LIST": app.config["REPOSITORY_ALLOW_LIST"],
-                "REDIS_URL": app.config["REDIS_URL"],
-            },
-            job_timeout="15m",
-        )
 
     return app

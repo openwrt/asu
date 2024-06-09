@@ -42,7 +42,10 @@ def build(req: dict, job=None):
 
     log.debug(f"Building {req}")
 
-    podman = PodmanClient().from_env()
+    podman = PodmanClient(
+        base_url=getenv("CONTAINER_HOST"),
+        identity=getenv("CONTAINER_IDENTITY", ""),
+    )
 
     log.debug(f"Podman version: {podman.version()}")
 
