@@ -20,11 +20,10 @@ def reload_all():
         targets = targets.json()
         for target in targets:
             print(f"Reloading {version}/{target}")
-            res = session.get(
+            session.get(
                 f"{asu_url}/api/v1/update/{version}/{target}",
-                headers={"X-Update-Token": "<TOKEN>"},
+                headers={"X-Update-Token": "changeme"},
             )
-            print(res)
 
     targets = session.get(
         "https://downloads.openwrt.org/snapshots/.targets.json"
@@ -33,7 +32,7 @@ def reload_all():
         print(f"Reloading SNAPSHOT/{target}")
         session.get(
             f"{asu_url}/api/v1/update/SNAPSHOT/{target}",
-            headers={"X-Update-Token": "<TOKEN>"},
+            headers={"X-Update-Token": "changeme"},
         )
 
 

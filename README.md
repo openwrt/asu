@@ -57,8 +57,7 @@ immediately without rebuilding.
 ### Active server
 
 - [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
-- [asu.aparcar.org](http://asu.aparcar.org:8000)
-- [asu.hauke-m.de](http://asu.hauke-m.de:8000)
+- Create a pullrequest to add your server here
 
 ## Run your own server
 
@@ -105,13 +104,23 @@ the dependencies:
 #### Running the server
 
     poetry install
-    poetry run flask run
+    poetry run flask run -p 5001 # macOS bails on port 5000
 
 #### Running a worker
 
     # podman unix socket (not path), no need to mount anything
     export CONTAINER_HOST=unix:///run/user/1001/podman/podman.sock
     poetry run rq worker
+
+#### Update targets
+
+To update the list of available targets, run:
+
+    poetry run python3 misc/update_all_targets.py
+
+This may be added to a cron job to update the targets regularly. The script must
+be changed in case you want to update the targets from a different source or run
+the server on a different port.
 ### API
 
 The API is documented via _OpenAPI_ and can be viewed interactively on the

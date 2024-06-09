@@ -45,9 +45,9 @@ REPOSITORY_ALLOW_LIST = [
 # where to downlaod the images from
 # UPSTREAM_PATH = "https://downloads.openwrt.org"
 
-# token used to trigger an update of targets
-# if an empty string is set, the update happens periodically
-UPDATE_TOKEN=""
+# Change token here and in the update_all_targets.py script or your external
+# webhook. Without the token the server won't know what to update.
+# UPDATE_TOKEN="changeme"
 
 # base container for the imagebuilder
 # BASE_CONTAINER = "ghcr.io/openwrt/imagebuilder"
