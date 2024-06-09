@@ -5,6 +5,7 @@ from datetime import datetime
 from os import getenv
 from pathlib import Path
 
+import dotenv
 from podman import PodmanClient
 from rq import get_current_job
 
@@ -19,6 +20,8 @@ from asu.common import (
     run_container,
 )
 from asu.package_changes import appy_package_changes
+
+dotenv.load_dotenv()
 
 log = logging.getLogger("rq.worker")
 
