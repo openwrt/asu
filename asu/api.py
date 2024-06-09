@@ -2,7 +2,8 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 from rq import Connection, Queue
 
 from asu.build import build
-from asu.common import get_branch, get_redis_client, get_request_hash, update
+from asu.common import get_branch, get_redis_client, get_request_hash
+from asu.update import update
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -189,7 +190,8 @@ def return_job_v1(job):
 
 
 def api_v1_update(version, target, subtarget):
-    if current_app.config.get("UPDATE_TOKEN") == request.headers.get("X-Update-Token"):
+    token = current_app.config.get("UPDATE_TOKEN")
+    if token and token == request.headers.get("X-Update-Token"):
         config = {
             "JSON_PATH": current_app.config["PUBLIC_PATH"] / "json/v1",
             "BRANCHES": current_app.config["BRANCHES"],
@@ -202,7 +204,7 @@ def api_v1_update(version, target, subtarget):
             update,
             config=config,
             version=version,
-            target=f"{target}/{subtarget}",
+            target_subtarget=f"{target}/{subtarget}",
             job_timeout="10m",
         )
 

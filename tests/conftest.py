@@ -2,11 +2,14 @@ import shutil
 import tempfile
 from pathlib import Path
 
+import dotenv
 import prometheus_client
 import pytest
 from fakeredis import FakeStrictRedis
 
 from asu.asu import create_app
+
+dotenv.load_dotenv()
 
 
 def redis_load_mock_data(redis):
@@ -63,7 +66,6 @@ def mocked_redis(monkeypatch, redis_server):
         return redis_server
 
     monkeypatch.setattr("asu.common.get_redis_client", mocked_redis_client)
-    monkeypatch.setattr("asu.janitor.get_redis_client", mocked_redis_client)
     monkeypatch.setattr("asu.api.get_redis_client", mocked_redis_client)
     monkeypatch.setattr("asu.asu.get_redis_client", mocked_redis_client)
 

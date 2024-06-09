@@ -35,21 +35,21 @@ services:
     depends_on:
       - redis
 
-  worker2:
-    image: "asu:latest"
-    build:
-      context: ./
-      dockerfile: Containerfile
-    restart: always
-    command: rqworker --with-scheduler
-    environment:
-      - CONTAINER_HOST=unix://$CONTAINER_SOCK
-      - REDIS_URL=redis://redis/
-    volumes:
-      - $PUBLIC_PATH:$PUBLIC_PATH:rw
-      - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
-    depends_on:
-      - redis
+  # worker2:
+  #   image: "asu:latest"
+  #   build:
+  #     context: ./
+  #     dockerfile: Containerfile
+  #   restart: always
+  #   command: rqworker --with-scheduler
+  #   environment:
+  #     - CONTAINER_HOST=unix://$CONTAINER_SOCK
+  #     - REDIS_URL=redis://redis/
+  #   volumes:
+  #     - $PUBLIC_PATH:$PUBLIC_PATH:rw
+  #     - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
+  #   depends_on:
+  #     - redis
 
   redis:
     image: "docker.io/redis:alpine"

@@ -1,5 +1,6 @@
 import os
 import tempfile
+from os import getenv
 from pathlib import Path
 
 from podman import PodmanClient
@@ -102,7 +103,10 @@ def test_check_manifest():
 
 
 def test_run_container():
-    podman = PodmanClient().from_env()
+    podman = PodmanClient(
+        base_url=getenv("CONTAINER_HOST"),
+        identity=getenv("CONTAINER_IDENTITY", ""),
+    )
     returncode, stdout, stderr = run_container(
         podman,
         "ghcr.io/openwrt/imagebuilder:testtarget-testsubtarget-v1.2.3",
