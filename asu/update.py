@@ -156,6 +156,7 @@ def update_meta_json(config):
     config["OVERVIEW"] = {
         "latest": latest,
         "branches": branches,
+        "upstream_url": config["UPSTREAM_URL"],
         "server": {
             "version": __version__,
             "contact": "mail@aparcar.org",

@@ -36,13 +36,13 @@ paths:
       summary: Request a custom firmware image
       description: |
         This API call allows to request a firmware image containing any
-        selection of packages. If the build was successfull it will respond a
+        selection of packages. If the build was successful it will respond a
         `200` response including information on the build and created images. If
         there were errors other status coulds will be returned, as described
         below.
 
         Since images take between 30 seconds and 5 minutes to be build, the
-        status `202` response will be returend while an image is being build or
+        status `202` response will be returned while an image is being build or
         in the build queue. Clients should poll the API every 5 seconds to if
         the image was build or an error occured.
 
@@ -171,7 +171,7 @@ paths:
             type: string
       responses:
         "204":
-          description: Successfull request, no content
+          description: Successful request, no content
 
 components:
   responses:
@@ -253,7 +253,7 @@ components:
           type: boolean
           description: |
             This parameter determines if requested packages are seen as
-            *additional* or *absolut*. If set to `true` the packages are seen as
+            *additional* or *absolute*. If set to `true` the packages are seen as
             *absolute* and all default packages outside the requested packages
             are removed.
 
@@ -639,6 +639,11 @@ components:
             contact:
               type: string
               example: mail@aparcar.org
+        upstream_url:
+          description: URL at which build metadata and imagebuilders are found
+          type: string
+          example:
+            https://downloads.openwrt.org
 
     JsonSchemaRevision:
       type: object
