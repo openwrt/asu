@@ -249,7 +249,7 @@ def build(req: dict, job=None):
             lambda i: i["name"],
             filter(
                 lambda i: i["type"]
-                in ["sysupgrade", "factory", "combined", "combined-efi"],
+                in ["sysupgrade", "factory", "combined", "combined-efi", "sdcard"],
                 json_content["profiles"][req["profile"]]["images"],
             ),
         )
