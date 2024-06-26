@@ -90,6 +90,9 @@ branches:
     versions:
       - SNAPSHOT
     package_changes:
+      - source: auc
+        target: owut
+        revision: 26792
       - source: libustream-wolfssl
         target: libustream-mbedtls
         revision: 21994
