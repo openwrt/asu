@@ -23,7 +23,7 @@ It offers a device search based on model names and show links either to
 _asu_ API. Please join in the development at
 [GitLab repository](https://gitlab.com/openwrt/web/firmware-selector-openwrt-org)
 
-* https://firmware-selector.openwrt.org
+* <https://firmware-selector.openwrt.org>
 
 ![ofs](misc/ofs.png)
 
@@ -41,6 +41,10 @@ re-install any packages.
 
 ### CLI
 
+With `OpenWrt SNAPSHOT-r26792 or newer` the CLI app `auc` was replaced with [`owut`](https://openwrt.org/docs/guide-user/installation/sysupgrade.owut) as a more comprehensive CLI tool to provide an easy way to upgrade your device.
+
+![owut](misc/owut.png)
+
 The [`auc`](https://github.com/openwrt/packages/tree/master/utils/auc) package
 performs the same process as the `luci-app-attendedsysupgrade`
 from SSH/the command line.
@@ -56,8 +60,8 @@ immediately without rebuilding.
 
 ### Active server
 
-- [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
-- Create a pullrequest to add your server here
+* [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
+* Create a pullrequest to add your server here
 
 ## Run your own server
 
@@ -92,9 +96,9 @@ For production it's recommended to use a reverse proxy like `nginx` or `caddy`.
 
 #### System requirements
 
-- 2 GB RAM (4 GB recommended)
-- 2 CPU cores (4 cores recommended)
-- 50 GB disk space (200 GB recommended)
+* 2 GB RAM (4 GB recommended)
+* 2 CPU cores (4 cores recommended)
+* 50 GB disk space (200 GB recommended)
   
 ### Development
 
@@ -121,6 +125,7 @@ To update the list of available targets, run:
 This may be added to a cron job to update the targets regularly. The script must
 be changed in case you want to update the targets from a different source or run
 the server on a different port.
+
 ### API
 
 The API is documented via _OpenAPI_ and can be viewed interactively on the
