@@ -21,7 +21,7 @@ redis = "^5.0.5"
 prometheus-client = "^0.20.0"
 
 [tool.poetry.group.dev.dependencies]
-ruff = ">=0.2.2,<0.5.0"
+ruff = ">=0.5.0,<0.6.0"
 pytest = "^8.0.0"
 pytest-httpserver = "^1.0.6"
 fakeredis = "^2.21.0"
