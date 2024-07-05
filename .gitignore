@@ -9,9 +9,7 @@ instance/
 htmlcov/
 dist/
 coverage.xml
-config.py
 cache/
-asu/__pycache__/
 asu.egg-info/
 *$py.class
 *.swp
@@ -26,4 +24,5 @@ asu.egg-info/
 .direnv/
 .coverage.*
 .coverage
-__pycache__/
+**/__pycache__/
+*.pyc

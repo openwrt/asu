@@ -5,23 +5,20 @@ from datetime import datetime
 from os import getenv
 from pathlib import Path
 
-import dotenv
-from podman import PodmanClient
 from rq import get_current_job
 
-from asu.common import (
+from asu.package_changes import appy_package_changes
+from asu.util import (
     check_manifest,
     diff_packages,
     fingerprint_pubkey_usign,
     get_container_version_tag,
     get_packages_hash,
+    get_podman,
     parse_manifest,
     report_error,
     run_container,
 )
-from asu.package_changes import appy_package_changes
-
-dotenv.load_dotenv()
 
 log = logging.getLogger("rq.worker")
 
@@ -45,10 +42,7 @@ def build(req: dict, job=None):
 
     log.debug(f"Building {req}")
 
-    podman = PodmanClient(
-        base_url=getenv("CONTAINER_HOST"),
-        identity=getenv("CONTAINER_IDENTITY", ""),
-    )
+    podman = get_podman()
 
     log.debug(f"Podman version: {podman.version()}")
 
@@ -115,7 +109,7 @@ def build(req: dict, job=None):
     if "repository_keys" in req:
         log.debug("Found extra keys")
 
-        for key in req.get("repository_keys"):
+        for key in req.get("repository_keys", []):
             fingerprint = fingerprint_pubkey_usign(key)
             log.debug(f"Found key {fingerprint}")
 
@@ -135,7 +129,7 @@ def build(req: dict, job=None):
     if "repositories" in req:
         log.debug("Found extra repos")
         repositories = ""
-        for name, repo in req.get("repositories").items():
+        for name, repo in req.get("repositories", {}).items():
             if repo.startswith(tuple(req["repository_allow_list"])):
                 repositories += f"src/gz {name} {repo}\n"
             else:
