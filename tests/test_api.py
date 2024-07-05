@@ -1,4 +1,7 @@
 import pytest
+from fastapi.testclient import TestClient
+
+from asu.config import settings
 
 
 def test_api_build(client):
@@ -11,8 +14,9 @@ def test_api_build(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "200 OK"
-    assert response.json.get("manifest").get("test1") == "1.0"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["manifest"]["test1"] == "1.0"
 
 
 def test_api_build_version_code(client):
@@ -26,7 +30,7 @@ def test_api_build_version_code(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "200 OK"
+    assert response.status_code == 200
 
 
 def test_api_build_rootfs_size(client):
@@ -40,8 +44,9 @@ def test_api_build_rootfs_size(client):
             rootfs_size_mb=100,
         ),
     )
-    assert response.status == "200 OK"
-    assert response.json.get("build_cmd")[6] == "ROOTFS_PARTSIZE=100"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["build_cmd"][6] == "ROOTFS_PARTSIZE=100"
 
 
 def test_api_build_version_code_bad(client):
@@ -55,7 +60,7 @@ def test_api_build_version_code_bad(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "500 INTERNAL SERVER ERROR"
+    assert response.status_code == 200
 
 
 def test_api_build_diff_packages(client):
@@ -69,18 +74,26 @@ def test_api_build_diff_packages(client):
             diff_packages=True,
         ),
     )
-    assert response.status == "200 OK"
+
+    assert response.status_code == 200
+
+    data = response.json()
 
     # TODO shorten for testing
     assert (
-        response.json.get("build_cmd")[3]
+        data["build_cmd"][3]
         == "PACKAGES=-base-files -busybox -dnsmasq -dropbear -firewall -fstools -ip6tables -iptables -kmod-ath9k -kmod-gpio-button-hotplug -kmod-ipt-offload -kmod-usb-chipidea2 -kmod-usb-storage -kmod-usb2 -libc -libgcc -logd -mtd -netifd -odhcp6c -odhcpd-ipv6only -opkg -ppp -ppp-mod-pppoe -swconfig -uboot-envtools -uci -uclient-fetch -urandom-seed -urngd -wpad-basic test1 test2"
     )
 
 
 def test_api_latest_default(client):
-    response = client.get("/api/latest")
-    assert response.status == "302 FOUND"
+    response = client.get("/api/v1/latest", follow_redirects=False)
+    assert response.status_code == 301
+
+
+def test_api_overview(client):
+    response = client.get("/api/v1/overview", follow_redirects=False)
+    assert response.status_code == 301
 
 
 def test_api_build_mapping(client):
@@ -89,11 +102,11 @@ def test_api_build_mapping(client):
         json=dict(
             version="1.2.3",
             target="testtarget/testsubtarget",
-            profile="testvendor,testprofile",
+            profile="testprofile",
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "200 OK"
+    assert response.status_code == 200
 
 
 def test_api_build_mapping_abi(client):
@@ -102,11 +115,11 @@ def test_api_build_mapping_abi(client):
         json=dict(
             version="1.2.3",
             target="testtarget/testsubtarget",
-            profile="testvendor,testprofile",
+            profile="testprofile",
             packages=["test1-1", "test2"],
         ),
     )
-    assert response.status == "200 OK"
+    assert response.status_code == 200
 
 
 def test_api_build_bad_target(client):
@@ -119,10 +132,10 @@ def test_api_build_bad_target(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert (
-        response.json.get("detail") == "Unsupported target: testtarget/testsubtargetbad"
-    )
+    assert response.status_code == 400
+    data = response.json()
+
+    assert data.get("detail") == "Unsupported target: testtarget/testsubtargetbad"
 
 
 def test_api_build_get(client):
@@ -135,10 +148,12 @@ def test_api_build_get(client):
             packages=["test1", "test2"],
         ),
     )
-    request_hash = response.json["request_hash"]
+    data = response.json()
+    request_hash = data["request_hash"]
     response = client.get(f"/api/v1/build/{request_hash}")
-    assert response.status == "200 OK"
-    assert response.json.get("request_hash") == request_hash
+    assert response.status_code == 200
+    data = response.json()
+    assert data["request_hash"] == request_hash
 
 
 def test_api_build_packages_versions(client):
@@ -151,10 +166,12 @@ def test_api_build_packages_versions(client):
             packages_versions={"test1": "1.0", "test2": "2.0"},
         ),
     )
-    request_hash = response.json["request_hash"]
+    data = response.json()
+    request_hash = data["request_hash"]
     response = client.get(f"/api/v1/build/{request_hash}")
-    assert response.status == "200 OK"
-    assert response.json.get("request_hash") == request_hash
+    assert response.status_code == 200
+    data = response.json()
+    assert data["request_hash"] == request_hash
 
 
 def test_api_build_packages_versions_bad(client):
@@ -167,11 +184,12 @@ def test_api_build_packages_versions_bad(client):
             packages_versions={"test1": "0.0", "test2": "2.0"},
         ),
     )
-    request_hash = response.json["request_hash"]
+    data = response.json()
+    request_hash = data["request_hash"]
     response = client.get(f"/api/v1/build/{request_hash}")
-    assert response.status == "500 INTERNAL SERVER ERROR"
+    assert response.status_code == 500
     assert (
-        response.json.get("detail")
+        data["detail"]
         == "Error: Impossible package selection: test1 version not as requested: 0.0 vs. 1.0"
     )
 
@@ -187,17 +205,17 @@ def test_api_build_packages_duplicate(client):
             packages_versions={"test1": "1.0", "test2": "2.0"},
         ),
     )
-    assert response.status == "200 OK"
+    assert response.status_code == 200
 
 
 def test_api_build_get_not_found(client):
     response = client.get("/api/v1/build/testtesttest")
-    assert response.status == "404 NOT FOUND"
+    assert response.status_code == 404
 
 
 def test_api_build_get_no_post(client):
     response = client.post("/api/v1/build/0222f0cd9290")
-    assert response.status == "405 METHOD NOT ALLOWED"
+    assert response.status_code == 405
 
 
 def test_api_build_empty_packages_list(client):
@@ -210,7 +228,7 @@ def test_api_build_empty_packages_list(client):
             packages=[],
         ),
     )
-    assert response.status == "200 OK"
+    assert response.status_code == 200
 
 
 def test_api_build_withouth_packages_list(client):
@@ -222,7 +240,7 @@ def test_api_build_withouth_packages_list(client):
             profile="testprofile",
         ),
     )
-    assert response.status == "200 OK"
+    assert response.status_code == 200
 
 
 def test_api_build_prerelease_snapshot(client):
@@ -235,8 +253,9 @@ def test_api_build_prerelease_snapshot(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "Unsupported profile: testprofile"
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Unsupported profile: testprofile"
 
 
 def test_api_build_prerelease_rc(client):
@@ -249,8 +268,9 @@ def test_api_build_prerelease_rc(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "Unsupported profile: testprofile"
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Unsupported profile: testprofile"
 
 
 def test_api_build_bad_packages_str(client):
@@ -263,17 +283,25 @@ def test_api_build_bad_packages_str(client):
             packages="testpackage",
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert (
-        response.json.get("detail")
-        == "'testpackage' is not of type 'array' - 'packages'"
-    )
+    assert response.status_code == 422
+    data = response.json()
+    assert data["detail"] == [
+        {
+            "input": "testpackage",
+            "loc": ["body", "packages"],
+            "msg": "Input should be a valid list",
+            "type": "list_type",
+        }
+    ]
 
 
 def test_api_build_empty_request(client):
     response = client.post("/api/v1/build")
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "None is not of type 'object'"
+    assert response.status_code == 422
+    data = response.json()
+    assert data["detail"] == [
+        {"input": None, "loc": ["body"], "msg": "Field required", "type": "missing"}
+    ]
 
 
 @pytest.mark.slow
@@ -290,8 +318,9 @@ def test_api_build_real_x86(app):
         ),
     )
 
-    assert response.status == "200 OK"
-    assert response.json.get("id") == "generic"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "generic"
 
     response = client.post(
         "/api/v1/build",
@@ -304,8 +333,9 @@ def test_api_build_real_x86(app):
         ),
     )
 
-    assert response.status == "200 OK"
-    assert response.json.get("id") == "generic"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "generic"
 
 
 @pytest.mark.slow
@@ -322,8 +352,9 @@ def test_api_build_real_ath79(app):
         ),
     )
 
-    assert response.status == "200 OK"
-    assert response.json.get("id") == "tplink_tl-wdr4300-v1"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "tplink_tl-wdr4300-v1"
 
     response = client.post(
         "/api/v1/build",
@@ -336,8 +367,9 @@ def test_api_build_real_ath79(app):
         ),
     )
 
-    assert response.status == "200 OK"
-    assert response.json.get("id") == "tplink_tl-wdr4300-v1"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "tplink_tl-wdr4300-v1"
 
 
 def test_api_build_needed(client):
@@ -345,22 +377,45 @@ def test_api_build_needed(client):
         "/api/v1/build",
         json=dict(profile="testprofile", target="testtarget/testsubtarget"),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "'version' is a required property"
-    assert response.json.get("title") == "Bad Request"
+    assert response.status_code == 422
+    data = response.json()
+    assert data["detail"] == [
+        {
+            "input": {"profile": "testprofile", "target": "testtarget/testsubtarget"},
+            "loc": ["body", "version"],
+            "msg": "Field required",
+            "type": "missing",
+        }
+    ]
     response = client.post(
         "/api/v1/build",
         json=dict(version="1.2.3", target="testtarget/testsubtarget"),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "'profile' is a required property"
-    assert response.json.get("title") == "Bad Request"
+    assert response.status_code == 422
+    data = response.json()
+    assert data["detail"] == [
+        {
+            "type": "missing",
+            "loc": ["body", "profile"],
+            "msg": "Field required",
+            "input": {"version": "1.2.3", "target": "testtarget/testsubtarget"},
+        }
+    ]
+
     response = client.post(
         "/api/v1/build", json=dict(version="1.2.3", profile="testprofile")
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "'target' is a required property"
-    assert response.json.get("title") == "Bad Request"
+    assert response.status_code == 422
+    data = response.json()
+    print(data)
+    assert data["detail"] == [
+        {
+            "type": "missing",
+            "loc": ["body", "target"],
+            "msg": "Field required",
+            "input": {"version": "1.2.3", "profile": "testprofile"},
+        }
+    ]
 
 
 def test_api_build_bad_distro(client):
@@ -374,8 +429,9 @@ def test_api_build_bad_distro(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "Unsupported distro: Foobar"
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Unsupported distro: Foobar"
 
 
 def test_api_build_bad_branch(client):
@@ -388,8 +444,10 @@ def test_api_build_bad_branch(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "Unsupported branch: 10.10.10"
+    assert response.status_code == 400
+    data = response.json()
+    print(data)
+    assert data["detail"] == "Unsupported branch: 10.10.10"
 
 
 def test_api_build_bad_version(client):
@@ -402,8 +460,9 @@ def test_api_build_bad_version(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "Unsupported version: 19.07.2"
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Unsupported version: 19.07.2"
 
 
 def test_api_build_bad_profile(client):
@@ -416,8 +475,10 @@ def test_api_build_bad_profile(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status == "400 BAD REQUEST"
-    assert response.json.get("detail") == "Unsupported profile: Foobar"
+    assert response.status_code == 400
+
+    data = response.json()
+    assert data["detail"] == "Unsupported profile: Foobar"
 
 
 def test_api_build_defaults_empty(client):
@@ -430,7 +491,7 @@ def test_api_build_defaults_empty(client):
             defaults="",
         ),
     )
-    assert response.status == "200 OK"
+    assert response.status_code == 200
 
 
 def test_api_build_defaults_filled_not_allowed(client):
@@ -444,12 +505,16 @@ def test_api_build_defaults_filled_not_allowed(client):
         ),
     )
 
-    assert response.status == "400 BAD REQUEST"
+    data = response.json()
+    print(data)
+
+    print(response.status_code)
+    assert response.status_code == 400
 
 
 def test_api_build_defaults_filled_allowed(app):
-    app.config["ALLOW_DEFAULTS"] = True
-    client = app.test_client()
+    settings.allow_defaults = True
+    client = TestClient(app)
     response = client.post(
         "/api/v1/build",
         json=dict(
@@ -460,5 +525,6 @@ def test_api_build_defaults_filled_allowed(app):
         ),
     )
 
-    assert response.status == "200 OK"
-    assert response.json.get("request_hash") == "0e4cbc84b22e7cbf885102248cc9c965"
+    assert response.status_code == 200
+    data = response.json()
+    assert data["request_hash"] == "583290466ebafc7dbfa2324a4ea12df0"

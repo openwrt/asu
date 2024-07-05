@@ -2,14 +2,12 @@ import shutil
 import tempfile
 from pathlib import Path
 
-import dotenv
-import prometheus_client
 import pytest
 from fakeredis import FakeStrictRedis
+from fastapi.testclient import TestClient
 
-from asu.asu import create_app
-
-dotenv.load_dotenv()
+from asu.config import settings
+from asu.main import app as real_app
 
 
 def redis_load_mock_data(redis):
@@ -60,16 +58,6 @@ def redis_server():
     r.flushall()
 
 
-@pytest.fixture
-def mocked_redis(monkeypatch, redis_server):
-    def mocked_redis_client(*args, **kwargs):
-        return redis_server
-
-    monkeypatch.setattr("asu.common.get_redis_client", mocked_redis_client)
-    monkeypatch.setattr("asu.api.get_redis_client", mocked_redis_client)
-    monkeypatch.setattr("asu.asu.get_redis_client", mocked_redis_client)
-
-
 def pytest_addoption(parser):
     parser.addoption(
         "--runslow", action="store_true", default=False, help="run slow tests"
@@ -98,126 +86,23 @@ def test_path():
 
 
 @pytest.fixture
-def app(mocked_redis, test_path):
-    registry = prometheus_client.CollectorRegistry(auto_describe=True)
+def app(redis_server, test_path, monkeypatch):
+    def mocked_redis_client(*args, **kwargs):
+        return redis_server
 
-    mock_app = create_app(
-        {
-            "REGISTRY": registry,
-            "ASYNC_QUEUE": False,
-            "PUBLIC_PATH": test_path,
-            "REDIS_URL": "foobar",
-            "CACHE_PATH": test_path,
-            "TESTING": True,
-            "UPSTREAM_URL": "http://localhost:8001",
-            "REPOSITORY_ALLOW_LIST": [],
-            "BRANCHES": {
-                "SNAPSHOT": {
-                    "name": "SNAPSHOT",
-                    "updates": "dev",
-                    "enabled": True,
-                    "snapshot": True,
-                    "versions": ["SNAPSHOT"],
-                    "git_branch": "master",
-                    "path": "snapshots",
-                    "path_packages": "snapshots/packages",
-                    "pubkey": "RWS1BD5w+adc3j2Hqg9+b66CvLR7NlHbsj7wjNVj0XGt/othDgIAOJS+",
-                    "repos": ["base", "packages", "luci", "routing", "telephony"],
-                    "extra_repos": {},
-                    "extra_keys": [],
-                },
-                "1.2": {
-                    "name": "1.2",
-                    "enabled": True,
-                    "snapshot": True,
-                    "versions": ["1.2.3"],
-                    "git_branch": "master",
-                    "path": "snapshots",
-                    "path_packages": "snapshots/packages",
-                    "repos": ["base"],
-                    "pubkey": "RWRqylWEtrAZQ9hlSSEkqCJD4SAFswJQR1yoMfD3mzO3TEnY7LGthxPi",
-                    "updates": "dev",
-                    "targets": {
-                        "testtarget/testsubtarget": "testarch",
-                        "x86/64": "x86_64",
-                    },
-                    "package_changes": {
-                        "package_to_remove": None,
-                        "package_to_replace": "valid_new_package",
-                    },
-                },
-                "21.02": {
-                    "name": "21.02",
-                    "enabled": True,
-                    "snapshot": True,
-                    "versions": ["21.02.7", "21.02.0", "21.02.0-rc4", "21.02-SNAPSHOT"],
-                    "git_branch": "openwrt-21.02",
-                    "path": "releases/{version}",
-                    "path_packages": "releases/packages-{branch}",
-                    "repos": ["base"],
-                    "pubkey": "RWRqylWEtrAZQ9hlSSEkqCJD4SAFswJQR1yoMfD3mzO3TEnY7LGthxPi",
-                    "updates": "rc",
-                    "targets": {"testtarget/testsubtarget": "testarch"},
-                },
-                "19.07": {
-                    "name": "19.07",
-                    "enabled": True,
-                    "versions": ["19.07.7", "19.07.6"],
-                    "git_branch": "openwrt-19.07",
-                    "path": "releases/{version}",
-                    "path_packages": "releases/packages-{branch}",
-                    "repos": ["base"],
-                    "pubkey": "RWRqylWEtrAZQ9hlSSEkqCJD4SAFswJQR1yoMfD3mzO3TEnY7LGthxPi",
-                    "updates": "stable",
-                    "targets": {"testtarget/testsubtarget": "testarch"},
-                },
-            },
-        }
-    )
+    settings.public_path = Path(test_path) / "public"
+    settings.async_queue = False
 
-    return mock_app
+    monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
+    monkeypatch.setattr("asu.routers.api.get_redis_client", mocked_redis_client)
+    # monkeypatch.setattr("asu.util.get_settings", mock_settings)
+
+    yield real_app
 
 
 @pytest.fixture
-def app_using_branches_yml(mocked_redis, test_path):
-    registry = prometheus_client.CollectorRegistry(auto_describe=True)
-
-    mock_app = create_app(
-        {
-            "REGISTRY": registry,
-            "ASYNC_QUEUE": False,
-            "PUBLIC_PATH": test_path,
-            "CACHE_PATH": test_path,
-            "TESTING": True,
-            "UPSTREAM_URL": "http://localhost:8001",
-            "BRANCHES_FILE": "./asu/branches.yml",
-        }
-    )
-
-    return mock_app
-
-
-@pytest.fixture
-def app_using_default_branches(mocked_redis, test_path):
-    registry = prometheus_client.CollectorRegistry(auto_describe=True)
-
-    mock_app = create_app(
-        {
-            "REGISTRY": registry,
-            "ASYNC_QUEUE": False,
-            "PUBLIC_PATH": test_path,
-            "CACHE_PATH": test_path,
-            "TESTING": True,
-            "UPSTREAM_URL": "http://localhost:8001",
-        }
-    )
-
-    return mock_app
-
-
-@pytest.fixture
-def client(mocked_redis, app):
-    return app.test_client()
+def client(app):
+    yield TestClient(app)
 
 
 @pytest.fixture(scope="session")

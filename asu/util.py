@@ -3,17 +3,30 @@ import hashlib
 import json
 import logging
 import struct
-from os import getenv
 from pathlib import Path
 from re import match
 from tarfile import TarFile
 from tempfile import NamedTemporaryFile
 
 import nacl.signing
-import requests
-from podman import PodmanClient
-
 import redis
+from podman import PodmanClient
+from rq import Queue
+
+from asu.config import settings
+
+
+def get_redis_client():
+    return redis.from_url(settings.redis_url, decode_responses=False)
+
+
+def get_queue() -> Queue:
+    """Return the current queue
+
+    Returns:
+        Queue: The current RQ work queue
+    """
+    return Queue(connection=get_redis_client(), is_async=settings.async_queue)
 
 
 def get_branch(version: str) -> str:
@@ -33,31 +46,11 @@ def get_branch(version: str) -> str:
         return version.rsplit(".", maxsplit=1)[0]
 
 
-def get_redis_client(config):
-    return redis.from_url(getenv("REDIS_URL") or config["REDIS_URL"])
-
-
-def is_modified(config, url: str) -> bool:
-    r = get_redis_client(config)
-
-    modified_local = r.hget("last-modified", url)
-    if modified_local:
-        modified_local = modified_local.decode("utf-8")
-
-    modified_remote = requests.head(url).headers.get("last-modified")
-
-    if modified_local:
-        if modified_local == modified_remote:
-            return False
-
-    if modified_remote:
-        r.hset(
-            "last-modified",
-            url,
-            modified_remote,
-        )
-
-    return True
+def get_branch_path(branch: str) -> str:
+    if branch not in settings.branches:
+        return settings.branches["default"]["path"]
+    else:
+        return settings.branches[branch]["path"]
 
 
 def get_str_hash(string: str, length: int = 32) -> str:
@@ -70,6 +63,8 @@ def get_str_hash(string: str, length: int = 32) -> str:
     Returns:
         str: hash of string with specified length
     """
+    if not string:
+        string = ""
     h = hashlib.sha256()
     h.update(bytes(string, "utf-8"))
     response_hash = h.hexdigest()[:length]
@@ -217,6 +212,13 @@ def get_container_version_tag(version: str) -> str:
     return version
 
 
+def get_podman():
+    return PodmanClient(
+        base_url=settings.container_host,
+        identity=settings.container_identity,
+    )
+
+
 def diff_packages(requested_packages: set, default_packages: set):
     """Return a list of packages to install and remove
 
@@ -256,7 +258,9 @@ def run_container(
     Returns:
         tuple: (returncode, stdout, stderr)
     """
-    logging.info(f"Running {image} {command} {mounts}")
+    logging.warning(
+        f"Running {image} {command} {mounts} {copy} {user} {environment} {working_dir}"
+    )
     container = podman.containers.run(
         image=image,
         command=command,

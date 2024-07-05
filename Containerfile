@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app/
 
@@ -13,4 +13,4 @@ COPY ./asu/ ./asu/
 
 COPY ./misc/config.py /etc/asu/config.py
 
-CMD gunicorn 'asu.asu:create_app()' --bind 0.0.0.0:8000
+CMD uvicorn 'asu.main:app'

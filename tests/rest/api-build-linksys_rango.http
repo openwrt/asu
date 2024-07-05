@@ -1,7 +1,0 @@
-POST http://localhost:5000/api/build HTTP/1.1
-content-type: application/json
-
-{
-    "version": "snapshot",
-    "profile": "linksys,rango"
-}

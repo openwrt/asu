@@ -99,7 +99,7 @@ For production it's recommended to use a reverse proxy like `nginx` or `caddy`.
 * 2 GB RAM (4 GB recommended)
 * 2 CPU cores (4 cores recommended)
 * 50 GB disk space (200 GB recommended)
-  
+
 ### Development
 
 After cloning this repository, create a Python virtual environment and install
@@ -108,7 +108,7 @@ the dependencies:
 #### Running the server
 
     poetry install
-    poetry run flask run -p 5001 # macOS bails on port 5000
+    poetry run fastapi dev asu/main.py
 
 #### Running a worker
 
@@ -131,4 +131,5 @@ the server on a different port.
 The API is documented via _OpenAPI_ and can be viewed interactively on the
 server:
 
-[https://sysupgrade.openwrt.org/ui/](https://sysupgrade.openwrt.org/ui/)
+* [https://sysupgrade.openwrt.org/docs/](https://sysupgrade.openwrt.org/docs/)
+* [https://sysupgrade.openwrt.org/redoc](https://sysupgrade.openwrt.org/redoc/)

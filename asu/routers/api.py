@@ -1,11 +1,29 @@
-from flask import Blueprint, current_app, g, jsonify, redirect, request
-from rq import Connection, Queue
+import logging
+from typing import Annotated, Union
+
+from fastapi import APIRouter, Header
+from fastapi.responses import RedirectResponse, Response
+from pydantic import BaseModel
 
 from asu.build import build
-from asu.common import get_branch, get_redis_client, get_request_hash
+from asu.config import settings
 from asu.update import update
+from asu.util import get_branch, get_queue, get_redis_client, get_request_hash
 
-bp = Blueprint("api", __name__, url_prefix="/api")
+router = APIRouter()
+
+
+class BuildRequest(BaseModel):
+    distro: str = "openwrt"
+    version: str
+    target: str
+    packages: Union[list, None] = []
+    profile: str
+    packages_versions: dict = {}
+    defaults: Union[str, None] = None
+    client: Union[str, None] = "unknown/0"
+    rootfs_size_mb: Union[int, None] = None
+    diff_packages: Union[bool, None] = True
 
 
 def get_distros() -> list:
@@ -17,50 +35,23 @@ def get_distros() -> list:
     return ["openwrt"]
 
 
-def redis_client():
-    """Return Redis connectio
-
-    Returns:
-        Redis: Configured used Redis connection
-    """
-    if "redis" not in g:
-        g.redis = get_redis_client(current_app.config)
-    return g.redis
+@router.get("/revision/{version}/{target}/{subtarget}")
+def api_v1_revision(version: str, target: str, subtarget: str):
+    return {
+        "revision": get_redis_client()
+        .get(f"revision:{version}:{target}/{subtarget}")
+        .decode("utf-8")
+    }
 
 
-def get_queue() -> Queue:
-    """Return the current queue
-
-    Returns:
-        Queue: The current RQ work queue
-    """
-    if "queue" not in g:
-        with Connection():
-            g.queue = Queue(
-                connection=redis_client(), is_async=current_app.config["ASYNC_QUEUE"]
-            )
-    return g.queue
-
-
-def api_v1_revision(version, target, subtarget):
-    return jsonify(
-        {
-            "revision": redis_client()
-            .get(f"revision:{version}:{target}/{subtarget}")
-            .decode()
-        }
-    )
-
-
-# tbd
-@bp.route("/latest")
+@router.get("/latest")
 def api_latest():
-    return redirect("/json/v1/latest.json")
+    return RedirectResponse("/json/v1/latest.json", status_code=301)
 
 
-@bp.route("/overview")
+@router.get("/overview")
 def api_v1_overview():
-    return redirect("/json/v1/overview.json")
+    return RedirectResponse("/json/v1/overview.json", status_code=301)
 
 
 def validate_request(req):
@@ -77,7 +68,7 @@ def validate_request(req):
 
     """
 
-    if req.get("defaults") and not current_app.config["ALLOW_DEFAULTS"]:
+    if req.get("defaults") and not settings.allow_defaults:
         return (
             {"detail": "Handling `defaults` not enabled on server", "status": 400},
             400,
@@ -92,7 +83,7 @@ def validate_request(req):
 
     req["branch"] = get_branch(req["version"])
 
-    r = redis_client()
+    r = get_redis_client()
 
     if not r.sismember("branches", req["branch"]):
         return (
@@ -113,7 +104,7 @@ def validate_request(req):
         )
     )
 
-    current_app.logger.debug("Profile before mapping " + req["profile"])
+    logging.debug("Profile before mapping " + req["profile"])
 
     if not r.hexists(f"targets:{req['branch']}", req["target"]):
         return ({"detail": f"Unsupported target: {req['target']}", "status": 400}, 400)
@@ -126,7 +117,7 @@ def validate_request(req):
         "armsr/armv7",
         "armsr/armv8",
     ]:
-        current_app.logger.debug("Use generic profile for {req['target']}")
+        logging.debug("Use generic profile for {req['target']}")
         req["profile"] = "generic"
     else:
         if r.sismember(
@@ -180,86 +171,93 @@ def return_job_v1(job):
         headers = {"X-Imagebuilder-Status": response.get("imagebuilder_status", "init")}
 
     elif job.is_finished:
-        response.update({"status": 200, **job.result})
+        response.update({"status": 200, **job.return_value()})
 
     response["enqueued_at"] = job.enqueued_at
     response["request_hash"] = job.id
 
-    current_app.logger.debug(response)
+    logging.debug(response)
     return response, response["status"], headers
 
 
-def api_v1_update(version, target, subtarget):
-    token = current_app.config.get("UPDATE_TOKEN")
-    if token and token == request.headers.get("X-Update-Token"):
-        config = {
-            "JSON_PATH": current_app.config["PUBLIC_PATH"] / "json/v1",
-            "BRANCHES": current_app.config["BRANCHES"],
-            "UPSTREAM_URL": current_app.config["UPSTREAM_URL"],
-            "ALLOW_DEFAULTS": current_app.config["ALLOW_DEFAULTS"],
-            "REPOSITORY_ALLOW_LIST": current_app.config["REPOSITORY_ALLOW_LIST"],
-            "REDIS_URL": current_app.config["REDIS_URL"],
-        }
+@router.get("/update/{version}/{target}/{subtarget}")
+def api_v1_update(
+    version: str,
+    target: str,
+    subtarget: str,
+    response: Response,
+    x_update_token: Annotated[str | None, Header()] = None,
+):
+    token = settings.update_token
+    if token and token == x_update_token:
         get_queue().enqueue(
             update,
-            config=config,
             version=version,
             target_subtarget=f"{target}/{subtarget}",
             job_timeout="10m",
         )
-
-        return None, 204
+        response.status_code = 204
+        return None
     else:
-        return {"status": 403, "detail": "Forbidden"}, 403
+        response.status_code = 403
+        return {"status": 403, "detail": "Forbidden"}
 
 
-# legacy offering /api/overview
-def api_v1_build_get(request_hash):
+@router.get("/build/{request_hash}")
+def api_v1_build_get(request_hash: str, response: Response):
     job = get_queue().fetch_job(request_hash)
     if not job:
+        response.status_code = 404
         return {
             "status": 404,
             "title": "Not Found",
             "detail": "could not find provided request hash",
-        }, 404
+        }
 
-    return return_job_v1(job)
+    content, status, headers = return_job_v1(job)
+    response.headers.update(headers)
+    response.status_code = status
+
+    return content
 
 
-def api_v1_build_post():
-    req = request.get_json()
-    current_app.logger.debug(f"req {req}")
-    request_hash = get_request_hash(req)
+@router.post("/build")
+def api_v1_build_post(
+    build_request: BuildRequest,
+    response: Response,
+    user_agent: str = Header(None),
+):
+    request_hash = get_request_hash(build_request.dict())
     job = get_queue().fetch_job(request_hash)
-    response = {}
     status = 200
     result_ttl = "7d"
-    if req.get("defaults"):
+    if build_request.defaults:
         result_ttl = "1h"
     failure_ttl = "12h"
 
-    if "client" in req:
-        redis_client().hincrby("stats:clients", req["client"])
+    if build_request.client:
+        get_redis_client().hincrby("stats:clients", build_request.client)
     else:
-        if request.headers.get("user-agent").startswith("auc"):
-            redis_client().hincrby(
+        if user_agent.startswith("auc"):
+            get_redis_client().hincrby(
                 "stats:clients",
-                request.headers.get("user-agent").replace(" (", "/").replace(")", ""),
+                user_agent.replace(" (", "/").replace(")", ""),
             )
         else:
-            redis_client().hincrby("stats:clients", "unknown/0")
+            get_redis_client().hincrby("stats:clients", "unknown/0")
 
     if job is None:
-        redis_client().incr("stats:cache-miss")
-        response, status = validate_request(req)
-        if response:
-            return response, status
+        get_redis_client().incr("stats:cache-miss")
+        content, status = validate_request(build_request.dict())
+        if content:
+            response.status_code = status
+            return content
 
-        req["public_path"] = str(current_app.config["PUBLIC_PATH"])
-        req["branch_data"] = current_app.config["BRANCHES"][req["branch"]]
-        req["repository_allow_list"] = current_app.config["REPOSITORY_ALLOW_LIST"]
+        req = build_request.dict()
+        req["public_path"] = str(settings.public_path)
+        req["repository_allow_list"] = settings.repository_allow_list
         req["request_hash"] = request_hash
-        req["base_container"] = current_app.config["BASE_CONTAINER"]
+        req["base_container"] = settings.base_container
 
         job = get_queue().enqueue(
             build,
@@ -271,6 +269,10 @@ def api_v1_build_post():
         )
     else:
         if job.is_finished:
-            redis_client().incr("stats:cache-hit")
+            get_redis_client().incr("stats:cache-hit")
 
-    return return_job_v1(job)
+    content, status, headers = return_job_v1(job)
+    response.headers.update(headers)
+    response.status_code = status
+
+    return content
