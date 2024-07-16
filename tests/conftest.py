@@ -92,10 +92,12 @@ def app(redis_server, test_path, monkeypatch):
 
     settings.public_path = Path(test_path) / "public"
     settings.async_queue = False
+    settings.branches["1.2"] = {}
+    settings.branches["19.07"] = {}
+    settings.branches["21.02"] = {}
 
     monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
     monkeypatch.setattr("asu.routers.api.get_redis_client", mocked_redis_client)
-    # monkeypatch.setattr("asu.util.get_settings", mock_settings)
 
     yield real_app
 
