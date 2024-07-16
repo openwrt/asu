@@ -5,7 +5,7 @@ from datetime import datetime
 import requests
 
 from asu import __version__
-from asu.util import get_branch, get_branch_path, get_redis_client
+from asu.util import get_branch, get_redis_client
 
 from .config import settings
 
@@ -21,8 +21,9 @@ def update_targets(version):
         config (dict): Configuration
         version(str): Version within branch
     """
-    branch_name = get_branch(version)
-    version_path = get_branch_path(branch_name).format(version=version)
+    branch_data = get_branch(version)
+    branch_name = branch_data["name"]
+    version_path = branch_data["path"].format(version=version)
     targets = requests.get(settings.upstream_url + f"/{version_path}/.targets.json")
 
     if targets.status_code != 200:
@@ -46,8 +47,9 @@ def update_profiles(version: str, target_subtarget: str) -> str:
         version(str): Version within branch
         target(str): Target within version
     """
-    branch_name = get_branch(version)
-    version_path = get_branch_path(branch_name).format(version=version)
+    branch_data = get_branch(version)
+    branch_name = branch_data["name"]
+    version_path = branch_data["path"].format(version=version)
     log.debug(f"{version}/{target_subtarget}: Update profiles")
 
     redis_client.sadd("branches", branch_name)
@@ -130,12 +132,18 @@ def update_meta_json():
             lambda b: (
                 b.decode(),
                 {
+                    **get_branch(b.decode()),
                     "name": b.decode(),
-                    "versions": list(redis_client.smembers(f"versions:{b}")),
+                    "versions": list(
+                        map(
+                            lambda v: v.decode(),
+                            redis_client.smembers(f"versions:{b.decode()}"),
+                        )
+                    ),
                     "targets": dict(
                         map(
                             lambda a: (a[0].decode(), a[1].decode()),
-                            redis_client.hgetall(f"targets:{b}").items(),
+                            redis_client.hgetall(f"targets:{b.decode()}").items(),
                         )
                     ),
                 },

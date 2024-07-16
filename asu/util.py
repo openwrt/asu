@@ -1,4 +1,5 @@
 import base64
+import email
 import hashlib
 import json
 import logging
@@ -8,6 +9,7 @@ from re import match
 from tarfile import TarFile
 from tempfile import NamedTemporaryFile
 
+import httpx
 import nacl.signing
 import redis
 from podman import PodmanClient
@@ -29,28 +31,18 @@ def get_queue() -> Queue:
     return Queue(connection=get_redis_client(), is_async=settings.async_queue)
 
 
-def get_branch(version: str) -> str:
-    """Return branch of a version
-
-    Args:
-        version (str): Version string
-
-    Returns:
-        str: Branch name
-    """
-    if version.endswith("-SNAPSHOT"):
-        # e.g. 21.02-snapshot
-        return version.rsplit("-", maxsplit=1)[0]
+def get_branch(version_or_branch: str) -> dict:
+    if version_or_branch not in settings.branches:
+        if version_or_branch.endswith("-SNAPSHOT"):
+            # e.g. 21.02-snapshot
+            branch_name = version_or_branch.rsplit("-", maxsplit=1)[0]
+        else:
+            # e.g. snapshot, 21.02.0-rc1 or 19.07.7
+            branch_name = version_or_branch.rsplit(".", maxsplit=1)[0]
     else:
-        # e.g. snapshot, 21.02.0-rc1 or 19.07.7
-        return version.rsplit(".", maxsplit=1)[0]
+        branch_name = version_or_branch
 
-
-def get_branch_path(branch: str) -> str:
-    if branch not in settings.branches:
-        return settings.branches["default"]["path"]
-    else:
-        return settings.branches[branch]["path"]
+    return {**settings.branches.get(branch_name, {}), "name": branch_name}
 
 
 def get_str_hash(string: str, length: int = 32) -> str:
@@ -353,3 +345,45 @@ def check_manifest(manifest, packages_versions):
                 f"Impossible package selection: {package} version not as requested: "
                 f"{version} vs. {manifest[package]}"
             )
+
+
+def parse_packages_file(url):
+    res = httpx.get(url + "/Packages")
+
+    if res.status_code != 200:
+        return {}
+
+    index = {}
+    linebuffer = ""
+    architecure = ""
+    for line in res.text.splitlines():
+        if line == "":
+            parser = email.parser.Parser()
+            package = parser.parsestr(linebuffer)
+            if not architecure:
+                architecure = package["Architecture"]
+            package_name = package["Package"]
+            if package_abi := package.get("ABIVersion"):
+                package_name = package_name.rstrip(package_abi)
+
+            index[package_name] = package["Version"]
+
+            linebuffer = ""
+        else:
+            linebuffer += line + "\n"
+
+    return {"architecture": architecure, "packages": index}
+
+
+def parse_feeds_conf(url):
+    req = httpx.get(url + "/feeds.conf")
+
+    feeds = []
+
+    if req.status_code != 200:
+        return feeds
+
+    for line in req.text.splitlines():
+        feeds.append(line.split(" ")[1])
+
+    return feeds

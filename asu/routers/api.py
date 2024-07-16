@@ -23,7 +23,7 @@ class BuildRequest(BaseModel):
     defaults: Union[str, None] = None
     client: Union[str, None] = "unknown/0"
     rootfs_size_mb: Union[int, None] = None
-    diff_packages: Union[bool, None] = True
+    diff_packages: Union[bool, None] = False
 
 
 def get_distros() -> list:
@@ -81,7 +81,7 @@ def validate_request(req):
             400,
         )
 
-    req["branch"] = get_branch(req["version"])
+    req["branch"] = get_branch(req["version"])["name"]
 
     r = get_redis_client()
 
@@ -248,12 +248,12 @@ def api_v1_build_post(
 
     if job is None:
         get_redis_client().incr("stats:cache-miss")
-        content, status = validate_request(build_request.dict())
+        req = build_request.dict()
+        content, status = validate_request(req)
         if content:
             response.status_code = status
             return content
 
-        req = build_request.dict()
         req["public_path"] = str(settings.public_path)
         req["repository_allow_list"] = settings.repository_allow_list
         req["request_hash"] = request_hash

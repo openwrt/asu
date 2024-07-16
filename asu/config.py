@@ -23,8 +23,66 @@ class Settings(BaseSettings):
     branches: dict = {
         "SNAPSHOT": {
             "path": "snapshots",
+            "enabled": True,
+            "path_packages": "DEPRECATED",
+            "package_changes": [
+                {"source": "auc", "target": "owut", "revision": 26792},
+                {
+                    "source": "libustream-wolfssl",
+                    "target": "libustream-mbedtls",
+                    "revision": 21994,
+                },
+                {"source": "px5g-wolfssl", "target": "px5g-mbedtls", "revision": 21994},
+                {
+                    "source": "wpad-basic-wolfssl",
+                    "target": "wpad-basic-mbedtls",
+                    "revision": 21994,
+                },
+                {
+                    "source": "libustream-wolfssl",
+                    "target": "libustream-mbedtls",
+                    "revision": 21994,
+                },
+                {"source": "kmod-nft-nat6", "revision": 20282, "mandatory": True},
+                {"source": "firewall", "target": "firewall4", "revision": 18611},
+            ],
         },
-        "default": {"path": "releases/{version}"},
+        "23.05": {
+            "path": "releases/{version}",
+            "enabled": True,
+            "path_packages": "DEPRECATED",
+            "branch_off_rev": 23069,
+            "package_changes": [
+                {
+                    "source": "libustream-wolfssl",
+                    "target": "libustream-mbedtls",
+                    "revision": 21994,
+                },
+                {"source": "px5g-wolfssl", "target": "px5g-mbedtls", "revision": 21994},
+                {
+                    "source": "wpad-basic-wolfssl",
+                    "target": "wpad-basic-mbedtls",
+                    "revision": 21994,
+                },
+                {
+                    "source": "libustream-wolfssl",
+                    "target": "libustream-mbedtls",
+                    "revision": 21994,
+                },
+                {"source": "kmod-nft-nat6", "revision": 19160, "mandatory": True},
+                {"source": "firewall", "target": "firewall4", "revision": 18611},
+            ],
+        },
+        "22.03": {
+            "path": "releases/{version}",
+            "enabled": True,
+            "path_packages": "DEPRECATED",
+            "branch_off_rev": 19160,
+            "package_changes": [
+                {"source": "kmod-nft-nat6", "revision": 19160, "mandatory": True},
+                {"source": "firewall", "target": "firewall4", "revision": 18611},
+            ],
+        },
     }
     server_stats: str = "/stats"
     log_level: str = "INFO"
