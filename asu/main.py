@@ -38,23 +38,24 @@ app.mount("/metrics", metrics_app)
 
 templates = Jinja2Templates(directory=base_path / "templates")
 
-redis_client = get_redis_client()
-
-branches = dict(
-    map(
-        lambda b: (
-            b,
-            {
-                "versions": list(redis_client.smembers(f"versions:{b}")),
-            },
-        ),
-        redis_client.smembers("branches"),
-    )
-)
-
 
 @app.get("/", response_class=HTMLResponse)
+@cache(expire=600)
 def index(request: Request):
+    redis_client = get_redis_client()
+
+    branches = dict(
+        map(
+            lambda b: (
+                b,
+                {
+                    "versions": list(redis_client.smembers(f"versions:{b}")),
+                },
+            ),
+            redis_client.smembers("branches"),
+        )
+    )
+
     return templates.TemplateResponse(
         request=request,
         name="overview.html",
