@@ -83,6 +83,11 @@ class Settings(BaseSettings):
                 {"source": "firewall", "target": "firewall4", "revision": 18611},
             ],
         },
+        "21.02": {
+            "path": "releases/{version}",
+            "enabled": True,
+            "path_packages": "DEPRECATED",
+        },
     }
     server_stats: str = "/stats"
     log_level: str = "INFO"
