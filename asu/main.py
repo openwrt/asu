@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_cache import FastAPICache
@@ -89,6 +89,12 @@ def json_v1_arch_index(path: str, arch: str):
 
 
 app.mount("/json", StaticFiles(directory=settings.public_path / "json"), name="json")
+
+
+# very legacy
+@app.get("/overview")
+def api_overview():
+    return RedirectResponse("/json/v1/overview.json", status_code=301)
 
 
 @app.on_event("startup")
