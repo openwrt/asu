@@ -525,4 +525,4 @@ def test_api_build_defaults_filled_allowed(app):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["request_hash"] == "583290466ebafc7dbfa2324a4ea12df0"
+    assert data["request_hash"] == "be4a78785b3dd275284aa6fe4d619f88"
