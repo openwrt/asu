@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     async_queue: bool = True
     branches_file: Union[str, Path, None] = None
     max_custom_rootfs_size_mb: int = 1024
+    max_defaults_length: int = 20480
     repository_allow_list: list = []
     base_container: str = "ghcr.io/openwrt/imagebuilder"
     update_token: Union[str, None] = "foobar"

@@ -1,9 +1,9 @@
 import logging
-from typing import Annotated, Union
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Header
 from fastapi.responses import RedirectResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from asu.build import build
 from asu.config import settings
@@ -17,17 +17,40 @@ class BuildRequest(BaseModel):
     distro: str = "openwrt"
     version: str
     target: str
-    packages: Union[list, None] = []
+    packages: Optional[list] = []
     profile: str
     packages_versions: dict = {}
-    defaults: Union[str, None] = None
-    client: Union[str, None] = "unknown/0"
-    rootfs_size_mb: Union[int, None] = None
-    diff_packages: Union[bool, None] = False
+    defaults: Optional[
+        Annotated[
+            str,
+            Field(
+                default=None,
+                max_length=settings.max_defaults_length,
+                description="Custom shell script embedded in firmware image to be run on first\n"
+                "boot. This feature might be dropped in the future. Input file size\n"
+                f"is limited to {settings.max_defaults_length} bytes and cannot be exceeded.",
+            ),
+        ]
+    ] = None
+    client: Optional[str] = "unknown/0"
+    rootfs_size_mb: Optional[
+        Annotated[
+            int,
+            Field(
+                default=None,
+                ge=1,
+                le=settings.max_custom_rootfs_size_mb,
+                description="Ability to specify a custom CONFIG_TARGET_ROOTFS_PARTSIZE for the\n"
+                "resulting image. Attaching this optional parameter will cause\n"
+                "ImageBuilder to build a rootfs with that size in MB.",
+            ),
+        ]
+    ] = None
+    diff_packages: Optional[bool] = False
 
 
 def get_distros() -> list:
-    """Return available distrobutions
+    """Return available distributions
 
     Returns:
         list: Available distributions
