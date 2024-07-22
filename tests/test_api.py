@@ -306,8 +306,7 @@ def test_api_build_empty_request(client):
 
 @pytest.mark.slow
 def test_api_build_real_x86(app):
-    client = app.test_client()
-    app.config["UPSTREAM_URL"] = "https://downloads.openwrt.org"
+    client = TestClient(app)
     response = client.post(
         "/api/v1/build",
         json=dict(
@@ -340,8 +339,7 @@ def test_api_build_real_x86(app):
 
 @pytest.mark.slow
 def test_api_build_real_ath79(app):
-    client = app.test_client()
-    app.config["UPSTREAM_URL"] = "https://downloads.openwrt.org"
+    client = TestClient(app)
     response = client.post(
         "/api/v1/build",
         json=dict(
