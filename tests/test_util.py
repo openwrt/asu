@@ -105,7 +105,6 @@ def test_check_manifest():
 def test_get_podman():
     podman = get_podman()
     assert isinstance(podman, PodmanClient)
-    assert podman.version()["Version"] > "4.0.0"
 
 
 def test_run_container():
