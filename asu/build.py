@@ -65,11 +65,11 @@ def build(req: dict, job=None):
 
     version_code = re.search('Current Revision: "(r.+)"', job.meta["stdout"]).group(1)
 
-    if "version_code" in req:
-        if version_code != req.get("version_code"):
+    if requested := req.get("version_code"):
+        if version_code != requested:
             report_error(
                 job,
-                f"Received incorrect version {version_code} (requested {req['version_code']})",
+                f"Received incorrect version {version_code} (requested {requested})",
             )
 
     default_packages = set(

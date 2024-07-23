@@ -16,6 +16,16 @@ router = APIRouter()
 class BuildRequest(BaseModel):
     distro: str = "openwrt"
     version: str
+    version_code: Annotated[
+        str,
+        Field(
+            default="",
+            description="It is possible to send the expected revision. "
+            "This allows to show the revision within clients before the "
+            "request. If the resulting firmware is a different revision, "
+            "the build results in an error.",
+        ),
+    ] = ""
     target: str
     packages: Optional[list] = []
     profile: str
