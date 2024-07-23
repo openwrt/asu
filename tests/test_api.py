@@ -49,6 +49,41 @@ def test_api_build_rootfs_size(client):
     assert data["build_cmd"][6] == "ROOTFS_PARTSIZE=100"
 
 
+def test_api_build_rootfs_size_too_small(client):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            rootfs_size_mb=0,
+        ),
+    )
+    assert response.status_code == 422
+    data = response.json()
+    assert data["detail"][0]["msg"] == "Input should be greater than or equal to 1"
+
+
+def test_api_build_rootfs_size_too_big(client):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            rootfs_size_mb=settings.max_custom_rootfs_size_mb + 1,
+        ),
+    )
+    assert response.status_code == 422
+    data = response.json()
+    assert (
+        data["detail"][0]["msg"]
+        == f"Input should be less than or equal to {settings.max_custom_rootfs_size_mb}"
+    )
+
+
 def test_api_build_version_code_bad(client):
     response = client.post(
         "/api/v1/build",
@@ -526,3 +561,24 @@ def test_api_build_defaults_filled_allowed(app):
     assert response.status_code == 200
     data = response.json()
     assert data["request_hash"] == "be4a78785b3dd275284aa6fe4d619f88"
+
+
+def test_api_build_defaults_filled_too_big(app):
+    settings.allow_defaults = True
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            defaults="#" * (settings.max_defaults_length + 1),
+        ),
+    )
+
+    assert response.status_code == 422
+    data = response.json()
+    assert (
+        data["detail"][0]["msg"]
+        == f"String should have at most {settings.max_defaults_length} characters"
+    )
