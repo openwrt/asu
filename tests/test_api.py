@@ -95,7 +95,12 @@ def test_api_build_version_code_bad(client):
             packages=["test1", "test2"],
         ),
     )
-    assert response.status_code == 200
+    assert response.status_code == 500
+    data = response.json()
+    assert (
+        data["detail"]
+        == "Error: Received incorrect version r12647-cb44ab4f5d (requested some-bad-version-code)"
+    )
 
 
 def test_api_build_diff_packages(client):
