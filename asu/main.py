@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -21,7 +22,16 @@ logging.basicConfig(encoding="utf-8", level=settings.log_level)
 base_path = Path(__file__).resolve().parent
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.info("ASU server starting up")
+    FastAPICache.init(InMemoryBackend())
+    yield
+    # Any shutdown tasks here...
+    logging.info("ASU server shutting down")
+
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(api.router, prefix="/api/v1")
 
 (settings.public_path / "json").mkdir(parents=True, exist_ok=True)
@@ -96,9 +106,3 @@ app.mount("/json", StaticFiles(directory=settings.public_path / "json"), name="j
 @app.get("/overview")
 def api_overview():
     return RedirectResponse("/json/v1/overview.json", status_code=301)
-
-
-@app.on_event("startup")
-async def startup():
-    logging.info("Starting up")
-    FastAPICache.init(InMemoryBackend())
