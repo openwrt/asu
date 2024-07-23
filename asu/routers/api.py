@@ -250,7 +250,7 @@ def api_v1_build_post(
     response: Response,
     user_agent: str = Header(None),
 ):
-    request_hash = get_request_hash(build_request.dict())
+    request_hash = get_request_hash(build_request.model_dump())
     job = get_queue().fetch_job(request_hash)
     status = 200
     result_ttl = "7d"
@@ -271,7 +271,7 @@ def api_v1_build_post(
 
     if job is None:
         get_redis_client().incr("stats:cache-miss")
-        req = build_request.dict()
+        req = build_request.model_dump()
         content, status = validate_request(req)
         if content:
             response.status_code = status
