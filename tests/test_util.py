@@ -4,6 +4,7 @@ from pathlib import Path
 
 from podman import PodmanClient
 
+from asu.build_request import BuildRequest
 from asu.util import (
     check_manifest,
     diff_packages,
@@ -39,14 +40,17 @@ def test_get_packages_hash():
 
 
 def test_get_request_hash():
-    request = {
-        "distro": "test",
-        "version": "test",
-        "profile": "test",
-        "package_hash": get_packages_hash(["test"]),
-    }
+    request = BuildRequest(
+        **{
+            "distro": "test",
+            "version": "test",
+            "target": "test",
+            "profile": "test",
+            "packages": ["test"],
+        }
+    )
 
-    assert get_request_hash(request) == "c4eb8bfd4bbd07d7cd2adf70d7ea02e4"
+    assert get_request_hash(request) == "3944eba49da93e2c605a7e9980e52765"
 
 
 def test_diff_packages():
