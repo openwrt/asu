@@ -48,7 +48,7 @@ def test_api_build_inputs(client):
     assert request["packages"] == []
     assert request["packages_versions"] == {}
     assert request["defaults"] is None
-    assert request["client"] == "unknown/0"
+    assert request["client"] is None
     assert request["rootfs_size_mb"] is None
     assert request["diff_packages"] is False
 

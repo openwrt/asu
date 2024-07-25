@@ -8,7 +8,13 @@ from asu.build import build
 from asu.build_request import BuildRequest
 from asu.config import settings
 from asu.update import update
-from asu.util import get_branch, get_queue, get_redis_client, get_request_hash
+from asu.util import (
+    add_timestamp,
+    get_branch,
+    get_queue,
+    get_redis_client,
+    get_request_hash,
+)
 
 router = APIRouter()
 
@@ -228,18 +234,21 @@ def api_v1_build_post(
     failure_ttl = "12h"
 
     if build_request.client:
-        get_redis_client().hincrby("stats:clients", build_request.client)
+        client = build_request.client
     else:
         if user_agent.startswith("auc"):
-            get_redis_client().hincrby(
-                "stats:clients",
-                user_agent.replace(" (", "/").replace(")", ""),
-            )
+            client = user_agent.replace(" (", "/").replace(")", "")
         else:
-            get_redis_client().hincrby("stats:clients", "unknown/0")
+            client = "unknown/0"
+
+    add_timestamp(
+        f"stats:clients:{client}",
+        {"stats": "clients", "client": client},
+    )
 
     if job is None:
-        get_redis_client().incr("stats:cache-miss")
+        add_timestamp("stats:cache-misses", {"stats": "cache-misses"})
+
         content, status = validate_request(build_request)
         if content:
             response.status_code = status
@@ -255,7 +264,7 @@ def api_v1_build_post(
         )
     else:
         if job.is_finished:
-            get_redis_client().incr("stats:cache-hit")
+            add_timestamp("stats:cache-hits", {"stats": "cache-hits"})
 
     content, status, headers = return_job_v1(job)
     response.headers.update(headers)
