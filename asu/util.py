@@ -115,7 +115,7 @@ def get_request_hash(req: dict) -> str:
             [
                 req.get("distro", ""),
                 req.get("version", ""),
-                req.get("version_code", ""),
+                req.get("version_code", "") or "",
                 req.get("target", ""),
                 req.get("profile", "").replace(",", "_"),
                 get_packages_hash(req.get("packages", [])),
