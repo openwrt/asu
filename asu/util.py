@@ -211,21 +211,19 @@ def get_podman():
     )
 
 
-def diff_packages(requested_packages: set, default_packages: set):
+def diff_packages(requested_packages: list, default_packages: set):
     """Return a list of packages to install and remove
 
     Args:
-        requested_packages (set): Set of requested packages
+        requested_packages (set): List of requested packages in user-specified order
         default_packages (set): Set of default packages
 
     Returns:
-        set: Set of packages to install and remove"""
-    remove_packages = default_packages - requested_packages
-    return list(
-        sorted(
-            requested_packages
-            | set(map(lambda p: f"-{p}".replace("--", "-"), remove_packages))
-        )
+        list: List of packages to install and remove"""
+    remove_packages = default_packages - set(requested_packages)
+    return (
+        sorted(set(map(lambda p: f"-{p}".replace("--", "-"), remove_packages)))
+        + requested_packages
     )
 
 

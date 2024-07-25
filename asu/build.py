@@ -91,7 +91,7 @@ def build(req: dict, job=None):
 
     if req.get("diff_packages"):
         req["build_cmd_packages"] = diff_packages(
-            set(req["packages"]), default_packages | profile_packages
+            req["packages"], default_packages | profile_packages
         )
         log.debug(f"Diffed packages: {req['build_cmd_packages']}")
     else:
@@ -155,7 +155,7 @@ def build(req: dict, job=None):
             "make",
             "manifest",
             f"PROFILE={req['profile']}",
-            f"PACKAGES={' '.join(sorted(req.get('build_cmd_packages', [])))}",
+            f"PACKAGES={' '.join(req.get('build_cmd_packages', []))}",
             "STRIP_ABI=1",
         ],
         mounts=mounts,
@@ -180,7 +180,7 @@ def build(req: dict, job=None):
         "make",
         "image",
         f"PROFILE={req['profile']}",
-        f"PACKAGES={' '.join(sorted(req.get('build_cmd_packages', [])))}",
+        f"PACKAGES={' '.join(req.get('build_cmd_packages', []))}",
         f"EXTRA_IMAGE_NAME={packages_hash}",
         f"BIN_DIR=/builder/{bin_dir}",
     ]

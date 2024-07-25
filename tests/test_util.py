@@ -49,14 +49,18 @@ def test_get_request_hash():
 
 
 def test_diff_packages():
-    assert diff_packages({"test1"}, {"test1", "test2"}) == ["-test2", "test1"]
-    assert diff_packages({"test1"}, {"test1"}) == ["test1"]
-    assert diff_packages({"test1"}, {"test2", "test3"}) == ["-test2", "-test3", "test1"]
-    assert diff_packages({"test1"}, {"test2", "-test3"}) == [
+    assert diff_packages(["test1"], {"test1", "test2"}) == ["-test2", "test1"]
+    assert diff_packages(["test1"], {"test1"}) == ["test1"]
+    assert diff_packages(["test1"], {"test2", "test3"}) == ["-test2", "-test3", "test1"]
+    assert diff_packages(["test1"], {"test2", "-test3"}) == [
         "-test2",
         "-test3",
         "test1",
     ]
+    assert diff_packages(["z", "x"], {"x", "y", "z"}) == ["-y", "z", "x"]
+    assert diff_packages(["x", "z"], {"x", "y", "z"}) == ["-y", "x", "z"]
+    assert diff_packages(["z", "y"], {"x", "y", "z"}) == ["-x", "z", "y"]
+    assert diff_packages(["y", "z"], {"x", "y", "z"}) == ["-x", "y", "z"]
 
 
 def test_fingerprint_pubkey_usign():
