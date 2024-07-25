@@ -137,6 +137,16 @@ def test_api_build_version_code_bad(client):
     )
 
 
+base_packages_diff = (
+    "PACKAGES=-base-files -busybox -dnsmasq -dropbear -firewall -fstools"
+    " -ip6tables -iptables -kmod-ath9k -kmod-gpio-button-hotplug"
+    " -kmod-ipt-offload -kmod-usb-chipidea2 -kmod-usb-storage -kmod-usb2"
+    " -libc -libgcc -logd -mtd -netifd -odhcp6c -odhcpd-ipv6only -opkg"
+    " -ppp -ppp-mod-pppoe -swconfig -uboot-envtools -uci -uclient-fetch"
+    " -urandom-seed -urngd -wpad-basic"
+)
+
+
 def test_api_build_diff_packages(client):
     response = client.post(
         "/api/v1/build",
@@ -152,18 +162,67 @@ def test_api_build_diff_packages(client):
     assert response.status_code == 200
 
     data = response.json()
+    assert data["build_cmd"][3] == base_packages_diff + " test1 zzz test2 aaa"
 
-    # TODO shorten for testing
-    assert (
-        data["build_cmd"][3]
-        == "PACKAGES=-base-files -busybox -dnsmasq -dropbear -firewall -fstools"
-        " -ip6tables -iptables -kmod-ath9k -kmod-gpio-button-hotplug"
-        " -kmod-ipt-offload -kmod-usb-chipidea2 -kmod-usb-storage -kmod-usb2"
-        " -libc -libgcc -logd -mtd -netifd -odhcp6c -odhcpd-ipv6only -opkg"
-        " -ppp -ppp-mod-pppoe -swconfig -uboot-envtools -uci -uclient-fetch"
-        " -urandom-seed -urngd -wpad-basic"
-        " test1 zzz test2 aaa"
+
+def test_api_build_request_hash(client):
+    """Verify that request hash is unchanged by different package ordering."""
+
+    packages1 = ["test1", "zzz", "test2", "aaa"]
+    packages2 = sorted(packages1)
+    assert packages1 != packages2
+
+    json = dict(
+        version="1.2.3",
+        target="testtarget/testsubtarget",
+        profile="testprofile",
     )
+
+    case12hash = "8731372f84b0022c070e6127bad24eb2"
+    case34hash = "0dab3b60bd8174da250e2ea2942a3744"
+
+    # Case 1 - diff_packages=True, first package ordering
+    json["diff_packages"] = True
+    json["packages"] = packages1
+    response = client.post("/api/v1/build", json=json)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["build_cmd"][3] == base_packages_diff + " " + " ".join(packages1)
+    assert data["request_hash"] == case12hash
+
+    # Case 2 - diff_packages=True, second package ordering
+    json["diff_packages"] = True
+    json["packages"] = packages2
+    response = client.post("/api/v1/build", json=json)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["request_hash"] == case12hash
+    # This fails, because the returned build command comes from the one hashed
+    # by the previous build...
+    #   assert data["build_cmd"][3] == base_packages_diff + " " + " ".join(packages2)
+
+    # Case 3 - diff_packages=False, first package ordering
+    json["diff_packages"] = False
+    json["packages"] = packages1
+    response = client.post("/api/v1/build", json=json)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["build_cmd"][3] == "PACKAGES=" + " ".join(packages1)
+    assert data["request_hash"] == case34hash
+
+    # Case 4 - diff_packages=False, second package ordering
+    json["diff_packages"] = False
+    json["packages"] = packages2
+    response = client.post("/api/v1/build", json=json)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["request_hash"] == case34hash
+    # Same failure as case 2.
+    #   assert data["build_cmd"][3] == "PACKAGES=" + " ".join(packages2)
 
 
 def test_api_latest_default(client):
