@@ -605,7 +605,7 @@ def test_api_build_defaults_filled_allowed(app):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["request_hash"] == "be4a78785b3dd275284aa6fe4d619f88"
+    assert data["request_hash"] == "c9836b2259eec0c3a31868fe77a19983"
 
 
 def test_api_build_defaults_filled_too_big(app):

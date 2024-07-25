@@ -1,62 +1,16 @@
 import logging
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Header
 from fastapi.responses import RedirectResponse, Response
-from pydantic import BaseModel, Field
 
 from asu.build import build
+from asu.build_request import BuildRequest
 from asu.config import settings
 from asu.update import update
 from asu.util import get_branch, get_queue, get_redis_client, get_request_hash
 
 router = APIRouter()
-
-
-class BuildRequest(BaseModel):
-    distro: str = "openwrt"
-    version: str
-    version_code: Annotated[
-        str,
-        Field(
-            default="",
-            description="It is possible to send the expected revision. "
-            "This allows to show the revision within clients before the "
-            "request. If the resulting firmware is a different revision, "
-            "the build results in an error.",
-        ),
-    ] = ""
-    target: str
-    packages: Optional[list] = []
-    profile: str
-    packages_versions: dict = {}
-    defaults: Optional[
-        Annotated[
-            str,
-            Field(
-                default=None,
-                max_length=settings.max_defaults_length,
-                description="Custom shell script embedded in firmware image to be run on first\n"
-                "boot. This feature might be dropped in the future. Input file size\n"
-                f"is limited to {settings.max_defaults_length} bytes and cannot be exceeded.",
-            ),
-        ]
-    ] = None
-    client: Optional[str] = "unknown/0"
-    rootfs_size_mb: Optional[
-        Annotated[
-            int,
-            Field(
-                default=None,
-                ge=1,
-                le=settings.max_custom_rootfs_size_mb,
-                description="Ability to specify a custom CONFIG_TARGET_ROOTFS_PARTSIZE for the\n"
-                "resulting image. Attaching this optional parameter will cause\n"
-                "ImageBuilder to build a rootfs with that size in MB.",
-            ),
-        ]
-    ] = None
-    diff_packages: Optional[bool] = False
 
 
 def get_distros() -> list:
@@ -87,7 +41,7 @@ def api_v1_overview():
     return RedirectResponse("/json/v1/overview.json", status_code=301)
 
 
-def validate_request(req):
+def validate_request(build_request: BuildRequest):
     """Validate an image request and return found errors with status code
 
     Instead of building every request it is first validated. This checks for
@@ -101,48 +55,50 @@ def validate_request(req):
 
     """
 
-    if req.get("defaults") and not settings.allow_defaults:
+    if build_request.defaults and not settings.allow_defaults:
         return (
             {"detail": "Handling `defaults` not enabled on server", "status": 400},
             400,
         )
 
-    req["distro"] = req.get("distro", "openwrt")
-    if req["distro"] not in get_distros():
+    if build_request.distro not in get_distros():
         return (
-            {"detail": f"Unsupported distro: {req['distro']}", "status": 400},
+            {"detail": f"Unsupported distro: {build_request.distro}", "status": 400},
             400,
         )
 
-    req["branch"] = get_branch(req["version"])["name"]
+    branch = get_branch(build_request.version)["name"]
 
     r = get_redis_client()
 
-    if not r.sismember("branches", req["branch"]):
+    if not r.sismember("branches", branch):
         return (
-            {"detail": f"Unsupported branch: {req['version']}", "status": 400},
+            {"detail": f"Unsupported branch: {build_request.version}", "status": 400},
             400,
         )
 
-    if not r.sismember(f"versions:{req['branch']}", req["version"]):
+    if not r.sismember(f"versions:{branch}", build_request.version):
         return (
-            {"detail": f"Unsupported version: {req['version']}", "status": 400},
+            {"detail": f"Unsupported version: {build_request.version}", "status": 400},
             400,
         )
 
-    req["packages"] = list(
+    build_request.packages: list[str] = list(
         map(
             lambda x: x.removeprefix("+"),
-            (req.get("packages_versions", {}).keys() or req.get("packages", [])),
+            (build_request.packages_versions.keys() or build_request.packages),
         )
     )
 
-    logging.debug("Profile before mapping " + req["profile"])
+    logging.debug("Profile before mapping " + build_request.profile)
 
-    if not r.hexists(f"targets:{req['branch']}", req["target"]):
-        return ({"detail": f"Unsupported target: {req['target']}", "status": 400}, 400)
+    if not r.hexists(f"targets:{branch}", build_request.target):
+        return (
+            {"detail": f"Unsupported target: {build_request.target}", "status": 400},
+            400,
+        )
 
-    if req["target"] in [
+    if build_request.target in [
         "x86/64",
         "x86/generic",
         "x86/geode",
@@ -150,25 +106,28 @@ def validate_request(req):
         "armsr/armv7",
         "armsr/armv8",
     ]:
-        logging.debug("Use generic profile for {req['target']}")
-        req["profile"] = "generic"
+        logging.debug("Use generic profile for {build_request.target}")
+        build_request.profile = "generic"
     else:
         if r.sismember(
-            f"profiles:{req['branch']}:{req['version']}:{req['target']}",
-            req["profile"].replace(",", "_"),
+            f"profiles:{branch}:{build_request.version}:{build_request.target}",
+            build_request.profile.replace(",", "_"),
         ):
-            req["profile"] = req["profile"].replace(",", "_")
+            build_request.profile = build_request.profile.replace(",", "_")
         else:
             mapped_profile = r.hget(
-                f"mapping:{req['branch']}:{req['version']}:{req['target']}",
-                req["profile"],
+                f"mapping:{branch}:{build_request.version}:{build_request.target}",
+                build_request.profile,
             )
 
             if mapped_profile:
-                req["profile"] = mapped_profile.decode()
+                build_request.profile = mapped_profile.decode()
             else:
                 return (
-                    {"detail": f"Unsupported profile: {req['profile']}", "status": 400},
+                    {
+                        "detail": f"Unsupported profile: {build_request.profile}",
+                        "status": 400,
+                    },
                     400,
                 )
 
@@ -260,7 +219,7 @@ def api_v1_build_post(
     response: Response,
     user_agent: str = Header(None),
 ):
-    request_hash = get_request_hash(build_request.model_dump())
+    request_hash = get_request_hash(build_request)
     job = get_queue().fetch_job(request_hash)
     status = 200
     result_ttl = "7d"
@@ -281,20 +240,14 @@ def api_v1_build_post(
 
     if job is None:
         get_redis_client().incr("stats:cache-miss")
-        req = build_request.model_dump()
-        content, status = validate_request(req)
+        content, status = validate_request(build_request)
         if content:
             response.status_code = status
             return content
 
-        req["public_path"] = str(settings.public_path)
-        req["repository_allow_list"] = settings.repository_allow_list
-        req["request_hash"] = request_hash
-        req["base_container"] = settings.base_container
-
         job = get_queue().enqueue(
             build,
-            req,
+            build_request,
             job_id=request_hash,
             result_ttl=result_ttl,
             failure_ttl=failure_ttl,

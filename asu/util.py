@@ -15,6 +15,7 @@ import redis
 from podman import PodmanClient
 from rq import Queue
 
+from asu.build_request import BuildRequest
 from asu.config import settings
 
 
@@ -99,7 +100,7 @@ def get_manifest_hash(manifest: dict) -> str:
     return get_str_hash(json.dumps(manifest, sort_keys=True))
 
 
-def get_request_hash(req: dict) -> str:
+def get_request_hash(build_request: BuildRequest) -> str:
     """Return sha256sum of an image request
 
     Creates a reproducible hash of the request by sorting the arguments
@@ -111,28 +112,28 @@ def get_request_hash(req: dict) -> str:
         str: hash of `req`
     """
     return get_str_hash(
-        " ".join(
+        "".join(
             [
-                req.get("distro", ""),
-                req.get("version", ""),
-                req.get("version_code", "") or "",
-                req.get("target", ""),
-                req.get("profile", "").replace(",", "_"),
-                get_packages_hash(req.get("packages", [])),
-                get_manifest_hash(req.get("packages_versions", {})),
-                str(req.get("diff_packages", False)),
-                req.get("filesystem", ""),
-                get_str_hash(req.get("defaults", "")),
-                str(req.get("rootfs_size_mb", "")),
-                str(req.get("repository_keys", "")),
-                str(req.get("repositories", "")),
+                build_request.distro,
+                build_request.version,
+                build_request.version_code,
+                build_request.target,
+                build_request.profile.replace(",", "_"),
+                get_packages_hash(build_request.packages),
+                get_manifest_hash(build_request.packages_versions),
+                str(build_request.diff_packages),
+                "",  # build_request.filesystem
+                get_str_hash(build_request.defaults),
+                str(build_request.rootfs_size_mb),
+                str(build_request.repository_keys),
+                str(build_request.repositories),
             ]
         ),
         32,
     )
 
 
-def get_packages_hash(packages: list) -> str:
+def get_packages_hash(packages: list[str]) -> str:
     """Return sha256sum of package list
 
     Duplicate packages are automatically removed and the list is sorted to be
@@ -211,7 +212,7 @@ def get_podman():
     )
 
 
-def diff_packages(requested_packages: list, default_packages: set):
+def diff_packages(requested_packages: list, default_packages: set) -> list[str]:
     """Return a list of packages to install and remove
 
     Args:
@@ -313,7 +314,7 @@ def report_error(job, msg):
     raise
 
 
-def parse_manifest(manifest_content: str):
+def parse_manifest(manifest_content: str) -> dict[str, str]:
     """Parse a manifest file and return a dictionary
 
     Args:

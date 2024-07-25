@@ -1,9 +1,11 @@
 import logging
 
+from asu.build_request import BuildRequest
+
 log = logging.getLogger("rq.worker")
 
 
-def appy_package_changes(req):
+def appy_package_changes(build_request: BuildRequest):
     """
     Apply package changes to the request
 
@@ -13,19 +15,19 @@ def appy_package_changes(req):
     """
 
     def _add_if_missing(package):
-        if package not in req["packages"]:
-            req["packages"].append(package)
+        if package not in build_request.packages:
+            build_request.packages.append(package)
             log.debug(f"Added {package} to packages")
 
     # 23.05 specific changes
-    if req["version"].startswith("23.05"):
+    if build_request.version.startswith("23.05"):
         # mediatek/mt7622 specific changes
-        if req["target"] == "mediatek/mt7622":
+        if build_request.target == "mediatek/mt7622":
             _add_if_missing("kmod-mt7622-firmware")
 
         # ath79/generic specific changes
-        elif req["target"] == "ath79/generic":
-            if req["profile"] in {
+        elif build_request.target == "ath79/generic":
+            if build_request.profile in {
                 "buffalo_wzr-hp-g300nh-s",
                 "dlink_dir-825-b1",
                 "netgear_wndr3700",
@@ -38,5 +40,5 @@ def appy_package_changes(req):
             }:
                 _add_if_missing("kmod-switch-rtl8366s")
 
-            elif req["profile"] == "buffalo_wzr-hp-g300nh-rb":
+            elif build_request.profile == "buffalo_wzr-hp-g300nh-rb":
                 _add_if_missing("kmod-switch-rtl8366rb")
