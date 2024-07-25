@@ -11,6 +11,7 @@ from asu.build_request import BuildRequest
 from asu.config import settings
 from asu.package_changes import appy_package_changes
 from asu.util import (
+    add_timestamp,
     check_manifest,
     diff_packages,
     fingerprint_pubkey_usign,
@@ -325,10 +326,14 @@ def build(build_request: BuildRequest, job=None):
 
     log.debug("JSON content %s", json_content)
 
-    # Increment stats
-    job.connection.hincrby(
-        "stats:builds",
-        "#".join([build_request.version, build_request.target, build_request.profile]),
+    add_timestamp(
+        f"stats:builds:{build_request.version}:{build_request.target}:{build_request.profile}",
+        {
+            "stats": "builds",
+            "version": build_request.version,
+            "target": build_request.target,
+            "profile": build_request.profile,
+        },
     )
 
     return json_content

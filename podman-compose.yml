@@ -34,7 +34,7 @@ services:
       - redis
 
   redis:
-    image: "docker.io/redis:alpine"
+    image: "docker.io/redis/redis-stack-server"
     restart: always
     volumes:
       - redis:/data/:rw

@@ -34,7 +34,7 @@ class BuildRequest(BaseModel):
             ),
         ]
     ] = None
-    client: Optional[str] = "unknown/0"
+    client: Optional[str] = None
     rootfs_size_mb: Optional[
         Annotated[
             int,

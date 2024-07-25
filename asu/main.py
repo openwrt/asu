@@ -10,11 +10,9 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.coder import PickleCoder
 from fastapi_cache.decorator import cache
-from prometheus_client import CollectorRegistry, make_asgi_app
 
 from asu import __version__
 from asu.config import settings
-from asu.metrics import BuildCollector
 from asu.routers import api
 from asu.util import get_redis_client, parse_feeds_conf, parse_packages_file
 
@@ -40,12 +38,6 @@ app.include_router(api.router, prefix="/api/v1")
 
 app.mount("/store", StaticFiles(directory=settings.public_path / "store"), name="store")
 app.mount("/static", StaticFiles(directory=base_path / "static"), name="static")
-
-
-registry = CollectorRegistry()
-registry.register(BuildCollector())
-metrics_app = make_asgi_app(registry)
-app.mount("/metrics", metrics_app)
 
 templates = Jinja2Templates(directory=base_path / "templates")
 

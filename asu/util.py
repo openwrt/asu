@@ -23,6 +23,16 @@ def get_redis_client():
     return redis.from_url(settings.redis_url, decode_responses=False)
 
 
+def add_timestamp(key: str, labels: dict = {}):
+    logging.info(f"Adding timestamp to {key}: {labels}")
+    get_redis_client().ts().add(
+        key,
+        value=1,
+        timestamp="*",
+        labels=labels,
+    )
+
+
 def get_queue() -> Queue:
     """Return the current queue
 

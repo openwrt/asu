@@ -14,16 +14,16 @@ podman = "^5.0.0"
 redis = "^5.0.7"
 pydantic-settings = "^2.3.4"
 rq = "^1.16.2"
-prometheus-client = "^0.20.0"
 uvicorn = "^0.30.3"
 fastapi-cache2 = "^0.2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
 ruff = "^0.5.5"
-fakeredis = "^2.23.3"
 coverage = "^7.6.0"
 isort = "^5.13.2"
+fakeredis = { git = "https://github.com/cunla/fakeredis-py.git", rev = "timeseries-cmds" }
+
 
 [build-system]
 requires = ["poetry-core"]
