@@ -133,7 +133,7 @@ def validate_request(req):
     req["packages"] = list(
         map(
             lambda x: x.removeprefix("+"),
-            sorted(req.get("packages_versions", {}).keys() or req.get("packages", [])),
+            (req.get("packages_versions", {}).keys() or req.get("packages", [])),
         )
     )
 

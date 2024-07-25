@@ -11,12 +11,13 @@ def test_api_build(client):
             version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
-            packages=["test1", "test2"],
+            packages=["zzz", "test1", "qqq", "test2", "aaa"],
         ),
     )
     assert response.status_code == 200
     data = response.json()
     assert data["manifest"]["test1"] == "1.0"
+    assert data["build_cmd"][3] == "PACKAGES=zzz test1 qqq test2 aaa"
 
 
 def test_api_build_version_code(client):
@@ -110,7 +111,7 @@ def test_api_build_diff_packages(client):
             version="1.2.3",
             target="testtarget/testsubtarget",
             profile="testprofile",
-            packages=["test1", "test2"],
+            packages=["test1", "zzz", "test2", "aaa"],  # Order must be maintained.
             diff_packages=True,
         ),
     )
@@ -122,7 +123,13 @@ def test_api_build_diff_packages(client):
     # TODO shorten for testing
     assert (
         data["build_cmd"][3]
-        == "PACKAGES=-base-files -busybox -dnsmasq -dropbear -firewall -fstools -ip6tables -iptables -kmod-ath9k -kmod-gpio-button-hotplug -kmod-ipt-offload -kmod-usb-chipidea2 -kmod-usb-storage -kmod-usb2 -libc -libgcc -logd -mtd -netifd -odhcp6c -odhcpd-ipv6only -opkg -ppp -ppp-mod-pppoe -swconfig -uboot-envtools -uci -uclient-fetch -urandom-seed -urngd -wpad-basic test1 test2"
+        == "PACKAGES=-base-files -busybox -dnsmasq -dropbear -firewall -fstools"
+        " -ip6tables -iptables -kmod-ath9k -kmod-gpio-button-hotplug"
+        " -kmod-ipt-offload -kmod-usb-chipidea2 -kmod-usb-storage -kmod-usb2"
+        " -libc -libgcc -logd -mtd -netifd -odhcp6c -odhcpd-ipv6only -opkg"
+        " -ppp -ppp-mod-pppoe -swconfig -uboot-envtools -uci -uclient-fetch"
+        " -urandom-seed -urngd -wpad-basic"
+        " test1 zzz test2 aaa"
     )
 
 
