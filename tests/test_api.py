@@ -20,6 +20,39 @@ def test_api_build(client):
     assert data["build_cmd"][3] == "PACKAGES=zzz test1 qqq test2 aaa"
 
 
+def test_api_build_inputs(client):
+    """Check both the required and optional default values for all of the
+    request values defined in the BuildRequest model."""
+
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    request = data["request"]
+
+    # Required
+    assert request["version"] == "1.2.3"
+    assert request["target"] == "testtarget/testsubtarget"
+    assert request["profile"] == "testprofile"
+
+    # Optional
+    assert request["distro"] == "openwrt"
+    assert request["version_code"] == ""
+    assert request["packages"] == []
+    assert request["packages_versions"] == {}
+    assert request["defaults"] is None
+    assert request["client"] == "unknown/0"
+    assert request["rootfs_size_mb"] is None
+    assert request["diff_packages"] is False
+
+
 def test_api_build_version_code(client):
     response = client.post(
         "/api/v1/build",
