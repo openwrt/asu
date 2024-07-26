@@ -199,7 +199,7 @@ def get_container_version_tag(version: str) -> str:
         if version == "SNAPSHOT":
             version: str = "master"
         else:
-            version: str = "openwrt-" + version.rstrip("-SNAPSHOT")
+            version: str = "openwrt-" + version.removesuffix("-SNAPSHOT")
 
     return version
 
@@ -345,24 +345,19 @@ def check_manifest(manifest, packages_versions):
             )
 
 
-def parse_packages_file(url):
-    res = httpx.get(url + "/Packages")
-
-    if res.status_code != 200:
-        return {}
-
+def parse_packages_versions(text: str) -> dict:
     index = {}
     linebuffer = ""
     architecure = ""
-    for line in res.text.splitlines():
+    parser = email.parser.Parser()
+    for line in text.splitlines():
         if line == "":
-            parser = email.parser.Parser()
             package = parser.parsestr(linebuffer)
             if not architecure:
                 architecure = package["Architecture"]
             package_name = package["Package"]
             if package_abi := package.get("ABIVersion"):
-                package_name = package_name.rstrip(package_abi)
+                package_name = package_name.removesuffix(package_abi)
 
             index[package_name] = package["Version"]
 
@@ -371,6 +366,11 @@ def parse_packages_file(url):
             linebuffer += line + "\n"
 
     return {"architecture": architecure, "packages": index}
+
+
+def parse_packages_file(url):
+    res = httpx.get(url + "/Packages")
+    return parse_packages_versions(res.text) if res.status_code == 200 else {}
 
 
 def parse_feeds_conf(url):

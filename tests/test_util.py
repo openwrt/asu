@@ -11,6 +11,7 @@ from asu.util import (
     get_container_version_tag,
     get_file_hash,
     get_packages_hash,
+    parse_packages_versions,
     get_podman,
     get_request_hash,
     get_str_hash,
@@ -92,6 +93,31 @@ def test_get_version_container_tag():
     assert get_container_version_tag("SNAPSHOT") == "master"
     assert get_container_version_tag("1.0.0-SNAPSHOT") == "openwrt-1.0.0"
     assert get_container_version_tag("23.05.0-rc3") == "v23.05.0-rc3"
+    assert get_container_version_tag("SNAPP-SNAPSHOT") == "openwrt-SNAPP"
+
+
+def test_get_packages_versions():
+    text = (
+        "Package: libusb-1.0-0\n"
+        "ABIVersion: -0\n"
+        "Version: 1.2.3\n"
+        "Architecture: x86_64\n"
+        "\n"
+        "Package: libpython-3.3-3\n"
+        "ABIVersion: -3\n"
+        "Version: 1.2.3\n"
+        "\n"
+        "Package: bort\n"
+        "Version: 9.9.9\n"
+        "\n"
+    )
+    index = parse_packages_versions(text)
+    packages = index["packages"]
+
+    assert index["architecture"] == "x86_64"
+    assert packages["libusb-1.0"] == "1.2.3"
+    assert packages["libpython-3.3"] == "1.2.3"
+    assert packages["bort"] == "9.9.9"
 
 
 def test_check_manifest():
