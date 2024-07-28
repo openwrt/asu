@@ -11,6 +11,7 @@ on:
 env:
   TERM: xterm-color
   PY_COLORS: 1
+  LOG_LEVEL: DEBUG
 
 jobs:
   build:
