@@ -19,7 +19,7 @@ uvicorn = "^0.30.3"
 fastapi-cache2 = "^0.2.2"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.1"
+pytest = "^8.3.2"
 ruff = "^0.5.4"
 fakeredis = "^2.23.3"
 coverage = "^7.6.0"
