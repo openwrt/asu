@@ -20,7 +20,7 @@ fastapi-cache2 = "^0.2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
-ruff = "^0.5.4"
+ruff = "^0.5.5"
 fakeredis = "^2.23.3"
 coverage = "^7.6.0"
 isort = "^5.13.2"
