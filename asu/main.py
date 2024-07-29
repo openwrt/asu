@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.coder import PickleCoder
 from fastapi_cache.decorator import cache
 from prometheus_client import CollectorRegistry, make_asgi_app
 
@@ -50,7 +51,7 @@ templates = Jinja2Templates(directory=base_path / "templates")
 
 
 @app.get("/", response_class=HTMLResponse)
-@cache(expire=600)
+@cache(expire=600, coder=PickleCoder)
 def index(request: Request):
     redis_client = get_redis_client()
 

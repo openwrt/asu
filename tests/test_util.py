@@ -12,10 +12,10 @@ from asu.util import (
     get_container_version_tag,
     get_file_hash,
     get_packages_hash,
-    parse_packages_versions,
     get_podman,
     get_request_hash,
     get_str_hash,
+    parse_packages_versions,
     run_container,
     verify_usign,
 )
