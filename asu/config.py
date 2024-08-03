@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Union
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,7 +11,14 @@ class Settings(BaseSettings):
     public_path: Path = Path.cwd() / "public"
     json_path: Path = public_path / "json" / "v1"
     redis_url: str = "redis://localhost:6379"
-    upstream_url: str = "https://downloads.openwrt.org"
+    upstream_url: str = Field(
+        "https://mirror-03.infra.openwrt.org",
+        description="Upstream server for ASU internal use, must be as local as possible to ASU server.",
+    )
+    upstream_cdn: str = Field(
+        "https://downloads.openwrt.org",
+        description="Upstream server for client use, should be top-level name for CDN network.",
+    )
     allow_defaults: bool = False
     async_queue: bool = True
     branches_file: Union[str, Path, None] = None

@@ -155,7 +155,7 @@ def update_meta_json():
     overview = {
         "latest": latest,
         "branches": branches,
-        "upstream_url": settings.upstream_url,
+        "upstream_url": settings.upstream_cdn,  # Client use only, see config.
         "server": {
             "version": __version__,
             "contact": "mail@aparcar.org",
