@@ -14,7 +14,7 @@ podman = "^5.0.0"
 redis = "^5.0.7"
 pydantic-settings = "^2.4.0"
 rq = "^1.16.2"
-uvicorn = "^0.30.3"
+uvicorn = "^0.30.5"
 fastapi-cache2 = "^0.2.2"
 
 [tool.poetry.group.dev.dependencies]
