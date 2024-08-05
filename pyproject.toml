@@ -20,7 +20,7 @@ fastapi-cache2 = "^0.2.2"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
 ruff = "^0.5.5"
-coverage = "^7.6.0"
+coverage = "^7.6.1"
 isort = "^5.13.2"
 fakeredis = { git = "https://github.com/cunla/fakeredis-py.git", rev = "timeseries-cmds" }
 
