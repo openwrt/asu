@@ -2,7 +2,7 @@ from requests import Session
 
 session = Session()
 
-asu_url = "http://localhost:5001"
+asu_url = "http://localhost:8000"
 
 
 def reload_all():
@@ -22,7 +22,7 @@ def reload_all():
             print(f"Reloading {version}/{target}")
             session.get(
                 f"{asu_url}/api/v1/update/{version}/{target}",
-                headers={"X-Update-Token": "changeme"},
+                headers={"X-Update-Token": "foobar"},
             )
 
     targets = session.get(
@@ -32,7 +32,7 @@ def reload_all():
         print(f"Reloading SNAPSHOT/{target}")
         session.get(
             f"{asu_url}/api/v1/update/SNAPSHOT/{target}",
-            headers={"X-Update-Token": "changeme"},
+            headers={"X-Update-Token": "foobar"},
         )
 
 
