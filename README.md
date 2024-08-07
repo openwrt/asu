@@ -106,7 +106,7 @@ After cloning this repository, create a Python virtual environment and install
 the dependencies:
 
 ### Redis Server (If not already running.)
-podman run -d --name redis-stack-server -p 6379:6379 redis/redis-stack-server:latest --name redis
+    podman run -d --name redis-stack-server -p 6379:6379 redis/redis-stack-server:latest --name redis
 
 #### Running the server
 
