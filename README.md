@@ -88,7 +88,7 @@ Now it's possible to run all services via `podman-compose`:
 This will start the server, the Podman API container and two workers. The first
 run needs a few minutes since available packages are parsed from the upstream
 server. Once the server is running, it's possible to request images via the API
-on `http://localhost:8000`. Modify `podman-compose.yml` to change the port.
+on `http://serverurl:8000`. Modify `podman-compose.yml` to change the port.
 
 ### Production
 
@@ -104,6 +104,9 @@ For production it's recommended to use a reverse proxy like `nginx` or `caddy`.
 
 After cloning this repository, create a Python virtual environment and install
 the dependencies:
+
+### Redis Server (If not already running.)
+podman run -d --name redis-stack-server -p 6379:6379 redis/redis-stack-server:latest --name redis
 
 #### Running the server
 
