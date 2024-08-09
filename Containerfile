@@ -13,4 +13,4 @@ COPY ./asu/ ./asu/
 
 COPY ./misc/config.py /etc/asu/config.py
 
-CMD uvicorn 'asu.main:app'
+CMD uvicorn --host 0.0.0.0 'asu.main:app'
