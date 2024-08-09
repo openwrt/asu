@@ -92,7 +92,17 @@ def json_v1_arch_index(path: str, arch: str):
     return packages
 
 
-app.mount("/json", StaticFiles(directory=settings.public_path / "json"), name="json")
+app.mount(
+    "/json",
+    StaticFiles(directory=settings.public_path / "json"),
+    name="json",
+)
+
+
+@app.get("//{path:path}")
+def api_double_slash(path: str):
+    print(f"Redirecting double slash to single slash: {path}")
+    return RedirectResponse(f"/{path}", status_code=301)
 
 
 # very legacy
