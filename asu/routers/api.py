@@ -269,3 +269,15 @@ def api_v1_build_post(
     response.status_code = status
 
     return content
+
+
+@router.get("/stats")
+def api_v1_builder_stats():
+    """Return status of builders
+
+    Returns:
+        queue_length: Number of jobs currently in build queue
+    """
+    return {
+        "queue_length": len(get_queue()),
+    }

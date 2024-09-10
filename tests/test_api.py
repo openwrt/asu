@@ -717,3 +717,10 @@ def test_api_version_update(app):
     client.headers["X-Update-Token"] = "bad"
     response = client.get("/api/v1/update/21.02.7/x86/64")
     assert response.status_code == 403
+
+
+def test_api_stats(client):
+    response = client.get("/api/v1/stats", follow_redirects=False)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["queue_length"] == 0
