@@ -39,7 +39,7 @@ def test_apply_package_changes_does_not_modify_input_dict():
             "packages": ["kmod-ath9k-htc"],
         }
     )
-    original_req = build_request.copy()
+    original_req = build_request.model_copy()
     appy_package_changes(build_request)
 
     assert build_request == original_req
@@ -56,7 +56,7 @@ def test_apply_package_changes_release():
     )
     appy_package_changes(build_request)
 
-    original_build_request = build_request.copy()
+    original_build_request = build_request.model_copy()
     appy_package_changes(build_request)
 
     assert build_request == original_build_request
