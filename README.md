@@ -82,7 +82,7 @@ Now it's possible to run all services via `podman-compose`:
     # where to store images and json files
     echo "PUBLIC_PATH=$(pwd)/public" > .env
     # absolute path to podman socket mounted into worker containers
-    echo "CONTAINER_SOCK=/run/user/1001/podman/podman.sock" >> .env
+    echo "CONTAINER_SOCK=/run/user/$(id -u)/podman/podman.sock" >> .env
     podman-compose up -d
 
 This will start the server, the Podman API container and two workers. The first
