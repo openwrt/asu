@@ -686,3 +686,34 @@ def test_api_build_defaults_filled_too_big(app):
         data["detail"][0]["msg"]
         == f"String should have at most {settings.max_defaults_length} characters"
     )
+
+
+def test_api_version_update(app):
+    settings.branches = {
+        "19.07": {
+            "name": "19.07",
+        },
+        "21.02": {
+            "path": "releases/{version}",
+            "enabled": True,
+            "path_packages": "DEPRECATED",
+            "name": "21.02",
+        },
+    }
+
+    settings.update_token = "good"
+    client = TestClient(app)
+    client.headers["X-Update-Token"] = settings.update_token
+
+    # Good request, good version - hits valid path.
+    response = client.get("/api/v1/update/21.02.7/x86/64")
+    assert response.status_code == 204
+
+    # Good request, but bad version - no "path".
+    response = client.get("/api/v1/update/19.07.7/x86/64")
+    assert response.status_code == 204
+
+    # Bad request.
+    client.headers["X-Update-Token"] = "bad"
+    response = client.get("/api/v1/update/21.02.7/x86/64")
+    assert response.status_code == 403

@@ -14,21 +14,24 @@ log = logging.getLogger("rq.worker")
 redis_client = get_redis_client()
 
 
-def update_targets(version):
+def update_targets(version) -> bool:
     """Update available targets of a specific version
 
     Args:
-        config (dict): Configuration
         version(str): Version within branch
     """
     branch_data = get_branch(version)
+    if "path" not in branch_data:
+        log.warning("Obsolete version %s, skipping...", version)
+        return False
+
     branch_name = branch_data["name"]
     version_path = branch_data["path"].format(version=version)
     targets = requests.get(settings.upstream_url + f"/{version_path}/.targets.json")
 
     if targets.status_code != 200:
         log.warning("Couldn't download %s", targets.url)
-        return
+        return False
 
     targets = targets.json()
 
@@ -38,16 +41,21 @@ def update_targets(version):
     pipeline.hset(f"targets:{branch_name}", mapping=targets)
     pipeline.execute()
 
+    return True
 
-def update_profiles(version: str, target_subtarget: str) -> str:
+
+def update_profiles(version: str, target_subtarget: str) -> bool:
     """Update available profiles of a specific version
 
     Args:
-        config (dict): Configuration
         version(str): Version within branch
-        target(str): Target within version
+        target_subtarget(str): Target within version
     """
     branch_data = get_branch(version)
+    if "path" not in branch_data:
+        log.warning("Obsolete version %s, skipping...", version)
+        return False
+
     branch_name = branch_data["name"]
     version_path = branch_data["path"].format(version=version)
     log.debug(f"{version}/{target_subtarget}: Update profiles")
@@ -119,6 +127,8 @@ def update_profiles(version: str, target_subtarget: str) -> str:
 
     pipeline.execute()
 
+    return True
+
 
 def update_meta_json():
     versions_upstream = requests.get(settings.upstream_url + "/.versions.json").json()
@@ -178,6 +188,5 @@ def update_meta_json():
 
 
 def update(version: str, target_subtarget: str):
-    update_targets(version)
-    update_profiles(version, target_subtarget)
-    update_meta_json()
+    if update_targets(version) and update_profiles(version, target_subtarget):
+        update_meta_json()
