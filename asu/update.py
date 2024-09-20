@@ -138,28 +138,20 @@ def update_meta_json():
     ]
 
     branches = dict(
-        map(
-            lambda b: (
-                b.decode(),
+        [
+            (
+                b,
                 {
-                    **get_branch(b.decode()),
-                    "name": b.decode(),
-                    "versions": list(
-                        map(
-                            lambda v: v.decode(),
-                            redis_client.smembers(f"versions:{b.decode()}"),
-                        )
-                    ),
+                    **get_branch(b),
+                    "name": b,
+                    "versions": sorted(redis_client.smembers(f"versions:{b}")),
                     "targets": dict(
-                        map(
-                            lambda a: (a[0].decode(), a[1].decode()),
-                            redis_client.hgetall(f"targets:{b.decode()}").items(),
-                        )
+                        sorted(redis_client.hgetall(f"targets:{b}").items())
                     ),
                 },
-            ),
-            redis_client.smembers("branches"),
-        )
+            )
+            for b in sorted(redis_client.smembers("branches"))
+        ]
     )
 
     overview = {

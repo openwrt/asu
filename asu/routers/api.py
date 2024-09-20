@@ -31,9 +31,7 @@ def get_distros() -> list:
 @router.get("/revision/{version}/{target}/{subtarget}")
 def api_v1_revision(version: str, target: str, subtarget: str):
     return {
-        "revision": get_redis_client()
-        .get(f"revision:{version}:{target}/{subtarget}")
-        .decode("utf-8")
+        "revision": get_redis_client().get(f"revision:{version}:{target}/{subtarget}")
     }
 
 
@@ -127,7 +125,7 @@ def validate_request(build_request: BuildRequest):
             )
 
             if mapped_profile:
-                build_request.profile = mapped_profile.decode()
+                build_request.profile = mapped_profile
             else:
                 return (
                     {

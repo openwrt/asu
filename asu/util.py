@@ -19,8 +19,8 @@ from asu.build_request import BuildRequest
 from asu.config import settings
 
 
-def get_redis_client():
-    return redis.from_url(settings.redis_url, decode_responses=False)
+def get_redis_client(unicode=True):
+    return redis.from_url(settings.redis_url, decode_responses=unicode)
 
 
 def add_timestamp(key: str, labels: dict = {}):
@@ -39,7 +39,7 @@ def get_queue() -> Queue:
     Returns:
         Queue: The current RQ work queue
     """
-    return Queue(connection=get_redis_client(), is_async=settings.async_queue)
+    return Queue(connection=get_redis_client(False), is_async=settings.async_queue)
 
 
 def get_branch(version_or_branch: str) -> dict:
