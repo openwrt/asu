@@ -52,10 +52,10 @@ def index(request: Request):
             lambda b: (
                 b,
                 {
-                    "versions": list(redis_client.smembers(f"versions:{b}")),
+                    "versions": sorted(redis_client.smembers(f"versions:{b}")),
                 },
             ),
-            redis_client.smembers("branches"),
+            sorted(redis_client.smembers("branches")),
         )
     )
 
