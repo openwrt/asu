@@ -16,7 +16,7 @@ from asu.util import (
     get_request_hash,
     get_str_hash,
     parse_packages_versions,
-    run_container,
+    run_cmd,
     verify_usign,
 )
 
@@ -141,13 +141,19 @@ def test_get_podman():
     assert isinstance(podman, PodmanClient)
 
 
-def test_run_container():
+def test_run_cmd():
     podman = get_podman()
     podman.images.pull("ghcr.io/openwrt/imagebuilder:testtarget-testsubtarget-v1.2.3")
 
-    returncode, stdout, stderr = run_container(
-        podman,
+    container = podman.containers.create(
         "ghcr.io/openwrt/imagebuilder:testtarget-testsubtarget-v1.2.3",
+        command=["sleep", "1000"],
+        detach=True,
+    )
+    container.start()
+
+    returncode, stdout, stderr = run_cmd(
+        container,
         ["make", "info"],
     )
 

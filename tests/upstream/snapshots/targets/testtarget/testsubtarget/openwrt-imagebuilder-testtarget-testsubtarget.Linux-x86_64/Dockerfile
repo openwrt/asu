@@ -2,11 +2,10 @@ FROM alpine
 
 RUN apk add make bash
 
-RUN adduser -D builder -h /builder/
+RUN adduser -D buildbot -h /builder/
 
-USER builder 
+USER buildbot
 
 ADD ./ /builder/
 
 WORKDIR /builder/
-
