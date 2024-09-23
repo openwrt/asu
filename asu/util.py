@@ -238,53 +238,17 @@ def diff_packages(requested_packages: list, default_packages: set) -> list[str]:
     )
 
 
-def run_container(
-    podman: PodmanClient,
-    image,
+def run_cmd(
+    container,
     command,
-    mounts=[],
     copy=[],
-    user=None,
     environment={},
     working_dir=None,
 ):
-    """Run a container and return the returncode, stdout and stderr
+    returncode, output = container.exec_run(command, demux=True, user="buildbot")
 
-    Args:
-        podman (PodmanClient): Podman client
-        image (str): Image to run
-        command (list): Command to run
-        mounts (list, optional): List of mounts. Defaults to [].
-
-    Returns:
-        tuple: (returncode, stdout, stderr)
-    """
-    logging.warning(
-        f"Running {image} {command} {mounts} {copy} {user} {environment} {working_dir}"
-    )
-    container = podman.containers.run(
-        image=image,
-        command=command,
-        detach=True,
-        mounts=mounts,
-        cap_drop=["all"],
-        no_new_privileges=True,
-        privileged=False,
-        user=user,
-        working_dir=working_dir,
-        environment=environment,
-    )
-
-    returncode = container.wait()
-
-    # Podman 4.x changed the way logs are returned
-    if podman.version()["Version"].startswith("3"):
-        delimiter = b"\n"
-    else:
-        delimiter = b""
-
-    stdout = delimiter.join(container.logs(stdout=True, stderr=False)).decode("utf-8")
-    stderr = delimiter.join(container.logs(stdout=False, stderr=True)).decode("utf-8")
+    stdout = output[0].decode("utf-8")
+    stderr = output[1].decode("utf-8")
 
     logging.debug(f"returncode: {returncode}")
     logging.debug(f"stdout: {stdout}")
@@ -307,12 +271,6 @@ def run_container(
 
         host_tar.close()
         logging.debug(f"Closed {host_tar}")
-
-    try:
-        container.remove(v=True)
-        podman.volumes.prune()  # TODO: remove once v=True works
-    except Exception as e:
-        logging.warning(f"Failed to remove container: {e}")
 
     return returncode, stdout, stderr
 

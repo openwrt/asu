@@ -21,7 +21,7 @@ from asu.util import (
     get_request_hash,
     parse_manifest,
     report_error,
-    run_container,
+    run_cmd,
 )
 
 log = logging.getLogger("rq.worker")
@@ -62,49 +62,6 @@ def build(build_request: BuildRequest, job=None):
     log.info(f"Pulling {image}...")
     podman.images.pull(image)
     log.info(f"Pulling {image}... done")
-
-    returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
-        podman, image, ["make", "info"]
-    )
-
-    job.save_meta()
-
-    version_code = re.search('Current Revision: "(r.+)"', job.meta["stdout"]).group(1)
-
-    if requested := build_request.version_code:
-        if version_code != requested:
-            report_error(
-                job,
-                f"Received incorrect version {version_code} (requested {requested})",
-            )
-
-    default_packages = set(
-        re.search(r"Default Packages: (.*)\n", job.meta["stdout"]).group(1).split()
-    )
-    log.debug(f"Default packages: {default_packages}")
-
-    profile_packages = set(
-        re.search(
-            r"{}:\n    .+\n    Packages: (.*?)\n".format(build_request.profile),
-            job.meta["stdout"],
-            re.MULTILINE,
-        )
-        .group(1)
-        .split()
-    )
-
-    appy_package_changes(build_request)
-
-    build_cmd_packages = build_request.packages
-
-    if build_request.diff_packages:
-        build_cmd_packages: list[str] = diff_packages(
-            build_request.packages, default_packages | profile_packages
-        )
-        log.debug(f"Diffed packages: {build_cmd_packages}")
-
-    job.meta["imagebuilder_status"] = "calculate_packages_hash"
-    job.save_meta()
 
     mounts = []
 
@@ -153,9 +110,79 @@ def build(build_request: BuildRequest, job=None):
             },
         )
 
-    returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
-        podman,
+    if build_request.defaults:
+        log.debug("Found defaults")
+
+        defaults_file = bin_dir / "files/etc/uci-defaults/99-asu-defaults"
+        defaults_file.parent.mkdir(parents=True)
+        defaults_file.write_text(build_request.defaults)
+        mounts.append(
+            {
+                "type": "bind",
+                "source": str(bin_dir / "files"),
+                "target": str(bin_dir / "files"),
+                "read_only": True,
+            },
+        )
+
+    log.debug("Mounts: %s", mounts)
+
+    container = podman.containers.create(
         image,
+        command=["sleep", "600"],
+        mounts=mounts,
+        cap_drop=["all"],
+        no_new_privileges=True,
+        privileged=False,
+        auto_remove=True,
+    )
+    container.start()
+
+    returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+        container, ["make", "info"]
+    )
+
+    job.save_meta()
+
+    version_code = re.search('Current Revision: "(r.+)"', job.meta["stdout"]).group(1)
+
+    if requested := build_request.version_code:
+        if version_code != requested:
+            report_error(
+                job,
+                f"Received incorrect version {version_code} (requested {requested})",
+            )
+
+    default_packages = set(
+        re.search(r"Default Packages: (.*)\n", job.meta["stdout"]).group(1).split()
+    )
+    log.debug(f"Default packages: {default_packages}")
+
+    profile_packages = set(
+        re.search(
+            r"{}:\n    .+\n    Packages: (.*?)\n".format(build_request.profile),
+            job.meta["stdout"],
+            re.MULTILINE,
+        )
+        .group(1)
+        .split()
+    )
+
+    appy_package_changes(build_request)
+
+    build_cmd_packages = build_request.packages
+
+    if build_request.diff_packages:
+        build_cmd_packages: list[str] = diff_packages(
+            build_request.packages, default_packages | profile_packages
+        )
+        log.debug(f"Diffed packages: {build_cmd_packages}")
+
+    job.meta["imagebuilder_status"] = "calculate_packages_hash"
+    job.save_meta()
+
+    returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+        container,
         [
             "make",
             "manifest",
@@ -163,7 +190,6 @@ def build(build_request: BuildRequest, job=None):
             f"PACKAGES={' '.join(build_cmd_packages)}",
             "STRIP_ABI=1",
         ],
-        mounts=mounts,
     )
 
     job.save_meta()
@@ -190,6 +216,9 @@ def build(build_request: BuildRequest, job=None):
         f"BIN_DIR=/builder/{request_hash}",
     ]
 
+    if build_request.defaults:
+        job.meta["build_cmd"].append(f"FILES={bin_dir}/files")
+
     # Check if custom rootfs size is requested
     if build_request.rootfs_size_mb:
         log.debug("Found custom rootfs size %d", build_request.rootfs_size_mb)
@@ -200,29 +229,13 @@ def build(build_request: BuildRequest, job=None):
     job.meta["imagebuilder_status"] = "building_image"
     job.save_meta()
 
-    if build_request.defaults:
-        log.debug("Found defaults")
-
-        defaults_file = bin_dir / "files/etc/uci-defaults/99-asu-defaults"
-        defaults_file.parent.mkdir(parents=True)
-        defaults_file.write_text(build_request.defaults)
-        job.meta["build_cmd"].append(f"FILES={bin_dir}/files")
-        mounts.append(
-            {
-                "type": "bind",
-                "source": str(bin_dir / "files"),
-                "target": str(bin_dir / "files"),
-                "read_only": True,
-            },
-        )
-
-    returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
-        podman,
-        image,
+    returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+        container,
         job.meta["build_cmd"],
-        mounts=mounts,
         copy=["/builder/" + request_hash, bin_dir.parent],
     )
+
+    container.kill()
 
     job.save_meta()
 
@@ -264,24 +277,8 @@ def build(build_request: BuildRequest, job=None):
 
     if Path(build_key).is_file():
         log.info(f"Signing images with key {build_key}")
-        returncode, job.meta["stdout"], job.meta["stderr"] = run_container(
-            podman,
+        container = podman.containers.create(
             image,
-            [
-                "bash",
-                "-c",
-                (
-                    "env;"
-                    "for IMAGE in $IMAGES_TO_SIGN; do "
-                    "touch ${IMAGE}.test;"
-                    'fwtool -t -s /dev/null "$IMAGE" && echo "sign entfern";'
-                    'cp "/builder/key-build.ucert" "$IMAGE.ucert" && echo "moved";'
-                    'usign -S -m "$IMAGE" -s "/builder/key-build" -x "$IMAGE.sig"  && echo "usign";'
-                    'ucert -A -c "$IMAGE.ucert" -x "$IMAGE.sig" && echo "ucert";'
-                    'fwtool -S "$IMAGE.ucert" "$IMAGE" && echo "fwtool";'
-                    "done"
-                ),
-            ],
             mounts=[
                 {
                     "type": "bind",
@@ -308,7 +305,27 @@ def build(build_request: BuildRequest, job=None):
                 "IMAGES_TO_SIGN": " ".join(images),
                 "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/builder/staging_dir/host/bin",
             },
+            auto_remove=True,
         )
+        returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+            container,
+            [
+                "bash",
+                "-c",
+                (
+                    "env;"
+                    "for IMAGE in $IMAGES_TO_SIGN; do "
+                    "touch ${IMAGE}.test;"
+                    'fwtool -t -s /dev/null "$IMAGE" && echo "sign entfern";'
+                    'cp "/builder/key-build.ucert" "$IMAGE.ucert" && echo "moved";'
+                    'usign -S -m "$IMAGE" -s "/builder/key-build" -x "$IMAGE.sig"  && echo "usign";'
+                    'ucert -A -c "$IMAGE.ucert" -x "$IMAGE.sig" && echo "ucert";'
+                    'fwtool -S "$IMAGE.ucert" "$IMAGE" && echo "fwtool";'
+                    "done"
+                ),
+            ],
+        )
+        container.stop()
         job.save_meta()
     else:
         log.warning("No build key found, skipping signing")
