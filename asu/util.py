@@ -316,23 +316,18 @@ def check_manifest(manifest, packages_versions):
 
 def parse_packages_versions(text: str) -> dict:
     index = {}
-    linebuffer = ""
     architecure = ""
     parser = email.parser.Parser()
-    for line in text.splitlines():
-        if line == "":
-            package = parser.parsestr(linebuffer)
-            if not architecure:
-                architecure = package["Architecture"]
-            package_name = package["Package"]
-            if package_abi := package.get("ABIVersion"):
-                package_name = package_name.removesuffix(package_abi)
+    chunks = text.strip().split("\n\n")
+    for chunk in chunks:
+        package = parser.parsestr(chunk, headersonly=True)
+        if not architecure:
+            architecure = package["Architecture"]
+        package_name = package["Package"]
+        if package_abi := package.get("ABIVersion"):
+            package_name = package_name.removesuffix(package_abi)
 
-            index[package_name] = package["Version"]
-
-            linebuffer = ""
-        else:
-            linebuffer += line + "\n"
+        index[package_name] = package["Version"]
 
     return {"architecture": architecure, "packages": index}
 
