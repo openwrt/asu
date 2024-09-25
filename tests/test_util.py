@@ -114,11 +114,14 @@ def test_get_packages_versions():
         "Package: bort\n"
         "Version: 9.9.9\n"
         "\n"
+        "\n"  # Add two more to fake malformed input.
+        "\n"
     )
     index = parse_packages_versions(text)
     packages = index["packages"]
 
     assert index["architecture"] == "x86_64"
+    assert len(packages) == 3
     assert packages["libusb-1.0"] == "1.2.3"
     assert packages["libpython-3.3"] == "1.2.3"
     assert packages["bort"] == "9.9.9"
