@@ -6,6 +6,7 @@ from podman import PodmanClient
 
 from asu.build_request import BuildRequest
 from asu.util import (
+    httpx,  # For monkeypatching.
     check_manifest,
     diff_packages,
     fingerprint_pubkey_usign,
@@ -15,7 +16,8 @@ from asu.util import (
     get_podman,
     get_request_hash,
     get_str_hash,
-    parse_packages_versions,
+    parse_packages_file,
+    parse_feeds_conf,
     run_cmd,
     verify_usign,
 )
@@ -100,24 +102,29 @@ def test_get_version_container_tag():
     assert get_container_version_tag("SNAPP-SNAPSHOT") == "openwrt-SNAPP"
 
 
-def test_get_packages_versions():
-    text = (
-        "Package: libusb-1.0-0\n"
-        "ABIVersion: -0\n"
-        "Version: 1.2.3\n"
-        "Architecture: x86_64\n"
-        "\n"
-        "Package: libpython-3.3-3\n"
-        "ABIVersion: -3\n"
-        "Version: 1.2.3\n"
-        "\n"
-        "Package: bort\n"
-        "Version: 9.9.9\n"
-        "\n"
-        "\n"  # Add two more to fake malformed input.
-        "\n"
-    )
-    index = parse_packages_versions(text)
+def test_get_packages_versions(monkeypatch):
+    class Response:
+        status_code = 200
+        text = (
+            "Package: libusb-1.0-0\n"
+            "ABIVersion: -0\n"
+            "Version: 1.2.3\n"
+            "Architecture: x86_64\n"
+            "\n"
+            "Package: libpython-3.3-3\n"
+            "ABIVersion: -3\n"
+            "Version: 1.2.3\n"
+            "\n"
+            "Package: bort\n"
+            "Version: 9.9.9\n"
+            "\n"
+            "\n"  # Add two more to fake malformed input.
+            "\n"
+        )
+
+    monkeypatch.setattr(httpx, "get", lambda url: Response())
+
+    index = parse_packages_file("httpx://fake_url")
     packages = index["packages"]
 
     assert index["architecture"] == "x86_64"
@@ -125,6 +132,30 @@ def test_get_packages_versions():
     assert packages["libusb-1.0"] == "1.2.3"
     assert packages["libpython-3.3"] == "1.2.3"
     assert packages["bort"] == "9.9.9"
+
+    Response.status_code = 404
+    index = parse_packages_file("abc://fake")
+    assert index == {}
+
+
+def test_get_feeds(monkeypatch):
+    class Response:
+        status_code = 200
+        text = (
+            "src-git packages https://git.openwrt.org/feed/packages.git^b1635b8\n"
+            "src-git luci https://git.openwrt.org/project/luci.git^63d8b79\n"
+        )
+
+    monkeypatch.setattr(httpx, "get", lambda url: Response())
+
+    feeds = parse_feeds_conf("httpx://fake_url")
+    assert len(feeds) == 2
+    assert feeds[0] == "packages"
+    assert feeds[1] == "luci"
+
+    Response.status_code = 404
+    feeds = parse_feeds_conf("httpx://fake_url")
+    assert feeds == []
 
 
 def test_check_manifest():

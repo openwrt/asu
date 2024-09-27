@@ -26,6 +26,17 @@ isort = "^5.13.2"
 fakeredis = "^2.24.1"
 
 
+[tool.coverage.run]
+dynamic_context = "test_function"
+
+[tool.coverage.report]
+precision       = 1
+
+[tool.coverage.html]
+show_contexts   = "true"
+title           = "ASU Server Regression Test Coverage"
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
