@@ -719,6 +719,13 @@ def test_api_version_update(app):
     assert response.status_code == 403
 
 
+def test_api_revision(client):
+    response = client.get("/api/v1/revision/21.02.7/x86/64", follow_redirects=False)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["revision"] == "r16847-f8282da11e"
+
+
 def test_api_stats(client):
     response = client.get("/api/v1/stats", follow_redirects=False)
     assert response.status_code == 200
