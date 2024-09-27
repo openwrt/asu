@@ -49,5 +49,5 @@ class BuildRequest(BaseModel):
         ]
     ] = None
     diff_packages: Optional[bool] = False
-    repositories: Optional[dict] = {}
-    repository_keys: Optional[list] = []
+    repositories: Optional[dict[str, str]] = {}
+    repository_keys: Optional[list[str]] = []

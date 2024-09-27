@@ -5,6 +5,7 @@ from datetime import datetime
 from os import getenv
 from pathlib import Path
 
+from podman.domain.containers_run import Union
 from rq import get_current_job
 
 from asu.build_request import BuildRequest
@@ -57,13 +58,24 @@ def build(build_request: BuildRequest, job=None):
         f"Container version: {container_version_tag} (requested {build_request.version})"
     )
 
+    mounts: list[dict[str, Union[str, bool]]] = []
+    environment: dict[str, str] = {}
+
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
+
+    if settings.squid_cache and build_request.version.lower().endswith("snapshot"):
+        image = "localhost/imagebuilder:setup"
+        environment.update(
+            {
+                "TARGET": build_request.target,
+                "use_proxy": "on",
+                "http_proxy": "http://127.0.0.1:3128",
+            }
+        )
 
     log.info(f"Pulling {image}...")
     podman.images.pull(image)
     log.info(f"Pulling {image}... done")
-
-    mounts = []
 
     (bin_dir / "keys").mkdir(parents=True, exist_ok=True)
     log.debug("Created store path: %s", bin_dir)
@@ -134,9 +146,17 @@ def build(build_request: BuildRequest, job=None):
         cap_drop=["all"],
         no_new_privileges=True,
         privileged=False,
+        networks={"pasta": {}},
         auto_remove=True,
+        environment=environment,
     )
     container.start()
+
+    if settings.squid_cache and build_request.version.lower().endswith("snapshot"):
+        log.debug("Setting up ImageBuilder")
+        returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+            container, ["sh", "setup.sh"]
+        )
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container, ["make", "info"]

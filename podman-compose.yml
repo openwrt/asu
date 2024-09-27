@@ -38,3 +38,12 @@ services:
     restart: always
     volumes:
       - redis:/data/:rw
+
+  squid:
+    image: "docker.io/ubuntu/squid:latest"
+    restart: always
+    ports:
+      - "127.0.0.1:3128:3128"
+    volumes:
+      - "./misc/snippet.conf:/etc/squid/conf.d/snippet.conf:ro"
+      - "./squid/:/var/spool/squid/:rw"
