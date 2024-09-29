@@ -33,6 +33,7 @@ def redis_load_mock_data(redis):
     redis.sadd("packages:21.02:21.02.7:ath79/generic", "vim", "tmux")
     redis.sadd("packages:21.02:21.02.7:x86/64", "vim", "tmux")
 
+    redis.sadd("profiles:21.02:21.02.7:x86/64", "generic")
     redis.set("revision:21.02.7:x86/64", "r16847-f8282da11e")
 
     redis.hset(

@@ -45,6 +45,11 @@ def api_v1_overview():
     return RedirectResponse("/json/v1/overview.json", status_code=301)
 
 
+def validation_failure(detail):
+    logging.info(f"Validation failure {detail = }")
+    return {"detail": detail, "status": 400}, 400
+
+
 def validate_request(build_request: BuildRequest):
     """Validate an image request and return found errors with status code
 
@@ -60,80 +65,49 @@ def validate_request(build_request: BuildRequest):
     """
 
     if build_request.defaults and not settings.allow_defaults:
-        return (
-            {"detail": "Handling `defaults` not enabled on server", "status": 400},
-            400,
-        )
+        return validation_failure("Handling `defaults` not enabled on server")
 
     if build_request.distro not in get_distros():
-        return (
-            {"detail": f"Unsupported distro: {build_request.distro}", "status": 400},
-            400,
-        )
+        return validation_failure(f"Unsupported distro: {build_request.distro}")
 
     branch = get_branch(build_request.version)["name"]
 
     r = get_redis_client()
 
     if not r.sismember("branches", branch):
-        return (
-            {"detail": f"Unsupported branch: {build_request.version}", "status": 400},
-            400,
-        )
+        return validation_failure(f"Unsupported branch: {build_request.version}")
 
     if not r.sismember(f"versions:{branch}", build_request.version):
-        return (
-            {"detail": f"Unsupported version: {build_request.version}", "status": 400},
-            400,
-        )
+        return validation_failure(f"Unsupported version: {build_request.version}")
 
-    build_request.packages: list[str] = list(
-        map(
-            lambda x: x.removeprefix("+"),
-            (build_request.packages_versions.keys() or build_request.packages),
-        )
-    )
+    build_request.packages: list[str] = [
+        x.removeprefix("+")
+        for x in (build_request.packages_versions.keys() or build_request.packages)
+    ]
 
-    logging.debug("Profile before mapping " + build_request.profile)
+    logging.debug(f"Profile before mapping {build_request.profile = }")
 
     if not r.hexists(f"targets:{branch}", build_request.target):
-        return (
-            {"detail": f"Unsupported target: {build_request.target}", "status": 400},
-            400,
-        )
+        return validation_failure(f"Unsupported target: {build_request.target}")
 
-    if build_request.target in [
-        "x86/64",
-        "x86/generic",
-        "x86/geode",
-        "x86/legacy",
-        "armsr/armv7",
-        "armsr/armv8",
-    ]:
-        logging.debug("Use generic profile for {build_request.target}")
-        build_request.profile = "generic"
+    sanitized_profile = build_request.profile.replace(",", "_")
+    target_key = f"{branch}:{build_request.version}:{build_request.target}"
+    profiles_key = f"profiles:{target_key}"
+    if r.sismember(profiles_key, sanitized_profile):
+        logging.debug(f"Using {sanitized_profile = }")
+        build_request.profile = sanitized_profile
     else:
-        if r.sismember(
-            f"profiles:{branch}:{build_request.version}:{build_request.target}",
-            build_request.profile.replace(",", "_"),
-        ):
-            build_request.profile = build_request.profile.replace(",", "_")
+        mapped_profile = r.hget(f"mapping:{target_key}", build_request.profile)
+        logging.debug(f"Checking {mapped_profile = }")
+        if mapped_profile:
+            build_request.profile = mapped_profile
+        elif r.scard(profiles_key) == 1 and r.sismember(profiles_key, "generic"):
+            # Assume "generic" as that's the only choice possible.
+            # Handles the x86, armsr and other generic variants.
+            logging.info(f"Use generic profile replacing {build_request.profile = }")
+            build_request.profile = "generic"
         else:
-            mapped_profile = r.hget(
-                f"mapping:{branch}:{build_request.version}:{build_request.target}",
-                build_request.profile,
-            )
-
-            if mapped_profile:
-                build_request.profile = mapped_profile
-            else:
-                return (
-                    {
-                        "detail": f"Unsupported profile: {build_request.profile}",
-                        "status": 400,
-                    },
-                    400,
-                )
+            return validation_failure(f"Unsupported profile: {build_request.profile}")
 
     return ({}, None)
 
