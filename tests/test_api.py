@@ -273,7 +273,6 @@ def test_api_build_bad_target(client):
     )
     assert response.status_code == 400
     data = response.json()
-
     assert data.get("detail") == "Unsupported target: testtarget/testsubtargetbad"
 
 
@@ -370,7 +369,25 @@ def test_api_build_empty_packages_list(client):
     assert response.status_code == 200
 
 
-def test_api_build_withouth_packages_list(client):
+@pytest.mark.slow
+def test_api_build_conflicting_packages(client):
+    """Use real build to get proper context for conflicts."""
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="21.02.7",
+            target="ath79/generic",
+            profile="tplink,tl-wdr4300-v1",
+            packages=["dnsmasq", "dnsmasq-full"],
+        ),
+    )
+
+    assert response.status_code == 500
+    data = response.json()
+    assert data["detail"] == "Error: Impossible package selection"
+
+
+def test_api_build_without_packages_list(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
@@ -544,7 +561,6 @@ def test_api_build_needed(client):
     )
     assert response.status_code == 422
     data = response.json()
-    print(data)
     assert data["detail"] == [
         {
             "type": "missing",
@@ -583,7 +599,6 @@ def test_api_build_bad_branch(client):
     )
     assert response.status_code == 400
     data = response.json()
-    print(data)
     assert data["detail"] == "Unsupported branch: 10.10.10"
 
 
@@ -642,11 +657,9 @@ def test_api_build_defaults_filled_not_allowed(client):
         ),
     )
 
-    data = response.json()
-    print(data)
-
-    print(response.status_code)
     assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Handling `defaults` not enabled on server"
 
 
 def test_api_build_defaults_filled_allowed(app):
