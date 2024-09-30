@@ -68,6 +68,9 @@ def build(build_request: BuildRequest, job=None):
         environment.update(
             {
                 "TARGET": build_request.target,
+                "VERSION_PATH": "snapshots"
+                if build_request.version.lower() == "snapshot"
+                else f"releases/{build_request.version}",
                 "use_proxy": "on",
                 "http_proxy": "http://127.0.0.1:3128",
             }
