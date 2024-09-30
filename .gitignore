@@ -3,6 +3,7 @@ store/
 site/
 redis/
 public/
+squid/
 poetry.lock
 json/
 instance/
