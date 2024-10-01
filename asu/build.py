@@ -16,6 +16,7 @@ from asu.util import (
     check_manifest,
     diff_packages,
     fingerprint_pubkey_usign,
+    get_branch,
     get_container_version_tag,
     get_packages_hash,
     get_podman,
@@ -68,9 +69,9 @@ def build(build_request: BuildRequest, job=None):
         environment.update(
             {
                 "TARGET": build_request.target,
-                "VERSION_PATH": "snapshots"
-                if build_request.version.lower() == "snapshot"
-                else f"releases/{build_request.version}",
+                "VERSION_PATH": get_branch(build_request.version)
+                .get("path", "")
+                .replace("{version}", build_request.version),
                 "use_proxy": "on",
                 "http_proxy": "http://127.0.0.1:3128",
             }
