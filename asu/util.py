@@ -8,22 +8,25 @@ from pathlib import Path
 from re import match
 from tarfile import TarFile
 from tempfile import NamedTemporaryFile
+from typing import Optional
 
 import httpx
 import nacl.signing
-import redis
 from podman import PodmanClient
+from podman.domain.containers import Container
 from rq import Queue
+from rq.job import Job
 
+import redis
 from asu.build_request import BuildRequest
 from asu.config import settings
 
 
-def get_redis_client(unicode=True):
+def get_redis_client(unicode: bool = True):
     return redis.from_url(settings.redis_url, decode_responses=unicode)
 
 
-def add_timestamp(key: str, labels: dict = {}):
+def add_timestamp(key: str, labels: dict[str, str] = {}) -> None:
     logging.info(f"Adding timestamp to {key}: {labels}")
     get_redis_client().ts().add(
         key,
@@ -42,7 +45,7 @@ def get_queue() -> Queue:
     return Queue(connection=get_redis_client(False), is_async=settings.async_queue)
 
 
-def get_branch(version_or_branch: str) -> dict:
+def get_branch(version_or_branch: str) -> dict[str, str]:
     if version_or_branch not in settings.branches:
         if version_or_branch.endswith("-SNAPSHOT"):
             # e.g. 21.02-snapshot
@@ -95,7 +98,7 @@ def get_file_hash(path: str) -> str:
     return h.hexdigest()
 
 
-def get_manifest_hash(manifest: dict) -> str:
+def get_manifest_hash(manifest: dict[str, str]) -> str:
     """Return sha256sum of package manifest
 
     Duplicate packages are automatically removed and the list is sorted to be
@@ -188,10 +191,10 @@ def verify_usign(sig_file: Path, msg_file: Path, pub_key: str) -> bool:
          Currently ignores keynum and pkalg
 
     """
-    pkalg, keynum, pubkey = struct.unpack("!2s8s32s", base64.b64decode(pub_key))
+    _pkalg, _keynum, pubkey = struct.unpack("!2s8s32s", base64.b64decode(pub_key))
     sig = base64.b64decode(sig_file.read_text().splitlines()[-1])
 
-    pkalg, keynum, sig = struct.unpack("!2s8s64s", sig)
+    _pkalg, _keynum, sig = struct.unpack("!2s8s64s", sig)
 
     verify_key = nacl.signing.VerifyKey(pubkey, encoder=nacl.encoding.RawEncoder)
     try:
@@ -201,16 +204,16 @@ def verify_usign(sig_file: Path, msg_file: Path, pub_key: str) -> bool:
         return False
 
 
-def get_container_version_tag(version: str) -> str:
-    if match(r"^\d+\.\d+\.\d+(-rc\d+)?$", version):
+def get_container_version_tag(input_version: str) -> str:
+    if match(r"^\d+\.\d+\.\d+(-rc\d+)?$", input_version):
         logging.debug("Version is a release version")
-        version: str = "v" + version
+        version: str = "v" + input_version
     else:
-        logging.info(f"Version {version} is a branch")
-        if version == "SNAPSHOT":
+        logging.info(f"Version {input_version} is a branch")
+        if input_version == "SNAPSHOT":
             version: str = "master"
         else:
-            version: str = "openwrt-" + version.removesuffix("-SNAPSHOT")
+            version: str = "openwrt-" + input_version.removesuffix("-SNAPSHOT")
 
     return version
 
@@ -222,7 +225,9 @@ def get_podman():
     )
 
 
-def diff_packages(requested_packages: list, default_packages: set) -> list[str]:
+def diff_packages(
+    requested_packages: list[str], default_packages: set[str]
+) -> list[str]:
     """Return a list of packages to install and remove
 
     Args:
@@ -239,16 +244,15 @@ def diff_packages(requested_packages: list, default_packages: set) -> list[str]:
 
 
 def run_cmd(
-    container,
-    command,
-    copy=[],
-    environment={},
-    working_dir=None,
-):
+    container: Container,
+    command: list[str],
+    copy: list[str] = [],
+    environment: dict[str, str] = {},
+) -> tuple[int, str, str]:
     returncode, output = container.exec_run(command, demux=True, user="buildbot")
 
-    stdout = output[0].decode("utf-8")
-    stderr = output[1].decode("utf-8")
+    stdout: str = output[0].decode("utf-8")
+    stderr: str = output[1].decode("utf-8")
 
     logging.debug(f"returncode: {returncode}")
     logging.debug(f"stdout: {stdout}")
@@ -275,7 +279,7 @@ def run_cmd(
     return returncode, stdout, stderr
 
 
-def report_error(job, msg):
+def report_error(job: Job, msg: str) -> None:
     logging.warning(f"Error: {msg}")
     job.meta["detail"] = f"Error: {msg}"
     job.save_meta()
@@ -294,7 +298,9 @@ def parse_manifest(manifest_content: str) -> dict[str, str]:
     return dict(map(lambda pv: pv.split(" - "), manifest_content.splitlines()))
 
 
-def check_manifest(manifest, packages_versions):
+def check_manifest(
+    manifest: dict[str, str], packages_versions: dict[str, str]
+) -> Optional[str]:
     """Validate a manifest file
 
     Args:
@@ -332,15 +338,15 @@ def parse_packages_versions(text: str) -> dict:
     return {"architecture": architecure, "packages": index}
 
 
-def parse_packages_file(url):
+def parse_packages_file(url: str) -> dict[str, str]:
     res = httpx.get(url + "/Packages")
     return parse_packages_versions(res.text) if res.status_code == 200 else {}
 
 
-def parse_feeds_conf(url):
+def parse_feeds_conf(url: str) -> list[str]:
     req = httpx.get(url + "/feeds.conf")
 
-    feeds = []
+    feeds: list[str] = []
 
     if req.status_code != 200:
         return feeds
