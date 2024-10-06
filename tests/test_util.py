@@ -5,8 +5,8 @@ from pathlib import Path
 from podman import PodmanClient
 
 from asu.build_request import BuildRequest
+from asu.util import httpx  # For monkeypatching.
 from asu.util import (
-    httpx,  # For monkeypatching.
     check_manifest,
     diff_packages,
     fingerprint_pubkey_usign,
@@ -16,8 +16,8 @@ from asu.util import (
     get_podman,
     get_request_hash,
     get_str_hash,
-    parse_packages_file,
     parse_feeds_conf,
+    parse_packages_file,
     run_cmd,
     verify_usign,
 )

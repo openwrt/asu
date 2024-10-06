@@ -4,8 +4,8 @@ import re
 from datetime import datetime
 from os import getenv
 from pathlib import Path
+from typing import Union
 
-from podman.domain.containers_run import Union
 from rq import get_current_job
 
 from asu.build_request import BuildRequest
