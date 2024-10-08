@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import struct
+from os import getuid, getgid
 from pathlib import Path
 from re import match
 from tarfile import TarFile
@@ -119,7 +120,7 @@ def get_request_hash(build_request: BuildRequest) -> str:
     Creates a reproducible hash of the request by sorting the arguments
 
     Args:
-        req (dict): dict contianing request information
+        req (dict): dict containing request information
 
     Returns:
         str: hash of `req`
@@ -185,7 +186,7 @@ def verify_usign(sig_file: Path, msg_file: Path, pub_key: str) -> bool:
         pub_key (str): public key to use for verification
 
     Returns:
-        bool: Sucessfull verification
+        bool: Successful verification
 
     Todo:
          Currently ignores keynum and pkalg
@@ -270,10 +271,13 @@ def run_cmd(
             host_tar.write(data)
         host_tar.flush()
 
-        tar_file = TarFile(host_tar.name)
-        tar_file.extractall(copy[1])
-
-        host_tar.close()
+        with TarFile(host_tar.name) as tar_file:
+            for member in tar_file:
+                # Fix the owner of the copied files, change to "us".
+                member.uid = getuid()
+                member.gid = getgid()
+                member.mode = 0o755 if member.isdir() else 0o644
+            tar_file.extractall(copy[1])
         logging.debug(f"Closed {host_tar}")
 
     return returncode, stdout, stderr
