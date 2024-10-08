@@ -320,38 +320,32 @@ def check_manifest(
             )
 
 
-def parse_packages_versions(text: str) -> dict:
+def parse_packages_file(url: str) -> dict[str, str]:
+    res = httpx.get(f"{url}/Packages")
+    if res.status_code != 200:
+        return {}
+
     index = {}
-    architecure = ""
+    architecture = ""
     parser = email.parser.Parser()
-    chunks = text.strip().split("\n\n")
+    chunks = res.text.strip().split("\n\n")
     for chunk in chunks:
         package = parser.parsestr(chunk, headersonly=True)
-        if not architecure:
-            architecure = package["Architecture"]
+        if not architecture:
+            architecture = package["Architecture"]
         package_name = package["Package"]
         if package_abi := package.get("ABIVersion"):
             package_name = package_name.removesuffix(package_abi)
 
         index[package_name] = package["Version"]
 
-    return {"architecture": architecure, "packages": index}
-
-
-def parse_packages_file(url: str) -> dict[str, str]:
-    res = httpx.get(url + "/Packages")
-    return parse_packages_versions(res.text) if res.status_code == 200 else {}
+    return {"architecture": architecture, "packages": index}
 
 
 def parse_feeds_conf(url: str) -> list[str]:
-    req = httpx.get(url + "/feeds.conf")
-
-    feeds: list[str] = []
-
-    if req.status_code != 200:
-        return feeds
-
-    for line in req.text.splitlines():
-        feeds.append(line.split(" ")[1])
-
-    return feeds
+    res = httpx.get(f"{url}/feeds.conf")
+    return (
+        [line.split()[1] for line in res.text.splitlines()]
+        if res.status_code == 200
+        else []
+    )
