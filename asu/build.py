@@ -41,7 +41,10 @@ def build(build_request: BuildRequest, job=None):
     request_hash = get_request_hash(build_request)
     bin_dir: Path = settings.public_path / "store" / request_hash
     bin_dir.mkdir(parents=True, exist_ok=True)
-    log.debug(f"Bin dir: {bin_dir}")
+    host_dir: Path = settings.host_path / "store" / request_hash
+    bldr_dir: Path = settings.builder_path
+
+    log.debug(f"Build dirs:\n  {bin_dir  = !s}\n  {host_dir = !s}\n  {bldr_dir = !s}")
 
     job = job or get_current_job()
     job.meta["detail"] = "init"
@@ -98,8 +101,8 @@ def build(build_request: BuildRequest, job=None):
             mounts.append(
                 {
                     "type": "bind",
-                    "source": str(bin_dir / "keys" / fingerprint),
-                    "target": "/builder/keys/" + fingerprint,
+                    "source": str(host_dir / "keys" / fingerprint),
+                    "target": str(bldr_dir / "keys" / fingerprint),
                     "read_only": True,
                 },
             )
@@ -120,8 +123,8 @@ def build(build_request: BuildRequest, job=None):
         mounts.append(
             {
                 "type": "bind",
-                "source": str(bin_dir / "repositories.conf"),
-                "target": "/builder/repositories.conf",
+                "source": str(host_dir / "repositories.conf"),
+                "target": str(bldr_dir / "repositories.conf"),
                 "read_only": True,
             },
         )
@@ -130,13 +133,14 @@ def build(build_request: BuildRequest, job=None):
         log.debug("Found defaults")
 
         defaults_file = bin_dir / "files/etc/uci-defaults/99-asu-defaults"
-        defaults_file.parent.mkdir(parents=True)
+        log.info(f"Found defaults, storing at {defaults_file = !s}")
+        defaults_file.parent.mkdir(parents=True, exist_ok=True)
         defaults_file.write_text(build_request.defaults)
         mounts.append(
             {
                 "type": "bind",
-                "source": str(bin_dir / "files"),
-                "target": str(bin_dir / "files"),
+                "source": str(host_dir / "files"),
+                "target": str(bldr_dir / "files"),
                 "read_only": True,
             },
         )
@@ -237,11 +241,11 @@ def build(build_request: BuildRequest, job=None):
         f"PROFILE={build_request.profile}",
         f"PACKAGES={' '.join(build_cmd_packages)}",
         f"EXTRA_IMAGE_NAME={packages_hash}",
-        f"BIN_DIR=/builder/{request_hash}",
+        f"BIN_DIR={bldr_dir!s}/{request_hash}",
     ]
 
     if build_request.defaults:
-        job.meta["build_cmd"].append(f"FILES={bin_dir}/files")
+        job.meta["build_cmd"].append(f"FILES={bldr_dir!s}/files")
 
     # Check if custom rootfs size is requested
     if build_request.rootfs_size_mb:
@@ -256,7 +260,7 @@ def build(build_request: BuildRequest, job=None):
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container,
         job.meta["build_cmd"],
-        copy=["/builder/" + request_hash, bin_dir.parent],
+        copy=[str(bldr_dir / request_hash), str(bin_dir.parent)],
     )
 
     container.kill()
@@ -297,7 +301,7 @@ def build(build_request: BuildRequest, job=None):
     # job.meta["imagebuilder_status"] = "signing_images"
     job.save_meta()
 
-    build_key = getenv("BUILD_KEY") or str(Path.cwd() / "key-build")
+    build_key = getenv("BUILD_KEY") or str(host_dir / "key-build")
 
     if Path(build_key).is_file():
         log.info(f"Signing images with key {build_key}")
@@ -307,18 +311,18 @@ def build(build_request: BuildRequest, job=None):
                 {
                     "type": "bind",
                     "source": build_key,
-                    "target": "/builder/key-build",
+                    "target": str(bldr_dir / "key-build"),
                     "read_only": True,
                 },
                 {
                     "type": "bind",
                     "source": build_key + ".ucert",
-                    "target": "/builder/key-build.ucert",
+                    "target": str(bldr_dir / "key-build.ucert"),
                     "read_only": True,
                 },
                 {
                     "type": "bind",
-                    "source": str(bin_dir),
+                    "source": str(host_dir),
                     "target": request_hash,
                     "read_only": False,
                 },
@@ -327,7 +331,7 @@ def build(build_request: BuildRequest, job=None):
             working_dir=request_hash,
             environment={
                 "IMAGES_TO_SIGN": " ".join(images),
-                "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/builder/staging_dir/host/bin",
+                "PATH": f"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{bldr_dir!s}/staging_dir/host/bin",
             },
             auto_remove=True,
         )

@@ -54,7 +54,7 @@ def redis_load_mock_data(redis):
 
 
 @pytest.fixture
-def redis_server():
+def redis_server(unicode=True):
     r = FakeStrictRedis()
     redis_load_mock_data(r)
     yield r
@@ -94,13 +94,21 @@ def app(redis_server, test_path, monkeypatch):
         return redis_server
 
     settings.public_path = Path(test_path) / "public"
+    settings.host_path = settings.public_path
+    settings.public_path.mkdir(parents=True)
+
     settings.async_queue = False
     for branch in "1.2", "19.07", "21.02":
         if branch not in settings.branches:
             settings.branches[branch] = {"path": "releases/{version}"}
+    settings.allow_defaults = False
 
     monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
     monkeypatch.setattr("asu.routers.api.get_redis_client", mocked_redis_client)
+
+    from os import getuid
+
+    assert settings.container_sock == f"/run/user/{getuid()}/podman/podman.sock"
 
     yield real_app
 
