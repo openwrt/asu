@@ -37,6 +37,11 @@ show_contexts   = "true"
 title           = "ASU Server Regression Test Coverage"
 
 
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
