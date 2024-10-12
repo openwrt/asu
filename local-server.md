@@ -1,12 +1,16 @@
-#### Setting up a local server
+# Setting up a local server
 
 Assumptions:
   - You're using a recent Ubuntu for install, below examples developed on a qemu VM using 24.04.
     - Examples below use `apt`
-    - Has Python 3.12, `git` already installed
+    - `git` is already installed
+    - Has Python 3.12 (3.11 is ok)
   - You are going to use the server on your LAN for local installs, and not expose it to the internet, hence no discussion of proxies or whatnot.
 
-First check IPv6 connectivity from your VM:
+## First check IPv6 connectivity from your VM
+
+Run curl against an external server forcing IPv6, if this works, then skip forward.
+
 ```bash
 curl -6 https://sysupgrade.openwrt.org/json/v1/overview.json
 ```
@@ -26,6 +30,8 @@ sudo sysctl -f /etc/sysctl.d/10-ipv6-privacy.conf
 
 If you can figure out how to get qemu to punch through the IPv6 blocking, @efahl would really (really) like to know.
 
+## Podman installation
+
 Make sure you have `podman`, Ubuntu 24.04 did not:
 
 ```bash
@@ -36,18 +42,7 @@ systemctl --user start podman.socket
 systemctl --user status podman.socket
 ```
 
-Test that podman is working by running the Alpine Linux container.  This will drop you on its command line, and if you see the `/ #` prompt, simply `exit` to return to your server's command line.
-
-    podman run --rm -it docker.io/library/alpine:latest
-    / # cat /etc/os-release
-    NAME="Alpine Linux"
-    ID=alpine
-    VERSION_ID=3.20.3
-    PRETTY_NAME="Alpine Linux v3.20"
-    HOME_URL="https://alpinelinux.org/"
-    BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
-    / # exit
-        
+## Python configuration
 
 Create a new Python virtual environment using `venv`:
 
@@ -68,32 +63,21 @@ $ python --version
 Python 3.12.3
 ```
 
-Next, install the basic Python tools (`poetry` will be used to easily install all the rest of the requirements):
+Install the basic tools (`poetry` will be used to easily install all the rest of the requirements):
 
 ```bash
 pip install poetry podman-compose
 ```
 
-Get ASU and install all its requirements:
+## Attended Sysupgrade installation and configuration
+
+Get ASU and install all of its requirements:
 
 ```bash
 git clone https://github.com/openwrt/asu.git
 cd asu/
 poetry install
 ```
-
-Set up your local podman environment.  The `.env` file contains primary definitions or overrides for the contents of `settings`, which may be found in `asu/config.py`.
-
-    echo "# where to store images and json files
-    PUBLIC_PATH=$(pwd)/public
-    HOST_PATH=$(pwd)/public
-    # absolute path to podman socket mounted into worker containers
-    CONTAINER_SOCK=/run/user/$(id -u)/podman/podman.sock
-    # allow host cli tools access to redis database
-    REDIS_URL=redis://localhost:6379
-    # turn on the 'defaults' option on the server
-    ALLOW_DEFAULTS=True
-    " > .env
 
 Edit `podman-compose.yml` and make the server listen on the VM's WAN port at `0.0.0.0`:
 ```bash
@@ -103,9 +87,28 @@ server:
     - "0.0.0.0:8000:8000"
 ```
 
+Set up your initial podman environment:
+
+```bash
+echo "# where to store images and json files
+PUBLIC_PATH=$(pwd)/public
+HOST_PATH=$(pwd)/public
+# absolute path to podman socket mounted into worker containers
+CONTAINER_SOCK=/run/user/$(id -u)/podman/podman.sock
+# allow host cli tools access to redis database
+REDIS_URL=redis://localhost:6379
+# turn on the 'defaults' option on the server
+ALLOW_DEFAULTS=True
+" > .env
+```
+
+## Running the server
+
 Start up the server:
 ```bash
 $ podman-compose up -d
+...
+
 $ podman logs asu_server_1
 INFO:     Started server process [2]
 INFO:     Waiting for application startup.
@@ -114,8 +117,7 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ```
 
-
-Check that the server is up.  `ssh` into your router and fetch the front page, this should spew a pile of html:
+Check that the server is accessible.  `ssh` into your router and fetch the front page, this should spew a pile of html:
 ```bash
 asu_server=<your server's IPv4, or its name if you have it in DNS>
 uclient-fetch -O - "http://$asu_server:8000/"
@@ -180,3 +182,9 @@ Requesting package lists...
  luci-mod-network: git-24.264.56960-63ba3cb -> git-24.281.58052-a6c2279
 ```
 
+## Deployment notes
+
+If you want your server to remain active after you log out of the server, you must enable "linger" in `loginctl`:
+```bash
+loginctl enable-linger
+```
