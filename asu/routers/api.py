@@ -130,6 +130,7 @@ def return_job_v1(job):
             }
         )
         headers["X-Queue-Position"] = str(response["queue_position"])
+        headers["X-Imagebuilder-Status"] = "queued"
 
     elif job.is_started:
         response.update(
@@ -138,7 +139,7 @@ def return_job_v1(job):
                 "detail": "started",
             }
         )
-        headers = {"X-Imagebuilder-Status": response.get("imagebuilder_status", "init")}
+        headers["X-Imagebuilder-Status"] = response.get("imagebuilder_status", "init")
 
     elif job.is_finished:
         response.update({"status": 200, **job.return_value()})
@@ -171,6 +172,19 @@ def api_v1_update(
     else:
         response.status_code = 403
         return {"status": 403, "detail": "Forbidden"}
+
+
+@router.head("/build/{request_hash}")
+def api_v1_build_head(request_hash: str, response: Response):
+    job = get_queue().fetch_job(request_hash)
+    if not job:
+        response.status_code = 404
+        return None
+
+    _, status, headers = return_job_v1(job)
+    response.headers.update(headers)
+    response.status_code = status
+    return None
 
 
 @router.get("/build/{request_hash}")
