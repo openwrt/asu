@@ -286,8 +286,9 @@ def run_cmd(
 def report_error(job: Job, msg: str) -> None:
     logging.warning(f"Error: {msg}")
     job.meta["detail"] = f"Error: {msg}"
+    job.meta["imagebuilder_status"] = "failed"
     job.save_meta()
-    raise
+    raise RuntimeError(msg)
 
 
 def parse_manifest(manifest_content: str) -> dict[str, str]:

@@ -276,7 +276,7 @@ def test_api_build_bad_target(client):
     assert data.get("detail") == "Unsupported target: testtarget/testsubtargetbad"
 
 
-def test_api_build_get(client):
+def test_api_build_head_get(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
@@ -288,10 +288,35 @@ def test_api_build_get(client):
     )
     data = response.json()
     request_hash = data["request_hash"]
+
+    # verify HEAD response and that it has no payload
+    response = client.head(f"/api/v1/build/{request_hash}")
+    assert response.status_code == 200
+
+    headers = response.headers
+    assert headers["x-imagebuilder-status"] == "done"
+    assert headers["x-queue-position"] == "0"
+
+    assert response.num_bytes_downloaded == 0
+    data = response.text
+    assert data == ""
+
+    # verify GET response and its JSON payload
     response = client.get(f"/api/v1/build/{request_hash}")
     assert response.status_code == 200
+
+    headers = response.headers
+    assert headers["x-imagebuilder-status"] == "done"
+    assert headers["x-queue-position"] == "0"
+
+    assert response.num_bytes_downloaded > 0
     data = response.json()
     assert data["request_hash"] == request_hash
+    assert data["imagebuilder_status"] == "done"
+    request = data["request"]
+    assert request["version"] == "1.2.3"
+    assert request["target"] == "testtarget/testsubtarget"
+    assert request["profile"] == "testprofile"
 
 
 def test_api_build_packages_versions(client):

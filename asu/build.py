@@ -45,6 +45,7 @@ def build(build_request: BuildRequest, job=None):
 
     job = job or get_current_job()
     job.meta["detail"] = "init"
+    job.meta["imagebuilder_status"] = "init"
     job.meta["request"] = build_request
     job.save_meta()
 
@@ -76,6 +77,9 @@ def build(build_request: BuildRequest, job=None):
                 "http_proxy": "http://127.0.0.1:3128",
             }
         )
+
+    job.meta["imagebuilder_status"] = "container_setup"
+    job.save_meta()
 
     log.info(f"Pulling {image}...")
     podman.images.pull(image)
@@ -166,6 +170,7 @@ def build(build_request: BuildRequest, job=None):
         container, ["make", "info"]
     )
 
+    job.meta["imagebuilder_status"] = "validate_revision"
     job.save_meta()
 
     version_code = re.search('Current Revision: "(r.+)"', job.meta["stdout"]).group(1)
@@ -202,7 +207,7 @@ def build(build_request: BuildRequest, job=None):
         )
         log.debug(f"Diffed packages: {build_cmd_packages}")
 
-    job.meta["imagebuilder_status"] = "calculate_packages_hash"
+    job.meta["imagebuilder_status"] = "validate_manifest"
     job.save_meta()
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
@@ -376,5 +381,8 @@ def build(build_request: BuildRequest, job=None):
             "profile": build_request.profile,
         },
     )
+
+    job.meta["imagebuilder_status"] = "done"
+    job.save_meta()
 
     return json_content

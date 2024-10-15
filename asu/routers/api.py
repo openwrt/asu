@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header
 from fastapi.responses import RedirectResponse, Response
+from rq.job import Job
 
 from asu.build import build
 from asu.build_request import BuildRequest
@@ -112,40 +113,37 @@ def validate_request(build_request: BuildRequest):
     return ({}, None)
 
 
-def return_job_v1(job):
-    response = job.get_meta()
-    headers = {}
+def return_job_v1(job: Job) -> tuple[dict, int, dict]:
+    response: dict = job.get_meta()
+    imagebuilder_status: str = "done"
+    queue_position: int = 0
+
     if job.meta:
         response.update(job.meta)
 
     if job.is_failed:
-        response.update({"status": 500, "error": job.latest_result().exc_string})
+        response.update(status=500, error=job.latest_result().exc_string)
+        imagebuilder_status = "failed"
 
     elif job.is_queued:
-        response.update(
-            {
-                "status": 202,
-                "detail": "queued",
-                "queue_position": job.get_position() or 0,
-            }
-        )
-        headers["X-Queue-Position"] = str(response["queue_position"])
-        headers["X-Imagebuilder-Status"] = "queued"
+        queue_position = job.get_position() or 0
+        response.update(status=202, detail="queued", queue_position=queue_position)
+        imagebuilder_status = "queued"
 
     elif job.is_started:
-        response.update(
-            {
-                "status": 202,
-                "detail": "started",
-            }
-        )
-        headers["X-Imagebuilder-Status"] = response.get("imagebuilder_status", "init")
+        response.update(status=202, detail="started")
+        imagebuilder_status = response.get("imagebuilder_status", "init")
 
     elif job.is_finished:
-        response.update({"status": 200, **job.return_value()})
+        response.update(status=200, **job.return_value())
+        imagebuilder_status = "done"
 
-    response["enqueued_at"] = job.enqueued_at
-    response["request_hash"] = job.id
+    headers = {
+        "X-Imagebuilder-Status": imagebuilder_status,
+        "X-Queue-Position": str(queue_position),
+    }
+
+    response.update(enqueued_at=job.enqueued_at, request_hash=job.id)
 
     logging.debug(response)
     return response, response["status"], headers
@@ -175,21 +173,9 @@ def api_v1_update(
 
 
 @router.head("/build/{request_hash}")
-def api_v1_build_head(request_hash: str, response: Response):
-    job = get_queue().fetch_job(request_hash)
-    if not job:
-        response.status_code = 404
-        return None
-
-    _, status, headers = return_job_v1(job)
-    response.headers.update(headers)
-    response.status_code = status
-    return None
-
-
 @router.get("/build/{request_hash}")
-def api_v1_build_get(request_hash: str, response: Response):
-    job = get_queue().fetch_job(request_hash)
+def api_v1_build_get(request_hash: str, response: Response) -> dict:
+    job: Job = get_queue().fetch_job(request_hash)
     if not job:
         response.status_code = 404
         return {
@@ -221,11 +207,10 @@ def api_v1_build_post(
 
     if build_request.client:
         client = build_request.client
+    elif user_agent.startswith("auc"):
+        client = user_agent.replace(" (", "/").replace(")", "")
     else:
-        if user_agent.startswith("auc"):
-            client = user_agent.replace(" (", "/").replace(")", "")
-        else:
-            client = "unknown/0"
+        client = "unknown/0"
 
     add_timestamp(
         f"stats:clients:{client}",
