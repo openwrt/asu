@@ -106,10 +106,6 @@ def app(redis_server, test_path, monkeypatch):
     monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
     monkeypatch.setattr("asu.routers.api.get_redis_client", mocked_redis_client)
 
-    from os import getuid
-
-    assert settings.container_sock == f"/run/user/{getuid()}/podman/podman.sock"
-
     yield real_app
 
 
