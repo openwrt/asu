@@ -46,12 +46,12 @@ def api_v1_overview():
     return RedirectResponse("/json/v1/overview.json", status_code=301)
 
 
-def validation_failure(detail):
+def validation_failure(detail: str) -> tuple[dict, int]:
     logging.info(f"Validation failure {detail = }")
     return {"detail": detail, "status": 400}, 400
 
 
-def validate_request(build_request: BuildRequest):
+def validate_request(build_request: BuildRequest) -> tuple[dict, int]:
     """Validate an image request and return found errors with status code
 
     Instead of building every request it is first validated. This checks for
@@ -197,13 +197,13 @@ def api_v1_build_post(
     response: Response,
     user_agent: str = Header(None),
 ):
-    request_hash = get_request_hash(build_request)
-    job = get_queue().fetch_job(request_hash)
-    status = 200
-    result_ttl = "7d"
+    request_hash: str = get_request_hash(build_request)
+    job: Job = get_queue().fetch_job(request_hash)
+    status: int = 200
+    result_ttl: str = "7d"
     if build_request.defaults:
         result_ttl = "1h"
-    failure_ttl = "12h"
+    failure_ttl: str = "12h"
 
     if build_request.client:
         client = build_request.client

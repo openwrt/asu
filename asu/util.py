@@ -23,7 +23,10 @@ from asu.build_request import BuildRequest
 from asu.config import settings
 
 
-def get_redis_client(unicode: bool = True):
+REQUEST_HASH_LENGTH: int = 32
+
+
+def get_redis_client(unicode: bool = True) -> redis.client.Redis:
     return redis.from_url(settings.redis_url, decode_responses=unicode)
 
 
@@ -60,7 +63,7 @@ def get_branch(version_or_branch: str) -> dict[str, str]:
     return {**settings.branches.get(branch_name, {}), "name": branch_name}
 
 
-def get_str_hash(string: str, length: int = 32) -> str:
+def get_str_hash(string: str, length: int = REQUEST_HASH_LENGTH) -> str:
     """Return sha256sum of str with optional length
 
     Args:
@@ -70,12 +73,8 @@ def get_str_hash(string: str, length: int = 32) -> str:
     Returns:
         str: hash of string with specified length
     """
-    if not string:
-        string = ""
-    h = hashlib.sha256()
-    h.update(bytes(string, "utf-8"))
-    response_hash = h.hexdigest()[:length]
-    return response_hash
+    h = hashlib.sha256(bytes(string or "", "utf-8"))
+    return h.hexdigest()[:length]
 
 
 def get_file_hash(path: str) -> str:
@@ -87,11 +86,11 @@ def get_file_hash(path: str) -> str:
     Returns:
         str: hash of file
     """
-    BLOCK_SIZE = 65536
+    BLOCK_SIZE: int = 65536
 
     h = hashlib.sha256()
     with open(path, "rb") as f:
-        fb = f.read(BLOCK_SIZE)
+        fb: bytes = f.read(BLOCK_SIZE)
         while len(fb) > 0:
             h.update(fb)
             fb = f.read(BLOCK_SIZE)
@@ -143,7 +142,7 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 str(build_request.repositories),
             ]
         ),
-        32,
+        REQUEST_HASH_LENGTH,
     )
 
 
@@ -219,7 +218,7 @@ def get_container_version_tag(input_version: str) -> str:
     return version
 
 
-def get_podman():
+def get_podman() -> PodmanClient:
     return PodmanClient(
         base_url=settings.container_host,
         identity=settings.container_identity,
@@ -326,19 +325,19 @@ def check_manifest(
 
 
 def parse_packages_file(url: str) -> dict[str, str]:
-    res = httpx.get(f"{url}/Packages")
+    res: httpx.Response = httpx.get(f"{url}/Packages")
     if res.status_code != 200:
         return {}
 
-    index = {}
-    architecture = ""
-    parser = email.parser.Parser()
-    chunks = res.text.strip().split("\n\n")
+    index: dict[str, str] = {}
+    architecture: str = ""
+    parser: email.parser.Parser = email.parser.Parser()
+    chunks: list[str] = res.text.strip().split("\n\n")
     for chunk in chunks:
-        package = parser.parsestr(chunk, headersonly=True)
+        package: dict[str, str] = parser.parsestr(chunk, headersonly=True)
         if not architecture:
             architecture = package["Architecture"]
-        package_name = package["Package"]
+        package_name: str = package["Package"]
         if package_abi := package.get("ABIVersion"):
             package_name = package_name.removesuffix(package_abi)
 
@@ -348,7 +347,7 @@ def parse_packages_file(url: str) -> dict[str, str]:
 
 
 def parse_feeds_conf(url: str) -> list[str]:
-    res = httpx.get(f"{url}/feeds.conf")
+    res: httpx.Response = httpx.get(f"{url}/feeds.conf")
     return (
         [line.split()[1] for line in res.text.splitlines()]
         if res.status_code == 200
