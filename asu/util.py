@@ -25,13 +25,16 @@ from asu.config import settings
 
 REQUEST_HASH_LENGTH: int = 32
 
+log: logging.Logger = logging.getLogger("rq.worker")
+log.propagate = False  # Suppress duplicate log messages.
+
 
 def get_redis_client(unicode: bool = True) -> redis.client.Redis:
     return redis.from_url(settings.redis_url, decode_responses=unicode)
 
 
 def add_timestamp(key: str, labels: dict[str, str] = {}) -> None:
-    logging.info(f"Adding timestamp to {key}: {labels}")
+    log.debug(f"Adding timestamp to {key}: {labels}")
     get_redis_client().ts().add(
         key,
         value=1,
@@ -206,10 +209,10 @@ def verify_usign(sig_file: Path, msg_file: Path, pub_key: str) -> bool:
 
 def get_container_version_tag(input_version: str) -> str:
     if match(r"^\d+\.\d+\.\d+(-rc\d+)?$", input_version):
-        logging.debug("Version is a release version")
+        log.debug("Version is a release version")
         version: str = "v" + input_version
     else:
-        logging.info(f"Version {input_version} is a branch")
+        log.debug(f"Version {input_version} is a branch")
         if input_version == "SNAPSHOT":
             version: str = "master"
         else:
@@ -254,17 +257,17 @@ def run_cmd(
     stdout: str = output[0].decode("utf-8")
     stderr: str = output[1].decode("utf-8")
 
-    logging.debug(f"returncode: {returncode}")
-    logging.debug(f"stdout: {stdout}")
-    logging.debug(f"stderr: {stderr}")
+    log.debug(f"returncode: {returncode}")
+    log.debug(f"stdout: {stdout}")
+    log.debug(f"stderr: {stderr}")
 
     if copy:
-        logging.debug(f"Copying {copy[0]} from container to {copy[1]}")
+        log.debug(f"Copying {copy[0]} from container to {copy[1]}")
         container_tar, _ = container.get_archive(copy[0])
-        logging.debug(f"Container tar: {container_tar}")
+        log.debug(f"Container tar: {container_tar}")
 
         host_tar = NamedTemporaryFile(delete=True)
-        logging.debug(f"Copying {container_tar} to {host_tar}")
+        log.debug(f"Copying {container_tar} to {host_tar}")
 
         for data in container_tar:
             host_tar.write(data)
@@ -277,13 +280,13 @@ def run_cmd(
                 member.gid = getgid()
                 member.mode = 0o755 if member.isdir() else 0o644
             tar_file.extractall(copy[1])
-        logging.debug(f"Closed {host_tar}")
+        log.debug(f"Closed {host_tar}")
 
     return returncode, stdout, stderr
 
 
 def report_error(job: Job, msg: str) -> None:
-    logging.warning(f"Error: {msg}")
+    log.warning(f"Error: {msg}")
     job.meta["detail"] = f"Error: {msg}"
     job.meta["imagebuilder_status"] = "failed"
     job.save_meta()
