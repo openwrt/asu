@@ -7,9 +7,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
+    # The following two vary between host and container.  Default values
+    # are for the container, and should not be overridden in copied .env, see
+    # Containerfile for where we remove them.
+    redis_url: str = "redis://redis/"  # host value = "redis://localhost:6379"
     public_path: Path = Path.cwd() / "public"
-    json_path: Path = public_path / "json" / "v1"
-    redis_url: str = "redis://localhost:6379"
+
+    host_path: Path = ""  # The fixed host "public" path, must be in .env.
+    builder_path: Path = Path("/builder")  # Path to working directory on builder.
+    json_path: Path = Path(public_path) / "json" / "v1"
+
     upstream_url: str = "https://downloads.openwrt.org"
     allow_defaults: bool = False
     async_queue: bool = True
@@ -19,7 +26,7 @@ class Settings(BaseSettings):
     repository_allow_list: list = []
     base_container: str = "ghcr.io/openwrt/imagebuilder"
     update_token: Union[str, None] = "foobar"
-    container_host: str = "localhost"
+    container_sock: str = ""
     container_identity: str = ""
     branches: dict = {
         "SNAPSHOT": {
