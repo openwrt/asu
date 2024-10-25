@@ -27,6 +27,11 @@ class Settings(BaseSettings):
             "enabled": True,
             "path_packages": "DEPRECATED",
             "package_changes": [
+                {
+                    "source": "luci-app-opkg",
+                    "target": "luci-app-package-manager",
+                    "revision": 27897,
+                },
                 {"source": "auc", "target": "owut", "revision": 26792},
                 {
                     "source": "libustream-wolfssl",
