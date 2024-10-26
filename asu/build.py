@@ -42,9 +42,9 @@ def build(build_request: BuildRequest, job=None):
     bin_dir: Path = settings.public_path / "store" / request_hash
     bin_dir.mkdir(parents=True, exist_ok=True)
     host_dir: Path = settings.host_path / "store" / request_hash
-    bldr_dir: Path = settings.builder_path
+    builder_dir: Path = settings.builder_path
 
-    log.debug(f"Build dirs:\n  {bin_dir  = !s}\n  {host_dir = !s}\n  {bldr_dir = !s}")
+    log.debug(f"Build dirs:\n  {bin_dir  = }\n  {host_dir = }\n  {builder_dir = }")
 
     job = job or get_current_job()
     job.meta["detail"] = "init"
@@ -102,7 +102,7 @@ def build(build_request: BuildRequest, job=None):
                 {
                     "type": "bind",
                     "source": str(host_dir / "keys" / fingerprint),
-                    "target": str(bldr_dir / "keys" / fingerprint),
+                    "target": str(builder_dir / "keys" / fingerprint),
                     "read_only": True,
                 },
             )
@@ -124,7 +124,7 @@ def build(build_request: BuildRequest, job=None):
             {
                 "type": "bind",
                 "source": str(host_dir / "repositories.conf"),
-                "target": str(bldr_dir / "repositories.conf"),
+                "target": str(builder_dir / "repositories.conf"),
                 "read_only": True,
             },
         )
@@ -133,14 +133,14 @@ def build(build_request: BuildRequest, job=None):
         log.debug("Found defaults")
 
         defaults_file = bin_dir / "files/etc/uci-defaults/99-asu-defaults"
-        log.info(f"Found defaults, storing at {defaults_file = !s}")
+        log.info(f"Found defaults, storing at {defaults_file = }")
         defaults_file.parent.mkdir(parents=True, exist_ok=True)
         defaults_file.write_text(build_request.defaults)
         mounts.append(
             {
                 "type": "bind",
                 "source": str(host_dir / "files"),
-                "target": str(bldr_dir / "files"),
+                "target": str(builder_dir / "files"),
                 "read_only": True,
             },
         )
@@ -241,11 +241,11 @@ def build(build_request: BuildRequest, job=None):
         f"PROFILE={build_request.profile}",
         f"PACKAGES={' '.join(build_cmd_packages)}",
         f"EXTRA_IMAGE_NAME={packages_hash}",
-        f"BIN_DIR={bldr_dir!s}/{request_hash}",
+        f"BIN_DIR={builder_dir}/{request_hash}",
     ]
 
     if build_request.defaults:
-        job.meta["build_cmd"].append(f"FILES={bldr_dir!s}/files")
+        job.meta["build_cmd"].append(f"FILES={builder_dir}/files")
 
     # Check if custom rootfs size is requested
     if build_request.rootfs_size_mb:
@@ -260,7 +260,7 @@ def build(build_request: BuildRequest, job=None):
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container,
         job.meta["build_cmd"],
-        copy=[str(bldr_dir / request_hash), str(bin_dir.parent)],
+        copy=[str(builder_dir / request_hash), str(bin_dir.parent)],
     )
 
     container.kill()
@@ -311,13 +311,13 @@ def build(build_request: BuildRequest, job=None):
                 {
                     "type": "bind",
                     "source": build_key,
-                    "target": str(bldr_dir / "key-build"),
+                    "target": str(builder_dir / "key-build"),
                     "read_only": True,
                 },
                 {
                     "type": "bind",
                     "source": build_key + ".ucert",
-                    "target": str(bldr_dir / "key-build.ucert"),
+                    "target": str(builder_dir / "key-build.ucert"),
                     "read_only": True,
                 },
                 {
@@ -331,7 +331,7 @@ def build(build_request: BuildRequest, job=None):
             working_dir=request_hash,
             environment={
                 "IMAGES_TO_SIGN": " ".join(images),
-                "PATH": f"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{bldr_dir!s}/staging_dir/host/bin",
+                "PATH": f"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{builder_dir}/staging_dir/host/bin",
             },
             auto_remove=True,
         )
