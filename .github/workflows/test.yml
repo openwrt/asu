@@ -53,7 +53,8 @@ jobs:
 
       - name: Test with pytest
         run: |
-          podman system service --time=0 "unix:///tmp/podman.sock" &
+          export CONTAINER_SOCK="/tmp/podman.sock"
+          podman system service --time=0 "unix://$CONTAINER_SOCK" &
           poetry run coverage run -m pytest -vv --runslow
           poetry run coverage xml
 
