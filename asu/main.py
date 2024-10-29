@@ -15,7 +15,7 @@ from asu import __version__
 from asu.config import settings
 from asu.routers import api
 from asu.util import get_redis_client, parse_feeds_conf, parse_packages_file
-from asu.fastapi.StaticFiles import StaticFiles as AsuStaticFiles
+from asu.fastapi.staticfiles import StaticFiles as AsuStaticFiles
 
 logging.basicConfig(encoding="utf-8", level=settings.log_level)
 
