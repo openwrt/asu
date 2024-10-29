@@ -37,7 +37,9 @@ app.include_router(api.router, prefix="/api/v1")
 (settings.public_path / "json").mkdir(parents=True, exist_ok=True)
 (settings.public_path / "store").mkdir(parents=True, exist_ok=True)
 
-app.mount("/store", AsuStaticFiles(directory=settings.public_path / "store"), name="store")
+app.mount(
+    "/store", AsuStaticFiles(directory=settings.public_path / "store"), name="store"
+)
 app.mount("/static", StaticFiles(directory=base_path / "static"), name="static")
 
 templates = Jinja2Templates(directory=base_path / "templates")
