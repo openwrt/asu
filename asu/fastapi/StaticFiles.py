@@ -38,4 +38,4 @@ class StaticFiles(FastApiStaticFiles):
             status_code)
         if isinstance(response, FileResponse):
             response.headers["Content-Type"] = "application/octet-stream"
-        return response;
+        return response
