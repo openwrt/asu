@@ -1,7 +1,7 @@
 from asu.config import settings
-from asu.fastapi.staticfiles import FileResponse
 
 store_path = settings.public_path / "store"
+
 
 def test_store_content_type_img(client):
     store_path.mkdir(parents=True, exist_ok=True)
