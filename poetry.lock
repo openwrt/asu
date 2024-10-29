@@ -1237,13 +1237,13 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rq"
-version = "1.16.2"
+version = "2.0.0"
 description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "rq-1.16.2-py3-none-any.whl", hash = "sha256:52e619f6cb469b00e04da74305045d244b75fecb2ecaa4f26422add57d3c5f09"},
-    {file = "rq-1.16.2.tar.gz", hash = "sha256:5c5b9ad5fbaf792b8fada25cc7627f4d206a9a4455aced371d4f501cc3f13b34"},
+    {file = "rq-2.0.0-py3-none-any.whl", hash = "sha256:a3a767876675dcc42683bac1869494c5020ba7fcf5c026d1f6d36a8ab98573a6"},
+    {file = "rq-2.0.0.tar.gz", hash = "sha256:76d2a4a27f8fd5c4cfa200cd442efe3c1fd73525c676af06f07fcc0b81bdb70d"},
 ]
 
 [package.dependencies]
@@ -1656,4 +1656,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "f8d3be31ecc498e7aa102ab1c4a8f071059a96d0499dec3599d2bf32d0fa5264"
+content-hash = "d9087bfe59bbc8e0aac782f384631f8da52cf986068a5bc75894895cbfbc0348"
