@@ -92,11 +92,13 @@ def build(build_request: BuildRequest, job=None):
     podman.images.pull(image)
     log.info(f"Pulling {image}... done")
 
-    (bin_dir / "keys").mkdir(parents=True, exist_ok=True)
+    bin_dir.mkdir(parents=True, exist_ok=True)
     log.debug("Created store path: %s", bin_dir)
 
     if build_request.repository_keys:
         log.debug("Found extra keys")
+
+        (bin_dir / "keys").mkdir(parents=True, exist_ok=True)
 
         for key in build_request.repository_keys:
             fingerprint = fingerprint_pubkey_usign(key)
