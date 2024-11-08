@@ -65,18 +65,22 @@ def build(build_request: BuildRequest, job=None):
 
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
 
-    if settings.squid_cache and build_request.version.lower().endswith("snapshot"):
-        image = "localhost/imagebuilder:setup"
+    if build_request.version.lower().endswith("snapshot"):
         environment.update(
             {
                 "TARGET": build_request.target,
                 "VERSION_PATH": get_branch(build_request.version)
                 .get("path", "")
                 .replace("{version}", build_request.version),
-                "use_proxy": "on",
-                "http_proxy": "http://127.0.0.1:3128",
             }
         )
+        if settings.squid_cache:
+            environment.update(
+                {
+                    "use_proxy": "on",
+                    "http_proxy": "http://127.0.0.1:3128",
+                }
+            )
 
     job.meta["imagebuilder_status"] = "container_setup"
     job.save_meta()
@@ -160,7 +164,7 @@ def build(build_request: BuildRequest, job=None):
     )
     container.start()
 
-    if settings.squid_cache and build_request.version.lower().endswith("snapshot"):
+    if build_request.version.lower().endswith("snapshot"):
         log.debug("Setting up ImageBuilder")
         returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
             container, ["sh", "setup.sh"]
