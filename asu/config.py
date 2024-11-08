@@ -97,7 +97,7 @@ class Settings(BaseSettings):
     }
     server_stats: str = "/stats"
     log_level: str = "INFO"
-    squid_cache: bool = False
+    squid_cache: bool = True
 
 
 settings = Settings()

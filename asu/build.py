@@ -66,7 +66,6 @@ def build(build_request: BuildRequest, job=None):
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
 
     if settings.squid_cache and build_request.version.lower().endswith("snapshot"):
-        image = "localhost/imagebuilder:setup"
         environment.update(
             {
                 "TARGET": build_request.target,
