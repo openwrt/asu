@@ -80,15 +80,11 @@ def json_v1_target_index(path: str):
 @app.get("/json/v1/{path:path}/{arch:path}-index.json")
 @cache(expire=600)
 def json_v1_arch_index(path: str, arch: str):
-    feeds = parse_feeds_conf(f"{settings.upstream_url}/{path}/{arch}")
-    packages = {}
+    feed_url: str = f"{settings.upstream_url}/{path}/{arch}"
+    feeds: list[str] = parse_feeds_conf(feed_url)
+    packages: dict[str, str] = {}
     for feed in feeds:
-        packages.update(
-            parse_packages_file(f"{settings.upstream_url}/{path}/{arch}/{feed}")[
-                "packages"
-            ]
-        )
-
+        packages.update(parse_packages_file(f"{feed_url}/{feed}").get("packages", {}))
     return packages
 
 

@@ -333,7 +333,12 @@ def check_manifest(
 
 
 def parse_packages_file(url: str) -> dict[str, str]:
-    res: httpx.Response = httpx.get(f"{url}/Packages")
+    res: httpx.Response
+    if "/snapshots/" in url:
+        res = httpx.get(f"{url}/index.json")
+        return res.json() if res.status_code == 200 else {}
+
+    res = httpx.get(f"{url}/Packages")
     if res.status_code != 200:
         return {}
 
