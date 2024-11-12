@@ -302,7 +302,12 @@ def parse_manifest(manifest_content: str) -> dict[str, str]:
     Returns:
         dict: Dictionary of packages and versions
     """
-    return dict(map(lambda pv: pv.split(" - "), manifest_content.splitlines()))
+    if " - " in manifest_content:
+        separator = " - "  # OPKG format
+    else:
+        separator = " "  # APK format
+
+    return dict(map(lambda pv: pv.split(separator), manifest_content.splitlines()))
 
 
 def check_manifest(

@@ -17,6 +17,7 @@ from asu.util import (
     get_request_hash,
     get_str_hash,
     parse_feeds_conf,
+    parse_manifest,
     parse_packages_file,
     run_cmd,
     verify_usign,
@@ -193,3 +194,27 @@ def test_run_cmd():
 
     assert returncode == 0
     assert "testtarget/testsubtarget" in stdout
+
+
+def test_parse_manifest_opkg():
+    manifest = parse_manifest(
+        "test - 1.0\n" "test2 - 2.0\n" "test3 - 3.0\n" "test4 - 3.0\n"
+    )
+
+    assert manifest == {
+        "test": "1.0",
+        "test2": "2.0",
+        "test3": "3.0",
+        "test4": "3.0",
+    }
+
+
+def test_parse_manifest_apk():
+    manifest = parse_manifest("test 1.0\n" "test2 2.0\n" "test3 3.0\n" "test4 3.0\n")
+
+    assert manifest == {
+        "test": "1.0",
+        "test2": "2.0",
+        "test3": "3.0",
+        "test4": "3.0",
+    }
