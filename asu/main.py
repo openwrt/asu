@@ -14,7 +14,12 @@ from fastapi_cache.decorator import cache
 from asu import __version__
 from asu.config import settings
 from asu.routers import api
-from asu.util import get_redis_client, parse_feeds_conf, parse_packages_file
+from asu.util import (
+    get_redis_client,
+    parse_feeds_conf,
+    parse_packages_file,
+    parse_kernel_version,
+)
 
 logging.basicConfig(encoding="utf-8", level=settings.log_level)
 
@@ -73,8 +78,17 @@ def index(request: Request):
 
 @app.get("/json/v1/{path:path}/index.json")
 @cache(expire=600)
-def json_v1_target_index(path: str):
-    return parse_packages_file((f"{settings.upstream_url}/{path}/packages"))
+def json_v1_target_index(path: str) -> dict[str, str]:
+    base_path: str = f"{settings.upstream_url}/{path}"
+    base_packages: dict[str, str] = parse_packages_file(f"{base_path}/packages")
+    if path.startswith(("snapshots", "releases/24")):
+        kmods_directory: str = parse_kernel_version(f"{base_path}/profiles.json")
+        if kmods_directory:
+            kmod_packages: dict[str, str] = parse_packages_file(
+                f"{base_path}/kmods/{kmods_directory}"
+            )
+            base_packages["packages"].update(kmod_packages.get("packages", {}))
+    return base_packages
 
 
 @app.get("/json/v1/{path:path}/{arch:path}-index.json")

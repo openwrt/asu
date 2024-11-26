@@ -334,7 +334,7 @@ def check_manifest(
 
 def parse_packages_file(url: str) -> dict[str, str]:
     res: httpx.Response
-    if "/snapshots/" in url:
+    if "/snapshots/" in url:  # TODO find better way to check for cutoff
         res = httpx.get(f"{url}/index.json")
         return res.json() if res.status_code == 200 else {}
 
@@ -366,3 +366,19 @@ def parse_feeds_conf(url: str) -> list[str]:
         if res.status_code == 200
         else []
     )
+
+
+def parse_kernel_version(url: str) -> str:
+    """Download a target's profiles.json and return the kernel version string."""
+    res: httpx.Response = httpx.get(url)
+    if res.status_code != 200:
+        return ""
+
+    profiles: dict = res.json()
+    kernel_info: dict = profiles.get("linux_kernel")
+    if kernel_info:
+        kernel_version: str = kernel_info["version"]
+        kernel_release: str = kernel_info["release"]
+        kernel_vermagic: str = kernel_info["vermagic"]
+        return f"{kernel_version}-{kernel_release}-{kernel_vermagic}"
+    return ""
