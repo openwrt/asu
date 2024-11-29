@@ -20,7 +20,7 @@ httpx = "^0.28.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
-ruff = "^0.8.0"
+ruff = "^0.8.1"
 coverage = "^7.6.8"
 isort = "^5.13.2"
 fakeredis = "^2.26.1"
