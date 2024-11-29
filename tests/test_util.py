@@ -19,6 +19,8 @@ from asu.util import (
     parse_feeds_conf,
     parse_manifest,
     parse_packages_file,
+    parse_kernel_version,
+    is_post_kmod_split_build,
     run_cmd,
     verify_usign,
 )
@@ -137,6 +139,50 @@ def test_get_packages_versions(monkeypatch):
     Response.status_code = 404
     index = parse_packages_file("abc://fake")
     assert index == {}
+
+
+def test_get_kernel_version(monkeypatch):
+    class Response:
+        status_code = 200
+
+        json_data = {
+            "linux_kernel": {
+                "release": "1",
+                "vermagic": "ed1b0ea64b60bcea5dd4112f33d0dcbe",
+                "version": "6.6.63",
+            },
+        }
+
+        def json(self):
+            return Response.json_data
+
+    monkeypatch.setattr(httpx, "get", lambda url: Response())
+
+    version = parse_kernel_version("httpx://fake_url")
+    assert version == "6.6.63-1-ed1b0ea64b60bcea5dd4112f33d0dcbe"
+
+    Response.json_data = {}
+    version = parse_kernel_version("httpx://fake_url")
+    assert version == ""
+
+
+def test_check_kmod_split():
+    cases = {
+        "releases/22.07.3/targets/x86/64": False,
+        "releases/23.05.0-rc3/targets/x86/64": False,
+        "releases/23.05.2/targets/x86/64": False,
+        "releases/23.05.5/targets/x86/64": False,
+        "releases/23.05.6/targets/x86/64": True,
+        "releases/23.05-SNAPSHOT/targets/x86/64": True,
+        "releases/24.10.0-rc1/targets/x86/64": True,
+        "releases/24.10.2/targets/x86/64": True,
+        "releases/24.10-SNAPSHOT/targets/x86/64": True,
+        "snapshots/targets/x86/64": True,
+    }
+
+    for path, expected in cases.items():
+        result: bool = is_post_kmod_split_build(path)
+        assert result == expected
 
 
 def test_get_feeds(monkeypatch):

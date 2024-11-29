@@ -368,6 +368,36 @@ def parse_feeds_conf(url: str) -> list[str]:
     )
 
 
+def is_post_kmod_split_build(path: str) -> bool:
+    """Root cause of what's going on here can be found at
+    https://github.com/openwrt/buildbot/commit/a75ce026
+
+    The short version is that kmods are no longer in the packages/index.json
+    for the versions listed below, so we need to find 'linux_kernel' in the
+    profiles.json and do some extra work.
+
+    Versions for which kmods are in 'kmods/<kernel-version>/index.json' and not
+    in 'packages/index.json':
+
+      - SNAPSHOT
+      - all of 24.10 and later
+      - 23.05 builds for 23.05-SNAPSHOT, and 23.05.6 and later
+    """
+
+    if path.startswith("snapshots"):
+        return True
+
+    version = path.split("/")[1]
+    if version.startswith("24."):
+        return True
+    if version.startswith("23."):
+        minor_version = version.split(".")[-1]
+        if minor_version == "05-SNAPSHOT" or minor_version >= "6":
+            return True
+
+    return False
+
+
 def parse_kernel_version(url: str) -> str:
     """Download a target's profiles.json and return the kernel version string."""
     res: httpx.Response = httpx.get(url)
