@@ -19,6 +19,7 @@ from asu.util import (
     parse_feeds_conf,
     parse_packages_file,
     parse_kernel_version,
+    is_post_kmod_split_build,
 )
 
 logging.basicConfig(encoding="utf-8", level=settings.log_level)
@@ -81,7 +82,7 @@ def index(request: Request):
 def json_v1_target_index(path: str) -> dict[str, str]:
     base_path: str = f"{settings.upstream_url}/{path}"
     base_packages: dict[str, str] = parse_packages_file(f"{base_path}/packages")
-    if path.startswith(("snapshots", "releases/24")):
+    if is_post_kmod_split_build(path):
         kmods_directory: str = parse_kernel_version(f"{base_path}/profiles.json")
         if kmods_directory:
             kmod_packages: dict[str, str] = parse_packages_file(
