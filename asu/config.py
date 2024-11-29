@@ -28,6 +28,7 @@ package_changes_list = [
         "target": "luci-app-package-manager",
         "revision": 27897,
     },
+    {"source": "opkg", "target": "apk-mbedtls", "revision": 28056},
 ]
 
 
