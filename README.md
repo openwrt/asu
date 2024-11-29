@@ -113,7 +113,7 @@ the dependencies:
 #### Running a worker
 
     # podman unix socket (not path), no need to mount anything
-    export CONTAINER_HOST=unix:///run/user/1001/podman/podman.sock
+    export CONTAINER_SOCK=/run/user/$(id -u)/podman/podman.sock
     poetry run rq worker
 
 #### Update targets

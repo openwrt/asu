@@ -2,6 +2,8 @@ version: "3"
 
 volumes:
   redis:
+  public:
+    $PUBLIC_PATH:$PUBLIC_PATH:rw,rshared
 
 services:
   server:
@@ -14,6 +16,8 @@ services:
       - REDIS_URL=redis://redis/
     ports:
       - "127.0.0.1:8000:8000"
+    volumes:
+      - $PUBLIC_PATH:/app/public:rw,rshared
     depends_on:
       - redis
 
@@ -25,10 +29,9 @@ services:
     restart: always
     command: rqworker --with-scheduler
     environment:
-      - CONTAINER_HOST=unix://$CONTAINER_SOCK
       - REDIS_URL=redis://redis/
     volumes:
-      - $PUBLIC_PATH:$PUBLIC_PATH:rw
+      - $PUBLIC_PATH:/app/public:rw,rshared
       - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
     depends_on:
       - redis
@@ -38,6 +41,8 @@ services:
     restart: always
     volumes:
       - redis:/data/:rw
+    ports:
+      - "127.0.0.1:6379:6379"
 
   squid:
     image: "docker.io/ubuntu/squid:latest"
