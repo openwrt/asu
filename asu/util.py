@@ -362,6 +362,11 @@ def parse_feeds_conf(url: str) -> list[str]:
     )
 
 
+def is_snapshot_build(version: str) -> bool:
+    """For imagebuilder containers using 'setup.sh' instead of fully populated."""
+    return version.lower().endswith("snapshot")
+
+
 def is_post_kmod_split_build(path: str) -> bool:
     """Root cause of what's going on here can be found at
     https://github.com/openwrt/buildbot/commit/a75ce026
@@ -381,7 +386,7 @@ def is_post_kmod_split_build(path: str) -> bool:
     if path.startswith("snapshots"):
         return True
 
-    version = path.split("/")[1]
+    version: str = path.split("/")[1]
     if version.startswith("24."):
         return True
     if version.startswith("23."):
