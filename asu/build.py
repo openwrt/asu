@@ -22,6 +22,7 @@ from asu.util import (
     get_podman,
     get_request_hash,
     parse_manifest,
+    is_snapshot_build,
     report_error,
     run_cmd,
 )
@@ -164,11 +165,13 @@ def build(build_request: BuildRequest, job=None):
     )
     container.start()
 
-    if build_request.version.lower().endswith("snapshot"):
-        log.debug("Setting up ImageBuilder")
+    if is_snapshot_build(build_request.version):
+        log.info("Running setup.sh for ImageBuilder")
         returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
             container, ["sh", "setup.sh"]
         )
+        if returncode:
+            report_error(job, "Could not set up ImageBuilder")
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container, ["make", "info"]

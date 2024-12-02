@@ -16,11 +16,12 @@ from asu.util import (
     get_podman,
     get_request_hash,
     get_str_hash,
-    is_post_kmod_split_build,
     parse_feeds_conf,
-    parse_kernel_version,
     parse_manifest,
     parse_packages_file,
+    parse_kernel_version,
+    is_post_kmod_split_build,
+    is_snapshot_build,
     run_cmd,
     verify_usign,
 )
@@ -193,6 +194,26 @@ def test_check_kmod_split():
 
     for path, expected in cases.items():
         result: bool = is_post_kmod_split_build(path)
+        assert result == expected
+
+
+def test_check_snapshot_versions():
+    cases = {
+        "22.07.3": False,
+        "23.05.0-rc3": False,
+        "23.05.2": False,
+        "23.05.5": False,
+        "23.05.6": False,
+        "23.05-SNAPSHOT": True,
+        "24.10.0-rc1": False,
+        "24.10.2": False,
+        "24.10-SNAPSHOT": True,
+        "SNAPSHOT": True,
+    }
+
+    for version, expected in cases.items():
+        result: bool = is_snapshot_build(version)
+        print(version, expected, result)
         assert result == expected
 
 
