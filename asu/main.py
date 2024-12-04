@@ -16,10 +16,10 @@ from asu.config import settings
 from asu.routers import api
 from asu.util import (
     get_redis_client,
-    parse_feeds_conf,
-    parse_packages_file,
-    parse_kernel_version,
     is_post_kmod_split_build,
+    parse_feeds_conf,
+    parse_kernel_version,
+    parse_packages_file,
 )
 
 logging.basicConfig(encoding="utf-8", level=settings.log_level)

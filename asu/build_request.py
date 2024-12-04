@@ -1,7 +1,11 @@
 from typing import Annotated
+
 from pydantic import BaseModel, Field
 
 from asu.config import settings
+
+STRING_PATTERN = r"^[\w.,-]*$"
+TARGET_PATTERN = r"^[\w]*/[\w]*$"
 
 
 class BuildRequest(BaseModel):
@@ -12,16 +16,18 @@ class BuildRequest(BaseModel):
                 This parameter is currently optional since no other
                 distributions are supported.
             """.strip(),
+            pattern=STRING_PATTERN,
         ),
     ] = "openwrt"
     version: Annotated[
         str,
         Field(
-            examples=["23.05.2"],
+            examples=["24.10.0-rc2"],
             description="""
                 It is recommended to always upgrade to the latest version,
                 however it is possible to request older images for testing.
             """.strip(),
+            pattern=STRING_PATTERN,
         ),
     ]
     version_code: Annotated[
@@ -34,30 +40,33 @@ class BuildRequest(BaseModel):
                 resulting firmware is a different revision, the build results
                 in an error.
             """.strip(),
+            pattern=STRING_PATTERN,
         ),
     ] = ""
     target: Annotated[
         str,
         Field(
-            examples=["ath79/generic"],
+            examples=["mediatek/filogic"],
             description="""
             It is recommended to always upgrade to the latest version, however
             it is possible to request older images for testing.
             """.strip(),
+            pattern=TARGET_PATTERN,
         ),
     ]
     profile: Annotated[
         str,
         Field(
-            examples=["8dev_carambola2"],
+            examples=["openwrt_one"],
             description="""
                 The ImageBuilder `PROFILE`.  Can be found with `ubus call
                 system board` as the `board_name` value.
                 """.strip(),
+            pattern=STRING_PATTERN,
         ),
     ]
     packages: Annotated[
-        list[str],
+        list[Annotated[str, Field(pattern=STRING_PATTERN)]],
         Field(
             examples=[["vim", "tmux"]],
             description="""
@@ -69,7 +78,10 @@ class BuildRequest(BaseModel):
         ),
     ] = []
     packages_versions: Annotated[
-        dict,
+        dict[
+            Annotated[str, Field(pattern=STRING_PATTERN)],
+            Annotated[str, Field(pattern=STRING_PATTERN)],
+        ],
         Field(
             examples=[{"vim": "1.2.3", "tmux": "2.3.4"}],
             description="""
