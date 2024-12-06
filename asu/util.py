@@ -4,7 +4,7 @@ import hashlib
 import json
 import logging
 import struct
-from os import getgid, getuid
+from os import getuid, getgid
 from pathlib import Path
 from re import match
 from tarfile import TarFile
@@ -21,6 +21,9 @@ from rq.job import Job
 import redis
 from asu.build_request import BuildRequest
 from asu.config import settings
+
+
+REQUEST_HASH_LENGTH: int = 32
 
 log: logging.Logger = logging.getLogger("rq.worker")
 log.propagate = False  # Suppress duplicate log messages.
@@ -63,16 +66,18 @@ def get_branch(version_or_branch: str) -> dict[str, str]:
     return {**settings.branches.get(branch_name, {}), "name": branch_name}
 
 
-def get_str_hash(string: str) -> str:
+def get_str_hash(string: str, length: int = REQUEST_HASH_LENGTH) -> str:
     """Return sha256sum of str with optional length
 
     Args:
         string (str): input string
+        length (int): hash length
 
     Returns:
         str: hash of string with specified length
     """
-    return hashlib.sha256(bytes(string or "", "utf-8")).hexdigest()
+    h = hashlib.sha256(bytes(string or "", "utf-8"))
+    return h.hexdigest()[:length]
 
 
 def get_file_hash(path: str) -> str:
@@ -140,6 +145,7 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 str(build_request.repositories),
             ]
         ),
+        REQUEST_HASH_LENGTH,
     )
 
 
@@ -155,7 +161,7 @@ def get_packages_hash(packages: list[str]) -> str:
     Returns:
         str: hash of `req`
     """
-    return get_str_hash(" ".join(sorted(list(set(packages)))))
+    return get_str_hash(" ".join(sorted(list(set(packages)))), 12)
 
 
 def fingerprint_pubkey_usign(pubkey: str) -> str:

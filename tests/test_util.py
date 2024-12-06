@@ -28,29 +28,21 @@ from asu.util import (
 
 
 def test_get_str_hash():
-    assert (
-        get_str_hash("test")
-        == "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
-    )
+    assert get_str_hash("test", 12) == "9f86d081884c"
 
 
 def test_get_file_hash():
     file_fd, file_path = tempfile.mkstemp()
     os.write(file_fd, b"test")
 
-    assert get_file_hash(file_path).startswith(
-        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
-    )
+    assert get_file_hash(file_path).startswith("9f86d081884c")
 
     os.close(file_fd)
     os.unlink(file_path)
 
 
 def test_get_packages_hash():
-    assert (
-        get_packages_hash(["test1", "test2"])
-        == "57aab5949a36e66b535a8cb13e39e9e093181c9000c016990d7be9eb86a9b9e8"
-    )
+    assert get_packages_hash(["test1", "test2"]) == "57aab5949a36"
 
 
 def test_get_request_hash():
@@ -58,16 +50,13 @@ def test_get_request_hash():
         **{
             "distro": "test",
             "version": "test",
-            "target": "testtarget/testsubtarget",
+            "target": "test",
             "profile": "test",
             "packages": ["test"],
         }
     )
 
-    assert (
-        get_request_hash(request)
-        == "99ff721439cd696f7da259541a07d7bfc7eb6c45a844db532e0384b464e23f46"
-    )
+    assert get_request_hash(request) == "3944eba49da93e2c605a7e9980e52765"
 
 
 def test_diff_packages():
