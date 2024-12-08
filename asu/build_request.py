@@ -6,6 +6,7 @@ from asu.config import settings
 
 STRING_PATTERN = r"^[\w.,-]*$"
 TARGET_PATTERN = r"^[\w]*/[\w]*$"
+PKG_VERSION_PATTERN = r"^[\w.,~-]*$"
 
 
 class BuildRequest(BaseModel):
@@ -80,7 +81,7 @@ class BuildRequest(BaseModel):
     packages_versions: Annotated[
         dict[
             Annotated[str, Field(pattern=STRING_PATTERN)],
-            Annotated[str, Field(pattern=STRING_PATTERN)],
+            Annotated[str, Field(pattern=PKG_VERSION_PATTERN)],
         ],
         Field(
             examples=[{"vim": "1.2.3", "tmux": "2.3.4"}],
