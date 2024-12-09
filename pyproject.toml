@@ -16,7 +16,7 @@ pydantic-settings = "^2.6.1"
 rq = "^2.0.0"
 uvicorn = "^0.32.1"
 fastapi-cache2 = "^0.2.2"
-httpx = "^0.28.0"
+httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
