@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from fakeredis import FakeStrictRedis
+from rq import Queue
 from fastapi.testclient import TestClient
 
 from asu.config import settings
@@ -93,12 +94,17 @@ def app(redis_server, test_path, monkeypatch):
     def mocked_redis_client(*args, **kwargs):
         return redis_server
 
+    def mocked_redis_queue():
+        return Queue(connection=redis_server, is_async=settings.async_queue)
+
     settings.public_path = Path(test_path) / "public"
     settings.async_queue = False
     for branch in "1.2", "19.07", "21.02":
         if branch not in settings.branches:
             settings.branches[branch] = {"path": "releases/{version}"}
 
+    monkeypatch.setattr("asu.util.get_queue", mocked_redis_queue)
+    monkeypatch.setattr("asu.routers.api.get_queue", mocked_redis_queue)
     monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
     monkeypatch.setattr("asu.routers.api.get_redis_client", mocked_redis_client)
 
