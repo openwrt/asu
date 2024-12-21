@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+
+  server:
+    image: "asu:latest"
+    build:
+      context: ./
+      dockerfile: Containerfile
+    restart: always
+    environment:
+      - REDIS_URL=${REDIS_URL}
+    ports:
+      - "8000:8000"
+
+  worker:
+    image: "asu:latest"
+    build:
+      context: ./
+      dockerfile: Containerfile
+    restart: always
+    command: rqworker --with-scheduler
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - UPSTREAM_URL=${UPSTREAM_URL}
+      - BASE_CONTAINER=docker.io/openwrt/imagebuilder
+      - CONTAINER_HOST=unix://$CONTAINER_SOCK
+    volumes:
+      - $PUBLIC_PATH:$PUBLIC_PATH:rw
+      - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
