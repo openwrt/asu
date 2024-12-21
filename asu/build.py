@@ -62,7 +62,9 @@ def build(build_request: BuildRequest, job=None):
     )
 
     mounts: list[dict[str, Union[str, bool]]] = []
-    environment: dict[str, str] = {}
+    environment: dict[str, str] = {
+        "UPSTREAM_URL": settings.upstream_url
+    }
 
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
 
@@ -82,7 +84,6 @@ def build(build_request: BuildRequest, job=None):
                     "http_proxy": "http://127.0.0.1:3128",
                 }
             )
-
     job.meta["imagebuilder_status"] = "container_setup"
     job.save_meta()
 
@@ -298,7 +299,7 @@ def build(build_request: BuildRequest, job=None):
             lambda i: i["name"],
             filter(
                 lambda i: i["type"]
-                in ["sysupgrade", "factory", "combined", "combined-efi", "sdcard"],
+                          in ["sysupgrade", "factory", "combined", "combined-efi", "sdcard"],
                 json_content["profiles"][build_request.profile]["images"],
             ),
         )
