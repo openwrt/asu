@@ -10,6 +10,8 @@ services:
     restart: always
     environment:
       - REDIS_URL=${REDIS_URL}
+    volumes:
+      - .env:/app/.env
     ports:
       - "8000:8000"
 
@@ -19,14 +21,11 @@ services:
       context: ./
       dockerfile: Containerfile
     restart: always
-    command: rqworker --with-scheduler
+    command: poetry run rq worker
     environment:
       - REDIS_URL=${REDIS_URL}
-      - PUBLIC_PATH=$PUBLIC_PATH
-      - UPSTREAM_URL=${UPSTREAM_URL}
-      - BASE_CONTAINER=docker.io/openwrt/imagebuilder
-      - REPOSITORY_ALLOW_LIST=$REPOSITORY_ALLOW_LIST
       - CONTAINER_HOST=unix://$CONTAINER_SOCK
     volumes:
+      - .env:/app/.env
       - $PUBLIC_PATH:$PUBLIC_PATH:rw
       - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
