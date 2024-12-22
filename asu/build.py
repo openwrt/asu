@@ -28,7 +28,7 @@ from asu.util import (
 )
 
 log = logging.getLogger("rq.worker")
-
+log.setLevel(settings.log_level)
 
 def build(build_request: BuildRequest, job=None):
     """Build image request and setup ImageBuilders automatically
@@ -173,7 +173,22 @@ def build(build_request: BuildRequest, job=None):
         )
         if returncode:
             report_error(job, "Could not set up ImageBuilder")
-
+    else:
+        returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+            container, 
+            [
+                "bash",
+                "-c",
+                (
+                    "env;"
+                    "ls -al /builder;"
+                    "openwrt_plugin=$(sed -n -e 's|openwrt_base\\(.*\\)base$|openwrt_plugin\\1plugin|p' /builder/repositories.conf | sed -e \"s|https://downloads.openwrt.org|http://openwrt-download.czy21-internal.com|\");"
+                    f"sed -i -e \"s|https://downloads.openwrt.org|${{UPSTREAM_URL}}|\" -e 's|^option check_signature|# \\0|' -e \"\\$a ${{openwrt_plugin}}\" /builder/repositories.conf;"
+                    "cat /builder/repositories.conf;"
+                ),
+            ],
+        )
+    
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container, ["make", "info"]
     )
@@ -225,7 +240,7 @@ def build(build_request: BuildRequest, job=None):
             "manifest",
             f"PROFILE={build_request.profile}",
             f"PACKAGES={' '.join(build_cmd_packages)}",
-            "STRIP_ABI=1",
+            "STRIP_ABI=1"
         ],
     )
 
