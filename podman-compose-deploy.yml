@@ -22,8 +22,10 @@ services:
     command: rqworker --with-scheduler
     environment:
       - REDIS_URL=${REDIS_URL}
+      - PUBLIC_PATH=$PUBLIC_PATH
       - UPSTREAM_URL=${UPSTREAM_URL}
       - BASE_CONTAINER=docker.io/openwrt/imagebuilder
+      - REPOSITORY_ALLOW_LIST=$REPOSITORY_ALLOW_LIST
       - CONTAINER_HOST=unix://$CONTAINER_SOCK
     volumes:
       - $PUBLIC_PATH:$PUBLIC_PATH:rw
