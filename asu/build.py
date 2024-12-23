@@ -182,7 +182,7 @@ def build(build_request: BuildRequest, job=None):
                 (
                     "env;"
                     "ls -al /builder;"
-                    "openwrt_plugin=$(sed -n -e 's|openwrt_base\\(.*\\)base$|openwrt_plugin\\1plugin|p' /builder/repositories.conf | sed -e \"s|https://downloads.openwrt.org|http://openwrt-download.czy21-internal.com|\");"
+                    "openwrt_plugin=$(sed -n -e 's|openwrt_base\\(.*\\)base$|openwrt_plugin\\1plugin|p' /builder/repositories.conf | sed -e \"s|https://downloads.openwrt.org|http://openwrt-download.czy21.com|\");"
                     f"sed -i -e \"s|https://downloads.openwrt.org|${{UPSTREAM_URL}}|\" -e 's|^option check_signature|# \\0|' -e \"\\$a ${{openwrt_plugin}}\" /builder/repositories.conf;"
                     "cat /builder/repositories.conf;"
                 ),
