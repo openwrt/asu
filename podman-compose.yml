@@ -12,6 +12,8 @@ services:
     restart: always
     environment:
       - REDIS_URL=redis://redis/
+    volumes:
+      - $PUBLIC_PATH:$PUBLIC_PATH:rw
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
