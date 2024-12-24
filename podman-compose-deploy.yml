@@ -12,6 +12,7 @@ services:
       - REDIS_URL=${REDIS_URL}
     volumes:
       - .env:/app/.env
+      - $PUBLIC_PATH:$PUBLIC_PATH:rw
     ports:
       - "8000:8000"
 
