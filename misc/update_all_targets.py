@@ -6,9 +6,13 @@ asu_url = "http://localhost:5001"
 
 
 def reload_all():
-    versions = session.get("https://downloads.openwrt.org/.versions.json").json()[
-        "versions_list"
-    ]
+    versions_json = session.get("https://downloads.openwrt.org/.versions.json").json()
+    versions = []
+    upcoming_version = versions_json["upcoming_version"]
+    if upcoming_version:
+        versions.append(upcoming_version)
+    versions.extend(versions_json["versions_list"])
+
     for version in versions:
         print(f"Reloading {version}")
         targets = session.get(
