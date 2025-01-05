@@ -150,6 +150,23 @@ def build(build_request: BuildRequest, job=None):
             },
         )
 
+    if build_request.configs:
+        log.debug("Found extra configs")
+        configs = ""
+        for config in build_request.configs:
+            configs += f"{config}\n"
+
+        (bin_dir / ".config_local").write_text(configs)
+
+        mounts.append(
+            {
+                "type": "bind",
+                "source": str(bin_dir / ".config_local"),
+                "target": "/builder/.config_local",
+                "read_only": True,
+            }
+        )
+
     log.debug("Mounts: %s", mounts)
 
     container = podman.containers.create(
@@ -242,6 +259,21 @@ def build(build_request: BuildRequest, job=None):
 
     packages_hash: str = get_packages_hash(manifest.keys())
     log.debug(f"Packages Hash: {packages_hash}")
+
+    if build_request.configs:
+        log.info("Appling local configs")
+        returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+            container,
+            [
+                "sh",
+                "-c",
+                (
+                    "for config in $(grep '#' .config_local | awk '{print $2}'); do sed -i 's/'$config'.*//' .config ; done; cat .config_local >> .config"
+                ),
+            ],
+        )
+        if returncode:
+            report_error(job, "Could not apply local configs")
 
     job.meta["build_cmd"] = [
         "make",

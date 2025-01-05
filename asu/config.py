@@ -82,6 +82,14 @@ class Settings(BaseSettings):
     server_stats: str = "/stats"
     log_level: str = "INFO"
     squid_cache: bool = False
+    configs_allowed: list = []
+    # configs_allowed: list = [
+    #     'CONFIG_VERSION_DIST',
+    #     'CONFIG_VERSION_NUMBER',
+    #     'CONFIG_TARGET_ROOTFS_TARGZ',
+    #     'CONFIG_TARGET_ROOTFS_JFFS2',
+    #     'CONFIG_TARGET_ROOTFS_SQUASHFS'
+    # ]
 
 
 settings = Settings()
