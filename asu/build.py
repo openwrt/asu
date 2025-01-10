@@ -139,7 +139,7 @@ def build(build_request: BuildRequest, job=None):
         log.debug("Found defaults")
 
         defaults_file = bin_dir / "files/etc/uci-defaults/99-asu-defaults"
-        defaults_file.parent.mkdir(parents=True)
+        defaults_file.parent.mkdir(parents=True, exist_ok=True)
         defaults_file.write_text(build_request.defaults)
         mounts.append(
             {
