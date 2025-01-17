@@ -10,7 +10,7 @@ from rq import get_current_job
 
 from asu.build_request import BuildRequest
 from asu.config import settings
-from asu.package_changes import appy_package_changes
+from asu.package_changes import apply_package_changes
 from asu.util import (
     add_timestamp,
     check_manifest,
@@ -204,7 +204,7 @@ def build(build_request: BuildRequest, job=None):
         .split()
     )
 
-    appy_package_changes(build_request)
+    apply_package_changes(build_request)
 
     build_cmd_packages = build_request.packages
 
