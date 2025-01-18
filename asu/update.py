@@ -137,6 +137,9 @@ def update_meta_json():
         versions_upstream["oldstable_version"],
     ]
 
+    if versions_upstream["upcoming_version"]:
+        latest.insert(0, versions_upstream["upcoming_version"])
+
     branches = dict(
         [
             (
