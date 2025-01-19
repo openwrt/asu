@@ -276,9 +276,7 @@ def test_run_cmd():
 
 
 def test_parse_manifest_opkg():
-    manifest = parse_manifest(
-        "test - 1.0\n" "test2 - 2.0\n" "test3 - 3.0\n" "test4 - 3.0\n"
-    )
+    manifest = parse_manifest("test - 1.0\ntest2 - 2.0\ntest3 - 3.0\ntest4 - 3.0\n")
 
     assert manifest == {
         "test": "1.0",
@@ -289,7 +287,7 @@ def test_parse_manifest_opkg():
 
 
 def test_parse_manifest_apk():
-    manifest = parse_manifest("test 1.0\n" "test2 2.0\n" "test3 3.0\n" "test4 3.0\n")
+    manifest = parse_manifest("test 1.0\ntest2 2.0\ntest3 3.0\ntest4 3.0\n")
 
     assert manifest == {
         "test": "1.0",
