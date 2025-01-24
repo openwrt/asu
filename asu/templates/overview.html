@@ -79,17 +79,17 @@
                     {% endif %}
                     <hr />
                     <h2>Sysupgrade Server Configuration:</h2>
-                    <b>Available branches on this server:</b>
-                    {% for branch, data in branches.items() -%}
+                    <p>
+                        <b>Allow custom UCI defaults:</b> {{ defaults }} <br />
+                        <b>Maximum requested root filesystem size:</b> {{
+                        max_custom_rootfs_size_mb }} MB <br />
+                        <b>Available versions on this server:</b>
+
                     <ul>
-                        {% for version in data.versions %}
+                        {% for version in versions %}
                         <li>{{ version }}</li>
                         {%- endfor -%}
                     </ul>
-                    {%- endfor -%}
-
-                    <p>
-                        <b>Allow custom UCI defaults:</b> {{ defaults }} <br />
                     </p>
                 </div>
             </div>

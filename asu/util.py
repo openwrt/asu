@@ -4,7 +4,8 @@ import hashlib
 import json
 import logging
 import struct
-from os import getuid, getgid
+import time
+from os import getgid, getuid
 from pathlib import Path
 from re import match
 from tarfile import TarFile
@@ -13,6 +14,7 @@ from typing import Optional
 
 import httpx
 import nacl.signing
+import requests
 from podman import PodmanClient
 from podman.domain.containers import Container
 from rq import Queue
@@ -21,7 +23,6 @@ from rq.job import Job
 import redis
 from asu.build_request import BuildRequest
 from asu.config import settings
-
 
 log: logging.Logger = logging.getLogger("rq.worker")
 log.propagate = False  # Suppress duplicate log messages.
@@ -32,6 +33,8 @@ def get_redis_client(unicode: bool = True) -> redis.client.Redis:
 
 
 def add_timestamp(key: str, labels: dict[str, str] = {}) -> None:
+    if not settings.server_stats:
+        return
     log.debug(f"Adding timestamp to {key}: {labels}")
     get_redis_client().ts().add(
         key,
@@ -412,3 +415,58 @@ def parse_kernel_version(url: str) -> str:
         kernel_vermagic: str = kernel_info["vermagic"]
         return f"{kernel_version}-{kernel_release}-{kernel_vermagic}"
     return ""
+
+
+def reload_versions(app):
+    if not app.versions or time.time() - app.versions_timestamp > 600:
+        versions = requests.get(settings.upstream_url + "/.versions.json").json()[
+            "versions_list"
+        ]
+        app.versions = [
+            version
+            for version in versions
+            if any(version.startswith(branch) for branch in settings.branches.keys())
+        ]
+
+        for branch in settings.branches.keys():
+            if branch != "SNAPSHOT":
+                app.versions.append(f"{branch}-SNAPSHOT")
+
+        if "SNAPSHOT" in settings.branches.keys():
+            app.versions.append("SNAPSHOT")
+
+        app.versions.sort(reverse=True)
+
+        app.versions_timestamp = time.time()
+
+        return True
+    return False
+
+
+def reload_targets(app, version: str):
+    if not app.targets or time.time() - app.targets_timestamp[version] > 600:
+        branch_data = get_branch(version)
+        version_path = branch_data["path"].format(version=version)
+        app.targets[version] = requests.get(
+            settings.upstream_url + f"/{version_path}/.targets.json"
+        ).json()
+        app.targets_timestamp[version] = time.time()
+    return app.targets
+
+
+def reload_profiles(app, version: str, target: str):
+    if not app.profiles or time.time() - app.profiles_timestamp[version][target] > 600:
+        branch_data = get_branch(version)
+        version_path = branch_data["path"].format(version=version)
+        profiles = requests.get(
+            settings.upstream_url + f"/{version_path}/targets/{target}/profiles.json"
+        ).json()["profiles"]
+
+        app.profiles[version][target] = {
+            name: profile
+            for profile, data in profiles.items()
+            for name in data.get("supported_devices", []) + [profile]
+        }
+
+        app.profiles_timestamp[version][target] = time.time()
+    return app.profiles

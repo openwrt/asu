@@ -7,7 +7,6 @@ from fakeredis import FakeStrictRedis
 from fastapi.testclient import TestClient
 
 from asu.config import settings
-from asu.main import app as real_app
 
 
 def redis_load_mock_data(redis):
@@ -89,12 +88,13 @@ def test_path():
 
 
 @pytest.fixture
-def app(redis_server, test_path, monkeypatch):
+def app(redis_server, test_path, monkeypatch, upstream):
     def mocked_redis_client(*args, **kwargs):
         return redis_server
 
     settings.public_path = Path(test_path) / "public"
     settings.async_queue = False
+    settings.upstream_url = "http://localhost:8123"
     for branch in "1.2", "19.07", "21.02":
         if branch not in settings.branches:
             settings.branches[branch] = {"path": "releases/{version}"}
@@ -102,14 +102,36 @@ def app(redis_server, test_path, monkeypatch):
     monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
     monkeypatch.setattr("asu.routers.api.get_redis_client", mocked_redis_client)
 
+    from asu.main import app as real_app
+
     yield real_app
 
 
 @pytest.fixture
-def client(app):
+def client(app, upstream):
     yield TestClient(app)
 
 
 @pytest.fixture(scope="session")
 def httpserver_listen_address():
-    return ("127.0.0.1", 8001)
+    return ("127.0.0.1", 8123)
+
+
+@pytest.fixture
+def upstream(httpserver):
+    base_url = ""
+    upstream_path = Path("./tests/upstream/")
+    expected_file_requests = [
+        "snapshots/packages/testarch/base/Packages.manifest",
+        "snapshots/targets/testtarget/testsubtarget/packages/Packages.manifest",
+        "snapshots/targets/testtarget/testsubtarget/profiles.json",
+        "snapshots/.targets.json",
+        "releases/1.2.3/.targets.json",
+        "releases/1.2.3/targets/testtarget/testsubtarget/profiles.json",
+        ".versions.json",
+    ]
+
+    for f in expected_file_requests:
+        httpserver.expect_request(f"{base_url}/{f}").respond_with_data(
+            (upstream_path / f).read_bytes()
+        )

@@ -21,8 +21,8 @@ from asu.util import (
     get_packages_hash,
     get_podman,
     get_request_hash,
-    parse_manifest,
     is_snapshot_build,
+    parse_manifest,
     report_error,
     run_cmd,
 )
