@@ -44,6 +44,7 @@ def release(branch_off_rev, enabled=True):
     return {
         "path": "releases/{version}",
         "enabled": enabled,
+        "snapshot": False,
         "path_packages": "DEPRECATED",
         "branch_off_rev": branch_off_rev,
         "package_changes": package_changes(branch_off_rev),
@@ -64,13 +65,13 @@ class Settings(BaseSettings):
     max_defaults_length: int = 20480
     repository_allow_list: list = []
     base_container: str = "ghcr.io/openwrt/imagebuilder"
-    update_token: Union[str, None] = "foobar"
     container_host: str = "localhost"
     container_identity: str = ""
     branches: dict = {
         "SNAPSHOT": {
             "path": "snapshots",
             "enabled": True,
+            "snapshot": True,
             "path_packages": "DEPRECATED",
             "package_changes": package_changes(),
         },
@@ -79,7 +80,7 @@ class Settings(BaseSettings):
         "22.03": release(19160),
         "21.02": release(15812, enabled=True),  # Enabled for now...
     }
-    server_stats: str = "/stats"
+    server_stats: str = ""
     log_level: str = "INFO"
     squid_cache: bool = False
 

@@ -4,8 +4,8 @@ from pathlib import Path
 
 from podman import PodmanClient
 
+import asu.util
 from asu.build_request import BuildRequest
-from asu.util import httpx  # For monkeypatching.
 from asu.util import (
     check_manifest,
     diff_packages,
@@ -16,12 +16,12 @@ from asu.util import (
     get_podman,
     get_request_hash,
     get_str_hash,
-    parse_feeds_conf,
-    parse_manifest,
-    parse_packages_file,
-    parse_kernel_version,
     is_post_kmod_split_build,
     is_snapshot_build,
+    parse_feeds_conf,
+    parse_kernel_version,
+    parse_manifest,
+    parse_packages_file,
     run_cmd,
     verify_usign,
 )
@@ -118,7 +118,7 @@ def test_get_version_container_tag():
     assert get_container_version_tag("SNAPP-SNAPSHOT") == "openwrt-SNAPP"
 
 
-def test_get_packages_versions(monkeypatch):
+def test_get_packages_versions():
     class Response:
         status_code = 200
         text = (
@@ -138,7 +138,7 @@ def test_get_packages_versions(monkeypatch):
             "\n"
         )
 
-    monkeypatch.setattr(httpx, "get", lambda url: Response())
+    asu.util.client_get = lambda url: Response()
 
     index = parse_packages_file("httpx://fake_url")
     packages = index["packages"]
@@ -154,7 +154,7 @@ def test_get_packages_versions(monkeypatch):
     assert index == {}
 
 
-def test_get_kernel_version(monkeypatch):
+def test_get_kernel_version():
     class Response:
         status_code = 200
 
@@ -169,7 +169,7 @@ def test_get_kernel_version(monkeypatch):
         def json(self):
             return Response.json_data
 
-    monkeypatch.setattr(httpx, "get", lambda url: Response())
+    asu.util.client_get = lambda url: Response()
 
     version = parse_kernel_version("httpx://fake_url")
     assert version == "6.6.63-1-ed1b0ea64b60bcea5dd4112f33d0dcbe"
@@ -218,7 +218,7 @@ def test_check_snapshot_versions():
         assert result == expected
 
 
-def test_get_feeds(monkeypatch):
+def test_get_feeds():
     class Response:
         status_code = 200
         text = (
@@ -226,7 +226,7 @@ def test_get_feeds(monkeypatch):
             "src-git luci https://git.openwrt.org/project/luci.git^63d8b79\n"
         )
 
-    monkeypatch.setattr(httpx, "get", lambda url: Response())
+    asu.util.client_get = lambda url: Response()
 
     feeds = parse_feeds_conf("httpx://fake_url")
     assert len(feeds) == 2

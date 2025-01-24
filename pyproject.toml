@@ -9,7 +9,6 @@ readme = "README.md"
 python = "^3.11"
 fastapi = { extras = ["standard"], version = "^0.115.5" }
 pynacl = "^1.5.0"
-requests = "^2.32.3"
 podman = "^5.1.0"
 redis = "^5.2.1"
 pydantic-settings = "^2.7.1"
@@ -17,6 +16,7 @@ rq = "^2.1.0"
 uvicorn = "^0.34.0"
 fastapi-cache2 = "^0.2.2"
 httpx = "^0.28.1"
+hishel = "^0.1.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
@@ -24,6 +24,7 @@ ruff = "^0.9.2"
 coverage = "^7.6.10"
 isort = "^5.13.2"
 fakeredis = "^2.26.2"
+pytest-httpserver = "^1.1.1"
 
 
 [tool.coverage.run]
