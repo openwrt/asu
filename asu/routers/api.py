@@ -1,20 +1,22 @@
 import logging
-from typing import Annotated
+from typing import Union
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Request
 from fastapi.responses import RedirectResponse, Response
 from rq.job import Job
 
 from asu.build import build
 from asu.build_request import BuildRequest
 from asu.config import settings
-from asu.update import update
 from asu.util import (
     add_timestamp,
+    client_get,
     get_branch,
     get_queue,
-    get_redis_client,
     get_request_hash,
+    reload_profiles,
+    reload_targets,
+    reload_versions,
 )
 
 router = APIRouter()
@@ -30,10 +32,24 @@ def get_distros() -> list:
 
 
 @router.get("/revision/{version}/{target}/{subtarget}")
-def api_v1_revision(version: str, target: str, subtarget: str):
-    return {
-        "revision": get_redis_client().get(f"revision:{version}:{target}/{subtarget}")
-    }
+def api_v1_revision(
+    version: str, target: str, subtarget: str, response: Response, request: Request
+):
+    branch_data = get_branch(version)
+    version_path = branch_data["path"].format(version=version)
+    req = client_get(
+        settings.upstream_url
+        + f"/{version_path}/targets/{target}/{subtarget}/profiles.json"
+    )
+
+    if req.status_code != 200:
+        response.status_code = req.status_code
+        return {
+            "detail": f"Failed to fetch revision for {version}/{target}/{subtarget}",
+            "status": req.status_code,
+        }
+
+    return {"revision": req.json()["version_code"]}
 
 
 @router.get("/latest")
@@ -46,12 +62,15 @@ def api_v1_overview():
     return RedirectResponse("/json/v1/overview.json", status_code=301)
 
 
-def validation_failure(detail: str) -> tuple[dict, int]:
+def validation_failure(detail: str) -> tuple[dict[str, Union[str, int]], int]:
     logging.info(f"Validation failure {detail = }")
     return {"detail": detail, "status": 400}, 400
 
 
-def validate_request(build_request: BuildRequest) -> tuple[dict, int]:
+def validate_request(
+    app,
+    build_request: BuildRequest,
+) -> tuple[dict[str, Union[str, int]], int]:
     """Validate an image request and return found errors with status code
 
     Instead of building every request it is first validated. This checks for
@@ -73,43 +92,51 @@ def validate_request(build_request: BuildRequest) -> tuple[dict, int]:
 
     branch = get_branch(build_request.version)["name"]
 
-    r = get_redis_client()
-
-    if not r.sismember("branches", branch):
+    if branch not in settings.branches:
         return validation_failure(f"Unsupported branch: {build_request.version}")
 
-    if not r.sismember(f"versions:{branch}", build_request.version):
-        return validation_failure(f"Unsupported version: {build_request.version}")
+    if build_request.version not in app.versions:
+        reload_versions(app)
+        if build_request.version not in app.versions:
+            return validation_failure(f"Unsupported version: {build_request.version}")
 
     build_request.packages: list[str] = [
         x.removeprefix("+")
         for x in (build_request.packages_versions.keys() or build_request.packages)
     ]
 
-    logging.debug(f"Profile before mapping {build_request.profile = }")
+    if build_request.target not in app.targets[build_request.version]:
+        reload_targets(app, build_request.version)
+        if build_request.target not in app.targets[build_request.version]:
+            return validation_failure(
+                f"Unsupported target: {build_request.target}. The requested "
+                "target was either dropped, is still being built or is not "
+                "supported by the selected version. Please check the forums or "
+                "try again later."
+            )
 
-    if not r.hexists(f"targets:{branch}", build_request.target):
-        return validation_failure(f"Unsupported target: {build_request.target}")
-
-    sanitized_profile = build_request.profile.replace(",", "_")
-    target_key = f"{branch}:{build_request.version}:{build_request.target}"
-    profiles_key = f"profiles:{target_key}"
-    if r.sismember(profiles_key, sanitized_profile):
-        logging.debug(f"Using {sanitized_profile = }")
-        build_request.profile = sanitized_profile
-    else:
-        mapped_profile = r.hget(f"mapping:{target_key}", build_request.profile)
-        logging.debug(f"Checking {mapped_profile = }")
-        if mapped_profile:
-            build_request.profile = mapped_profile
-        elif r.scard(profiles_key) == 1 and r.sismember(profiles_key, "generic"):
-            # Assume "generic" as that's the only choice possible.
+    def valid_profile(profile: str, build_request: BuildRequest) -> bool:
+        profiles = app.profiles[build_request.version][build_request.target]
+        if profile in profiles:
+            return True
+        if len(profiles) == 1 and "generic" in profiles:
             # Handles the x86, armsr and other generic variants.
-            logging.info(f"Use generic profile replacing {build_request.profile = }")
             build_request.profile = "generic"
-        else:
-            return validation_failure(f"Unsupported profile: {build_request.profile}")
+            return True
+        return False
 
+    if not valid_profile(build_request.profile, build_request):
+        reload_profiles(app, build_request.version, build_request.target)
+        if not valid_profile(build_request.profile, build_request):
+            return validation_failure(
+                f"Unsupported profile: {build_request.profile}. The requested "
+                "profile was either dropped or never existed. Please check the "
+                "forums for more information."
+            )
+
+    build_request.profile = app.profiles[build_request.version][build_request.target][
+        build_request.profile
+    ]
     return ({}, None)
 
 
@@ -149,29 +176,6 @@ def return_job_v1(job: Job) -> tuple[dict, int, dict]:
     return response, response["status"], headers
 
 
-@router.get("/update/{version}/{target}/{subtarget}")
-def api_v1_update(
-    version: str,
-    target: str,
-    subtarget: str,
-    response: Response,
-    x_update_token: Annotated[str | None, Header()] = None,
-):
-    token = settings.update_token
-    if token and token == x_update_token:
-        get_queue().enqueue(
-            update,
-            version=version,
-            target_subtarget=f"{target}/{subtarget}",
-            job_timeout="10m",
-        )
-        response.status_code = 204
-        return None
-    else:
-        response.status_code = 403
-        return {"status": 403, "detail": "Forbidden"}
-
-
 @router.head("/build/{request_hash}")
 @router.get("/build/{request_hash}")
 def api_v1_build_get(request_hash: str, response: Response) -> dict:
@@ -195,6 +199,7 @@ def api_v1_build_get(request_hash: str, response: Response) -> dict:
 def api_v1_build_post(
     build_request: BuildRequest,
     response: Response,
+    request: Request,
     user_agent: str = Header(None),
 ):
     request_hash: str = get_request_hash(build_request)
@@ -203,7 +208,7 @@ def api_v1_build_post(
     result_ttl: str = "7d"
     if build_request.defaults:
         result_ttl = "1h"
-    failure_ttl: str = "12h"
+    failure_ttl: str = "10m"
 
     if build_request.client:
         client = build_request.client
@@ -220,7 +225,7 @@ def api_v1_build_post(
     if job is None:
         add_timestamp("stats:cache-misses", {"stats": "cache-misses"})
 
-        content, status = validate_request(build_request)
+        content, status = validate_request(request.app, build_request)
         if content:
             response.status_code = status
             return content

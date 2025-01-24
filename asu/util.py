@@ -4,15 +4,16 @@ import hashlib
 import json
 import logging
 import struct
-from os import getuid, getgid
+from os import getgid, getuid
 from pathlib import Path
 from re import match
 from tarfile import TarFile
 from tempfile import NamedTemporaryFile
 from typing import Optional
 
-import httpx
+import hishel
 import nacl.signing
+from httpx import Response
 from podman import PodmanClient
 from podman.domain.containers import Container
 from rq import Queue
@@ -22,7 +23,6 @@ import redis
 from asu.build_request import BuildRequest
 from asu.config import settings
 
-
 log: logging.Logger = logging.getLogger("rq.worker")
 log.propagate = False  # Suppress duplicate log messages.
 
@@ -31,7 +31,16 @@ def get_redis_client(unicode: bool = True) -> redis.client.Redis:
     return redis.from_url(settings.redis_url, decode_responses=unicode)
 
 
+def client_get(url: str) -> Response:
+    return hishel.CacheClient(
+        storage=hishel.RedisStorage(client=get_redis_client(False)),
+        controller=hishel.Controller(force_cache=True),
+    ).get(url)
+
+
 def add_timestamp(key: str, labels: dict[str, str] = {}) -> None:
+    if not settings.server_stats:
+        return
     log.debug(f"Adding timestamp to {key}: {labels}")
     get_redis_client().ts().add(
         key,
@@ -328,12 +337,12 @@ def check_manifest(
 
 
 def parse_packages_file(url: str) -> dict[str, str]:
-    res: httpx.Response
+    res: Response
     if "/snapshots/" in url:  # TODO find better way to check for cutoff
-        res = httpx.get(f"{url}/index.json")
+        res = client_get(f"{url}/index.json")
         return res.json() if res.status_code == 200 else {}
 
-    res = httpx.get(f"{url}/Packages")
+    res = client_get(f"{url}/Packages")
     if res.status_code != 200:
         return {}
 
@@ -355,7 +364,7 @@ def parse_packages_file(url: str) -> dict[str, str]:
 
 
 def parse_feeds_conf(url: str) -> list[str]:
-    res: httpx.Response = httpx.get(f"{url}/feeds.conf")
+    res: Response = client_get(f"{url}/feeds.conf")
     return (
         [line.split()[1] for line in res.text.splitlines()]
         if res.status_code == 200
@@ -400,7 +409,7 @@ def is_post_kmod_split_build(path: str) -> bool:
 
 def parse_kernel_version(url: str) -> str:
     """Download a target's profiles.json and return the kernel version string."""
-    res: httpx.Response = httpx.get(url)
+    res: Response = client_get(url)
     if res.status_code != 200:
         return ""
 
@@ -412,3 +421,61 @@ def parse_kernel_version(url: str) -> str:
         kernel_vermagic: str = kernel_info["vermagic"]
         return f"{kernel_version}-{kernel_release}-{kernel_vermagic}"
     return ""
+
+
+def reload_versions(app):
+    response = client_get(settings.upstream_url + "/.versions.json")
+
+    if response.extensions["from_cache"] and app.versions:
+        return False
+
+    versions = response.json()["versions_list"]
+
+    app.versions = [
+        version
+        for version in versions
+        if any(version.startswith(branch) for branch in settings.branches.keys())
+    ]
+
+    for branch in settings.branches.keys():
+        if branch != "SNAPSHOT":
+            app.versions.append(f"{branch}-SNAPSHOT")
+
+    if "SNAPSHOT" in settings.branches.keys():
+        app.versions.append("SNAPSHOT")
+
+    app.versions.sort(reverse=True)
+
+    return True
+
+
+def reload_targets(app, version: str):
+    branch_data = get_branch(version)
+    version_path = branch_data["path"].format(version=version)
+    response = client_get(settings.upstream_url + f"/{version_path}/.targets.json")
+
+    if response.extensions["from_cache"] and app.targets[version]:
+        return False
+
+    app.targets[version] = response.json()
+
+    return True
+
+
+def reload_profiles(app, version: str, target: str):
+    branch_data = get_branch(version)
+    version_path = branch_data["path"].format(version=version)
+    response = client_get(
+        settings.upstream_url + f"/{version_path}/targets/{target}/profiles.json"
+    )
+
+    if response.extensions["from_cache"] and app.profiles[version].get(target):
+        return False
+
+    app.profiles[version][target] = {
+        name: profile
+        for profile, data in response.json()["profiles"].items()
+        for name in data.get("supported_devices", []) + [profile]
+    }
+
+    return True

@@ -1,0 +1,107 @@
+{
+  "arch_packages": "x86_64",
+  "default_packages": [
+    "base-files",
+    "busybox",
+    "ca-bundle",
+    "dnsmasq",
+    "dropbear",
+    "e2fsprogs",
+    "firewall4",
+    "fstools",
+    "grub2-bios-setup",
+    "kmod-button-hotplug",
+    "kmod-nft-offload",
+    "libc",
+    "libgcc",
+    "libustream-mbedtls",
+    "logd",
+    "mkf2fs",
+    "mtd",
+    "netifd",
+    "nftables",
+    "odhcp6c",
+    "odhcpd-ipv6only",
+    "opkg",
+    "partx-utils",
+    "ppp",
+    "ppp-mod-pppoe",
+    "procd",
+    "procd-seccomp",
+    "procd-ujail",
+    "uci",
+    "uclient-fetch",
+    "urandom-seed",
+    "urngd"
+  ],
+  "metadata_version": 1,
+  "profiles": {
+    "generic": {
+      "device_packages": [
+        "kmod-amazon-ena",
+        "kmod-amd-xgbe",
+        "kmod-bnx2",
+        "kmod-e1000e",
+        "kmod-e1000",
+        "kmod-forcedeth",
+        "kmod-fs-vfat",
+        "kmod-igb",
+        "kmod-igc",
+        "kmod-ixgbe",
+        "kmod-r8169",
+        "kmod-tg3"
+      ],
+      "image_prefix": "openwrt-23.05.5-x86-64-generic",
+      "images": [
+        {
+          "filesystem": "ext4",
+          "name": "openwrt-23.05.5-x86-64-generic-ext4-combined-efi.img.gz",
+          "sha256": "7da4854ce867474708bf562e003ea3924fe880acb6522e019a9a155a9b4d53d0",
+          "sha256_unsigned": "2c3bd32bb79288f56c0c0805eb11b83d48dc2debfe9dda4dc8151f6c793cf6bc",
+          "type": "combined-efi"
+        },
+        {
+          "filesystem": "ext4",
+          "name": "openwrt-23.05.5-x86-64-generic-ext4-combined.img.gz",
+          "sha256": "f5c77659a33bd43cba105cf2f75e56d054fa9e0b9a73dc9f2a5bcb0e126ff7d5",
+          "sha256_unsigned": "922f386c08cd0c60a79cdfa27d051dcc030008de2ce3fbb9f5235f9caddfe0d2",
+          "type": "combined"
+        },
+        {
+          "filesystem": "squashfs",
+          "name": "openwrt-23.05.5-x86-64-generic-squashfs-rootfs.img.gz",
+          "sha256": "478601ab0f5176372e6e0079614240dd25049c74167572ca9bc1b91e9261fe17",
+          "sha256_unsigned": "478601ab0f5176372e6e0079614240dd25049c74167572ca9bc1b91e9261fe17",
+          "type": "rootfs"
+        },
+        {
+          "filesystem": "ext4",
+          "name": "openwrt-23.05.5-x86-64-generic-ext4-rootfs.img.gz",
+          "sha256": "3aaeaba100299bd71f10c461e4bcb32cf8cae76769e4ab4334db875009057f33",
+          "sha256_unsigned": "3aaeaba100299bd71f10c461e4bcb32cf8cae76769e4ab4334db875009057f33",
+          "type": "rootfs"
+        },
+        {
+          "filesystem": "squashfs",
+          "name": "openwrt-23.05.5-x86-64-generic-squashfs-combined-efi.img.gz",
+          "sha256": "e5300e3cb4c32029c3eec5cf8e85ac99222233a231b35e2175608badb10a7638",
+          "sha256_unsigned": "cc310d331d3d341bd5606537c73a732989ccaf5bad4e8f7162f1b6b2749c91f5",
+          "type": "combined-efi"
+        },
+        {
+          "filesystem": "squashfs",
+          "name": "openwrt-23.05.5-x86-64-generic-squashfs-combined.img.gz",
+          "sha256": "788a786a7c2692cce1ac8922b71c4030958cb8ddd7f6b507fbba79c757a04fdf",
+          "sha256_unsigned": "fc3f45b8413d5848b61891c5564108018cef452fa73c4cc375466192e6f00661",
+          "type": "combined"
+        }
+      ],
+      "supported_devices": [],
+      "titles": [{ "model": "x86/64", "vendor": "Generic" }]
+    }
+  },
+  "source_date_epoch": 1727094886,
+  "target": "x86/64",
+  "version_code": "r24106-10cc5fcd00",
+  "version_number": "23.05.5"
+}

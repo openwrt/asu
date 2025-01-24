@@ -21,8 +21,8 @@ from asu.util import (
     get_packages_hash,
     get_podman,
     get_request_hash,
-    parse_manifest,
     is_snapshot_build,
+    parse_manifest,
     report_error,
     run_cmd,
 )
@@ -78,6 +78,7 @@ def build(build_request: BuildRequest, job=None):
         if settings.squid_cache:
             environment.update(
                 {
+                    "UPSTREAM_URL": settings.upstream_url.replace("https", "http"),
                     "use_proxy": "on",
                     "http_proxy": "http://127.0.0.1:3128",
                 }

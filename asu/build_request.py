@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from pydantic import BaseModel, Field
 
 from asu.config import settings
