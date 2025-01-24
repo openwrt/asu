@@ -51,6 +51,18 @@ def validation_failure(detail: str) -> tuple[dict, int]:
     return {"detail": detail, "status": 400}, 400
 
 
+def _attempt_update(build_request: BuildRequest) -> None:
+    """If the profile has not been updated recently, we may be able to heal
+    things by forcing an update.
+    """
+    get_queue().enqueue(
+        update,
+        version=build_request.version,
+        target_subtarget=build_request.target,
+        job_timeout="10m",
+    )
+
+
 def validate_request(build_request: BuildRequest) -> tuple[dict, int]:
     """Validate an image request and return found errors with status code
 
@@ -76,9 +88,11 @@ def validate_request(build_request: BuildRequest) -> tuple[dict, int]:
     r = get_redis_client()
 
     if not r.sismember("branches", branch):
+        _attempt_update(build_request)
         return validation_failure(f"Unsupported branch: {build_request.version}")
 
     if not r.sismember(f"versions:{branch}", build_request.version):
+        _attempt_update(build_request)
         return validation_failure(f"Unsupported version: {build_request.version}")
 
     build_request.packages: list[str] = [
@@ -89,6 +103,7 @@ def validate_request(build_request: BuildRequest) -> tuple[dict, int]:
     logging.debug(f"Profile before mapping {build_request.profile = }")
 
     if not r.hexists(f"targets:{branch}", build_request.target):
+        _attempt_update(build_request)
         return validation_failure(f"Unsupported target: {build_request.target}")
 
     sanitized_profile = build_request.profile.replace(",", "_")
@@ -108,6 +123,7 @@ def validate_request(build_request: BuildRequest) -> tuple[dict, int]:
             logging.info(f"Use generic profile replacing {build_request.profile = }")
             build_request.profile = "generic"
         else:
+            _attempt_update(build_request)
             return validation_failure(f"Unsupported profile: {build_request.profile}")
 
     return ({}, None)
