@@ -5,7 +5,17 @@ from asu.build_request import BuildRequest
 log = logging.getLogger("rq.worker")
 
 
-def appy_package_changes(build_request: BuildRequest):
+# Language pack replacements are done generically on a per-version basis.
+# Note that the version comparison below applies to all versions the same
+# or newer, so for example "24.10" applies to snapshots, too.
+language_packs = {
+    "24.10": {
+        "luci-i18n-opkg-": "luci-i18n-package-manager-",
+    },
+}
+
+
+def apply_package_changes(build_request: BuildRequest):
     """
     Apply package changes to the request
 
@@ -42,3 +52,12 @@ def appy_package_changes(build_request: BuildRequest):
 
             elif build_request.profile == "buffalo_wzr-hp-g300nh-rb":
                 _add_if_missing("kmod-switch-rtl8366rb")
+
+    # TODO: if we ever fully implement 'packages_versions', this needs rework
+    for version, packages in language_packs.items():
+        if build_request.version >= version:  # Includes snapshots
+            for i, package in enumerate(build_request.packages):
+                for old, new in packages.items():
+                    if package.startswith(old):
+                        lang = package.rsplit("-", 1)[1]
+                        build_request.packages[i] = f"{new}{lang}"
