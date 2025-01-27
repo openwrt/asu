@@ -10,6 +10,7 @@ from asu.config import settings
 
 
 def redis_load_mock_data(redis):
+    return
     redis.sadd(
         "packages:1.2:1.2.3:testtarget/testsubtarget",
         "test1",
@@ -122,13 +123,15 @@ def upstream(httpserver):
     base_url = ""
     upstream_path = Path("./tests/upstream/")
     expected_file_requests = [
-        "snapshots/packages/testarch/base/Packages.manifest",
-        "snapshots/targets/testtarget/testsubtarget/packages/Packages.manifest",
-        "snapshots/targets/testtarget/testsubtarget/profiles.json",
-        "snapshots/.targets.json",
+        ".versions.json",
         "releases/1.2.3/.targets.json",
         "releases/1.2.3/targets/testtarget/testsubtarget/profiles.json",
-        ".versions.json",
+        "releases/23.05.5/targets/ath79/generic/profiles.json",
+        "snapshots/.targets.json",
+        "snapshots/packages/testarch/base/Packages.manifest",
+        "snapshots/targets/ath79/generic/profiles.json",
+        "snapshots/targets/testtarget/testsubtarget/packages/Packages.manifest",
+        "snapshots/targets/testtarget/testsubtarget/profiles.json",
     ]
 
     for f in expected_file_requests:
