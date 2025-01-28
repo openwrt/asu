@@ -700,10 +700,12 @@ def test_api_build_defaults_filled_too_big(app):
 
 
 def test_api_revision(client):
-    response = client.get("/api/v1/revision/23.05.5/x86/64", follow_redirects=False)
+    response = client.get(
+        "/api/v1/revision/23.05.5/ath79/generic", follow_redirects=False
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["revision"] == "r16847-f8282da11e"
+    assert data["revision"] == "r24106-10cc5fcd00"
 
 
 def test_api_stats(client):

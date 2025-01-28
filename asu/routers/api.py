@@ -1,8 +1,10 @@
 import logging
 from typing import Union
 
+import httpx
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import RedirectResponse, Response
+from fastapi_cache.decorator import cache
 from rq.job import Job
 
 from asu.build import build
@@ -12,7 +14,6 @@ from asu.util import (
     add_timestamp,
     get_branch,
     get_queue,
-    get_redis_client,
     get_request_hash,
     reload_profiles,
     reload_targets,
@@ -32,10 +33,18 @@ def get_distros() -> list:
 
 
 @router.get("/revision/{version}/{target}/{subtarget}")
+@cache(expire=600)
 def api_v1_revision(version: str, target: str, subtarget: str):
-    return {
-        "revision": get_redis_client().get(f"revision:{version}:{target}/{subtarget}")
-    }
+    branch_data = get_branch(version)
+    version_path = branch_data["path"].format(version=version)
+    req = httpx.get(
+        settings.upstream_url
+        + f"/{version_path}/targets/{target}/{subtarget}/profiles.json"
+    )
+
+    req.raise_for_status()
+
+    return {"revision": req.json()["version_code"]}
 
 
 @router.get("/latest")

@@ -101,7 +101,6 @@ def app(redis_server, test_path, monkeypatch, upstream):
             settings.branches[branch] = {"path": "releases/{version}"}
 
     monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
-    monkeypatch.setattr("asu.routers.api.get_redis_client", mocked_redis_client)
 
     from asu.main import app as real_app
 
@@ -126,7 +125,9 @@ def upstream(httpserver):
         ".versions.json",
         "releases/1.2.3/.targets.json",
         "releases/1.2.3/targets/testtarget/testsubtarget/profiles.json",
+        "releases/23.05.5/.targets.json",
         "releases/23.05.5/targets/ath79/generic/profiles.json",
+        "releases/23.05.5/targets/x86/64/profiles.json",
         "snapshots/.targets.json",
         "snapshots/packages/testarch/base/Packages.manifest",
         "snapshots/targets/ath79/generic/profiles.json",
