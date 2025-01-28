@@ -1,0 +1,68 @@
+{
+  "arch_packages": "mips_24kc",
+  "default_packages": [
+    "apk-mbedtls",
+    "base-files",
+    "ca-bundle",
+    "dnsmasq",
+    "dropbear",
+    "firewall4",
+    "fstools",
+    "kmod-ath9k",
+    "kmod-gpio-button-hotplug",
+    "kmod-nft-offload",
+    "libc",
+    "libgcc",
+    "libustream-mbedtls",
+    "logd",
+    "mtd",
+    "netifd",
+    "nftables",
+    "odhcp6c",
+    "odhcpd-ipv6only",
+    "ppp",
+    "ppp-mod-pppoe",
+    "procd-ujail",
+    "swconfig",
+    "uboot-envtools",
+    "uci",
+    "uclient-fetch",
+    "urandom-seed",
+    "urngd",
+    "wpad-basic-mbedtls"
+  ],
+  "linux_kernel": {
+    "release": "1",
+    "vermagic": "75d549fb5cfabb78b8a91bec585e5ecb",
+    "version": "6.6.74"
+  },
+  "metadata_version": 1,
+  "profiles": {
+    "8dev_carambola2": {
+      "device_packages": ["kmod-usb-chipidea2"],
+      "image_prefix": "openwrt-ath79-generic-8dev_carambola2",
+      "images": [
+        {
+          "filesystem": "initramfs",
+          "name": "openwrt-ath79-generic-8dev_carambola2-initramfs-kernel.bin",
+          "sha256": "c5a6f09645091430e4a273cc6ebe9d237abc4bf547b9c491c6733d2551dc770b",
+          "sha256_unsigned": "c5a6f09645091430e4a273cc6ebe9d237abc4bf547b9c491c6733d2551dc770b",
+          "type": "kernel"
+        },
+        {
+          "filesystem": "squashfs",
+          "name": "openwrt-ath79-generic-8dev_carambola2-squashfs-sysupgrade.bin",
+          "sha256": "41a74f28d1cf20a25812822417651604699d33bdcf09998d4e459a4603e41fb6",
+          "sha256_unsigned": "31f29cf6a7573c63f0cdf5c1d220afe7dd6cf7f40dc46949f604198d8694dabb",
+          "type": "sysupgrade"
+        }
+      ],
+      "supported_devices": ["8dev,carambola2", "carambola2"],
+      "titles": [{ "model": "Carambola2", "vendor": "8devices" }]
+    }
+  },
+  "source_date_epoch": 1737902564,
+  "target": "ath79/generic",
+  "version_code": "r28695-22d1e6cd26",
+  "version_number": "SNAPSHOT"
+}

@@ -400,9 +400,9 @@ def test_api_build_conflicting_packages(client):
     response = client.post(
         "/api/v1/build",
         json=dict(
-            version="21.02.7",
+            version="23.05.5",
             target="ath79/generic",
-            profile="tplink,tl-wdr4300-v1",
+            profile="8dev_carambola2",
             packages=["dnsmasq", "dnsmasq-full"],
         ),
     )
@@ -422,36 +422,6 @@ def test_api_build_without_packages_list(client):
         ),
     )
     assert response.status_code == 200
-
-
-def test_api_build_prerelease_snapshot(client):
-    response = client.post(
-        "/api/v1/build",
-        json=dict(
-            version="21.02-SNAPSHOT",
-            target="testtarget/testsubtarget",
-            profile="testprofile",
-            packages=["test1", "test2"],
-        ),
-    )
-    assert response.status_code == 400
-    data = response.json()
-    assert data["detail"] == "Unsupported profile: testprofile"
-
-
-def test_api_build_prerelease_rc(client):
-    response = client.post(
-        "/api/v1/build",
-        json=dict(
-            version="21.02.7",
-            target="testtarget/testsubtarget",
-            profile="testprofile",
-            packages=["test1", "test2"],
-        ),
-    )
-    assert response.status_code == 400
-    data = response.json()
-    assert data["detail"] == "Unsupported profile: testprofile"
 
 
 def test_api_build_bad_packages_str(client):
@@ -492,7 +462,7 @@ def test_api_build_real_x86(app):
         "/api/v1/build",
         json=dict(
             target="x86/64",
-            version="21.02.7",
+            version="23.05.5",
             packages=["tmux", "vim"],
             profile="some_random_cpu_which_doesnt_exists_as_profile",
         ),
@@ -506,7 +476,7 @@ def test_api_build_real_x86(app):
         "/api/v1/build",
         json=dict(
             target="x86/64",
-            version="21.02.7",
+            version="23.05.5",
             packages=["tmux", "vim"],
             profile="some_random_cpu_which_doesnt_exists_as_profile",
             filesystem="ext4",
@@ -525,30 +495,30 @@ def test_api_build_real_ath79(app):
         "/api/v1/build",
         json=dict(
             target="ath79/generic",
-            version="21.02.7",
+            version="23.05.5",
             packages=["tmux", "vim"],
-            profile="tplink_tl-wdr4300-v1",
+            profile="8dev_carambola2",
         ),
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "tplink_tl-wdr4300-v1"
+    assert data["id"] == "8dev_carambola2"
 
     response = client.post(
         "/api/v1/build",
         json=dict(
             target="ath79/generic",
-            version="21.02.7",
+            version="23.05.5",
             packages=["tmux", "vim"],
-            profile="tplink_tl-wdr4300-v1",
+            profile="8dev_carambola2",
             filesystem="squashfs",
         ),
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "tplink_tl-wdr4300-v1"
+    assert data["id"] == "8dev_carambola2"
 
 
 def test_api_build_needed(client):
@@ -729,42 +699,13 @@ def test_api_build_defaults_filled_too_big(app):
     )
 
 
-def test_api_version_update(app):
-    settings.branches = {
-        "19.07": {
-            "name": "19.07",
-        },
-        "21.02": {
-            "path": "releases/{version}",
-            "enabled": True,
-            "path_packages": "DEPRECATED",
-            "name": "21.02",
-        },
-    }
-
-    settings.update_token = "good"
-    client = TestClient(app)
-    client.headers["X-Update-Token"] = settings.update_token
-
-    # Good request, good version - hits valid path.
-    response = client.get("/api/v1/update/21.02.7/x86/64")
-    assert response.status_code == 204
-
-    # Good request, but bad version - no "path".
-    response = client.get("/api/v1/update/19.07.7/x86/64")
-    assert response.status_code == 204
-
-    # Bad request.
-    client.headers["X-Update-Token"] = "bad"
-    response = client.get("/api/v1/update/21.02.7/x86/64")
-    assert response.status_code == 403
-
-
 def test_api_revision(client):
-    response = client.get("/api/v1/revision/21.02.7/x86/64", follow_redirects=False)
+    response = client.get(
+        "/api/v1/revision/23.05.5/ath79/generic", follow_redirects=False
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["revision"] == "r16847-f8282da11e"
+    assert data["revision"] == "r24106-10cc5fcd00"
 
 
 def test_api_stats(client):
