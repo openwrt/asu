@@ -13,6 +13,7 @@ from typing import Optional
 
 import hishel
 import nacl.signing
+from fastapi import FastAPI
 from httpx import Response
 from podman import PodmanClient
 from podman.domain.containers import Container
@@ -423,7 +424,7 @@ def parse_kernel_version(url: str) -> str:
     return ""
 
 
-def reload_versions(app):
+def reload_versions(app: FastAPI) -> bool:
     response = client_get(settings.upstream_url + "/.versions.json")
 
     if response.extensions["from_cache"] and app.versions:
@@ -449,7 +450,7 @@ def reload_versions(app):
     return True
 
 
-def reload_targets(app, version: str):
+def reload_targets(app: FastAPI, version: str) -> bool:
     branch_data = get_branch(version)
     version_path = branch_data["path"].format(version=version)
     response = client_get(settings.upstream_url + f"/{version_path}/.targets.json")
@@ -462,7 +463,7 @@ def reload_targets(app, version: str):
     return True
 
 
-def reload_profiles(app, version: str, target: str):
+def reload_profiles(app: FastAPI, version: str, target: str) -> bool:
     branch_data = get_branch(version)
     version_path = branch_data["path"].format(version=version)
     response = client_get(
