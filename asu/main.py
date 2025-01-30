@@ -30,7 +30,6 @@ base_path = Path(__file__).resolve().parent
 app = FastAPI()
 app.include_router(api.router, prefix="/api/v1")
 
-(settings.public_path / "json").mkdir(parents=True, exist_ok=True)
 (settings.public_path / "store").mkdir(parents=True, exist_ok=True)
 
 app.mount("/store", StaticFiles(directory=settings.public_path / "store"), name="store")
@@ -165,13 +164,6 @@ def json_v1_overview():
     }
 
     return overview
-
-
-app.mount(
-    "/json",
-    StaticFiles(directory=settings.public_path / "json"),
-    name="json",
-)
 
 
 @app.get("//{path:path}")
