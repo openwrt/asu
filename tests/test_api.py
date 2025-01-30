@@ -273,7 +273,12 @@ def test_api_build_bad_target(client):
     )
     assert response.status_code == 400
     data = response.json()
-    assert data.get("detail") == "Unsupported target: testtarget/testsubtargetbad"
+    assert (
+        data.get("detail")
+        == "Unsupported target: testtarget/testsubtargetbad. The requested "
+        "target was either dropped, is still being built or is not supported "
+        "by the selected version. Please check the forums or try again later."
+    )
 
 
 def test_api_build_head_get(client):
@@ -625,7 +630,11 @@ def test_api_build_bad_profile(client):
     assert response.status_code == 400
 
     data = response.json()
-    assert data["detail"] == "Unsupported profile: Foobar"
+    assert (
+        data["detail"] == "Unsupported profile: Foobar. The requested "
+        "profile was either dropped or never existed. Please check the forums "
+        "for more information."
+    )
 
 
 def test_api_build_defaults_empty(client):

@@ -96,6 +96,7 @@ def app(redis_server, test_path, monkeypatch, upstream):
     settings.public_path = Path(test_path) / "public"
     settings.async_queue = False
     settings.upstream_url = "http://localhost:8123"
+    settings.server_stats = "stats"
     for branch in "1.2", "19.07", "21.02":
         if branch not in settings.branches:
             settings.branches[branch] = {"path": "releases/{version}"}
