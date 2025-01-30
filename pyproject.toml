@@ -20,7 +20,7 @@ hishel = "^0.1.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
-ruff = "^0.9.2"
+ruff = "^0.9.4"
 coverage = "^7.6.10"
 isort = "^6.0.0"
 fakeredis = "^2.26.2"
