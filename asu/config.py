@@ -6,22 +6,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 package_changes_list = [
     {"source": "firewall", "target": "firewall4", "revision": 18611},
     {"source": "kmod-nft-nat6", "revision": 20282, "mandatory": True},
-    {
-        "source": "libustream-wolfssl",
-        "target": "libustream-mbedtls",
-        "revision": 21994,
-    },
+    {"source": "libustream-wolfssl", "target": "libustream-mbedtls", "revision": 21994},
     {"source": "px5g-wolfssl", "target": "px5g-mbedtls", "revision": 21994},
-    {
-        "source": "wpad-basic-wolfssl",
-        "target": "wpad-basic-mbedtls",
-        "revision": 21994,
-    },
-    {
-        "source": "libustream-wolfssl",
-        "target": "libustream-mbedtls",
-        "revision": 21994,
-    },
+    {"source": "wpad-basic-wolfssl", "target": "wpad-basic-mbedtls", "revision": 21994},
+    {"source": "libustream-wolfssl", "target": "libustream-mbedtls", "revision": 21994},
+    {"source": "luci-app-diag-core", "revision": 25984, "mandatory": True},
     {"source": "auc", "target": "owut", "revision": 26792},
     {
         "source": "luci-app-opkg",
