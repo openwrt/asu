@@ -66,7 +66,7 @@ def build(build_request: BuildRequest, job=None):
 
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
 
-    if build_request.version.lower().endswith("snapshot"):
+    if is_snapshot_build(build_request.version):
         environment.update(
             {
                 "TARGET": build_request.target,
@@ -82,6 +82,27 @@ def build(build_request: BuildRequest, job=None):
                     "use_proxy": "on",
                     "http_proxy": "http://127.0.0.1:3128",
                 }
+            )
+
+    if settings.keep_downloaded_packages:
+        if not is_snapshot_build(build_request.version):
+            # [Note]: This could be enabled if version_code 
+            #         were automatically fetched if it is missing in the request
+            # dl_version = (
+            #     build_request.version_code
+            #     if is_snapshot_build(build_request.version)
+            #     else build_request.version
+            # )
+            dl_version = build_request.version
+            dl_dir: Path = settings.dl_path / dl_version / build_request.target
+            dl_dir.mkdir(parents=True, exist_ok=True)
+            mounts.append(
+                {
+                    "type": "bind",
+                    "source": str(dl_dir),
+                    "target": "/builder/dl/",
+                    "chown": True,
+                },
             )
 
     job.meta["imagebuilder_status"] = "container_setup"

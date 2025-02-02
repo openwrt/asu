@@ -34,6 +34,7 @@ services:
     command: rqworker --logging_level INFO
     env_file: asu.env
     volumes:
+      # - $DL_PATH:$DL_PATH:rw
       - $PUBLIC_PATH:$PUBLIC_PATH:rw
       - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
     depends_on:
