@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Union
 
 from rq import get_current_job
+from rq.job import Job
 
 from asu.build_request import BuildRequest
 from asu.config import settings
@@ -20,7 +21,6 @@ from asu.util import (
     get_container_version_tag,
     get_packages_hash,
     get_podman,
-    get_request_hash,
     is_snapshot_build,
     parse_manifest,
     report_error,
@@ -30,21 +30,21 @@ from asu.util import (
 log = logging.getLogger("rq.worker")
 
 
-def build(build_request: BuildRequest, job=None):
+def build(build_request: BuildRequest, request_hash: str):
     """Build image request and setup ImageBuilders automatically
 
-    The `request` dict contains properties of the requested image.
+    The `build_request` contains all properties of the requested image.
 
     Args:
-        request (dict): Contains all properties of requested image
+        build_request (BuildRequest): Contains all properties of requested image
+        request_hash: (str): Hash id of the build request
     """
 
-    request_hash = get_request_hash(build_request)
     bin_dir: Path = settings.public_path / "store" / request_hash
     bin_dir.mkdir(parents=True, exist_ok=True)
     log.debug(f"Bin dir: {bin_dir}")
 
-    job = job or get_current_job()
+    job: Job = get_current_job()
     job.meta["detail"] = "init"
     job.meta["imagebuilder_status"] = "init"
     job.meta["request"] = build_request
