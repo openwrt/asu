@@ -66,7 +66,7 @@ def build(build_request: BuildRequest, job=None):
 
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
 
-    if build_request.version.lower().endswith("snapshot"):
+    if is_snapshot_build(build_request.version):
         environment.update(
             {
                 "TARGET": build_request.target,
@@ -75,14 +75,15 @@ def build(build_request: BuildRequest, job=None):
                 .replace("{version}", build_request.version),
             }
         )
-        if settings.squid_cache:
-            environment.update(
-                {
-                    "UPSTREAM_URL": settings.upstream_url.replace("https", "http"),
-                    "use_proxy": "on",
-                    "http_proxy": "http://127.0.0.1:3128",
-                }
-            )
+
+    if settings.squid_cache:
+        environment.update(
+            {
+                "UPSTREAM_URL": settings.upstream_url.replace("https", "http"),
+                "use_proxy": "on",
+                "http_proxy": "http://127.0.0.1:3128",
+            }
+        )
 
     job.meta["imagebuilder_status"] = "container_setup"
     job.save_meta()
@@ -217,6 +218,11 @@ def build(build_request: BuildRequest, job=None):
 
     job.meta["imagebuilder_status"] = "validate_manifest"
     job.save_meta()
+
+    if settings.squid_cache and not is_snapshot_build(build_request.version):
+        log.info("Disabling HTTPS for repositories")
+        # Once APK is used for a stable release, handle `repositories`, too
+        run_cmd(container, ["sed", "-i", "s|https|http|g", "repositories.conf"])
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container,
