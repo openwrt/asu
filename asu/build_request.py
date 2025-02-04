@@ -6,7 +6,7 @@ from asu.config import settings
 
 STRING_PATTERN = r"^[\w.,-]*$"
 TARGET_PATTERN = r"^[\w]*/[\w]*$"
-PKG_VERSION_PATTERN = r"^[\w.,~-]*$"
+PKG_VERSION_PATTERN = r"^[\w+.,~-]*$"
 
 
 class BuildRequest(BaseModel):
