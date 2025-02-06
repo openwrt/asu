@@ -205,7 +205,7 @@ def api_v1_build_post(
     request_hash: str = get_request_hash(build_request)
     job: Job = get_queue().fetch_job(request_hash)
     status: int = 200
-    result_ttl: str = "7d"
+    result_ttl: str = "24h"
     if build_request.defaults:
         result_ttl = "1h"
     failure_ttl: str = "10m"
