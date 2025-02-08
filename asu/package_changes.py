@@ -65,5 +65,5 @@ def apply_package_changes(build_request: BuildRequest):
             for i, package in enumerate(build_request.packages):
                 for old, new in packages.items():
                     if package.startswith(old):
-                        lang = package.rsplit("-", 1)[1]
+                        lang = package.replace(old, "")
                         build_request.packages[i] = f"{new}{lang}"
