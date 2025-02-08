@@ -28,9 +28,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install ImageBuilder prereqs
-        run: sudo apt-get install -y libncurses5-dev
-
       - uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
