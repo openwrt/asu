@@ -2,16 +2,19 @@ version: "2"
 
 volumes:
   redis:
-  grafana-storage:
+  # grafana-storage:
 
 services:
   server:
     image: "docker.io/openwrt/asu:latest"
+    build:
+      context: .
+      dockerfile: Containerfile
     restart: unless-stopped
     command: uvicorn --host 0.0.0.0 asu.main:app
-    env_file: asu.env
+    env_file: .env
     volumes:
-      - $PUBLIC_PATH:$PUBLIC_PATH:ro
+      - $PUBLIC_PATH/store:$PUBLIC_PATH/store:ro
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -19,25 +22,28 @@ services:
 
   worker:
     image: "docker.io/openwrt/asu:latest"
+    build:
+      context: .
+      dockerfile: Containerfile
     restart: unless-stopped
     command: rqworker --logging_level INFO
-    env_file: asu.env
+    env_file: .env
     volumes:
       - $PUBLIC_PATH:$PUBLIC_PATH:rw
       - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
     depends_on:
       - redis
 
-  worker2:
-    image: "docker.io/openwrt/asu:latest"
-    restart: unless-stopped
-    command: rqworker --logging_level INFO
-    env_file: asu.env
-    volumes:
-      - $PUBLIC_PATH:$PUBLIC_PATH:rw
-      - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
-    depends_on:
-      - redis
+  # worker2:
+  #   image: "docker.io/openwrt/asu:latest"
+  #   restart: unless-stopped
+  #   command: rqworker --logging_level INFO
+  #   env_file: .env
+  #   volumes:
+  #     - $PUBLIC_PATH:$PUBLIC_PATH:rw
+  #     - $CONTAINER_SOCK:$CONTAINER_SOCK:rw
+  #   depends_on:
+  #     - redis
 
   redis:
     image: "docker.io/redis/redis-stack-server"
@@ -47,26 +53,26 @@ services:
     ports:
       - "127.0.0.1:6379:6379"
 
-  squid:
-    image: "docker.io/ubuntu/squid:latest"
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3128:3128"
-    volumes:
-      - ".squid.conf:/etc/squid/conf.d/snippet.conf:ro"
-      - "./squid/:/var/spool/squid/:rw"
+  # squid:
+  #   image: "docker.io/ubuntu/squid:latest"
+  #   restart: unless-stopped
+  #   ports:
+  #     - "127.0.0.1:3128:3128"
+  #   volumes:
+  #     - ".squid.conf:/etc/squid/conf.d/snippet.conf:ro"
+  #     - "./squid/:/var/spool/squid/:rw"
 
-  grafana:
-    image: docker.io/grafana/grafana-oss
-    container_name: grafana
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3000:3000"
-    depends_on:
-      - redis
-    environment:
-      GF_SERVER_DOMAIN: sysupgrade.openwrt.org
-      GF_SERVER_ROOT_URL: https://sysupgrade.openwrt.org/stats/
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-    volumes:
-      - grafana-storage:/var/lib/grafana
+  # grafana:
+  #   image: docker.io/grafana/grafana-oss
+  #   container_name: grafana
+  #   restart: unless-stopped
+  #   ports:
+  #     - "127.0.0.1:3000:3000"
+  #   depends_on:
+  #     - redis
+  #   environment:
+  #     GF_SERVER_DOMAIN: sysupgrade.openwrt.org
+  #     GF_SERVER_ROOT_URL: https://sysupgrade.openwrt.org/stats/
+  #     GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+  #   volumes:
+  #     - grafana-storage:/var/lib/grafana
