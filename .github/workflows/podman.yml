@@ -1,0 +1,62 @@
+name: Test podman-compose.yml
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  TERM: xterm-color
+  PY_COLORS: 1
+  LOG_LEVEL: DEBUG
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    name: podman-compose integration test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ImageBuilder prereqs
+        run: sudo apt-get install -y podman-compose jq
+
+      - name: Build the containers
+        run: |
+          podman-compose build
+
+      - name: Start the containers
+        run: |
+          podman system service --time=0 unix:///tmp/podman.sock &
+          cp misc/asu.env .env
+          podman-compose up -d
+
+      - name: Let the containers start
+        run: sleep 30
+
+      - name: Test startup
+        run: |
+          queue_length="$(curl -s http://localhost:8000/api/v1/stats | jq .queue_length)"
+          [ "$queue_length" -eq 0 ] || exit 1
+
+      - name: Test build
+        run: |
+          curl 'http://localhost:8000/api/v1/build' \
+            --request 'POST' \
+            --header 'Content-Type: application/json' \
+            --data @tests/ci/openwrt-one-24.10.0.json > build_response.json
+            status_code=$(jq -r '.status' build_response.json)
+            [ "$status_code" -eq 202 ] || exit 1
+
+            sleep 60
+
+          curl 'http://localhost:8000/api/v1/build' \
+            --request 'POST' \
+            --header 'Content-Type: application/json' \
+            --data @tests/ci/openwrt-one-24.10.0.json > build_response.json
+            status_code=$(jq -r '.status' build_response.json)
+            [ "$status_code" -eq 200 ] || exit 1
