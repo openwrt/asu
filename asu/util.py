@@ -438,6 +438,9 @@ def reload_versions(app: FastAPI) -> bool:
         if any(version.startswith(branch) for branch in settings.branches.keys())
     ]
 
+    if response.json()["upcoming_version"]:
+        app.versions.append(response.json()["upcoming_version"])
+
     for branch in settings.branches.keys():
         if branch != "SNAPSHOT":
             app.versions.append(f"{branch}-SNAPSHOT")
