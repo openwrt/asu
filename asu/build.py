@@ -175,6 +175,7 @@ def build(build_request: BuildRequest, job=None):
             container, ["sh", "setup.sh"]
         )
         if returncode:
+            container.kill()
             report_error(job, "Could not set up ImageBuilder")
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
@@ -240,6 +241,7 @@ def build(build_request: BuildRequest, job=None):
     job.save_meta()
 
     if returncode:
+        container.kill()
         report_error(job, "Impossible package selection")
 
     manifest: dict[str, str] = parse_manifest(job.meta["stdout"])
@@ -285,9 +287,11 @@ def build(build_request: BuildRequest, job=None):
     job.save_meta()
 
     if any(err in job.meta["stderr"] for err in ["is too big", "out of space?"]):
+        container.kill()
         report_error(job, "Selected packages exceed device storage")
 
     if returncode:
+        container.kill()
         report_error(job, "Error while building firmware. See stdout/stderr")
 
     json_file = bin_dir / "profiles.json"
