@@ -141,7 +141,12 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 build_request.version_code,
                 build_request.target,
                 build_request.profile.replace(",", "_"),
-                get_packages_hash(build_request.packages),
+                get_packages_hash(
+                    x.removeprefix("+")
+                    for x in (
+                        build_request.packages_versions.keys() or build_request.packages
+                    )
+                ),
                 get_manifest_hash(build_request.packages_versions),
                 str(build_request.diff_packages),
                 "",  # build_request.filesystem
