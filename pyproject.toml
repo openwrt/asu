@@ -21,7 +21,7 @@ hishel = "^0.1.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 ruff = "^0.9.6"
-coverage = "^7.6.10"
+coverage = "^7.6.11"
 isort = "^6.0.0"
 fakeredis = "^2.26.2"
 pytest-httpserver = "^1.1.1"
