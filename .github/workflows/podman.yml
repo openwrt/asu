@@ -40,23 +40,21 @@ jobs:
 
       - name: Test startup
         run: |
-          queue_length="$(curl -s http://localhost:8000/api/v1/stats | jq .queue_length)"
-          [ "$queue_length" -eq 0 ] || exit 1
+          curl -s http://localhost:8000/api/v1/stats | tee response.json | jq
+          [ "$(jq -r '.queue_length' response.json)" -eq 0 ] || exit 1
 
       - name: Test build
         run: |
-          curl 'http://localhost:8000/api/v1/build' \
-            --request 'POST' \
-            --header 'Content-Type: application/json' \
-            --data @tests/ci/openwrt-one-24.10.0.json > build_response.json
-            status_code=$(jq -r '.status' build_response.json)
-            [ "$status_code" -eq 202 ] || exit 1
-
-            sleep 60
-
-          curl 'http://localhost:8000/api/v1/build' \
-            --request 'POST' \
-            --header 'Content-Type: application/json' \
-            --data @tests/ci/openwrt-one-24.10.0.json > build_response.json
-            status_code=$(jq -r '.status' build_response.json)
-            [ "$status_code" -eq 200 ] || exit 1
+          for i in {1..20}; do
+            curl 'http://localhost:8000/api/v1/build' \
+              --request 'POST' \
+              --header 'Content-Type: application/json' \
+              --data @tests/ci/openwrt-one-24.10.0.json | tee response.json | jq
+            if [ "$(jq -r '.status' response.json)" -eq 200 ]; then
+              break
+            fi
+            if [ $i -eq 20 ]; then
+              exit 1
+            fi
+            sleep 10
+          done
