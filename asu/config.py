@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     max_defaults_length: int = 20480
     repository_allow_list: list = []
     base_container: str = "ghcr.io/openwrt/imagebuilder"
-    container_host: str = "localhost"
+    container_socket_path: str = ""
     container_identity: str = ""
     branches: dict = {
         "SNAPSHOT": {

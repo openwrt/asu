@@ -41,15 +41,12 @@ re-install any packages.
 
 ### CLI
 
-With `OpenWrt SNAPSHOT-r26792 or newer` the CLI app `auc` was replaced with [`owut`](https://openwrt.org/docs/guide-user/installation/sysupgrade.owut) as a more comprehensive CLI tool to provide an easy way to upgrade your device.
+With `OpenWrt SNAPSHOT-r26792 or newer` (and in the 24.10 release) the CLI app
+[`auc`](https://github.com/openwrt/packages/tree/master/utils/auc) was replaced
+with [`owut`](https://openwrt.org/docs/guide-user/installation/sysupgrade.owut)
+as a more comprehensive CLI tool to provide an easy way to upgrade your device.
 
 ![owut](misc/owut.png)
-
-The [`auc`](https://github.com/openwrt/packages/tree/master/utils/auc) package
-performs the same process as the `luci-app-attendedsysupgrade`
-from SSH/the command line.
-
-![auc](misc/auc.png)
 
 ## Server
 
@@ -61,7 +58,8 @@ immediately without rebuilding.
 ### Active server
 
 * [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
-* Create a pullrequest to add your server here
+* [ImmortalWrt](https://sysupgrade.kyarucloud.moe)
+* Create a pull request to add your server here
 
 ## Run your own server
 
@@ -69,30 +67,70 @@ For security reasons each build happens inside a container so that one build
 can't affect another build. For this to work a Podman container runs an API
 service so workers can themselfs execute builds inside containers.
 
-Please install Podman and test if it works:
+### Installation
 
-    podman run --rm -it docker.io/library/alpine:latest
+The server uses `podman-compose` to manage the containers. On a Debian based
+system, install the following packages:
 
-Once Podman works, install `podman-compose`:
+```bash
+sudo apt install podman-compose
+```
 
-    pip install podman-compose
+A [Python library](https://podman-py.readthedocs.io/en/latest/) is used to
+communicate with Podman over a socket. To enable the socket either `systemd` is
+required or the socket must be started manually using the Podman itself:
+
+```bash
+# systemd
+systemctl --user enable podman.socket
+systemctl --user start podman.socket
+systemctl --user status podman.socket
+
+# manual (must stay open)
+podman system service --time=0 unix:/run/user/$(id -u)/podman/podman.sock
+```
+
+Now you can either use the latest ASU containers or build them yourself, run
+either of the following two commands:
+
+```bash
+# use existing containers
+podman-compose pull
+
+# build containers locally
+podman-compose build
+```
+The services are configured via environment variables, which can be set in a
+`.env` file
+
+```bash
+echo "PUBLIC_PATH=$(pwd)/public" > .env
+echo "CONTAINER_SOCKET_PATH=/run/user/$(id -u)/podman/podman.sock" >> .env
+# optionally allow custom scripts running on first boot
+echo "ALLOW_DEFAULTS=1" >> .env
+```
 
 Now it's possible to run all services via `podman-compose`:
 
-    # where to store images and json files
-    echo "PUBLIC_PATH=$(pwd)/public" > .env
-    # absolute path to podman socket mounted into worker containers
-    echo "CONTAINER_SOCK=/run/user/$(id -u)/podman/podman.sock" >> .env
-    podman-compose up -d
+```bash
+podman-compose up -d
+```
 
-This will start the server, the Podman API container and two workers. The first
-run needs a few minutes since available packages are parsed from the upstream
-server. Once the server is running, it's possible to request images via the API
-on `http://localhost:8000`. Modify `podman-compose.yml` to change the port.
+This will start the server, the Podman API container and one worker. Once the
+server is running, it's possible to request images via the API on
+`http://localhost:8000`. Modify `podman-compose.yml` to change the port.
 
 ### Production
 
 For production it's recommended to use a reverse proxy like `nginx` or `caddy`.
+You can find a Caddy sample configuration in `misc/Caddyfile`.
+
+If you want your server to remain active after you log out of the server, you
+must enable "linger" in `loginctl`:
+
+```bash
+loginctl enable-linger
+```
 
 #### System requirements
 
@@ -100,21 +138,53 @@ For production it's recommended to use a reverse proxy like `nginx` or `caddy`.
 * 2 CPU cores (4 cores recommended)
 * 50 GB disk space (200 GB recommended)
 
+#### Squid Cache
+
+Instead of creating and uploading SNAPSHOT ImageBuilder containers everyday,
+only a container with installed dependencies and a `setup.sh` script is offered.
+ASU will automatically run that script and setup the latest ImageBuilder. To
+speed up the process, a Squid cache can be used to store the ImageBuilder
+archives locally. To enable the cache, set `SQUID_CACHE=1` in the `.env` file.
+
+To have the cache accessible from running containers, the Squid port 3128 inside
+a running container must be forwarded to the host. This can be done by adding
+the following line to the `.config/containers/containers.conf` file:
+
+```toml
+[network]
+pasta_options = [
+    "-a", "10.0.2.0",
+    "-n", "24",
+    "-g", "10.0.2.2",
+    "--dns-forward", "10.0.2.3",
+    "-T", "3128:3128"
+]
+```
+
+> If you know a better setup, please create a pull request.
+
 ### Development
 
-After cloning this repository, create a Python virtual environment and install
-the dependencies:
+After cloning this repository, install `poetry` which manages the Python
+dependencies.
+
+```bash
+apt install python3-poetry
+poetry install
+```
 
 #### Running the server
 
-    poetry install
-    poetry run fastapi dev asu/main.py
+```bash
+poetry run fastapi dev asu/main.py
+```
 
 #### Running a worker
 
-    # podman unix socket (not path), no need to mount anything
-    export CONTAINER_HOST=unix:///run/user/1001/podman/podman.sock
-    poetry run rq worker
+```bash
+source .env # poetry does not load .env
+poetry run rq worker
+```
 
 ### API
 
