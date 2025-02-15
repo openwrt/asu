@@ -228,7 +228,7 @@ def get_container_version_tag(input_version: str) -> str:
 
 def get_podman() -> PodmanClient:
     return PodmanClient(
-        base_url=settings.container_host,
+        base_url=f"unix://{settings.container_socket_path}",
         identity=settings.container_identity,
     )
 
