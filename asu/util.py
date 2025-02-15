@@ -141,7 +141,9 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 build_request.version_code,
                 build_request.target,
                 build_request.profile.replace(",", "_"),
-                get_packages_hash(build_request.packages),
+                get_packages_hash(
+                    build_request.packages_versions.keys() or build_request.packages
+                ),
                 get_manifest_hash(build_request.packages_versions),
                 str(build_request.diff_packages),
                 "",  # build_request.filesystem
@@ -164,9 +166,17 @@ def get_packages_hash(packages: list[str]) -> str:
         packages (list): list of packages
 
     Returns:
-        str: hash of `req`
+        str: hash of `packages`
     """
-    return get_str_hash(" ".join(sorted(list(set(packages)))))
+    return get_str_hash(
+        " ".join(
+            sorted(
+                set(
+                    (x.removeprefix("+") for x in packages),
+                )
+            )
+        )
+    )
 
 
 def fingerprint_pubkey_usign(pubkey: str) -> str:
