@@ -22,7 +22,7 @@ hishel = "^0.1.1"
 pytest = "^8.3.4"
 ruff = "^0.9.6"
 coverage = "^7.6.12"
-isort = "^6.0.0"
+isort = "^6.0.1"
 fakeredis = "^2.27.0"
 pytest-httpserver = "^1.1.1"
 
