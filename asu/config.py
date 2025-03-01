@@ -9,7 +9,6 @@ package_changes_list = [
     {"source": "libustream-wolfssl", "target": "libustream-mbedtls", "revision": 21994},
     {"source": "px5g-wolfssl", "target": "px5g-mbedtls", "revision": 21994},
     {"source": "wpad-basic-wolfssl", "target": "wpad-basic-mbedtls", "revision": 21994},
-    {"source": "libustream-wolfssl", "target": "libustream-mbedtls", "revision": 21994},
     {"source": "luci-app-diag-core", "revision": 25984, "mandatory": True},
     {"source": "auc", "target": "owut", "revision": 26792},
     {
