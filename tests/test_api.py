@@ -651,6 +651,7 @@ def test_api_build_defaults_empty(client):
 
 
 def test_api_build_defaults_filled_not_allowed(client):
+    settings.allow_defaults = False
     response = client.post(
         "/api/v1/build",
         json=dict(
