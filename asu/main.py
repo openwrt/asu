@@ -124,6 +124,7 @@ def json_v1_latest():
 
 
 def generate_branches():
+    reload_versions(app)  # Do a reload in case .versions.json has updated.
     branches = dict(**settings.branches)
 
     for branch in branches:
