@@ -32,9 +32,9 @@ def get_redis_client(unicode: bool = True) -> redis.client.Redis:
     return redis.from_url(settings.redis_url, decode_responses=unicode)
 
 
-def client_get(url: str) -> Response:
+def client_get(url: str, ttl: int = 3600) -> Response:
     return hishel.CacheClient(
-        storage=hishel.RedisStorage(client=get_redis_client(False)),
+        storage=hishel.RedisStorage(client=get_redis_client(False), ttl=ttl),
         controller=hishel.Controller(always_revalidate=True, allow_heuristics=True),
     ).get(url)
 
