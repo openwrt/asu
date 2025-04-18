@@ -435,12 +435,31 @@ def parse_kernel_version(url: str) -> str:
 
 
 def reload_versions(app: FastAPI) -> bool:
+    """Set the values of both `app.versions` and `app.latest` using the
+    upstream `.versions.json` file.
+
+    We check for updates to the versions by examining the response's
+    `from_cache` attribute.  This is safe because `reload_versions` is the
+    only function that downloads that file, so no race conditions can exist.
+
+    Returns `True` if data has changed, `False` when cache was used.
+    """
+
     response = client_get(settings.upstream_url + "/.versions.json")
 
     if response.extensions["from_cache"] and app.versions:
         return False
 
-    versions = response.json()["versions_list"]
+    versions_upstream = response.json()
+    app.latest = [
+        versions_upstream["stable_version"],
+        versions_upstream["oldstable_version"],
+    ]
+
+    if versions_upstream["upcoming_version"]:
+        app.latest.insert(0, versions_upstream["upcoming_version"])
+
+    versions = versions_upstream["versions_list"]
 
     app.versions = [
         version
@@ -464,6 +483,15 @@ def reload_versions(app: FastAPI) -> bool:
 
 
 def reload_targets(app: FastAPI, version: str) -> bool:
+    """Set a specific target value in `app.targets` using data from the
+    upstream `.targets.json` file.
+
+    No race conditions occur due to `reload_targets` being the sole user of
+    the `.targets.json` file.
+
+    Returns `True` if data has changed, `False` when cache was used.
+    """
+
     branch_data = get_branch(version)
     version_path = branch_data["path"].format(version=version)
     response = client_get(settings.upstream_url + f"/{version_path}/.targets.json")
@@ -477,14 +505,21 @@ def reload_targets(app: FastAPI, version: str) -> bool:
 
 
 def reload_profiles(app: FastAPI, version: str, target: str) -> bool:
+    """Set the `app.profiles` for a specific version and target derived from
+    the data in the corresponding `profiles.json` file.
+
+    This function is subject to race conditions as various other functions
+    also use the `profiles.json` files for other metadata, hence we do not
+    check for recaching and always recompute the profiles when requested.
+
+    Returns `True` indicating that we have reloaded the profile.
+    """
+
     branch_data = get_branch(version)
     version_path = branch_data["path"].format(version=version)
     response = client_get(
         settings.upstream_url + f"/{version_path}/targets/{target}/profiles.json"
     )
-
-    if response.extensions["from_cache"] and app.profiles[version].get(target):
-        return False
 
     app.profiles[version][target] = {
         name: profile
