@@ -37,6 +37,7 @@ app.mount("/static", StaticFiles(directory=base_path / "static"), name="static")
 
 templates = Jinja2Templates(directory=base_path / "templates")
 
+app.latest = []
 app.versions = []
 reload_versions(app)
 logging.info(f"Found {len(app.versions)} versions")
@@ -104,17 +105,8 @@ def json_v1_profile(path: str, target: str, profile: str):
 
 
 def generate_latest():
-    response = client_get(f"{settings.upstream_url}/.versions.json")
-
-    versions_upstream = response.json()
-    latest = [
-        versions_upstream["stable_version"],
-        versions_upstream["oldstable_version"],
-    ]
-
-    if versions_upstream["upcoming_version"]:
-        latest.insert(0, versions_upstream["upcoming_version"])
-    return latest
+    reload_versions(app)  # Do a reload in case .versions.json has updated.
+    return app.latest
 
 
 @app.get("/json/v1/latest.json")
