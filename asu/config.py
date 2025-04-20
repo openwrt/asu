@@ -70,6 +70,9 @@ class Settings(BaseSettings):
     server_stats: str = ""
     log_level: str = "INFO"
     squid_cache: bool = False
+    build_ttl: str = "3h"
+    build_defaults_ttl: str = "30m"
+    build_failure_ttl: str = "10m"
 
 
 settings = Settings()
