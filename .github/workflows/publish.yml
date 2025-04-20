@@ -29,7 +29,7 @@ jobs:
       - name: Set __version__ and poetry version
         run: |
           TAG="$(git describe --tags --always | awk -F"-" '{if (NF>1) {print substr($1, 2)".post"$2} else {print substr($1, 2)}}')"
-          echo "__version__ = \"$TAG\"" > asu/__init__.py
+          sed "s/__version__.*/__version__ = \"$TAG\"/" -i asu/__init__.py
           poetry version "$TAG"
 
       - name: Build and publish PyPi package
