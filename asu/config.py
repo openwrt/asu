@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     build_ttl: str = "3h"
     build_defaults_ttl: str = "30m"
     build_failure_ttl: str = "10m"
+    max_pending_jobs: int = 200
 
 
 settings = Settings()
