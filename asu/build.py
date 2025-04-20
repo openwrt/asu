@@ -1,7 +1,7 @@
+import datetime
 import json
 import logging
 import re
-from datetime import datetime
 from os import getenv
 from pathlib import Path
 from typing import Union
@@ -385,7 +385,7 @@ def build(build_request: BuildRequest, job=None):
     json_content["bin_dir"] = request_hash
     json_content["build_cmd_packages"] = build_cmd_packages
     json_content.pop("profiles")
-    json_content["build_at"] = datetime.utcfromtimestamp(
+    json_content["build_at"] = datetime.datetime.fromtimestamp(
         int(json_content.get("source_date_epoch", 0))
     ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     json_content["detail"] = "done"
@@ -400,6 +400,24 @@ def build(build_request: BuildRequest, job=None):
             "target": build_request.target,
             "profile": build_request.profile,
         },
+    )
+
+    # Calculate build duration and log it
+    build_duration = round(
+        (
+            datetime.datetime.now(datetime.timezone.utc)
+            - datetime.datetime.fromisoformat(json_content["build_at"])
+        ).total_seconds()
+    )
+    add_timestamp(
+        f"stats:time:{build_request.version}:{build_request.target}:{build_request.profile}",
+        {
+            "stats": "time",
+            "version": build_request.version,
+            "target": build_request.target,
+            "profile": build_request.profile,
+        },
+        build_duration,
     )
 
     job.meta["imagebuilder_status"] = "done"
