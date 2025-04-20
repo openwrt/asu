@@ -2,13 +2,13 @@ from datetime import datetime
 
 from fastapi import APIRouter
 
-from redis import Redis
+from asu.util import get_redis_client
 
 router = APIRouter()
 
 
 def get_redis_ts():
-    return Redis().ts()
+    return get_redis_client().ts()
 
 
 @router.get("/builds-per-hour")
