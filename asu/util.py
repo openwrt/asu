@@ -39,13 +39,13 @@ def client_get(url: str, ttl: int = 3600) -> Response:
     ).get(url)
 
 
-def add_timestamp(key: str, labels: dict[str, str] = {}) -> None:
+def add_timestamp(key: str, labels: dict[str, str] = {}, value: int = 1) -> None:
     if not settings.server_stats:
         return
     log.debug(f"Adding timestamp to {key}: {labels}")
     get_redis_client().ts().add(
         key,
-        value=1,
+        value=value,
         timestamp="*",
         labels=labels,
     )
