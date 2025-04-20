@@ -235,6 +235,7 @@ def api_v1_build_post(
 
         job_queue_length = len(get_queue())
         if job_queue_length > settings.max_pending_jobs:
+            response.status_code = 529
             return {
                 "status": 529,  # "Site is overloaded"
                 "title": "Server overloaded",
