@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     server_stats: str = ""
     log_level: str = "INFO"
     squid_cache: bool = False
+    max_pending_jobs: int = 200
 
 
 settings = Settings()
