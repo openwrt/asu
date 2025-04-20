@@ -188,6 +188,9 @@ def api_v1_build_get(request_hash: str, response: Response) -> dict:
             "detail": "could not find provided request hash",
         }
 
+    if job.is_finished:
+        add_timestamp("stats:cache-hits", {"stats": "cache-hits"})
+
     content, status, headers = return_job_v1(job)
     response.headers.update(headers)
     response.status_code = status
