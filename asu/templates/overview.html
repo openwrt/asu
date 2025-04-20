@@ -72,13 +72,15 @@
                     </ul>
 
                     {% if server_stats %}
-                    <p>
-                        <b>View the Server Stats:</b>
-                        <a href="{{ server_stats }}">Server Stats</a>
-                    </p>
+                    <div class="grid-item">
+                        <h2>Builds per Hour (last 7 days)</h2>
+                        <canvas id="buildsChart" width="600" height="300"></canvas>
+                    </div>
                     {% endif %}
-                    <hr />
-                    <h2>Sysupgrade Server Configuration:</h2>
+
+                    <details>
+                        <summary><h2>Server Configuration</h2></summary>
+
                     <p>
                         <b>Allow custom UCI defaults:</b> {{ defaults }} <br />
                         <b>Maximum requested root filesystem size:</b> {{
@@ -91,8 +93,51 @@
                         {%- endfor -%}
                     </ul>
                     </p>
+
+                    </details>
                 </div>
             </div>
         </div>
+
+{% if server_stats %}
+        <script src="static/chart.js"></script>
+        <script>
+            async function loadBuildStats() {
+                const response = await fetch("/api/v1/builds-per-hour");
+                const data = await response.json();
+
+                const countChart = new Chart(document.getElementById("buildsChart"), {
+                    type: "line",
+                    data: {
+                        labels: data.labels,
+                        datasets: data.datasets.map(ds => ({
+                            data: ds.data,
+                            fill: false
+                        }))
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                          x: {
+                            display: false
+                          },
+                          y: {
+                            display: true
+                          }
+                        },
+                        plugins: {
+                          legend: {
+                            display: false
+                          },
+                            title: { display: false }
+                        }
+                    }
+                });
+            }
+
+            loadBuildStats()
+        </script>
+{% endif %}
+
     </body>
 </html>
