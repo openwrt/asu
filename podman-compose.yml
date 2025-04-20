@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: Containerfile
     restart: unless-stopped
-    command: rqworker --logging_level INFO
+    command: rqworker --logging_level INFO --with-scheduler --worker-class asu.GCWorker
     env_file: .env
     environment:
       REDIS_URL: "redis://redis:6379/0"
