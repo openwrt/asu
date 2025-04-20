@@ -490,21 +490,21 @@ files = [
 
 [[package]]
 name = "hishel"
-version = "0.1.1"
+version = "0.1.2"
 description = "Persistent cache implementation for httpx and httpcore"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "hishel-0.1.1-py3-none-any.whl", hash = "sha256:5b51acc340303faeef2f5cfc1658acb1db1fdc3e3ad76406265a485f9707c5d6"},
-    {file = "hishel-0.1.1.tar.gz", hash = "sha256:1f6421b78cc23fc43c610f651b7848c9b8eee2d29551d64a2ab0d45b319b6559"},
+    {file = "hishel-0.1.2-py3-none-any.whl", hash = "sha256:802b4e446017f4867efdb26d3417670991ad1b4826d24331110871fe8957b5d0"},
+    {file = "hishel-0.1.2.tar.gz", hash = "sha256:6643450bfb1cfa2ecd6002769f6f5069d0d048c9c1f1e29a98a48302d5875092"},
 ]
 
 [package.dependencies]
-httpx = ">=0.22.0"
+httpx = ">=0.28.0"
 
 [package.extras]
-redis = ["redis (==5.0.1)"]
+redis = ["redis (==5.0.4)"]
 s3 = ["boto3 (>=1.15.0,<=1.15.3) ; python_version < \"3.12\"", "boto3 (>=1.15.3) ; python_version >= \"3.12\""]
 sqlite = ["anysqlite (>=0.0.5)"]
 yaml = ["pyyaml (==6.0.1)"]
@@ -1788,4 +1788,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "0dd3fa204ee649097cc0e085e75561bf501014cacb61125c521f271e52e33256"
+content-hash = "10f34ece99c64f7946951d130d2e500e35369394cdfd91115d5e4cd8ba2b5785"

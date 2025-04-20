@@ -16,7 +16,7 @@ rq = "^2.1.0"
 uvicorn = "^0.34.0"
 fastapi-cache2 = "^0.2.2"
 httpx = "^0.28.1"
-hishel = "^0.1.1"
+hishel = "^0.1.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
