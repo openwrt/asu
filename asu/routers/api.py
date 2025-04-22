@@ -178,7 +178,7 @@ def return_job_v1(job: Job) -> tuple[dict, int, dict]:
 
 @router.head("/build/{request_hash}")
 @router.get("/build/{request_hash}")
-def api_v1_build_get(request_hash: str, response: Response) -> dict:
+def api_v1_build_get(request: Request, request_hash: str, response: Response) -> dict:
     job: Job = get_queue().fetch_job(request_hash)
     if not job:
         response.status_code = 404
@@ -188,7 +188,7 @@ def api_v1_build_get(request_hash: str, response: Response) -> dict:
             "detail": "could not find provided request hash",
         }
 
-    if job.is_finished:
+    if job.is_finished and request.method != "HEAD":
         add_timestamp("stats:cache-hits", {"stats": "cache-hits"})
 
     content, status, headers = return_job_v1(job)
