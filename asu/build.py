@@ -5,6 +5,7 @@ import re
 from os import getenv
 from pathlib import Path
 from typing import Union
+from time import perf_counter
 
 from rq import get_current_job
 
@@ -38,6 +39,8 @@ def build(build_request: BuildRequest, job=None):
     Args:
         request (dict): Contains all properties of requested image
     """
+
+    build_start: float = perf_counter()
 
     request_hash = get_request_hash(build_request)
     bin_dir: Path = settings.public_path / "store" / request_hash
@@ -403,12 +406,7 @@ def build(build_request: BuildRequest, job=None):
     )
 
     # Calculate build duration and log it
-    build_duration = round(
-        (
-            datetime.datetime.now(datetime.timezone.utc)
-            - datetime.datetime.fromisoformat(json_content["build_at"])
-        ).total_seconds()
-    )
+    build_duration: float = round(perf_counter() - build_start)
     add_timestamp(
         f"stats:time:{build_request.version}:{build_request.target}:{build_request.profile}",
         {
