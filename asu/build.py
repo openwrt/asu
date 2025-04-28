@@ -222,21 +222,37 @@ def build(build_request: BuildRequest, job=None):
     job.meta["imagebuilder_status"] = "validate_manifest"
     job.save_meta()
 
+    job.meta["make_manifest_cmd"] = [
+        "make",
+        "manifest",
+        f"PROFILE={build_request.profile}",
+        f"PACKAGES={' '.join(build_cmd_packages)}",
+        "STRIP_ABI=1",
+    ]
+
     if settings.squid_cache and not is_snapshot_build(build_request.version):
         log.info("Disabling HTTPS for repositories")
         # Once APK is used for a stable release, handle `repositories`, too
         run_cmd(container, ["sed", "-i", "s|https|http|g", "repositories.conf"])
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
-        container,
-        [
-            "make",
-            "manifest",
-            f"PROFILE={build_request.profile}",
-            f"PACKAGES={' '.join(build_cmd_packages)}",
-            "STRIP_ABI=1",
-        ],
+        container, job.meta["make_manifest_cmd"]
     )
+
+    if (
+        returncode
+        and settings.squid_cache
+        and not is_snapshot_build(build_request.version)
+    ):
+        if any(err in job.meta["stderr"] for err in ["package index are corrupt"]):
+            log.info("Retrying without proxy")
+            returncode = 0
+            run_cmd(container, ["rm", "-rf", "/builder/dl"])
+            run_cmd(container, ["sed", "-i", "s|http|https|g", "repositories.conf"])
+
+            returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
+                container, job.meta["make_manifest_cmd"]
+            )
 
     job.save_meta()
 

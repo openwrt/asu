@@ -4,6 +4,8 @@ import hashlib
 import json
 import logging
 import struct
+from dateutil import parser
+from datetime import datetime
 from os import getgid, getuid
 from pathlib import Path
 from re import match
@@ -434,6 +436,19 @@ def parse_kernel_version(url: str) -> str:
     return ""
 
 
+def is_fully_compiled_version(version: str) -> bool:
+    """Check that a given version is at least 48h old"""
+    response = client_get(
+        settings.upstream_url + "/releases/" + version + "/.targets.json"
+    )
+
+    if response.extensions["from_cache"]:
+        last_modified = int(parser.parse(response.headers["Last-Modified"]).timestamp())
+        if int(datetime.now().timestamp()) - last_modified < 172800:
+            return False
+    return True
+
+
 def reload_versions(app: FastAPI) -> bool:
     """Set the values of both `app.versions` and `app.latest` using the
     upstream `.versions.json` file.
@@ -469,6 +484,12 @@ def reload_versions(app: FastAPI) -> bool:
 
     if response.json()["upcoming_version"]:
         app.versions.append(response.json()["upcoming_version"])
+
+    # Avoid offering versions that are not yet fully compiled
+    for label in ["stable_version", "oldstable_version", "upcoming_version"]:
+        version = response.json()[label]
+        if version and not is_fully_compiled_version(version):
+            app.versions.remove(version)
 
     for branch in settings.branches.keys():
         if branch != "SNAPSHOT":
