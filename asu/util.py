@@ -269,8 +269,8 @@ def run_cmd(
 ) -> tuple[int, str, str]:
     returncode, output = container.exec_run(command, demux=True, user="buildbot")
 
-    stdout: str = output[0].decode("utf-8")
-    stderr: str = output[1].decode("utf-8")
+    stdout: str = output[0].decode("utf-8") if output[0] else ""
+    stderr: str = output[1].decode("utf-8") if output[1] else ""
 
     log.debug(f"returncode: {returncode}")
     log.debug(f"stdout: {stdout}")
