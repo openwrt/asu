@@ -915,14 +915,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "podman"
-version = "5.2.0"
+version = "5.4.0.1"
 description = "Bindings for Podman RESTful API"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "podman-5.2.0-py3-none-any.whl", hash = "sha256:e42e907b44af3e8578ac3bd4838040f7dd6b4af091f787e51462b979746703eb"},
-    {file = "podman-5.2.0.tar.gz", hash = "sha256:6a064a3e9dbfc4ee0ee0c51604164e1f58d9d00b10f702c3e570651aee722ec7"},
+    {file = "podman-5.4.0.1-py3-none-any.whl", hash = "sha256:abd32e49a66bf18a680d9a0ac3989a3f4a3cc7293bc2a5060653276d8ee712f4"},
+    {file = "podman-5.4.0.1.tar.gz", hash = "sha256:ee537aaa44ba530fad7cd939d886a7632f9f7018064e7831e8cb614c54cb1789"},
 ]
 
 [package.dependencies]
@@ -930,7 +930,9 @@ requests = ">=2.24"
 urllib3 = "*"
 
 [package.extras]
+docs = ["sphinx"]
 progress-bar = ["rich (>=12.5.1)"]
+test = ["coverage", "fixtures", "pytest", "requests-mock", "tox"]
 
 [[package]]
 name = "pycparser"
@@ -1810,4 +1812,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "b255630dbd281e118da4fa7cab776df179d2d65ecf4f6c78f611863fa6b42cc6"
+content-hash = "6a50ad37301d57f69593e7e62faabd5af18980736183f3b8315adffa5c6efd75"
