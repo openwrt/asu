@@ -19,7 +19,7 @@ httpx = "^0.28.1"
 hishel = "^0.1.2"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.4"
+pytest = "^8.4.0"
 ruff = "^0.11.12"
 coverage = "^7.8.2"
 isort = "^6.0.1"
