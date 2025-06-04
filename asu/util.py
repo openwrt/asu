@@ -447,6 +447,9 @@ def reload_versions(app: FastAPI) -> bool:
     """
 
     response = client_get(settings.upstream_url + "/.versions.json")
+    if response.status_code != 200:
+        log.info(f".versions.json: failed to download {response.status_code}")
+        return False
 
     if response.extensions["from_cache"] and app.versions:
         return False
