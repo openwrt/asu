@@ -48,6 +48,7 @@ def add_timestamp(key: str, labels: dict[str, str] = {}, value: int = 1) -> None
         value=value,
         timestamp="*",
         labels=labels,
+        duplicate_policy="sum",
     )
 
 
