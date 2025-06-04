@@ -23,7 +23,7 @@ def get_builds_per_hour():
         to_time=now,
         filters=["stats=builds"],
         with_labels=False,
-        aggregation_type="count",
+        aggregation_type="sum",
         bucket_size_msec=3600000,  # 1 hour
     )
 
