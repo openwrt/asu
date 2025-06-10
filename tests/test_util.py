@@ -119,7 +119,40 @@ def test_get_version_container_tag():
 
 
 def test_get_packages_versions():
-    class Response:
+    packages_with_abi = {
+        "libusb-1.0-0": "1.2.3",
+        "libpython-3.3-3": "1.2.3",
+        "bort": "9.9.9",
+    }
+    packages_without_abi = {
+        "libusb-1.0": "1.2.3",
+        "libpython-3.3": "1.2.3",
+        "bort": "9.9.9",
+    }
+
+    class Response404:
+        status_code = 404
+
+    class ResponseJson1:
+        status_code = 200
+
+        def json(self):
+            return {
+                "architecture": "aarch_generic",
+                "packages": packages_with_abi,
+            }
+
+    class ResponseJson2:
+        status_code = 200
+
+        def json(self):
+            return {
+                "version": 2,
+                "architecture": "aarch_generic",
+                "packages": packages_without_abi,
+            }
+
+    class ResponseText:
         status_code = 200
         text = (
             "Package: libusb-1.0-0\n"
@@ -138,18 +171,44 @@ def test_get_packages_versions():
             "\n"
         )
 
-    asu.util.client_get = lambda url: Response()
-
+    # Old opkg-style Packages format, no index.json
+    asu.util.client_get = lambda url: Response404() if "json" in url else ResponseText()
     index = parse_packages_file("httpx://fake_url")
     packages = index["packages"]
 
     assert index["architecture"] == "x86_64"
-    assert len(packages) == 3
-    assert packages["libusb-1.0"] == "1.2.3"
-    assert packages["libpython-3.3"] == "1.2.3"
-    assert packages["bort"] == "9.9.9"
+    assert packages == packages_without_abi
 
-    Response.status_code = 404
+    # Old opkg-style Packages format, but with v1 index.json
+    asu.util.client_get = (
+        lambda url: ResponseJson1() if "json" in url else ResponseText()
+    )
+    index = parse_packages_file("httpx://fake_url")
+    packages = index["packages"]
+
+    assert index["architecture"] == "x86_64"
+    assert packages == packages_without_abi
+
+    # New apk-style without Packages, but old v1 index.json
+    asu.util.client_get = (
+        lambda url: ResponseJson1() if "json" in url else Response404()
+    )
+    index = parse_packages_file("httpx://fake_url")
+    packages = index["packages"]
+
+    assert index["architecture"] == "aarch_generic"
+    assert packages == packages_with_abi
+
+    # New index.json v2 format
+    asu.util.client_get = lambda url: ResponseJson2()
+    index = parse_packages_file("httpx://fake_url")
+    packages = index["packages"]
+
+    assert index["architecture"] == "aarch_generic"
+    assert packages == packages_without_abi
+
+    # Everything fails
+    asu.util.client_get = lambda url: Response404()
     index = parse_packages_file("abc://fake")
     assert index == {}
 

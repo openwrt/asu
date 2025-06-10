@@ -349,30 +349,44 @@ def check_manifest(
 
 
 def parse_packages_file(url: str) -> dict[str, str]:
-    res: Response
-    if "/snapshots/" in url:  # TODO find better way to check for cutoff
-        res = client_get(f"{url}/index.json")
-        return res.json() if res.status_code == 200 else {}
+    """Any index.json without a "version" tag is assumed to be v1, containing
+    ABI-versioned package names, which may cause issues for those packages.
+    If index.json contains "version: 2", then the package names are ABI-free,
+    and the contents may be returned as-is.
 
-    res = client_get(f"{url}/Packages")
+    So, first we try to use the modern v2 index.json.  If the json is not v2,
+    then fall back to trying opkg-based Packages.  If that fails on a 404,
+    we'll just return the v1 index.json."""
+
+    res: Response = client_get(f"{url}/index.json")
+    json = res.json() if res.status_code == 200 else {}
+    if json.get("version", 1) >= 2:
+        del json["version"]
+        return json
+
+    res = client_get(f"{url}/Packages")  # For pre-v2, opkg-based releases
     if res.status_code != 200:
-        return {}
+        return json  # Bail out - probably with v1 index.json
 
-    index: dict[str, str] = {}
+    packages: dict[str, str] = {}
     architecture: str = ""
+
     parser: email.parser.Parser = email.parser.Parser()
     chunks: list[str] = res.text.strip().split("\n\n")
     for chunk in chunks:
         package: dict[str, str] = parser.parsestr(chunk, headersonly=True)
         if not architecture:
-            architecture = package["Architecture"]
+            package_arch = package["Architecture"]
+            if package_arch != "all":
+                architecture = package_arch
+
         package_name: str = package["Package"]
         if package_abi := package.get("ABIVersion"):
             package_name = package_name.removesuffix(package_abi)
 
-        index[package_name] = package["Version"]
+        packages[package_name] = package["Version"]
 
-    return {"architecture": architecture, "packages": index}
+    return {"architecture": architecture, "packages": packages}
 
 
 def parse_feeds_conf(url: str) -> list[str]:
