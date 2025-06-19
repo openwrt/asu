@@ -388,26 +388,26 @@ idna = ">=2.0.0"
 
 [[package]]
 name = "fakeredis"
-version = "2.29.0"
+version = "2.30.0"
 description = "Python implementation of redis API, can be used for testing purposes."
 optional = false
-python-versions = "<4.0,>=3.7"
+python-versions = "~=3.7"
 groups = ["dev"]
 files = [
-    {file = "fakeredis-2.29.0-py3-none-any.whl", hash = "sha256:f644c0a69dc088455d75a9b259d101e28a1c5659381aa6d9ee6c2b31eb5a909f"},
-    {file = "fakeredis-2.29.0.tar.gz", hash = "sha256:159cebf2c53e2c2bd7d18220fa93aa5f1d7152f6b6dd7896c46234d674342398"},
+    {file = "fakeredis-2.30.0-py3-none-any.whl", hash = "sha256:7bb453f90e86983d923bd84420ada6992d92039e0d7e7619a7a1fcc77d4e2601"},
+    {file = "fakeredis-2.30.0.tar.gz", hash = "sha256:77ca04d4925daa0569ff000a960f47e49de15a4bd37facafe4f3f3ecc66bb3ef"},
 ]
 
 [package.dependencies]
-redis = {version = ">=4.3", markers = "python_full_version > \"3.8.0\""}
+redis = {version = ">=4.3", markers = "python_version > \"3.8\""}
 sortedcontainers = ">=2,<3"
 
 [package.extras]
-bf = ["pyprobables (>=0.6,<0.7)"]
-cf = ["pyprobables (>=0.6,<0.7)"]
+bf = ["pyprobables (>=0.6)"]
+cf = ["pyprobables (>=0.6)"]
 json = ["jsonpath-ng (>=1.6,<2.0)"]
 lua = ["lupa (>=2.1,<3.0)"]
-probabilistic = ["pyprobables (>=0.6,<0.7)"]
+probabilistic = ["pyprobables (>=0.6)"]
 
 [[package]]
 name = "fastapi"
@@ -1814,4 +1814,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "b745c8fdc6b573c9ccd0987559eaff6c643cf9cf47c0a4ca2e4d37f5e68a45b6"
+content-hash = "b884ef5cb827c4b03a9c1296068709c5138685fd7886d69bafc0cefdcb506c15"
