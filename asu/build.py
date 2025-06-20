@@ -8,6 +8,7 @@ from typing import Union
 from time import perf_counter
 
 from rq import get_current_job
+from podman import errors
 
 from asu.build_request import BuildRequest
 from asu.config import settings
@@ -92,7 +93,10 @@ def build(build_request: BuildRequest, job=None):
     job.save_meta()
 
     log.info(f"Pulling {image}...")
-    podman.images.pull(image)
+    try:
+        podman.images.pull(image)
+    except errors.ImageNotFound:
+        report_error(job, f"Image not found: {image}")
     log.info(f"Pulling {image}... done")
 
     bin_dir.mkdir(parents=True, exist_ok=True)
