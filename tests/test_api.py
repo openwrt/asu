@@ -137,6 +137,34 @@ def test_api_build_version_code_bad(client):
     )
 
 
+def test_build_missing_container():
+    from asu.build import build
+    from asu.build_request import BuildRequest
+
+    build_request = BuildRequest(
+        client="test/1.2.3",
+        target="lantiq/xrx200",
+        profile="bt_homehub-v5a",
+        version="24.10.1",
+    )
+
+    class fake_job:
+        meta = {}
+
+        def save_meta(self):
+            pass
+
+    try:
+        build(build_request, fake_job())
+    except Exception as exc:
+        assert (
+            str(exc)
+            == "Image not found: ghcr.io/openwrt/imagebuilder:lantiq-xrx200-v24.10.1"
+        )
+    else:
+        assert False, "No exception raised!"
+
+
 base_packages_diff = (
     "PACKAGES=-base-files -busybox -dnsmasq -dropbear -firewall -fstools"
     " -ip6tables -iptables -kmod-ath9k -kmod-gpio-button-hotplug"
