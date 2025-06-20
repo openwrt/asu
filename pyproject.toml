@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.11"
 fastapi = { extras = ["standard"], version = "^0.115.12" }
 pynacl = "^1.5.0"
-podman = "^5.4.0"
+podman = "^5.5.0"
 redis = "^6.2.0"
 pydantic-settings = "^2.9.1"
 rq = "^2.4.0"
