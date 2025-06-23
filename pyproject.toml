@@ -11,7 +11,7 @@ fastapi = { extras = ["standard"], version = "^0.115.12" }
 pynacl = "^1.5.0"
 podman = "^5.4.0"
 redis = "^6.2.0"
-pydantic-settings = "^2.9.1"
+pydantic-settings = "^2.10.0"
 rq = "^2.4.0"
 uvicorn = "^0.34.3"
 fastapi-cache2 = "^0.2.2"
