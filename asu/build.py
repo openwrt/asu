@@ -96,7 +96,7 @@ def build(build_request: BuildRequest, job=None):
     try:
         podman.images.pull(image)
     except errors.ImageNotFound:
-        report_error(job, f"Image not found: {image}")
+        report_error(job, f"Image not found: {image}. If this version was just released, please try again in a few hours as it may take some time to become fully available.")
     log.info(f"Pulling {image}... done")
 
     bin_dir.mkdir(parents=True, exist_ok=True)
