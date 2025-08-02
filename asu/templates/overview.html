@@ -83,6 +83,10 @@
 
                     <p>
                         <b>Allow custom UCI defaults:</b> {{ defaults }} <br />
+                        {% if defaults %}
+                        <b>Maximum UCI defaults script size:</b> {{
+                        max_defaults_length }} bytes <br />
+                        {% endif %}
                         <b>Maximum requested root filesystem size:</b> {{
                         max_custom_rootfs_size_mb }} MB <br />
                         <b>Available versions on this server:</b>
