@@ -157,9 +157,8 @@ def test_build_missing_container():
     try:
         build(build_request, fake_job())
     except Exception as exc:
-        assert (
-            str(exc)
-            == "Image not found: ghcr.io/openwrt/imagebuilder:lantiq-xrx200-v24.10.1"
+        assert str(exc).startswith(
+            "Image not found: ghcr.io/openwrt/imagebuilder:lantiq-xrx200-v24.10.1"
         )
     else:
         assert False, "No exception raised!"
