@@ -58,6 +58,7 @@ def index(request: Request):
             version=__version__,
             server_stats=settings.server_stats,
             max_custom_rootfs_size_mb=settings.max_custom_rootfs_size_mb,
+            max_defaults_length=settings.max_defaults_length,
         ),
     )
 
@@ -154,6 +155,8 @@ def json_v1_overview():
             "contact": "mail@aparcar.org",
             "allow_defaults": settings.allow_defaults,
             "repository_allow_list": settings.repository_allow_list,
+            "max_custom_rootfs_size_mb": settings.max_custom_rootfs_size_mb,
+            "max_defaults_length": settings.max_defaults_length,
         },
     }
 
