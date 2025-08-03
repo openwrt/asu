@@ -3,6 +3,27 @@ from typing import Union
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Adding a new entry to `package_changes_list` requires determining
+# the revision at which the package appears, is removed or has been
+# renamed/replaced.  To find the revision number:
+#
+# 1) Look up the date of the commit for the package change,
+#    - either in the package repo itself (say, when auc was deleted); or
+#    - in the openwrt repo where the package swap occurred (firewall4
+#      in include/target.mk is a good example of this one).
+#
+# 2) Use 'scripts/getver.sh yyyy-mm-dd' in buildroot to get the revision.
+#    See https://github.com/openwrt/openwrt/commit/e56845fae3c0
+#
+# Clients should interpret the table as follows:
+#
+#   rename/replace = if 'source' and 'target' both specified
+#   added          = if only 'source' is specified
+#   deleted        = if only 'target' is specified
+#
+# If 'mandatory' is true, this package must be added or deleted (probably
+# because the default package list has changed).
+
 package_changes_list = [
     {"source": "firewall", "target": "firewall4", "revision": 18611},
     {"source": "kmod-nft-nat6", "revision": 20282, "mandatory": True},
