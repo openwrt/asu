@@ -388,14 +388,14 @@ idna = ">=2.0.0"
 
 [[package]]
 name = "fakeredis"
-version = "2.30.0"
+version = "2.31.0"
 description = "Python implementation of redis API, can be used for testing purposes."
 optional = false
-python-versions = "~=3.7"
+python-versions = ">=3.7"
 groups = ["dev"]
 files = [
-    {file = "fakeredis-2.30.0-py3-none-any.whl", hash = "sha256:7bb453f90e86983d923bd84420ada6992d92039e0d7e7619a7a1fcc77d4e2601"},
-    {file = "fakeredis-2.30.0.tar.gz", hash = "sha256:77ca04d4925daa0569ff000a960f47e49de15a4bd37facafe4f3f3ecc66bb3ef"},
+    {file = "fakeredis-2.31.0-py3-none-any.whl", hash = "sha256:2584e57d93df4eb8e87931b29279902826d3caf77d06911106df4e066c2ad198"},
+    {file = "fakeredis-2.31.0.tar.gz", hash = "sha256:2942a7e7900fd9076ff9e608b9190a87315ac5a325a9ab8bfe288a2d985ecd23"},
 ]
 
 [package.dependencies]
@@ -408,6 +408,7 @@ cf = ["pyprobables (>=0.6)"]
 json = ["jsonpath-ng (>=1.6,<2.0)"]
 lua = ["lupa (>=2.1,<3.0)"]
 probabilistic = ["pyprobables (>=0.6)"]
+valkey = ["valkey (>=6) ; python_version >= \"3.8\""]
 
 [[package]]
 name = "fastapi"
@@ -1814,4 +1815,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "7f7060615424cf1ba2dfdf7c925407d37280c88305be7c262c0b893c602c40ee"
+content-hash = "f226f405c1810845c00d4ef3bd7a28e07c3e92428105253a7f529b3c6e8ffe93"
