@@ -4,8 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -33,7 +33,6 @@ app.include_router(stats.router, prefix="/api/v1")
 
 (settings.public_path / "store").mkdir(parents=True, exist_ok=True)
 
-app.mount("/store", StaticFiles(directory=settings.public_path / "store"), name="store")
 app.mount("/static", StaticFiles(directory=base_path / "static"), name="static")
 
 templates = Jinja2Templates(directory=base_path / "templates")
@@ -45,6 +44,20 @@ logging.info(f"Found {len(app.versions)} versions")
 
 app.targets = defaultdict(list)
 app.profiles = defaultdict(lambda: defaultdict(dict))
+
+
+@app.api_route("/store/{path:path}", methods=["GET", "HEAD"])
+def store(path: str):
+    path = (settings.public_path / "store" / path).resolve()
+    if not path.is_file() or settings.public_path / "store" not in path.parents:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    return FileResponse(
+        path,
+        media_type="application/octet-stream",
+        filename=path.name,  # adds Content-Disposition: attachment; filename="..."
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
 
 
 @app.get("/", response_class=HTMLResponse)
