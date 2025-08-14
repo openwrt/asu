@@ -73,7 +73,7 @@
 
                     {% if server_stats %}
                     <div class="grid-item">
-                        <h2>Builds per Hour (last 7 days)</h2>
+                        <h2>Builds per Day (last 30 days)</h2>
                         <canvas id="buildsChart" width="600" height="300"></canvas>
                     </div>
                     {% endif %}
@@ -107,7 +107,7 @@
         <script src="static/chart.js"></script>
         <script>
             async function loadBuildStats() {
-                const response = await fetch("/api/v1/builds-per-hour");
+                const response = await fetch("/api/v1/builds-per-day");
                 const data = await response.json();
 
                 const countChart = new Chart(document.getElementById("buildsChart"), {
