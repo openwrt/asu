@@ -8,7 +8,7 @@ from os import getgid, getuid
 from pathlib import Path
 from re import match
 from tarfile import TarFile
-from tempfile import NamedTemporaryFile
+from io import BytesIO
 from typing import Optional
 
 import hishel
@@ -280,23 +280,16 @@ def run_cmd(
     if copy:
         log.debug(f"Copying {copy[0]} from container to {copy[1]}")
         container_tar, _ = container.get_archive(copy[0])
-        log.debug(f"Container tar: {container_tar}")
 
-        host_tar = NamedTemporaryFile(delete=True)
-        log.debug(f"Copying {container_tar} to {host_tar}")
-
-        for data in container_tar:
-            host_tar.write(data)
-        host_tar.flush()
-
-        with TarFile(host_tar.name) as tar_file:
+        with TarFile(fileobj=BytesIO(b"".join(container_tar))) as tar_file:
+            uuid: int = getuid()
+            ugid: int = getgid()
             for member in tar_file:
                 # Fix the owner of the copied files, change to "us".
-                member.uid = getuid()
-                member.gid = getgid()
+                member.uid = uuid
+                member.gid = ugid
                 member.mode = 0o755 if member.isdir() else 0o644
             tar_file.extractall(copy[1])
-        log.debug(f"Closed {host_tar}")
 
     return returncode, stdout, stderr
 
