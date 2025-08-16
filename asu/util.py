@@ -517,7 +517,7 @@ def reload_targets(app: FastAPI, version: str) -> bool:
     if response.extensions["from_cache"] and app.targets[version]:
         return False
 
-    app.targets[version] = response.json()
+    app.targets[version] = response.json() if response.status_code == 200 else {}
 
     return True
 
