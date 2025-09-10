@@ -495,7 +495,8 @@ def reload_versions(app: FastAPI) -> bool:
     if "SNAPSHOT" in settings.branches.keys():
         app.versions.append("SNAPSHOT")
 
-    app.versions.sort(reverse=True)
+    # Create a key that puts -rcN between -SNAPSHOT and releases.
+    app.versions.sort(reverse=True, key=lambda v: v.replace(".0-rc", "-rc"))
 
     return True
 
