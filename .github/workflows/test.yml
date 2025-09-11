@@ -41,23 +41,24 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade poetry
-          poetry install
+          python -m pip install --upgrade uv
+          uv venv
+          uv pip install -e ".[dev]"
 
       - name: Lint with ruff
         run: |
-          poetry run ruff check .
+          uv run ruff check .
 
       - name: Stylecheck with ruff
         run: |
-          poetry run ruff format --check .
+          uv run ruff format --check .
 
       - name: Test with pytest
         run: |
           export CONTAINER_SOCKET_PATH="/tmp/podman.sock"
           podman system service --time=0 "unix://$CONTAINER_SOCKET_PATH" &
-          poetry run coverage run -m pytest -vv --runslow
-          poetry run coverage xml
+          uv run coverage run -m pytest -vv --runslow
+          uv run coverage xml
 
       - name: Codecov
         uses: codecov/codecov-action@v4

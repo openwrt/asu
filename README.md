@@ -101,6 +101,7 @@ podman-compose pull
 # build containers locally
 podman-compose build
 ```
+
 The services are configured via environment variables, which can be set in a
 `.env` file
 
@@ -166,25 +167,24 @@ pasta_options = [
 
 ### Development
 
-After cloning this repository, install `poetry` which manages the Python
+After cloning this repository, install `uv` which manages the Python
 dependencies.
 
 ```bash
-apt install python3-poetry
-poetry install
+pip install uv
 ```
 
 #### Running the server
 
 ```bash
-poetry run fastapi dev asu/main.py
+uv run fastapi dev asu/main.py
 ```
 
 #### Running a worker
 
 ```bash
-source .env # poetry does not load .env
-poetry run rq worker
+source .env
+uv run rq worker
 ```
 
 ### API

@@ -5,6 +5,8 @@ redis/
 public/
 squid/
 poetry.lock
+uv.lock
+.uv/
 json/
 instance/
 htmlcov/
