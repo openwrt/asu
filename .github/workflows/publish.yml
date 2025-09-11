@@ -1,4 +1,6 @@
 name: Upload Python Package and Docker Container
+permissions:
+  contents: read
 
 on:
   push:
