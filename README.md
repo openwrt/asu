@@ -60,6 +60,7 @@ immediately without rebuilding.
 * [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
 * [ImmortalWrt](https://sysupgrade.kyarucloud.moe)
 * [LibreMesh](https://sysupgrade.antennine.org) (only `stable` and `oldstable` openwrt versions)
+* [sysupgrade.guerra24.net](https://sysupgrade.guerra24.net)
 * Create a pull request to add your server here
 
 ## Run your own server
