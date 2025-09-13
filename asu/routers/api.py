@@ -149,7 +149,13 @@ def return_job_v1(job: Job) -> tuple[dict, int, dict]:
         response.update(job.meta)
 
     if job.is_failed:
-        response.update(status=500, error=job.latest_result().exc_string)
+        error_message: str = job.latest_result().exc_string
+        if "stderr" in response:
+            error_message = response["stderr"] + "\n" + error_message
+        detail: str = response.get("detail", "failed")
+        if detail == "init":  # Happens when container startup fails.
+            detail = "failed"
+        response.update(status=500, detail=detail, stderr=error_message)
         imagebuilder_status = "failed"
 
     elif job.is_queued:
