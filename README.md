@@ -23,7 +23,7 @@ It offers a device search based on model names and show links either to
 _asu_ API. Please join in the development at
 [GitLab repository](https://gitlab.com/openwrt/web/firmware-selector-openwrt-org)
 
-* <https://firmware-selector.openwrt.org>
+- <https://firmware-selector.openwrt.org>
 
 ![ofs](misc/ofs.png)
 
@@ -57,11 +57,19 @@ immediately without rebuilding.
 
 ### Active server
 
-* [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
-* [ImmortalWrt](https://sysupgrade.kyarucloud.moe)
-* [LibreMesh](https://sysupgrade.antennine.org) (only `stable` and `oldstable` openwrt versions)
-* [sysupgrade.guerra24.net](https://sysupgrade.guerra24.net)
-* Create a pull request to add your server here
+> [!NOTE]
+> Official server using ImageBuilder published on [OpenWrt
+> Downloads](downloads.openwrt.org).
+
+- [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
+
+> [!NOTE]
+> Unofficial servers, may run modified ImageBuilder
+
+- [ImmortalWrt](https://sysupgrade.kyarucloud.moe)
+- [LibreMesh](https://sysupgrade.antennine.org) (only `stable` and `oldstable` OpenWrt versions)
+- [sysupgrade.guerra24.net](https://sysupgrade.guerra24.net)
+- Create a pull request to add your server here
 
 ## Run your own server
 
@@ -102,6 +110,7 @@ podman-compose pull
 # build containers locally
 podman-compose build
 ```
+
 The services are configured via environment variables, which can be set in a
 `.env` file
 
@@ -136,9 +145,9 @@ loginctl enable-linger
 
 #### System requirements
 
-* 2 GB RAM (4 GB recommended)
-* 2 CPU cores (4 cores recommended)
-* 50 GB disk space (200 GB recommended)
+- 2 GB RAM (4 GB recommended)
+- 2 CPU cores (4 cores recommended)
+- 50 GB disk space (200 GB recommended)
 
 #### Squid Cache
 
@@ -193,5 +202,5 @@ poetry run rq worker
 The API is documented via _OpenAPI_ and can be viewed interactively on the
 server:
 
-* [https://sysupgrade.openwrt.org/docs/](https://sysupgrade.openwrt.org/docs/)
-* [https://sysupgrade.openwrt.org/redoc](https://sysupgrade.openwrt.org/redoc/)
+- [https://sysupgrade.openwrt.org/docs/](https://sysupgrade.openwrt.org/docs/)
+- [https://sysupgrade.openwrt.org/redoc](https://sysupgrade.openwrt.org/redoc/)
