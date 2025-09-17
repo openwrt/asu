@@ -998,14 +998,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "podman"
-version = "5.5.0"
+version = "5.6.0"
 description = "Bindings for Podman RESTful API"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "podman-5.5.0-py3-none-any.whl", hash = "sha256:bdc6bbc9c86b9fcd79805d98babd9dae6fbeea8cbcc563900aebbfb4d4995008"},
-    {file = "podman-5.5.0.tar.gz", hash = "sha256:4416af01d1a236185eb0110488241318eb3fb07337720a955246d807441d8b71"},
+    {file = "podman-5.6.0-py3-none-any.whl", hash = "sha256:967ff8ad8c6b851bc5da1a9410973882d80e235a9410b7d1e931ce0c3324fbe3"},
+    {file = "podman-5.6.0.tar.gz", hash = "sha256:cc5f7aa9562e30f992fc170a48da970a7132be60d8a2e2941e6c17bd0a0b35c9"},
 ]
 
 [package.dependencies]
@@ -2124,4 +2124,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "95f6aa3ae617ad8674dc749a70c867d7d64b7410ceaf0f735bd7f9fbecff9032"
+content-hash = "3158bacaace3a19302df71ff0a6261648c5049d42df286a14de97ad4b226a31e"
