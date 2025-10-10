@@ -141,7 +141,7 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 build_request.version,
                 build_request.version_code,
                 build_request.target,
-                build_request.profile.replace(",", "_"),
+                build_request.profile,
                 get_packages_hash(
                     build_request.packages_versions.keys() or build_request.packages
                 ),
