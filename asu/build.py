@@ -15,6 +15,7 @@ from asu.config import settings
 from asu.package_changes import apply_package_changes
 from asu.util import (
     add_timestamp,
+    add_build_event,
     check_manifest,
     diff_packages,
     fingerprint_pubkey_usign,
@@ -32,7 +33,7 @@ from asu.util import (
 log = logging.getLogger("rq.worker")
 
 
-def build(build_request: BuildRequest, job=None):
+def _build(build_request: BuildRequest, job=None):
     """Build image request and setup ImageBuilders automatically
 
     The `request` dict contains properties of the requested image.
@@ -429,3 +430,15 @@ def build(build_request: BuildRequest, job=None):
     job.save_meta()
 
     return json_content
+
+
+def build(build_request: BuildRequest, job=None):
+    try:
+        result = _build(build_request, job)
+    except Exception:
+        # Log all build errors, including internal server errors.
+        add_build_event("failures")
+        raise
+    else:
+        add_build_event("successes")
+        return result

@@ -20,8 +20,11 @@ class Stats:
     def __init__(self, redis_server: FakeStrictRedis):
         self.ts = redis_server.ts()
 
-    def cache(self, type):
-        return self.ts.mrange("-", "+", filters=[f"stats=cache-{type}"])
+    def summary(self, type):
+        key = f"stats:build:{type}"
+        if self.ts.client.exists(key):
+            return self.ts.range(key, "-", "+")
+        return []
 
     def client(self, tag):
         clients = self.ts.mrange("-", "+", filters=["stats=clients"])
@@ -29,7 +32,7 @@ class Stats:
             return []
         return clients[0][f"stats:clients:{tag}"]
 
-    def build(self, tag):
+    def builds(self, tag):
         builds = self.ts.mrange("-", "+", filters=["stats=builds"])
         if not builds:
             return []
@@ -38,34 +41,51 @@ class Stats:
 
 def test_stats_image_builds(client, redis_server: FakeStrictRedis):
     stats = Stats(redis_server)
-    assert len(stats.build("1.2.3:testtarget/testsubtarget:testprofile")) == 0
+    assert len(stats.builds("1.2.3:testtarget/testsubtarget:testprofile")) == 0
 
     response = client.post("/api/v1/build", json=build_config_1)
     assert response.status_code == 200
-    assert len(stats.build("1.2.3:testtarget/testsubtarget:testprofile")[1]) == 1
+    assert len(stats.builds("1.2.3:testtarget/testsubtarget:testprofile")[1]) == 1
 
 
-def test_stats_cache(client, redis_server: FakeStrictRedis):
+def test_stats_summary(client, redis_server: FakeStrictRedis):
     stats = Stats(redis_server)
 
-    assert len(stats.cache("hits")) == 0
-    assert len(stats.cache("misses")) == 0
+    assert len(stats.summary("hits")) == 0
+    assert len(stats.summary("misses")) == 0
 
     response = client.post("/api/v1/build", json=build_config_2)
     assert response.status_code == 200
-    assert len(stats.cache("hits")) == 0
-    assert len(stats.cache("misses")[0]["stats:cache-misses"][1]) == 1
+    assert len(stats.summary("requests")) == 1
+    assert len(stats.summary("cache-hits")) == 0
+    assert len(stats.summary("cache-misses")) == 1
+    assert len(stats.summary("successes")) == 1
+    assert len(stats.summary("failures")) == 0
 
     response = client.post("/api/v1/build", json=build_config_2)
     assert response.status_code == 200
-    assert len(stats.cache("hits")[0]["stats:cache-hits"][1]) == 1
-    assert len(stats.cache("misses")[0]["stats:cache-misses"][1]) == 1
+    assert len(stats.summary("requests")) == 2
+    assert len(stats.summary("cache-hits")) == 1
+    assert len(stats.summary("cache-misses")) == 1
+    assert len(stats.summary("successes")) == 1
+    assert len(stats.summary("failures")) == 0
 
     time.sleep(1)  # Ensure timestamp is on next second.
     response = client.post("/api/v1/build", json=build_config_2)
     assert response.status_code == 200
-    assert len(stats.cache("hits")[0]["stats:cache-hits"][1]) == 2
-    assert len(stats.cache("misses")[0]["stats:cache-misses"][1]) == 1
+    assert len(stats.summary("requests")) == 3
+    assert len(stats.summary("cache-hits")) == 2
+    assert len(stats.summary("cache-misses")) == 1
+    assert len(stats.summary("successes")) == 1
+    assert len(stats.summary("failures")) == 0
+
+    response = client.post("/api/v1/build", json=build_config_1)
+    assert response.status_code == 200
+    assert len(stats.summary("requests")) == 4
+    assert len(stats.summary("cache-hits")) == 2
+    assert len(stats.summary("cache-misses")) == 2
+    assert len(stats.summary("successes")) == 2
+    assert len(stats.summary("failures")) == 0
 
 
 def test_stats_clients_luci(client, redis_server: FakeStrictRedis):
@@ -116,3 +136,17 @@ def test_stats_clients_auc_possible_new_format(client, redis_server: FakeStrictR
     )
     assert response.status_code == 200
     assert len(stats.client(asu_client)[1]) == 1
+
+
+def test_stats_builds_per_day(client, redis_server: FakeStrictRedis):
+    from asu.routers.stats import N_DAYS
+
+    response = client.get("/api/v1/builds-per-day")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "labels" in data
+    assert len(data["labels"]) == N_DAYS
+    assert "datasets" in data
+    assert "data" in data["datasets"][0]
+    assert len(data["datasets"][0]["data"]) == N_DAYS
