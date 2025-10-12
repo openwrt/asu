@@ -10,6 +10,7 @@ from asu.build_request import BuildRequest
 from asu.config import settings
 from asu.util import (
     add_timestamp,
+    add_build_event,
     client_get,
     get_branch,
     get_queue,
@@ -194,9 +195,6 @@ def api_v1_build_get(request: Request, request_hash: str, response: Response) ->
             "detail": "could not find provided request hash",
         }
 
-    if job.is_finished and request.method != "HEAD":
-        add_timestamp("stats:cache-hits", {"stats": "cache-hits"})
-
     content, status, headers = return_job_v1(job)
     response.headers.update(headers)
     response.status_code = status
@@ -213,6 +211,8 @@ def api_v1_build_post(
 ):
     # Sanitize the profile in case the client did not (bug in older LuCI app).
     build_request.profile = build_request.profile.replace(",", "_")
+
+    add_build_event("requests")
 
     request_hash: str = get_request_hash(build_request)
     job: Job = get_queue().fetch_job(request_hash)
@@ -235,7 +235,7 @@ def api_v1_build_post(
     )
 
     if job is None:
-        add_timestamp("stats:cache-misses", {"stats": "cache-misses"})
+        add_build_event("cache-misses")
 
         content, status = validate_request(request.app, build_request)
         if content:
@@ -261,7 +261,7 @@ def api_v1_build_post(
         )
     else:
         if job.is_finished:
-            add_timestamp("stats:cache-hits", {"stats": "cache-hits"})
+            add_build_event("cache-hits")
 
     content, status, headers = return_job_v1(job)
     response.headers.update(headers)

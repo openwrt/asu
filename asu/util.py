@@ -32,6 +32,10 @@ def get_redis_client(unicode: bool = True) -> redis.client.Redis:
     return redis.from_url(settings.redis_url, decode_responses=unicode)
 
 
+def get_redis_ts():
+    return get_redis_client().ts()
+
+
 def client_get(url: str, ttl: int = 3600) -> Response:
     return hishel.CacheClient(
         storage=hishel.RedisStorage(client=get_redis_client(False), ttl=ttl),
@@ -43,13 +47,36 @@ def add_timestamp(key: str, labels: dict[str, str] = {}, value: int = 1) -> None
     if not settings.server_stats:
         return
     log.debug(f"Adding timestamp to {key}: {labels}")
-    get_redis_client().ts().add(
+    get_redis_ts().add(
         key,
         value=value,
         timestamp="*",
         labels=labels,
         duplicate_policy="sum",
     )
+
+
+def add_build_event(event: str) -> None:
+    """
+    Logs summary statistics for build events:
+
+    - requests     - total number of calls to /build API, logged for all build
+                     requests, irrespective of validity, success or failure
+    - cache-hits   - count of build requests satisfied by already-existing builds
+    - cache-misses - count of build requests sent to builder
+    - successes    - count of builder runs with successful completion
+    - failures     - count of builder runs that failed
+
+    Note that for validation, you can check that:
+    - cache-misses = successes + failures
+    - requests = cache-hits + cache-misses
+
+    The summary stats key prefix is 'stats:build:*'.
+    """
+    assert event in {"requests", "cache-hits", "cache-misses", "successes", "failures"}
+
+    key: str = f"stats:build:{event}"
+    add_timestamp(key, {"stats": "summary"})
 
 
 def get_queue() -> Queue:

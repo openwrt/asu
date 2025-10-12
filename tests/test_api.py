@@ -157,6 +157,14 @@ def test_build_missing_container():
     try:
         build(build_request, fake_job())
     except Exception as exc:
+        chain = exc
+        while hasattr(chain, "__context__") and chain.__context__:
+            # We want the original exception, not anything that FakeRedis
+            # generated during processing of it.
+            chain = chain.__context__
+            if isinstance(chain, RuntimeError):
+                exc = chain
+                break
         assert str(exc).startswith(
             "Image not found: ghcr.io/openwrt/imagebuilder:lantiq-xrx200-v24.10.1"
         )

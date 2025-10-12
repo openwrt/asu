@@ -116,24 +116,22 @@
                         labels: data.labels,
                         datasets: data.datasets.map(ds => ({
                             data: ds.data,
+                            label: ds.label,
+                            backgroundColor: ds.color,
+                            borderColor: ds.color,
+                            borderJoinStyle: "round",
                             fill: false
                         }))
                     },
                     options: {
                         responsive: true,
                         scales: {
-                          x: {
-                            display: false
-                          },
-                          y: {
-                            display: true
-                          }
+                            x: { display: false },
+                            y: { display: true }
                         },
                         plugins: {
-                          legend: {
-                            display: false
-                          },
-                            title: { display: false }
+                            legend: { display: true },
+                            title:  { display: false }
                         }
                     }
                 });
