@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = { extras = ["standard"], version = "^0.116.2" }
+fastapi = { extras = ["standard"], version = "^0.119.0" }
 pynacl = "^1.6.0"
 podman = "^5.6.0"
 redis = "^6.4.0"
