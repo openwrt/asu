@@ -32,6 +32,7 @@ app.include_router(api.router, prefix="/api/v1")
 app.include_router(stats.router, prefix="/api/v1")
 
 (settings.public_path / "store").mkdir(parents=True, exist_ok=True)
+(settings.public_path / "logs").mkdir(parents=True, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=base_path / "static"), name="static")
 
@@ -73,6 +74,17 @@ def index(request: Request):
             server_stats=settings.server_stats,
             max_custom_rootfs_size_mb=settings.max_custom_rootfs_size_mb,
             max_defaults_length=settings.max_defaults_length,
+        ),
+    )
+
+
+@app.get("/errors", response_class=HTMLResponse)
+def errors(request: Request, n_entries: int = 100):
+    return templates.TemplateResponse(
+        request=request,
+        name="errors.html",
+        context=dict(
+            n_entries=n_entries,
         ),
     )
 

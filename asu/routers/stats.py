@@ -1,8 +1,9 @@
 from datetime import datetime as dt, timedelta, UTC
 
 from fastapi import APIRouter
+from fastapi.responses import PlainTextResponse
 
-from asu.util import get_redis_ts
+from asu.util import get_redis_ts, ErrorLog
 
 router = APIRouter()
 
@@ -120,3 +121,23 @@ def get_builds_by_version(branch: str = None) -> dict():
             for version in sorted(bucket)
         ],
     }
+
+
+@router.get("/build-errors", response_class=PlainTextResponse)
+def get_build_errors(n_entries: int = 100) -> str:
+    """Return the 'n_entries' most recent build errors."""
+    lines = []
+    for log_file_name in ErrorLog().log_paths():
+        if chunk := log_file_name.read_text():
+            lines.extend(chunk.strip().split("\n"))
+
+    if not lines:
+        return "No error logs found."
+
+    n_errors = len(lines)
+    span = lines[0].split()[0] + " - " + lines[-1].split()[0]
+    return (
+        f"Total errors logged: {n_errors} (showing {n_entries} most recent)\n"
+        + f"Time period: {span}\n\n"
+        + "\n".join(lines[-n_entries:])
+    )

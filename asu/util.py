@@ -3,6 +3,7 @@ import email
 import hashlib
 import json
 import logging
+from logging import getLogger, handlers, Logger
 import struct
 from os import getgid, getuid
 from pathlib import Path
@@ -26,6 +27,76 @@ from asu.config import settings
 
 log: logging.Logger = logging.getLogger("rq.worker")
 log.propagate = False  # Suppress duplicate log messages.
+
+
+class ErrorLog:
+    """
+    Set up an error log expressly for public web reporting.  Entries must
+    be generic and contain no client-identifying information.
+
+    Error log entries are typically about 150-250 characters each, so a 50k
+    max file size gives roughly 200-300 errors per file before rollover.
+    """
+
+    N_BACKUPS: int = 4
+    MAX_BYTES: int = 50_000
+
+    _log_dir: Path = None
+    _logger: Logger = None
+
+    def __init__(self):
+        log_dir: Path = settings.public_path / "logs"
+        if ErrorLog._log_dir != log_dir:
+            # Set up once and only reset when the 'public_path' changes,
+            # as when running the test suite.
+            ErrorLog._log_dir = log_dir
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+            if ErrorLog._logger:
+                for handler in list(ErrorLog._logger.handlers):
+                    handler.close()
+                    ErrorLog._logger.removeHandler(handler)
+                ErrorLog._logger = None
+
+            logger: Logger = getLogger("error.log")
+            logger.setLevel(logging.INFO)
+            handler = handlers.RotatingFileHandler(
+                self.log_path(),
+                maxBytes=ErrorLog.MAX_BYTES,
+                backupCount=ErrorLog.N_BACKUPS,
+            )
+            handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s %(message)s",
+                    datefmt="%Y-%m-%dT%H:%M",
+                )
+            )
+            logger.addHandler(handler)
+            ErrorLog._logger = logger
+
+    def log_suffixes(self) -> tuple[str]:
+        return ("", *(f".{i + 1}" for i in range(ErrorLog.N_BACKUPS)))
+
+    def log_path(self, suffix: str = "") -> Path:
+        return self._log_dir / f"error.log{suffix}"
+
+    def log_paths(self) -> list[Path]:
+        """
+        Return the existing paths for the rotating active and backup error
+        logs in oldest-to-newest order.
+        """
+        return sorted(
+            (
+                path
+                for suffix in self.log_suffixes()
+                if (path := self.log_path(suffix)).exists()
+            ),
+            reverse=True,
+        )
+
+    def build_error(self, build_request: BuildRequest, error: str):
+        msg = f"{build_request.version}:{build_request.target}:{build_request.profile} {error}"
+        self._logger.info(msg)
 
 
 def get_redis_client(unicode: bool = True) -> redis.client.Redis:

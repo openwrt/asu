@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+
+        <title>OpenWrt Sysupgrade Server</title>
+        <link href="/static/style.css" rel="stylesheet" />
+        <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+    </head>
+    <body>
+        <h2>Build Errors</h2>
+        <pre id="buildErrors"></pre>
+
+        <script>
+            async function loadBuildErrors() {
+                const response = await fetch("/api/v1/build-errors?n_entries={{ n_entries }}");
+                const text = await response.text();
+                document.getElementById("buildErrors").innerText = text;
+            }
+
+            loadBuildErrors();
+        </script>
+
+    </body>
+</html>
