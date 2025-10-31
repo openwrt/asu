@@ -298,11 +298,9 @@ def _build(build_request: BuildRequest, job=None):
     job.save_meta()
 
     if any(err in job.meta["stderr"] for err in ["is too big", "out of space?"]):
-        container.kill()
         report_error(job, "Selected packages exceed device storage")
 
     if returncode:
-        container.kill()
         report_error(job, "Error while building firmware. See stdout/stderr")
 
     json_file = bin_dir / "profiles.json"
