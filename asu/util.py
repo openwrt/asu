@@ -561,9 +561,8 @@ def reload_profiles(app: FastAPI, version: str, target: str) -> bool:
     )
 
     app.profiles[version][target] = {
-        name: profile
+        profile: data.get("supported_devices", [])
         for profile, data in response.json()["profiles"].items()
-        for name in data.get("supported_devices", []) + [profile]
     }
 
     return True
