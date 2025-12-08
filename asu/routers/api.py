@@ -257,7 +257,7 @@ def api_v1_build_post(
             job_id=request_hash,
             result_ttl=result_ttl,
             failure_ttl=failure_ttl,
-            job_timeout="10m",
+            job_timeout=settings.job_timeout,
         )
     else:
         if job.is_finished:
