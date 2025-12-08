@@ -8,6 +8,7 @@ from typing import Union
 from time import perf_counter
 
 from rq import get_current_job
+from rq.utils import parse_timeout
 from podman import errors
 
 from asu.build_request import BuildRequest
@@ -169,7 +170,7 @@ def _build(build_request: BuildRequest, job=None):
 
     container = podman.containers.create(
         image,
-        command=["sleep", "600"],
+        command=["sleep", str(parse_timeout(settings.job_timeout))],
         mounts=mounts,
         cap_drop=["all"],
         no_new_privileges=True,
