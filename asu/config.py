@@ -83,6 +83,7 @@ class Settings(BaseSettings):
             "path_packages": "DEPRECATED",
             "package_changes": package_changes(),
         },
+        "25.12": release(32295),
         "24.10": release(27990),
         "23.05": release(23069),
         "22.03": release(19160),
