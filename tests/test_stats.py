@@ -150,3 +150,18 @@ def test_stats_builds_per_day(client, redis_server: FakeStrictRedis):
     assert "datasets" in data
     assert "data" in data["datasets"][0]
     assert len(data["datasets"][0]["data"]) == N_DAYS
+
+
+def test_stats_builds_by_version(client, redis_server: FakeStrictRedis):
+    response = client.post("/api/v1/build", json=build_config_1)
+    response = client.post("/api/v1/build", json=build_config_2)
+
+    response = client.get("/api/v1/builds-by-version")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "labels" in data
+    assert len(data["labels"]) == 26
+    assert "datasets" in data
+    assert len(data["datasets"]) == 1
+    assert len(data["datasets"][0]["data"]) == 26
