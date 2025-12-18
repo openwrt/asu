@@ -76,6 +76,10 @@
                         <h2>Builds per Day (last 30 days)</h2>
                         <canvas id="buildsChart" width="600" height="300"></canvas>
                     </div>
+                    <div class="grid-item">
+                        <h2>Weekly build counts by branch (last 6 months)</h2>
+                        <canvas id="versionChart" width="600" height="300"></canvas>
+                    </div>
                     {% endif %}
 
                     <details>
@@ -106,11 +110,11 @@
 {% if server_stats %}
         <script src="static/chart.js"></script>
         <script>
-            async function loadBuildStats() {
-                const response = await fetch("/api/v1/builds-per-day");
+            async function loadChart(chartSource, canvas) {
+                const response = await fetch(`/api/v1/${chartSource}`);
                 const data = await response.json();
 
-                const countChart = new Chart(document.getElementById("buildsChart"), {
+                const countChart = new Chart(document.getElementById(canvas), {
                     type: "line",
                     data: {
                         labels: data.labels,
@@ -137,7 +141,14 @@
                 });
             }
 
-            loadBuildStats()
+            loadChart("builds-per-day", "buildsChart");
+            loadChart("builds-by-version", "versionChart");
+
+            /* We could add a dropdown with branch values, then show the
+               per-version values just for that branch like this:
+
+               loadChart("builds-by-version?branch=24.10", "versionChart");
+            */
         </script>
 {% endif %}
 

@@ -11,6 +11,21 @@ DAY_MS = 24 * 60 * 60 * 1000
 N_DAYS = 30
 
 
+def start_stop(duration, interval):
+    """Calculate the time series boundaries and bucket values."""
+
+    # "stop" is next midnight to define buckets on exact day boundaries.
+    stop = dt.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    stop += timedelta(days=1)
+    stop = int(stop.timestamp() * 1000)
+    start = stop - duration * interval
+
+    stamps = list(range(start, stop, interval))
+    labels = [str(dt.fromtimestamp(stamp // 1000, UTC))[:10] + "Z" for stamp in stamps]
+
+    return start, stop, stamps, labels
+
+
 @router.get("/builds-per-day")
 def get_builds_per_day() -> dict:
     """
@@ -19,14 +34,7 @@ def get_builds_per_day() -> dict:
     https://www.chartjs.org/docs/latest/charts/line.html
     """
 
-    # "stop" is next midnight to define buckets on exact day boundaries.
-    stop = dt.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-    stop += timedelta(days=1)
-    stop = int(stop.timestamp() * 1000)
-    start = stop - N_DAYS * DAY_MS
-
-    stamps = list(range(start, stop, DAY_MS))
-    labels = [str(dt.fromtimestamp(stamp // 1000, UTC))[:10] + "Z" for stamp in stamps]
+    start, stop, stamps, labels = start_stop(N_DAYS, DAY_MS)
 
     ts = get_redis_ts()
     rc = ts.client
@@ -56,5 +64,59 @@ def get_builds_per_day() -> dict:
             get_dataset("requests", "green"),
             get_dataset("cache-hits", "orange"),
             get_dataset("failures", "red"),
+        ],
+    }
+
+
+@router.get("/builds-by-version")
+def get_builds_by_version(branch: str = None) -> dict():
+    """If 'branch' is None, then data will be returned "by branch",
+    so you get one curve for each of 23.05, 24.10, 25.12 etc.
+
+    If you specify a branch, say "24.10", then the results are for
+    all versions on that branch, 24.10.0, 24.1.1 and so on."""
+
+    interval = 7 * DAY_MS  # Each bucket is a week.
+    duration = 26  # Number of weeks of data, about 6 months.
+
+    start, stop, stamps, labels = start_stop(duration, interval)
+
+    bucket = {}
+
+    def sum_data(version, data):
+        data_map = dict(data)
+        if version not in bucket:
+            bucket[version] = [0.0] * len(stamps)
+        for i, stamp in enumerate(stamps):
+            bucket[version][i] += data_map.get(stamp, 0)
+
+    range_options = dict(
+        filters=["stats=builds"],
+        with_labels=True,
+        from_time=start,
+        to_time=stop,
+        align=start,  # Ensures alignment of X values with "stamps".
+        aggregation_type="sum",
+        bucket_size_msec=interval,
+    )
+
+    result = get_redis_ts().mrange(**range_options)
+    for row in result:
+        for data in row.values():
+            version = data[0]["version"]
+            if branch and not version.startswith(branch):
+                continue
+            elif branch is None and "." in version:
+                version = version[:5]
+            sum_data(version, data[1])
+
+    return {
+        "labels": labels,
+        "datasets": [
+            {
+                "label": version,
+                "data": bucket[version],
+            }
+            for version in sorted(bucket)
         ],
     }
