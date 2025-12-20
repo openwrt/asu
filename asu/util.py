@@ -443,9 +443,11 @@ def is_post_kmod_split_build(path: str) -> bool:
         return True
 
     version: str = path.split("/")[1]
-    if version.startswith("24."):
+    major_version: int = int(version.split(".")[0]) if "." in version else 0
+
+    if major_version >= 24:
         return True
-    if version.startswith("23."):
+    if major_version == 23:
         minor_version = version.split(".")[-1]
         if minor_version == "05-SNAPSHOT" or minor_version >= "6":
             return True
