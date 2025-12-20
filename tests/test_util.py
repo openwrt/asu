@@ -249,6 +249,8 @@ def test_check_kmod_split():
         "releases/24.10.0-rc1/targets/x86/64": True,
         "releases/24.10.2/targets/x86/64": True,
         "releases/24.10-SNAPSHOT/targets/x86/64": True,
+        "releases/25.12.2/targets/x86/64": True,
+        "releases/26.10-SNAPSHOT/targets/x86/64": True,
         "snapshots/targets/x86/64": True,
     }
 
