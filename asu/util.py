@@ -482,40 +482,55 @@ def reload_versions(app: FastAPI) -> bool:
     Returns `True` if data has changed, `False` when cache was used.
     """
 
+    def in_supported_branch(version: str) -> bool:
+        for branch_name, branch in settings.branches.items():
+            if branch["enabled"] and version.startswith(branch_name):
+                return True
+        return False
+
+    def add_versions(version_list: list, *versions: str) -> None:
+        for version in versions:
+            if not version:
+                continue
+            if version in version_list:
+                continue
+            if in_supported_branch(version):
+                version_list.append(version)
+
     response = client_get(settings.upstream_url + "/.versions.json")
     if response.status_code != 200:
         log.info(f".versions.json: failed to download {response.status_code}")
         return False
 
     if response.extensions["from_cache"] and app.versions:
+        log.debug(".versions.json: cache hit")
         return False
 
+    log.debug(".versions.json: cache miss, reloading")
+
     versions_upstream = response.json()
-    app.latest = [
+    upcoming_version = versions_upstream["upcoming_version"]
+
+    app.latest = []
+    add_versions(
+        app.latest,
+        upcoming_version,
         versions_upstream["stable_version"],
         versions_upstream["oldstable_version"],
-    ]
+    )
 
-    if versions_upstream["upcoming_version"]:
-        app.latest.insert(0, versions_upstream["upcoming_version"])
-
-    versions = versions_upstream["versions_list"]
-
-    app.versions = [
-        version
-        for version in versions
-        if any(version.startswith(branch) for branch in settings.branches.keys())
-    ]
-
-    if response.json()["upcoming_version"]:
-        app.versions.append(response.json()["upcoming_version"])
-
-    for branch in settings.branches.keys():
-        if branch != "SNAPSHOT":
-            app.versions.append(f"{branch}-SNAPSHOT")
-
-    if "SNAPSHOT" in settings.branches.keys():
-        app.versions.append("SNAPSHOT")
+    app.versions = []
+    add_versions(
+        app.versions,
+        upcoming_version,
+        *versions_upstream["versions_list"],
+        "SNAPSHOT",
+        *[
+            f"{branch_name}-SNAPSHOT"
+            for branch_name in settings.branches
+            if branch_name != "SNAPSHOT"
+        ],
+    )
 
     # Create a key that puts -rcN between -SNAPSHOT and releases.
     app.versions.sort(reverse=True, key=lambda v: v.replace(".0-rc", "-rc"))
