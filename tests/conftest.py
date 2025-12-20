@@ -103,7 +103,10 @@ def app(redis_server, test_path, monkeypatch, upstream):
     settings.server_stats = "stats"
     for branch in "1.2", "19.07", "21.02":
         if branch not in settings.branches:
-            settings.branches[branch] = {"path": "releases/{version}"}
+            settings.branches[branch] = {
+                "path": "releases/{version}",
+                "enabled": True,
+            }
 
     monkeypatch.setattr("asu.util.get_queue", mocked_redis_queue)
     monkeypatch.setattr("asu.routers.api.get_queue", mocked_redis_queue)
