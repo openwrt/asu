@@ -67,6 +67,7 @@ def index(request: Request):
         name="overview.html",
         context=dict(
             versions=app.versions,
+            branches=reversed(settings.branches),
             defaults=settings.allow_defaults,
             version=__version__,
             server_stats=settings.server_stats,
