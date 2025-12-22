@@ -23,7 +23,7 @@ pytest = "^8.4.2"
 ruff = "^0.14.9"
 coverage = "^7.13.0"
 isort = "^7.0.0"
-fakeredis = "^2.32.0"
+fakeredis = "^2.33.0"
 pytest-httpserver = "^1.1.3"
 
 
