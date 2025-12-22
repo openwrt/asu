@@ -77,7 +77,14 @@
                         <canvas id="buildsChart" width="600" height="300"></canvas>
                     </div>
                     <div class="grid-item">
-                        <h2>Weekly build counts by branch (last 6 months)</h2>
+                        <h2>Weekly build counts by branch (last 6 months)
+                            <select name="branchName" id="branchName" onchange="loadVersions()">
+                                <option value="">All</option>
+                                {% for branch in branches %}
+                                <option value="{{ branch }}">{{ branch }}</option>
+                                {%- endfor -%}
+                            </select>
+                        </h2>
                         <canvas id="versionChart" width="600" height="300"></canvas>
                     </div>
                     {% endif %}
@@ -114,6 +121,11 @@
                 const response = await fetch(`/api/v1/${chartSource}`);
                 const data = await response.json();
 
+                const oldChart = Chart.getChart(canvas);
+                if (oldChart !== undefined) {
+                    oldChart.destroy();
+                }
+
                 const countChart = new Chart(document.getElementById(canvas), {
                     type: "line",
                     data: {
@@ -142,13 +154,16 @@
             }
 
             loadChart("builds-per-day", "buildsChart");
-            loadChart("builds-by-version", "versionChart");
 
-            /* We could add a dropdown with branch values, then show the
-               per-version values just for that branch like this:
+            function loadVersions() {
+                let branch = document.getElementById("branchName").value;
+                if (branch != "") {
+                    branch = `?branch=${branch}`;
+                }
+                loadChart(`builds-by-version${branch}`, "versionChart");
+            }
 
-               loadChart("builds-by-version?branch=24.10", "versionChart");
-            */
+            loadVersions();
         </script>
 {% endif %}
 
