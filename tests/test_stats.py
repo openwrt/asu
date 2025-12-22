@@ -165,3 +165,10 @@ def test_stats_builds_by_version(client, redis_server: FakeStrictRedis):
     assert "datasets" in data
     assert len(data["datasets"]) == 1
     assert len(data["datasets"][0]["data"]) == 26
+
+    response = client.get("/api/v1/builds-by-version?branch=1.2")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert len(data["labels"]) == 26
+    assert len(data["datasets"][0]["data"]) == 26
