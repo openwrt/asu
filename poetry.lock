@@ -1622,14 +1622,14 @@ files = [
 
 [[package]]
 name = "rq"
-version = "2.6.0"
+version = "2.6.1"
 description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "rq-2.6.0-py3-none-any.whl", hash = "sha256:be5ccc0f0fc5f32da0999648340e31476368f08067f0c3fce6768d00064edbb5"},
-    {file = "rq-2.6.0.tar.gz", hash = "sha256:92ad55676cda14512c4eea5782f398a102dc3af108bea197c868c4c50c5d3e81"},
+    {file = "rq-2.6.1-py3-none-any.whl", hash = "sha256:5cc88d3bb5263a407fb2ba2dc6fe8dc710dae94b6f74396cdfe1b32beded9408"},
+    {file = "rq-2.6.1.tar.gz", hash = "sha256:db5c0d125ac9dbd4438f9a5225ea3e64050542b416fd791d424e2ab5b2853289"},
 ]
 
 [package.dependencies]
@@ -2128,4 +2128,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "2a7e394e519a41066a218c28a8c8b35717433a2a84b6c4424561e604e355adad"
+content-hash = "05c12bf8e17ff149aaec7837192d5fe6189cfb098c7815f5c841e1faa66730a4"
