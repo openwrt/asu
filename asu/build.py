@@ -236,8 +236,10 @@ def _build(build_request: BuildRequest, job=None):
 
     if settings.squid_cache and not is_snapshot_build(build_request.version):
         log.info("Disabling HTTPS for repositories")
-        # Once APK is used for a stable release, handle `repositories`, too
-        run_cmd(container, ["sed", "-i", "s|https|http|g", "repositories.conf"])
+        run_cmd(
+            container,
+            ["sed", "-i", "s|https|http|g", "repositories.conf", "repositories"],
+        )
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container,
