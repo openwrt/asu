@@ -209,9 +209,6 @@ def api_v1_build_post(
     request: Request,
     user_agent: str = Header(None),
 ):
-    # Sanitize the profile in case the client did not (bug in older LuCI app).
-    build_request.profile = build_request.profile.replace(",", "_")
-
     add_build_event("requests")
 
     request_hash: str = get_request_hash(build_request)
