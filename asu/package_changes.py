@@ -114,6 +114,59 @@ def apply_package_changes(build_request: BuildRequest):
                 "solidrun_clearfog-pro",
             }:
                 _add_if_missing("kmod-dsa-mv88e6xxx")
+        # Changes for https://github.com/openwrt/openwrt/commit/a18d95f35bd54ade908e8ec3158435859402552d
+        elif build_request.target == "lantiq/xrx200":
+            if build_request.profile in {
+                "arcadyan_arv7519rw22",
+                "arcadyan_vgv7510kw22-brn",
+                "arcadyan_vgv7510kw22-nor",
+                "avm_fritz7412",
+                "avm_fritz7430",
+                "buffalo_wbmr-300hpd",
+            }:
+                _add_if_missing("xrx200-rev1.1-phy22f-firmware")
+                _add_if_missing("xrx200-rev1.2-phy22f-firmware")
+            elif build_request.profile in {
+                "tplink_vr200",
+                "tplink_vr200v",
+                "arcadyan_vgv7519-brn",
+                "arcadyan_vgv7519-nor",
+                "arcadyan_vrv9510kwac23",
+                "avm_fritz3370-rev2-hynix",
+                "avm_fritz3370-rev2-micron",
+                "avm_fritz3390",
+                "avm_fritz3490",
+                "avm_fritz3490-micron",
+                "avm_fritz5490",
+                "avm_fritz5490-micron",
+                "avm_fritz7360sl",
+                "avm_fritz7360-v2",
+                "avm_fritz7362sl",
+                "avm_fritz7490",
+                "avm_fritz7490-micron",
+                "bt_homehub-v5a",
+                "lantiq_easy80920-nand",
+                "lantiq_easy80920-nor",
+                "zyxel_p-2812hnu-f1",
+                "zyxel_p-2812hnu-f3",
+            }:
+                _add_if_missing("xrx200-rev1.1-phy11g-firmware")
+                _add_if_missing("xrx200-rev1.2-phy11g-firmware")
+        # Changes for https://github.com/openwrt/openwrt/commit/a18d95f35bd54ade908e8ec3158435859402552d
+        elif build_request.target == "lantiq/xrx200_legacy":
+            if build_request.profile in {
+                "alphanetworks_asl56026",
+                "netgear_dm200",
+            }:
+                _add_if_missing("xrx200-rev1.1-phy22f-firmware")
+                _add_if_missing("xrx200-rev1.2-phy22f-firmware")
+            elif build_request.profile in {
+                "tplink_tdw8970",
+                "tplink_tdw8980",
+                "arcadyan_vg3503j",
+            }:
+                _add_if_missing("xrx200-rev1.1-phy11g-firmware")
+                _add_if_missing("xrx200-rev1.2-phy11g-firmware")
 
     # TODO: if we ever fully implement 'packages_versions', this needs rework
     for version, packages in language_packs.items():
