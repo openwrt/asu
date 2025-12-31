@@ -167,6 +167,25 @@ def apply_package_changes(build_request: BuildRequest):
             }:
                 _add_if_missing("xrx200-rev1.1-phy11g-firmware")
                 _add_if_missing("xrx200-rev1.2-phy11g-firmware")
+        # Changes for https://github.com/openwrt/openwrt/commit/3b7a92754e81432024b232c7cd7fe32593891ee0
+        elif build_request.target == "bcm53xx/generic":
+            if build_request.profile in {
+                "meraki_mr32",
+            }:
+                _add_if_missing("kmod-hci-uart")
+        elif build_request.target == "ipq40xx/generic":
+            if build_request.profile in {
+                "linksys_whw03",
+                "linksys_whw03v2",
+            }:
+                _add_if_missing("kmod-hci-uart")
+        elif build_request.target == "qualcommax/ipq807x":
+            if build_request.profile in {
+                "linksys_mx4200v1",
+                "linksys_mx8500",
+                "zyxel_nbg7815",
+            }:
+                _add_if_missing("kmod-hci-uart")
 
     # TODO: if we ever fully implement 'packages_versions', this needs rework
     for version, packages in language_packs.items():
