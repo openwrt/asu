@@ -174,9 +174,7 @@ def api_v1_packages(
 
     # Get default and profile packages
     default_packages, profile_packages = get_profile_packages(
-        package_request.version,
-        package_request.target.split("/")[0],
-        package_request.target.split("/")[1],
+        package_request.version, package_request.target, package_request.profile
     )
 
     # Apply version/target/profile specific package changes
