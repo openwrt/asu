@@ -55,6 +55,18 @@ them. It coordinates several OpenWrt ImageBuilders and caches the resulting
 images in a Redis database. If an image is cached, the server can provide it
 immediately without rebuilding.
 
+### Architecture
+
+The server consists of two logical components that can be run as separate services:
+
+1. **Package Selection Service** - Determines the correct package selection for
+   devices based on version, target, and profile
+2. **Build Service** - Builds firmware images with the selected packages
+
+Both services share the same codebase and can be deployed either:
+- As a single unified service (default)
+- As separate services for improved scalability
+
 ### Active server
 
 > [!NOTE]
@@ -204,3 +216,33 @@ server:
 
 - [https://sysupgrade.openwrt.org/docs/](https://sysupgrade.openwrt.org/docs/)
 - [https://sysupgrade.openwrt.org/redoc](https://sysupgrade.openwrt.org/redoc/)
+
+#### Package Selection API
+
+Starting from this version, ASU provides dedicated package selection endpoints
+that can be used independently from the build service. This allows you to:
+
+- Determine the correct package selection for a device
+- Validate build requests before submitting them
+- Run package selection as a separate service from the build service
+
+**Endpoints:**
+
+- `POST /api/v1/packages/select` - Determine package selection for a device
+- `POST /api/v1/packages/validate` - Validate a build request
+
+These endpoints accept the same parameters as the build API but only perform
+package selection and validation without triggering a build.
+
+**Example:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/packages/select \
+  -H "Content-Type: application/json" \
+  -d '{
+    "version": "23.05.5",
+    "target": "ath79/generic",
+    "profile": "tplink_archer-c7-v5",
+    "packages": ["vim", "tmux"]
+  }'
+```
