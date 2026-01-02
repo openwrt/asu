@@ -62,6 +62,10 @@ def get_package_list(build_request: BuildRequest) -> list[str]:
     """
     packages = [
         x.removeprefix("+")
-        for x in (build_request.packages_versions.keys() or build_request.packages)
+        for x in (
+            build_request.packages_versions.keys()
+            if build_request.packages_versions
+            else build_request.packages
+        )
     ]
     return packages
