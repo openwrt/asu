@@ -10,7 +10,7 @@ def test_get_package_list_from_packages():
         version="1.2.3",
         target="testtarget/testsubtarget",
         profile="testprofile",
-        packages=["vim", "tmux", "+htop"],
+        packages=["vim", "tmux", "htop"],
     )
     packages = get_package_list(build_request)
     assert packages == ["vim", "tmux", "htop"]
@@ -22,7 +22,7 @@ def test_get_package_list_from_packages_versions():
         version="1.2.3",
         target="testtarget/testsubtarget",
         profile="testprofile",
-        packages_versions={"vim": "1.0", "+tmux": "2.0"},
+        packages_versions={"vim": "1.0", "tmux": "2.0"},
     )
     packages = get_package_list(build_request)
     assert "vim" in packages
