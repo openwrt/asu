@@ -8,6 +8,7 @@ from rq.job import Job
 from asu.build import build
 from asu.build_request import BuildRequest
 from asu.config import settings
+from asu.package_selection import get_package_list
 from asu.util import (
     add_timestamp,
     add_build_event,
@@ -101,10 +102,7 @@ def validate_request(
         if build_request.version not in app.versions:
             return validation_failure(f"Unsupported version: {build_request.version}")
 
-    build_request.packages: list[str] = [
-        x.removeprefix("+")
-        for x in (build_request.packages_versions.keys() or build_request.packages)
-    ]
+    build_request.packages = get_package_list(build_request)
 
     if build_request.target not in app.targets[build_request.version]:
         reload_targets(app, build_request.version)

@@ -13,7 +13,7 @@ from podman import errors
 
 from asu.build_request import BuildRequest
 from asu.config import settings
-from asu.package_changes import apply_package_changes
+from asu.package_selection import select_packages
 from asu.util import (
     add_timestamp,
     add_build_event,
@@ -221,15 +221,10 @@ def _build(build_request: BuildRequest, job=None):
         .split()
     )
 
-    apply_package_changes(build_request)
-
-    build_cmd_packages = build_request.packages
-
-    if build_request.diff_packages:
-        build_cmd_packages: list[str] = diff_packages(
-            build_request.packages, default_packages | profile_packages
-        )
-        log.debug(f"Diffed packages: {build_cmd_packages}")
+    # Use the package selection module to determine final package list
+    build_cmd_packages = select_packages(
+        build_request, default_packages, profile_packages
+    )
 
     job.meta["imagebuilder_status"] = "validate_manifest"
     job.save_meta()
