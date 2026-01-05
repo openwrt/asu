@@ -98,7 +98,7 @@ class BuildRequest(BaseModel):
         Field(
             description="""
                 This parameter determines if requested packages are seen as
-                *additional* or *absolute*. If set to `true` the packages are
+                *additional* or *absolute*. If set to `false` the packages are
                 seen as *absolute* and all default packages outside the
                 requested packages are removed. \n\n It is possible to brick
                 devices when requesting an incomplete list with this parameter
@@ -106,7 +106,7 @@ class BuildRequest(BaseModel):
                 packages.
             """.strip(),
         ),
-    ] = False
+    ] = True
     defaults: Annotated[
         str | None,
         Field(
