@@ -15,6 +15,7 @@ from asu.build_request import BuildRequest
 from asu.config import settings
 from asu.package_changes import apply_package_changes
 from asu.util import (
+    ErrorLog,
     add_timestamp,
     add_build_event,
     check_manifest,
@@ -31,7 +32,9 @@ from asu.util import (
     run_cmd,
 )
 
+
 log = logging.getLogger("rq.worker")
+error_log = ErrorLog()
 
 
 def _build(build_request: BuildRequest, job=None):
@@ -188,7 +191,7 @@ def _build(build_request: BuildRequest, job=None):
         )
         if returncode:
             container.kill()
-            report_error(job, "Could not set up ImageBuilder")
+            report_error(job, f"Could not set up ImageBuilder ({returncode=})")
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container, ["make", "info"]
@@ -436,9 +439,10 @@ def _build(build_request: BuildRequest, job=None):
 def build(build_request: BuildRequest, job=None):
     try:
         result = _build(build_request, job)
-    except Exception:
+    except Exception as exc:
         # Log all build errors, including internal server errors.
         add_build_event("failures")
+        error_log.build_error(build_request, str(exc))
         raise
     else:
         add_build_event("successes")
