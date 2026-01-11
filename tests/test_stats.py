@@ -1,5 +1,8 @@
 import time
+
 from fakeredis import FakeStrictRedis
+
+from asu.build_request import BuildRequest
 
 build_config_1 = dict(
     version="1.2.3",
@@ -172,3 +175,117 @@ def test_stats_builds_by_version(client, redis_server: FakeStrictRedis):
     data = response.json()
     assert len(data["labels"]) == 26
     assert len(data["datasets"][0]["data"]) == 26
+
+
+def test_build_error_log(client, test_path):
+    """Test that build errors are logged correctly."""
+    from asu.util import ErrorLog
+
+    # Create a fresh ErrorLog instance for testing
+    error_log = ErrorLog.__new__(ErrorLog)
+    error_log._initialized = False
+    error_log.__init__()
+
+    # Initially should have no errors
+    response = client.get("/api/v1/build-errors")
+    assert response.status_code == 200
+    assert "No build errors recorded" in response.text
+
+    # Log an error
+    build_request = BuildRequest(
+        distro="openwrt",
+        version="24.10-SNAPSHOT",
+        version_code="",
+        target="ath79/generic",
+        profile="tplink_tl-wdr4300-v1",
+        packages=["vim"],
+    )
+    error_log.log_build_error(build_request, "Test error message")
+
+    # Now check the error appears
+    entries = error_log.get_entries()
+    assert len(entries) == 1
+    assert "24.10-SNAPSHOT:ath79/generic:tplink_tl-wdr4300-v1" in entries[0]
+    assert "Test error message" in entries[0]
+
+    # Log another error
+    error_log.log_build_error(build_request, "Second error")
+    entries = error_log.get_entries()
+    assert len(entries) == 2
+    # Most recent should be first
+    assert "Second error" in entries[0]
+
+    # Test summary format
+    summary = error_log.get_summary()
+    assert "Build Errors: 2 entries" in summary
+    assert "Time range:" in summary
+
+
+def test_build_error_log_api(client, test_path):
+    """Test the /api/v1/build-errors endpoint."""
+    response = client.get("/api/v1/build-errors")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+
+    # Test with custom n parameter
+    response = client.get("/api/v1/build-errors?n=50")
+    assert response.status_code == 200
+
+
+def test_build_error_log_reads_multiple_backups(test_path):
+    """Test that get_entries reads from multiple backup files."""
+
+    from asu.util import ErrorLog
+
+    # Create a fresh ErrorLog instance for testing
+    error_log = ErrorLog.__new__(ErrorLog)
+    error_log._initialized = False
+    error_log.__init__()
+
+    # Create the log directory
+    log_dir = error_log._log_dir
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create main log file and several backup files with entries
+    (log_dir / "build-errors.log").write_text("entry_main\n")
+    (log_dir / "build-errors.log.1").write_text("entry_backup1\n")
+    (log_dir / "build-errors.log.2").write_text("entry_backup2\n")
+    (log_dir / "build-errors.log.3").write_text("entry_backup3\n")
+
+    # Get entries - should read from all files
+    entries = error_log.get_entries(n_entries=100)
+
+    assert len(entries) == 4
+    # Entries should be in reverse order (newest first)
+    assert entries[0] == "entry_main"
+    assert entries[1] == "entry_backup1"
+    assert entries[2] == "entry_backup2"
+    assert entries[3] == "entry_backup3"
+
+
+def test_build_error_log_respects_n_entries_across_backups(test_path):
+    """Test that get_entries respects n_entries limit across backup files."""
+
+    from asu.util import ErrorLog
+
+    # Create a fresh ErrorLog instance for testing
+    error_log = ErrorLog.__new__(ErrorLog)
+    error_log._initialized = False
+    error_log.__init__()
+
+    # Create the log directory
+    log_dir = error_log._log_dir
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create log files with multiple entries each
+    (log_dir / "build-errors.log").write_text("main1\nmain2\n")
+    (log_dir / "build-errors.log.1").write_text("backup1_a\nbackup1_b\n")
+    (log_dir / "build-errors.log.2").write_text("backup2_a\nbackup2_b\n")
+
+    # Request only 3 entries - should stop after getting enough
+    entries = error_log.get_entries(n_entries=3)
+
+    assert len(entries) == 3
+    assert entries[0] == "main2"
+    assert entries[1] == "main1"
+    assert entries[2] == "backup1_b"
