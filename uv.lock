@@ -41,6 +41,7 @@ dependencies = [
     { name = "fastapi-cache2" },
     { name = "httpx" },
     { name = "podman" },
+    { name = "podman-compose" },
     { name = "pydantic-settings" },
     { name = "pynacl" },
     { name = "redis" },
@@ -67,6 +68,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "podman", specifier = ">=5.6.0" },
+    { name = "podman-compose", specifier = ">=1.5.0" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "pynacl", specifier = ">=1.6.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.2" },
@@ -660,6 +662,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3b/36/070e7bf682ac0868450584df79198c178323e80f73b8fb9b6fec8bde0a65/podman-5.6.0.tar.gz", hash = "sha256:cc5f7aa9562e30f992fc170a48da970a7132be60d8a2e2941e6c17bd0a0b35c9", size = 72832, upload-time = "2025-09-05T09:42:40.071Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/9e/8c62f05b104d9f00edbb4c298b152deceb393ea67f0288d89d1139d7a859/podman-5.6.0-py3-none-any.whl", hash = "sha256:967ff8ad8c6b851bc5da1a9410973882d80e235a9410b7d1e931ce0c3324fbe3", size = 88713, upload-time = "2025-09-05T09:42:38.405Z" },
+]
+
+[[package]]
+name = "podman-compose"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/24/91/b168a685ca6813ff9b467d76a7365a099aec16a1032b6edf39b0cd19f6c3/podman_compose-1.5.0.tar.gz", hash = "sha256:5cc09362852711ce5d27648e41cb5fd058ea5a75acbcdec2f8d0b0c114a18e8e", size = 47377, upload-time = "2025-07-07T14:18:09.633Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/41/4b/75ab5c151b9d170fdae0048a6f6528535aff848140c007f408af9ac555d6/podman_compose-1.5.0-py3-none-any.whl", hash = "sha256:f0b9d35f4da1b309172adf208a5cb7a882b532a834c2202666c1988b6f147546", size = 47129, upload-time = "2025-07-07T14:18:08.373Z" },
 ]
 
 [[package]]

@@ -17,6 +17,7 @@ dependencies = [
     "uvicorn>=0.37.0",
     "fastapi-cache2>=0.2.2",
     "httpx>=0.28.1",
+    "podman-compose>=1.5.0",
 ]
 
 [project.optional-dependencies]
