@@ -172,3 +172,29 @@ def test_stats_builds_by_version(client, redis_server: FakeStrictRedis):
     data = response.json()
     assert len(data["labels"]) == 26
     assert len(data["datasets"][0]["data"]) == 26
+
+
+def test_stats_build_error_log(client, test_path):
+    from asu.util import ErrorLog
+
+    class build_request:
+        version = "29.02.3"
+        target = "beast22/specific"
+        profile = "some_old-thing"
+
+    response = client.get("/api/v1/build-errors")
+    text = response.text.split("\n")
+
+    assert len(text) == 1
+    assert text[0] == "No error logs found."
+
+    logger = ErrorLog()
+    logger.build_error(build_request, "The first error")
+    logger.build_error(build_request, "Error message two")
+
+    response = client.get("/api/v1/build-errors")
+    text = response.text.split("\n")
+
+    assert len(text) == 5
+    assert "The first error" in text[-2]
+    assert "Error message two" in text[-1]
