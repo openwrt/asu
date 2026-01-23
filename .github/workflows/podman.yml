@@ -26,12 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install ImageBuilder prereqs
-        run: sudo apt-get install -y podman-compose jq
+      - name: Install prereqs
+        run: sudo apt-get install -y jq
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Build the containers
         run: |
-          podman-compose build
+          uv run podman-compose build
 
       - name: Start the containers
         run: |
@@ -39,7 +42,7 @@ jobs:
           podman system service --time=0 "unix://$CONTAINER_SOCKET_PATH" &
           echo "PUBLIC_PATH=$(pwd)/public" > .env
           echo "CONTAINER_SOCKET_PATH=$CONTAINER_SOCKET_PATH" >> .env
-          podman-compose up -d
+          uv run podman-compose up -d
 
       - name: Let the containers start
         run: sleep 30
