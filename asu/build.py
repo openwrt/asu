@@ -175,7 +175,7 @@ def _build(build_request: BuildRequest, job=None):
         cap_drop=["all"],
         no_new_privileges=True,
         privileged=False,
-        networks={"pasta": {}},
+        network_mode="pasta",
         auto_remove=True,
         environment=environment,
     )
