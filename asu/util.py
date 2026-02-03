@@ -9,7 +9,7 @@ from datetime import datetime, UTC
 from logging.handlers import RotatingFileHandler
 from os import getgid, getuid
 from pathlib import Path
-from re import match
+from re import match, findall, DOTALL, MULTILINE
 from tarfile import TarFile
 from io import BytesIO
 from typing import Optional
@@ -369,6 +369,67 @@ def check_manifest(
                 f"Impossible package selection: {package} version not as requested: "
                 f"{version} vs. {manifest[package]}"
             )
+    return None
+
+
+def check_package_errors(stderr: str) -> str:
+    """
+    Note that this docstring is used as the test case, see tests/test_util.py
+
+    opkg has two error formats:
+
+    Case 1
+        Collected errors:
+         * opkg_install_cmd: Cannot install package OPKG-MISSING.
+
+    Case 2
+        Collected errors:
+         * check_conflicts_for: The following packages conflict with OPKG-CONFLICT-1:
+         * check_conflicts_for:         OPKG-CONFLICT-2 *
+         * opkg_install_cmd: Cannot install package OPKG-CONFLICT-1.
+
+    apk also has two error formats:
+
+    Case 3
+        ERROR: unable to select packages:
+          APK-MISSING (no such package):
+            required by: world[APK-MISSING]
+
+    Case 4
+        ERROR: unable to select packages:
+          APK-CONFLICT-1:
+            conflicts: APK-CONFLICT-2[nftables=1.1.6-r1]
+            satisfies: world[nftables-json] ...
+          APK-CONFLICT-2:
+            conflicts: APK-CONFLICT-1[nftables=1.1.6-r1]
+            satisfies: world[nftables-nojson]
+    """
+
+    # Grab the missing ones first, as that's easy.
+    missing = set(
+        findall(r"Cannot install package ([^ ]+)\.", stderr)  # Case 1
+        + findall(r" ([^ ]+) \(no such package\)", stderr)  # Case 3
+    )
+
+    # Conflicts are grouped in apk, so need to be flattened.
+    # Case 4
+    conflicts = findall(r"\n +([^:]+):\n +conflicts: ([^[]+)", stderr, DOTALL)
+    conflicts = set(item for pair in conflicts for item in pair)
+    # Case 2
+    conflicts.update(
+        findall(r"\* check_conflicts_for:.+ ([^ ]+)(?: \*|:)$", stderr, MULTILINE)
+    )
+
+    # opkg reports missing and conflicts with same message, so clean that up.
+    # If it's conflicting, remove it from missing...
+    missing.difference_update(conflicts)
+
+    pkg_list = ":" if missing or conflicts else ""
+    if missing:
+        pkg_list += " missing (" + ", ".join(sorted(missing)) + ")"
+    if conflicts:
+        pkg_list += " conflicts (" + ", ".join(sorted(conflicts)) + ")"
+    return f"Impossible package selection{pkg_list}"
 
 
 def parse_packages_file(url: str) -> dict[str, str]:

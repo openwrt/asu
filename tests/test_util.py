@@ -8,6 +8,7 @@ import asu.util
 from asu.build_request import BuildRequest
 from asu.util import (
     check_manifest,
+    check_package_errors,
     diff_packages,
     fingerprint_pubkey_usign,
     get_container_version_tag,
@@ -308,6 +309,22 @@ def test_check_manifest():
     assert (
         check_manifest({"test": "1.0"}, {"test2": "1.0"})
         == "Impossible package selection: test2 not in manifest"
+    )
+
+
+def test_check_package_errors():
+    assert check_package_errors("hello world") == "Impossible package selection"
+    assert (
+        check_package_errors(
+            " * opkg_install_cmd: Cannot install package OPKG-MISSING."
+        )
+        == "Impossible package selection: missing (OPKG-MISSING)"
+    )
+    assert (
+        check_package_errors(check_package_errors.__doc__)
+        == "Impossible package selection:"
+        " missing (APK-MISSING, OPKG-MISSING)"
+        " conflicts (APK-CONFLICT-1, APK-CONFLICT-2, OPKG-CONFLICT-1, OPKG-CONFLICT-2)"
     )
 
 

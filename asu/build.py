@@ -18,6 +18,7 @@ from asu.util import (
     add_timestamp,
     add_build_event,
     check_manifest,
+    check_package_errors,
     diff_packages,
     error_log,
     fingerprint_pubkey_usign,
@@ -189,7 +190,7 @@ def _build(build_request: BuildRequest, job=None):
         )
         if returncode:
             container.kill()
-            report_error(job, "Could not set up ImageBuilder")
+            report_error(job, f"Could not set up ImageBuilder ({returncode=})")
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
         container, ["make", "info"]
@@ -257,7 +258,7 @@ def _build(build_request: BuildRequest, job=None):
 
     if returncode:
         container.kill()
-        report_error(job, "Impossible package selection")
+        report_error(job, check_package_errors(job.meta["stderr"]))
 
     manifest: dict[str, str] = parse_manifest(job.meta["stdout"])
     log.debug(f"Manifest: {manifest}")
