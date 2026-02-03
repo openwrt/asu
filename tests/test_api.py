@@ -449,7 +449,9 @@ def test_api_build_conflicting_packages(client):
 
     assert response.status_code == 500
     data = response.json()
-    assert data["detail"] == "Error: Impossible package selection"
+    assert (
+        data["detail"] == "Error: Impossible package selection: missing (dnsmasq-full)"
+    )
 
 
 def test_api_build_without_packages_list(client):
