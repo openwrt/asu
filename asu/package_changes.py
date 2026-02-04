@@ -29,6 +29,13 @@ def apply_package_changes(build_request: BuildRequest):
             build_request.packages.append(package)
             log.debug(f"Added {package} to packages")
 
+    def _remove_if_present(package):
+        if package in build_request.packages:
+            build_request.packages.remove(package)
+            log.debug(f"Removed {package} from packages")
+            return True
+        return False
+
     # 23.05 specific changes
     if build_request.version.startswith("23.05"):
         # mediatek/mt7622 specific changes
@@ -55,8 +62,7 @@ def apply_package_changes(build_request: BuildRequest):
 
     if build_request.version.startswith("24.10"):
         # `auc` no longer exists here
-        if "auc" in build_request.packages:
-            build_request.packages.remove("auc")
+        if _remove_if_present("auc"):
             _add_if_missing("owut")
 
         if build_request.profile in {"tplink_archer-c6-v2"}:
@@ -196,6 +202,10 @@ def apply_package_changes(build_request: BuildRequest):
                 "zyxel_nbg7815",
             }:
                 _add_if_missing("kmod-hci-uart")
+
+    if build_request.version == "SNAPSHOT":  # Change "SNAPSHOT" to 26.x when needed.
+        # https://github.com/openwrt/openwrt/commit/5b61a50244ebc82096f5949de294ad69851e1fd6
+        _remove_if_present("kmod-nf-conntrack6")
 
     # TODO: if we ever fully implement 'packages_versions', this needs rework
     for version, packages in language_packs.items():
