@@ -9,7 +9,7 @@ from datetime import datetime, UTC
 from logging.handlers import RotatingFileHandler
 from os import getgid, getuid
 from pathlib import Path
-from re import match, findall, DOTALL, MULTILINE
+from re import match, findall, sub, DOTALL, MULTILINE
 from tarfile import TarFile
 from io import BytesIO
 from typing import Optional
@@ -713,8 +713,9 @@ class ErrorLog:
             error_message: Description of the error
         """
         timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-        # Sanitize error message: single line, limited length
-        clean_error = " ".join(error_message.split())[:200]
+        # Sanitize error message: remove any job hash, single line, limited length
+        clean_error = sub(r"[0-9a-f]{64}", r"[job-id]", error_message)
+        clean_error = " ".join(clean_error.split())[:200]
         profile_info = (
             f"{build_request.version}:{build_request.target}:{build_request.profile}"
         )

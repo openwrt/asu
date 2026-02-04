@@ -220,6 +220,16 @@ def test_build_error_log(client, test_path):
     assert "Build Errors: 2 entries" in summary
     assert "Time range:" in summary
 
+    # Test sanitization of job hashes
+    error_log.log_build_error(
+        build_request,
+        "Internal Server Error (no container with ID "
+        "eee08b3b7b072f2ba82559c6e61da9b84e00cdbc35a4d99392fec36c0bf64356"
+        " found in database: no such container)",
+    )
+    entries = error_log.get_entries()
+    assert " ID [job-id] found " in entries[0]
+
 
 def test_build_error_log_api(client, test_path):
     """Test the /api/v1/build-errors endpoint."""
