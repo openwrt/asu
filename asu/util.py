@@ -376,30 +376,37 @@ def check_package_errors(stderr: str) -> str:
     """
     Note that this docstring is used as the test case, see tests/test_util.py
 
-    opkg has two error formats:
+    opkg error formats:
 
-    Case 1
+    Case opkg-1
         Collected errors:
          * opkg_install_cmd: Cannot install package OPKG-MISSING.
 
-    Case 2
+    Case opkg-2
         Collected errors:
          * check_conflicts_for: The following packages conflict with OPKG-CONFLICT-1:
          * check_conflicts_for:         OPKG-CONFLICT-2 *
          * opkg_install_cmd: Cannot install package OPKG-CONFLICT-1.
 
-    apk also has two error formats:
+    Case opkg-3
+        Collected errors:
+         * check_data_file_clashes: Package OPKG-CONFLICT-3 wants to install file /some/file
+                But that file is already provided by package  * OPKG-CONFLICT-4
+         * opkg_install_cmd: Cannot install package OPKG-CONFLICT-4.
 
-    Case 3
+    apk error formats:
+
+    Case apk-1
         ERROR: unable to select packages:
           APK-MISSING (no such package):
             required by: world[APK-MISSING]
 
-    Case 4
+    Case apk-2
         ERROR: unable to select packages:
           APK-CONFLICT-1:
             conflicts: APK-CONFLICT-2[nftables=1.1.6-r1]
-            satisfies: world[nftables-json] ...
+            satisfies: world[nftables-json]
+                       blah[nftables]
           APK-CONFLICT-2:
             conflicts: APK-CONFLICT-1[nftables=1.1.6-r1]
             satisfies: world[nftables-nojson]
@@ -407,17 +414,20 @@ def check_package_errors(stderr: str) -> str:
 
     # Grab the missing ones first, as that's easy.
     missing = set(
-        findall(r"Cannot install package ([^ ]+)\.", stderr)  # Case 1
-        + findall(r" ([^ ]+) \(no such package\)", stderr)  # Case 3
+        findall(r"Cannot install package ([^ ]+)\.", stderr)  # Case opkg-1
+        + findall(r" ([^ ]+) \(no such package\)", stderr)  # Case apk-1
     )
 
     # Conflicts are grouped in apk, so need to be flattened.
-    # Case 4
-    conflicts = findall(r"\n +([^:]+):\n +conflicts: ([^[]+)", stderr, DOTALL)
+    # Case apk-2
+    conflicts = findall(r"\n +([^:\n]+):\n +conflicts: ([^[]+)", stderr, DOTALL)
     conflicts = set(item for pair in conflicts for item in pair)
-    # Case 2
+
+    # Case opkg-2 and opkg-3
     conflicts.update(
-        findall(r"\* check_conflicts_for:.+ ([^ ]+)(?: \*|:)$", stderr, MULTILINE)
+        findall(r"check_data_file_clashes: Package ([^ ]+) wants to", stderr)
+        + findall(r"is already provided by package  \* ([^ ]+)$", stderr, MULTILINE)
+        + findall(r"\* check_conflicts_for:.+ ([^ ]+)(?: \*|:)$", stderr, MULTILINE)
     )
 
     # opkg reports missing and conflicts with same message, so clean that up.
