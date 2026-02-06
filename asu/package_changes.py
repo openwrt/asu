@@ -215,3 +215,8 @@ def apply_package_changes(build_request: BuildRequest):
                     if package.startswith(old):
                         lang = package.replace(old, "")
                         build_request.packages[i] = f"{new}{lang}"
+
+    # Clean out all the no longer present -en translations
+    for package in list(build_request.packages):
+        if package.startswith("luci-i18n-") and package.endswith("-en"):
+            _remove_if_present(package)
