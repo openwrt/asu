@@ -324,8 +324,10 @@ def _build(build_request: BuildRequest, job=None):
         map(
             lambda i: i["name"],
             filter(
-                lambda i: i["type"]
-                in ["sysupgrade", "factory", "combined", "combined-efi", "sdcard"],
+                lambda i: (
+                    i["type"]
+                    in ["sysupgrade", "factory", "combined", "combined-efi", "sdcard"]
+                ),
                 json_content["profiles"][build_request.profile]["images"],
             ),
         )
