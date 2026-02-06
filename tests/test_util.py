@@ -2,6 +2,8 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from podman import PodmanClient
 
 import asu.util
@@ -353,6 +355,39 @@ def test_run_cmd():
 
     assert returncode == 0
     assert "testtarget/testsubtarget" in stdout
+
+
+def test_run_cmd_rejects_tar_path_traversal(tmp_path, monkeypatch):
+    """Tar archives with path traversal members must be rejected (CVE-2007-4559).
+
+    The filter='data' argument to extractall() raises an error for entries
+    with absolute paths or parent directory references like '../../etc/passwd'.
+    """
+    import io
+    import tarfile
+    from unittest.mock import MagicMock
+
+    # Build a malicious tar archive with a path traversal entry
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as tar:
+        info = tarfile.TarInfo(name="../../etc/malicious")
+        info.size = 7
+        tar.addfile(info, io.BytesIO(b"pwned!\n"))
+    buf.seek(0)
+
+    # Mock a container that returns this malicious tar
+    mock_container = MagicMock()
+    mock_container.exec_run.return_value = (0, (b"ok", b""))
+    mock_container.get_archive.return_value = (iter([buf.getvalue()]), None)
+
+    dest = str(tmp_path / "output")
+    os.makedirs(dest)
+
+    with pytest.raises(Exception, match="is outside the destination"):
+        run_cmd(mock_container, ["echo"], copy=["/fake", dest])
+
+    # Verify the malicious file was NOT written
+    assert not (tmp_path / "etc" / "malicious").exists()
 
 
 def test_parse_manifest_opkg():
