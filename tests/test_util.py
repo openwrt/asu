@@ -181,8 +181,8 @@ def test_get_packages_versions():
     assert packages == packages_without_abi
 
     # Old opkg-style Packages format, but with v1 index.json
-    asu.util.client_get = (
-        lambda url: ResponseJson1() if "json" in url else ResponseText()
+    asu.util.client_get = lambda url: (
+        ResponseJson1() if "json" in url else ResponseText()
     )
     index = parse_packages_file("httpx://fake_url")
     packages = index["packages"]
@@ -191,8 +191,8 @@ def test_get_packages_versions():
     assert packages == packages_without_abi
 
     # New apk-style without Packages, but old v1 index.json
-    asu.util.client_get = (
-        lambda url: ResponseJson1() if "json" in url else Response404()
+    asu.util.client_get = lambda url: (
+        ResponseJson1() if "json" in url else Response404()
     )
     index = parse_packages_file("httpx://fake_url")
     packages = index["packages"]
