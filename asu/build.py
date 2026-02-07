@@ -214,7 +214,8 @@ def _build(build_request: BuildRequest, job=None):
             report_error(job, f"Could not set up ImageBuilder ({returncode=})")
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
-        container, ["make", "info"]
+        container, ["make", "info"],
+        copy=[".packageinfo", bin_dir],
     )
 
     job.meta["imagebuilder_status"] = "validate_revision"
@@ -229,12 +230,11 @@ def _build(build_request: BuildRequest, job=None):
                 f"Received incorrect version {version_code} (requested {requested})",
             )
 
-    default_packages = set(
+    target_default_packages = set(
         re.search(r"Default Packages: (.*)\n", job.meta["stdout"]).group(1).split()
-    )
-    log.debug(f"Default packages: {default_packages}")
+    )    
 
-    profile_packages = set(
+    profile_default_packages = set(
         re.search(
             r"{}:\n    .+\n    Packages: (.*?)\n".format(build_request.profile),
             job.meta["stdout"],
@@ -244,13 +244,51 @@ def _build(build_request: BuildRequest, job=None):
         .split()
     )
 
+    default_packages = target_default_packages | profile_default_packages
+    log.debug(f"Default packages: {default_packages}")
+
     apply_package_changes(build_request)
 
     build_cmd_packages = build_request.packages
 
     if build_request.diff_packages:
+        # additional mode - keep default packages which not conflict with user requested packages
+        # Get information about package conflicts and provides from .packageinfo
+        packages_db: dict[str, dict[str, list[str]]] = {}
+        packages_with_conflicts: set[str] = set()
+        with open(str(bin_dir / ".packageinfo"), 'r') as file:
+            pack_blocks = re.findall(
+                r"Package: (.*?)\n.*?\nConflicts: (.*?)\n.*?\nProvides: (.*?)\n",
+                file.read(),
+                re.DOTALL,
+            )
+            for p_name, p_conflicts, p_provides in pack_blocks:    
+                packages_db.update({p_name: {"conflicts": p_conflicts.split(), "provides": p_provides.split()}})
+        
+        # Do not include default packages with potential conflicts (conflicts or provides)
+        for package in default_packages:
+            for package_user in set(build_request.packages) - default_packages:
+                if package in packages_db and package_user in packages_db:
+                    if package in packages_db[package_user]["provides"]:
+                        log.debug(f"{package}\tNOT INCLUDED (Provided by: {package_user})")
+                        packages_with_conflicts.add(package)
+                    if set(packages_db[package]["provides"]) & set(packages_db[package_user]["provides"]):
+                        log.debug(f"{package}\tNOT INCLUDED (Common provides with: {package_user})")
+                        packages_with_conflicts.add(package)
+                    if package in packages_db[package_user]["conflicts"] or package_user in packages_db[package]["conflicts"]:
+                        log.debug(f"{package}\tNOT INCLUDED (Conflict with: {package_user})")
+                        packages_with_conflicts.add(package)
+                
+        for p in packages_with_conflicts:
+            build_cmd_packages.remove(p)
+            build_cmd_packages.insert(0, f"-{p}")
+
+        log.debug(f"List of packages removing default packages with conflicts: {build_cmd_packages}")
+    
+    else:
+        # absolute mode - remove default packages not in requested list
         build_cmd_packages: list[str] = diff_packages(
-            build_request.packages, default_packages | profile_packages
+            build_request.packages, default_packages
         )
         log.debug(f"Diffed packages: {build_cmd_packages}")
 
