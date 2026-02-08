@@ -171,7 +171,7 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 build_request.version,
                 build_request.version_code,
                 build_request.target,
-                build_request.profile,
+                build_request.profile.replace(",", "_"),
                 get_packages_hash(
                     build_request.packages_versions.keys() or build_request.packages
                 ),
@@ -643,9 +643,8 @@ def reload_profiles(app: FastAPI, version: str, target: str) -> bool:
     )
 
     app.profiles[version][target] = {
-        name.replace(",", "_"): profile
+        profile: data.get("supported_devices", [])
         for profile, data in response.json()["profiles"].items()
-        for name in data.get("supported_devices", []) + [profile]
     }
 
     return True

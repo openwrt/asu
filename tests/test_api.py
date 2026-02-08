@@ -540,7 +540,7 @@ def test_api_build_real_ath79(app):
             target="ath79/generic",
             version="23.05.5",
             packages=["tmux", "vim"],
-            profile="8dev,carambola2",  # Test unsanitized profile.
+            profile="8dev_carambola2",
         ),
     )
 
