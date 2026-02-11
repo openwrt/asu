@@ -264,6 +264,13 @@ def test_api_latest_default(client):
     response = client.get("/api/v1/latest", follow_redirects=False)
     assert response.status_code == 301
 
+    response = client.get("/api/v1/latest", follow_redirects=True)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["latest"] == ["24.10.0-rc6", "23.05.5", "22.03.7"]
+    assert data["versions"][0] == "SNAPSHOT"
+    assert data["versions"][-1] == "1.2-SNAPSHOT"
+
 
 def test_api_overview(client):
     response = client.get("/api/v1/overview", follow_redirects=False)

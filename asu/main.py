@@ -127,8 +127,17 @@ def generate_latest():
 
 @app.get("/json/v1/latest.json")
 def json_v1_latest():
+    """Returns two lists:
+
+    1) A list of the latest releases on each branch that is still
+       under support, including any upcoming RC versions.  Sorted by
+       release branch, with newest first.
+
+    2) A list of all available versions (both releases and snapshot),
+       sorted newest first.
+    """
     latest = generate_latest()
-    return {"latest": latest}
+    return {"latest": latest, "versions": app.versions}
 
 
 def generate_branches():
