@@ -130,8 +130,10 @@ def apply_package_changes(build_request: BuildRequest):
                 "solidrun_clearfog-pro",
             }:
                 _add_if_missing("kmod-dsa-mv88e6xxx")
+        # Changes for https://github.com/openwrt/openwrt/commit/62bf0287326dcfab4596d5f4cad77cd9e7f8f03b
         # Changes for https://github.com/openwrt/openwrt/commit/a18d95f35bd54ade908e8ec3158435859402552d
         elif build_request.target == "lantiq/xrx200":
+            _add_if_missing("kmod-dsa-gswip")
             if build_request.profile in {
                 "arcadyan_arv7519rw22",
                 "arcadyan_vgv7510kw22-brn",
@@ -168,8 +170,10 @@ def apply_package_changes(build_request: BuildRequest):
             }:
                 _add_if_missing("xrx200-rev1.1-phy11g-firmware")
                 _add_if_missing("xrx200-rev1.2-phy11g-firmware")
+        # Changes for https://github.com/openwrt/openwrt/commit/62bf0287326dcfab4596d5f4cad77cd9e7f8f03b
         # Changes for https://github.com/openwrt/openwrt/commit/a18d95f35bd54ade908e8ec3158435859402552d
         elif build_request.target == "lantiq/xrx200_legacy":
+            _add_if_missing("kmod-dsa-gswip")
             if build_request.profile in {
                 "alphanetworks_asl56026",
                 "netgear_dm200",
