@@ -529,6 +529,15 @@ def is_post_kmod_split_build(path: str) -> bool:
     return False
 
 
+def uses_opkg(version: str) -> bool:
+    """Support for old releases using opkg"""
+    if version.lower().startswith("snapshot"):
+        return False
+    if int(version[:2]) < 25:
+        return True
+    return False
+
+
 def parse_kernel_version(url: str) -> str:
     """Download a target's profiles.json and return the kernel version string."""
     res: Response = client_get(url)

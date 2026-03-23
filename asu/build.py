@@ -29,6 +29,7 @@ from asu.util import (
     get_podman,
     get_request_hash,
     is_snapshot_build,
+    uses_opkg,
     parse_manifest,
     report_error,
     run_cmd,
@@ -136,12 +137,18 @@ def _build(build_request: BuildRequest, job=None):
         (bin_dir / "keys").mkdir(parents=True, exist_ok=True)
 
         for key in build_request.repository_keys:
-            fingerprint = fingerprint_pubkey_usign(key)
-            log.debug(f"Found key {fingerprint}")
+            if uses_opkg(build_request.version):
+                fingerprint = fingerprint_pubkey_usign(key)
+                (bin_dir / "keys" / fingerprint).write_text(
+                    f"untrusted comment: {fingerprint}\n{key}"
+                )
+            else:
+                fingerprint = (
+                    f"asu-client-{build_request.repository_keys.index(key)}.pem"
+                )
+                (bin_dir / "keys" / fingerprint).write_text(f"{key}")
 
-            (bin_dir / "keys" / fingerprint).write_text(
-                f"untrusted comment: {fingerprint}\n{key}"
-            )
+            log.debug(f"Found key {fingerprint}")
 
             mounts.append(
                 {
@@ -155,21 +162,26 @@ def _build(build_request: BuildRequest, job=None):
     if build_request.repositories:
         log.debug("Found extra repos")
         repositories = ""
-        for name, repo in build_request.repositories.items():
-            if is_repo_allowed(repo, settings.repository_allow_list):
-                repositories += f"src/gz {name} {repo}\n"
-            else:
-                report_error(job, f"Repository {repo} not allowed")
 
-        repositories += "src imagebuilder file:packages\noption check_signature"
+        if uses_opkg(build_request.version):
+            repositories_file = "repositories.conf"
+            for name, repo in build_request.repositories.items():
+                if is_repo_allowed(repo, settings.repository_allow_list):
+                    repositories += f"src/gz {name} {repo}\n"
+            repositories += "src imagebuilder file:packages\noption check_signature"
+        else:
+            repositories_file = "repositories"
+            for name, repo in build_request.repositories.items():
+                if is_repo_allowed(repo, settings.repository_allow_list):
+                    repositories += f"{repo}\n"
 
-        (bin_dir / "repositories.conf").write_text(repositories)
+        (bin_dir / repositories_file).write_text(repositories)
 
         mounts.append(
             {
                 "type": "bind",
-                "source": str(bin_dir / "repositories.conf"),
-                "target": "/builder/repositories.conf",
+                "source": str(bin_dir / repositories_file),
+                "target": "/builder/" + repositories_file,
                 "read_only": True,
             },
         )
