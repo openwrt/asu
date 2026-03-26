@@ -340,8 +340,9 @@ def test_check_package_errors():
         check_package_errors(check_package_errors.__doc__)
         == "Impossible package selection:"
         " missing (APK-MISSING, OPKG-MISSING)"
-        " conflicts (APK-CONFLICT-1, APK-CONFLICT-2, OPKG-CONFLICT-1,"
-        " OPKG-CONFLICT-2, OPKG-CONFLICT-3, OPKG-CONFLICT-4)"
+        " conflicts"
+        " (APK-CONFLICT-1, APK-CONFLICT-2, APK-CONFLICT-3, APK-CONFLICT-4,"
+        " OPKG-CONFLICT-1, OPKG-CONFLICT-2, OPKG-CONFLICT-3, OPKG-CONFLICT-4)"
     )
 
 
