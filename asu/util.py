@@ -410,6 +410,9 @@ def check_package_errors(stderr: str) -> str:
           APK-CONFLICT-2:
             conflicts: APK-CONFLICT-1[nftables=1.1.6-r1]
             satisfies: world[nftables-nojson]
+
+    Case apk-3
+        ERROR: APK-CONFLICT-3: trying to overwrite somefile owned by APK-CONFLICT-4.
     """
 
     # Grab the missing ones first, as that's easy.
@@ -423,11 +426,13 @@ def check_package_errors(stderr: str) -> str:
     conflicts = findall(r"\n +([^:\n]+):\n +conflicts: ([^[]+)", stderr, DOTALL)
     conflicts = set(item for pair in conflicts for item in pair)
 
-    # Case opkg-2 and opkg-3
+    # Case opkg-2, opkg-3, apk-3
     conflicts.update(
         findall(r"check_data_file_clashes: Package ([^ ]+) wants to", stderr)
         + findall(r"is already provided by package  \* ([^ ]+)$", stderr, MULTILINE)
         + findall(r"\* check_conflicts_for:.+ ([^ ]+)(?: \*|:)$", stderr, MULTILINE)
+        + findall(r"ERROR: ([^ ]+): trying to overwrite", stderr)
+        + findall(r"trying to overwrite .* owned by ([^ ]+)\.", stderr)
     )
 
     # opkg reports missing and conflicts with same message, so clean that up.
