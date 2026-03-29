@@ -187,6 +187,12 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync --extra dev
 ```
 
+#### Running Redis
+
+```bash
+podman run -d --name redis -p 6379:6379 redis:alpine
+```
+
 #### Running the server
 
 ```bash
