@@ -72,21 +72,11 @@
                     </ul>
 
                     {% if server_stats %}
-                    <div class="grid-item">
-                        <h2>Builds per Day (last 30 days)</h2>
-                        <canvas id="buildsChart" width="600" height="300"></canvas>
-                    </div>
-                    <div class="grid-item">
-                        <h2>Weekly build counts by branch (last 6 months)
-                            <select name="branchName" id="branchName" onchange="loadVersions()">
-                                <option value="">All</option>
-                                {% for branch in branches %}
-                                <option value="{{ branch }}">{{ branch }}</option>
-                                {%- endfor -%}
-                            </select>
-                        </h2>
-                        <canvas id="versionChart" width="600" height="300"></canvas>
-                    </div>
+                    <p>
+                        <b>Queue length:</b> <span id="queue-length">...</span> |
+                        <b>Builds (24h):</b> <span id="builds-24h">...</span> |
+                        <a href="/stats">Detailed statistics</a>
+                    </p>
                     {% endif %}
 
                     <details>
@@ -142,55 +132,13 @@
         </script>
 
 {% if server_stats %}
-        <script src="static/chart.js"></script>
         <script>
-            async function loadChart(chartSource, canvas) {
-                const response = await fetch(`/api/v1/${chartSource}`);
-                const data = await response.json();
-
-                const oldChart = Chart.getChart(canvas);
-                if (oldChart !== undefined) {
-                    oldChart.destroy();
-                }
-
-                const countChart = new Chart(document.getElementById(canvas), {
-                    type: "line",
-                    data: {
-                        labels: data.labels,
-                        datasets: data.datasets.map(ds => ({
-                            data: ds.data,
-                            label: ds.label,
-                            backgroundColor: ds.color,
-                            borderColor: ds.color,
-                            borderJoinStyle: "round",
-                            fill: false
-                        }))
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            x: { display: false },
-                            y: { display: true }
-                        },
-                        plugins: {
-                            legend: { display: true },
-                            title:  { display: false }
-                        }
-                    }
+            fetch("/api/v1/stats/summary")
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById("queue-length").textContent = data.queue_length;
+                    document.getElementById("builds-24h").textContent = data.builds_24h;
                 });
-            }
-
-            loadChart("builds-per-day", "buildsChart");
-
-            function loadVersions() {
-                let branch = document.getElementById("branchName").value;
-                if (branch != "") {
-                    branch = `?branch=${branch}`;
-                }
-                loadChart(`builds-by-version${branch}`, "versionChart");
-            }
-
-            loadVersions();
         </script>
 {% endif %}
 

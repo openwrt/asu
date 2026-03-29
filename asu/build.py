@@ -255,6 +255,15 @@ def _build(build_request: BuildRequest, job=None):
 
         apply_package_changes(build_request)
 
+        extra_packages = set(build_request.packages) - default_packages - profile_packages
+        branch = get_branch(build_request.version)["name"]
+        for pkg in extra_packages:
+            if not pkg.startswith("-"):
+                add_timestamp(
+                    f"stats:packages:{branch}:{pkg}",
+                    {"stats": "packages", "branch": branch, "package": pkg},
+                )
+
         build_cmd_packages = build_request.packages
 
         if build_request.diff_packages:

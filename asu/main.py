@@ -84,6 +84,17 @@ def index(request: Request):
     )
 
 
+@app.get("/stats", response_class=HTMLResponse)
+def stats_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="stats.html",
+        context=dict(
+            branches=reversed(settings.branches),
+        ),
+    )
+
+
 @app.get("/json/v1/{path:path}/index.json")
 def json_v1_target_index(path: str) -> dict[str, Union[str, dict[str, str]]]:
     base_path: str = f"{settings.upstream_url}/{path}"
