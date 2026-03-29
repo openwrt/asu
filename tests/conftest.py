@@ -1,5 +1,3 @@
-import shutil
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -83,10 +81,8 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
-def test_path():
-    test_path = tempfile.mkdtemp(dir=Path.cwd() / "tests")
-    yield test_path
-    shutil.rmtree(test_path)
+def test_path(tmp_path):
+    return str(tmp_path)
 
 
 @pytest.fixture
@@ -98,6 +94,7 @@ def app(redis_server, test_path, monkeypatch, upstream):
         return Queue(connection=redis_server, is_async=settings.async_queue)
 
     settings.public_path = Path(test_path) / "public"
+    settings.store_backend = "local"
     settings.async_queue = False
     settings.upstream_url = "http://localhost:8123"
     settings.server_stats = "stats"
