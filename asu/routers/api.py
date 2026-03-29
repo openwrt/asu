@@ -217,9 +217,12 @@ def api_v1_build_post(
     request_hash: str = get_request_hash(build_request)
     job: Job = get_queue().fetch_job(request_hash)
     status: int = 200
-    result_ttl: str = settings.build_ttl
     if build_request.defaults:
         result_ttl = settings.build_defaults_ttl
+    elif build_request.packages_versions:
+        result_ttl = settings.build_ttl
+    else:
+        result_ttl = settings.build_ttl_unversioned
     failure_ttl: str = settings.build_failure_ttl
 
     if build_request.client:

@@ -99,9 +99,10 @@ class Settings(BaseSettings):
     server_stats: str = ""
     log_level: str = "INFO"
     squid_cache: bool = False
-    build_ttl: str = "3h"
+    build_ttl: str = "7d"
+    build_ttl_unversioned: str = "24h"
     build_defaults_ttl: str = "30m"
-    build_failure_ttl: str = "10m"
+    build_failure_ttl: str = "1h"
     max_pending_jobs: int = 200
     job_timeout: str = "10m"
 
