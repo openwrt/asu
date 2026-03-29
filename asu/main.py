@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from asu import __version__
 from asu.config import settings
 from asu.routers import api, stats
+from asu.store import LocalStore, get_store
 from asu.util import (
     client_get,
     get_branch,
@@ -48,16 +49,22 @@ app.profiles = defaultdict(lambda: defaultdict(dict))
 
 @app.api_route("/store/{path:path}", methods=["GET", "HEAD"])
 def store(path: str):
-    path = (settings.public_path / "store" / path).resolve()
-    if not path.is_file() or settings.public_path / "store" not in path.parents:
-        raise HTTPException(status_code=404, detail="Not found")
+    store_backend = get_store()
 
-    return FileResponse(
-        path,
-        media_type="application/octet-stream",
-        filename=path.name,  # adds Content-Disposition: attachment; filename="..."
-        headers={"X-Content-Type-Options": "nosniff"},
-    )
+    if isinstance(store_backend, LocalStore):
+        store_root = (settings.public_path / "store").resolve()
+        file_path = (store_root / path).resolve()
+        if not file_path.is_file() or store_root not in file_path.parents:
+            raise HTTPException(status_code=404, detail="Not found")
+
+        return FileResponse(
+            file_path,
+            media_type="application/octet-stream",
+            filename=file_path.name,
+            headers={"X-Content-Type-Options": "nosniff"},
+        )
+
+    return RedirectResponse(store_backend.get_url(path), status_code=302)
 
 
 @app.get("/", response_class=HTMLResponse)

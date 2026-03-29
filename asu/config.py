@@ -89,6 +89,13 @@ class Settings(BaseSettings):
         "22.03": release(19160),
         "21.02": release(15812, enabled=True),  # Enabled for now...
     }
+    store_backend: str = "local"  # "local" or "s3"
+    s3_endpoint: str = ""
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    s3_bucket: str = "asu-store"
+    s3_region: str = ""
+    s3_public_url: str = ""  # base URL for redirects, e.g. "https://cdn.example.com"
     server_stats: str = ""
     log_level: str = "INFO"
     squid_cache: bool = False
