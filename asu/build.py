@@ -6,15 +6,21 @@ from os import getenv
 from pathlib import Path
 from typing import Union
 from time import perf_counter
-from urllib.parse import urlparse
 
 from rq import get_current_job
-from rq.utils import parse_timeout
 from podman import errors
+from rq.utils import parse_timeout
 
 from asu.build_request import BuildRequest
 from asu.config import settings
 from asu.package_changes import apply_package_changes
+from asu.repositories import (
+    is_apk_build,
+    is_repo_allowed,
+    read_base_repositories_conf,
+    render_apk_repositories,
+    render_repositories_conf,
+)
 from asu.util import (
     add_timestamp,
     add_build_event,
@@ -35,26 +41,6 @@ from asu.util import (
 )
 
 log = logging.getLogger("rq.worker")
-
-
-def is_repo_allowed(repo_url: str, allow_list: list[str]) -> bool:
-    """Check if a repository URL is allowed by the allow list.
-
-    Uses proper URL parsing to prevent subdomain and userinfo bypasses
-    that affect naive prefix matching.
-    """
-    if not allow_list:
-        return False
-    parsed = urlparse(repo_url)
-    for allowed in allow_list:
-        allowed_parsed = urlparse(allowed)
-        if (
-            parsed.scheme == allowed_parsed.scheme
-            and parsed.hostname == allowed_parsed.hostname
-            and parsed.path.startswith(allowed_parsed.path.rstrip("/") + "/")
-        ):
-            return True
-    return False
 
 
 def _build(build_request: BuildRequest, job=None):
@@ -94,6 +80,7 @@ def _build(build_request: BuildRequest, job=None):
     environment: dict[str, str] = {}
 
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
+    apk_mode = is_apk_build(build_request.version)
 
     if is_snapshot_build(build_request.version):
         environment.update(
@@ -153,26 +140,82 @@ def _build(build_request: BuildRequest, job=None):
             )
 
     if build_request.repositories:
-        log.debug("Found extra repos")
-        repositories = ""
-        for name, repo in build_request.repositories.items():
-            if is_repo_allowed(repo, settings.repository_allow_list):
-                repositories += f"src/gz {name} {repo}\n"
-            else:
-                report_error(job, f"Repository {repo} not allowed")
-
-        repositories += "src imagebuilder file:packages\noption check_signature"
-
-        (bin_dir / "repositories.conf").write_text(repositories)
-
-        mounts.append(
-            {
-                "type": "bind",
-                "source": str(bin_dir / "repositories.conf"),
-                "target": "/builder/repositories.conf",
-                "read_only": True,
-            },
+        log.debug(
+            "Repository mode %s with %d custom repos",
+            build_request.repositories_mode,
+            len(build_request.repositories),
         )
+
+        if apk_mode:
+            extra_urls: list[str] = []
+            for _name, repo_url in build_request.repositories.items():
+                if is_repo_allowed(repo_url, settings.repository_allow_list):
+                    extra_urls.append(repo_url)
+                else:
+                    report_error(job, f"Repository {repo_url} not allowed")
+
+            if build_request.repositories_mode == "append":
+                base_repositories = read_base_repositories_conf(
+                    podman=podman,
+                    image=image,
+                    build_request=build_request,
+                    job=job,
+                    mounts=mounts,
+                    environment=environment,
+                    container_repositories_path="/builder/repositories",
+                )
+            else:
+                base_repositories = ""
+
+            merged_repositories = render_apk_repositories(
+                base_repositories, extra_urls, build_request.repositories_mode
+            )
+
+            (bin_dir / "repositories").write_text(merged_repositories)
+
+            mounts.append(
+                {
+                    "type": "bind",
+                    "source": str(bin_dir / "repositories"),
+                    "target": "/builder/repositories",
+                    "read_only": True,
+                },
+            )
+        else:
+            extra_repos: dict[str, str] = {}
+            for name, repo in build_request.repositories.items():
+                if is_repo_allowed(repo, settings.repository_allow_list):
+                    extra_repos[name] = repo
+                else:
+                    report_error(job, f"Repository {repo} not allowed")
+
+            if build_request.repositories_mode == "append":
+                base_repositories_conf = read_base_repositories_conf(
+                    podman=podman,
+                    image=image,
+                    build_request=build_request,
+                    job=job,
+                    mounts=mounts,
+                    environment=environment,
+                    container_repositories_path="/builder/repositories.conf",
+                )
+            else:
+                base_repositories_conf = ""
+
+            merged_repositories_conf = render_repositories_conf(
+                base_repositories_conf, extra_repos, build_request.repositories_mode
+            )
+
+            (bin_dir / "repositories.conf").write_text(merged_repositories_conf)
+
+            mounts.append(
+                {
+                    "type": "bind",
+                    "source": str(bin_dir / "repositories.conf"),
+                    "target": "/builder/repositories.conf",
+                    "read_only": True,
+                },
+            )
 
     if build_request.defaults:
         log.debug("Found defaults")
@@ -198,7 +241,7 @@ def _build(build_request: BuildRequest, job=None):
         cap_drop=["all"],
         no_new_privileges=True,
         privileged=False,
-        network_mode="pasta",
+        network_mode=settings.container_network_mode,
         auto_remove=True,
         environment=environment,
     )
@@ -259,9 +302,12 @@ def _build(build_request: BuildRequest, job=None):
 
     if settings.squid_cache and not is_snapshot_build(build_request.version):
         log.info("Disabling HTTPS for repositories")
+        sed_files = ["repositories"]
+        if not apk_mode:
+            sed_files = ["repositories.conf"]
         run_cmd(
             container,
-            ["sed", "-i", "s|https|http|g", "repositories.conf", "repositories"],
+            ["sed", "-i", "s|https|http|g", *sed_files],
         )
 
     returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
