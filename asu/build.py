@@ -114,7 +114,9 @@ def inject_files(container, build_request, job=None):
             elif job:
                 report_error(job, f"Repository {repo} not allowed")
         repositories += "src imagebuilder file:packages\noption check_signature"
-        container.put_archive("/builder/", _make_tar({"repositories.conf": repositories}))
+        container.put_archive(
+            "/builder/", _make_tar({"repositories.conf": repositories})
+        )
 
     if build_request.defaults:
         files = {
@@ -255,7 +257,9 @@ def _build(build_request: BuildRequest, job=None):
 
         apply_package_changes(build_request)
 
-        extra_packages = set(build_request.packages) - default_packages - profile_packages
+        extra_packages = (
+            set(build_request.packages) - default_packages - profile_packages
+        )
         branch = get_branch(build_request.version)["name"]
         for pkg in extra_packages:
             if not pkg.startswith("-"):
