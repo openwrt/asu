@@ -9,8 +9,6 @@
 #
 # Required .env variables:
 #   REDIS_URL           - Redis connection string (must be reachable by workers)
-#   CONTAINER_SOCKET_PATH - Podman socket path
-#   PUBLIC_PATH         - Host path for build output staging
 #   STORE_BACKEND=s3
 #   S3_ENDPOINT         - S3-compatible endpoint URL
 #   S3_ACCESS_KEY       - S3 access key
@@ -27,9 +25,9 @@ services:
       dockerfile: Containerfile
     restart: unless-stopped
     command: uv run rqworker --logging_level INFO
-    env_file: .env
     volumes:
-      - $CONTAINER_SOCKET_PATH:$CONTAINER_SOCKET_PATH:rw
-      - ${PUBLIC_PATH:-./public}:${PUBLIC_PATH:-./public}:rw
+      - ./asu.toml:/app/asu.toml:ro
+      - ./podman.sock:/var/podman.sock:rw
+      - ./public:/public:rw
     deploy:
       replicas: ${WORKER_REPLICAS:-1}
