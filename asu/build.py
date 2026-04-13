@@ -9,15 +9,18 @@ from os import getenv
 from pathlib import Path
 from typing import Union
 from time import perf_counter
-from urllib.parse import urlparse
 
 from rq import get_current_job
-from rq.utils import parse_timeout
 from podman import errors
+from rq.utils import parse_timeout
 
 from asu.build_request import BuildRequest
 from asu.config import settings
 from asu.package_changes import apply_package_changes
+from asu.repositories import (
+    merge_repositories,
+    validate_repos,
+)
 from asu.store import LocalStore, get_store
 from asu.util import (
     add_timestamp,
@@ -39,26 +42,6 @@ from asu.util import (
 )
 
 log = logging.getLogger("rq.worker")
-
-
-def is_repo_allowed(repo_url: str, allow_list: list[str]) -> bool:
-    """Check if a repository URL is allowed by the allow list.
-
-    Uses proper URL parsing to prevent subdomain and userinfo bypasses
-    that affect naive prefix matching.
-    """
-    if not allow_list:
-        return False
-    parsed = urlparse(repo_url)
-    for allowed in allow_list:
-        allowed_parsed = urlparse(allowed)
-        if (
-            parsed.scheme == allowed_parsed.scheme
-            and parsed.hostname == allowed_parsed.hostname
-            and parsed.path.startswith(allowed_parsed.path.rstrip("/") + "/")
-        ):
-            return True
-    return False
 
 
 def _cleanup_container(container):
@@ -93,6 +76,16 @@ def _make_tar(files: dict[str, str | bytes]) -> bytes:
     return buf.getvalue()
 
 
+def _detect_apk_mode(container) -> bool:
+    """Detect whether the ImageBuilder uses apk or opkg.
+
+    Checks for the presence of /builder/repositories (apk) vs
+    /builder/repositories.conf (opkg) inside the running container.
+    """
+    rc, _, _ = run_cmd(container, ["test", "-f", "/builder/repositories"])
+    return rc == 0
+
+
 def inject_files(container, build_request, job=None):
     """Copy keys, repositories, and defaults into a running container.
 
@@ -101,28 +94,36 @@ def inject_files(container, build_request, job=None):
     """
     if build_request.repository_keys:
         files = {}
-        for key in build_request.repository_keys:
-            fingerprint = fingerprint_pubkey_usign(key)
-            files[f"keys/{fingerprint}"] = f"untrusted comment: {fingerprint}\n{key}"
-        container.put_archive("/builder/", _make_tar(files))
+        for i, key in enumerate(build_request.repository_keys):
+            if key.strip().startswith("-----BEGIN"):
+                files[f"keys/custom-{i}.pem"] = key
+            else:
+                fingerprint = fingerprint_pubkey_usign(key)
+                files[f"keys/{fingerprint}"] = (
+                    f"untrusted comment: {fingerprint}\n{key}"
+                )
+        if files:
+            container.put_archive("/builder/", _make_tar(files))
 
     if build_request.repositories:
-        repositories = ""
-        for name, repo in build_request.repositories.items():
-            if is_repo_allowed(repo, settings.repository_allow_list):
-                repositories += f"src/gz {name} {repo}\n"
-            elif job:
-                report_error(job, f"Repository {repo} not allowed")
-        repositories += "src imagebuilder file:packages\noption check_signature"
-        container.put_archive(
-            "/builder/", _make_tar({"repositories.conf": repositories})
-        )
+        allowed = validate_repos(build_request.repositories)
+        apk_mode = _detect_apk_mode(container)
+        repo_file = "repositories" if apk_mode else "repositories.conf"
+
+        base = ""
+        if build_request.repositories_mode == "append":
+            _, base, _ = run_cmd(container, ["cat", repo_file])
+
+        merged = merge_repositories(base, allowed, apk_mode)
+        container.put_archive("/builder/", _make_tar({repo_file: merged}))
 
     if build_request.defaults:
-        files = {
-            "asu-files/etc/uci-defaults/99-asu-defaults": build_request.defaults,
-        }
-        container.put_archive("/builder/", _make_tar(files))
+        container.put_archive(
+            "/builder/",
+            _make_tar(
+                {"asu-files/etc/uci-defaults/99-asu-defaults": build_request.defaults}
+            ),
+        )
 
 
 def _build(build_request: BuildRequest, job=None):
@@ -206,13 +207,12 @@ def _build(build_request: BuildRequest, job=None):
         cap_drop=["all"],
         no_new_privileges=True,
         privileged=False,
-        network_mode="pasta",
+        network_mode=settings.container_network_mode,
         environment=environment,
         image_volume_mode="ignore",
     )
     try:
         container.start()
-        inject_files(container, build_request, job)
 
         if is_snapshot_build(build_request.version):
             log.info("Running setup.sh for ImageBuilder")
@@ -221,6 +221,8 @@ def _build(build_request: BuildRequest, job=None):
             )
             if returncode:
                 report_error(job, f"Could not set up ImageBuilder ({returncode=})")
+
+        inject_files(container, build_request, job)
 
         returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
             container, ["make", "info"]
@@ -281,9 +283,12 @@ def _build(build_request: BuildRequest, job=None):
 
         if settings.squid_cache and not is_snapshot_build(build_request.version):
             log.info("Disabling HTTPS for repositories")
+            repo_file = (
+                "repositories" if _detect_apk_mode(container) else "repositories.conf"
+            )
             run_cmd(
                 container,
-                ["sed", "-i", "s|https|http|g", "repositories.conf", "repositories"],
+                ["sed", "-i", "s|https|http|g", repo_file],
             )
 
         returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(

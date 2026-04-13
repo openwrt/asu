@@ -182,6 +182,7 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 str(build_request.rootfs_size_mb),
                 str(build_request.repository_keys),
                 str(build_request.repositories),
+                build_request.repositories_mode,
             ]
         ),
     )
