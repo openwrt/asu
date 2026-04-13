@@ -62,21 +62,19 @@ def release(branch_off_rev, enabled=True):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
         toml_file="asu.toml",
+        extra="ignore",
     )
 
     @classmethod
     def settings_customise_sources(cls, settings_cls, **kwargs):
         return (
             kwargs["env_settings"],
-            kwargs["dotenv_settings"],
             TomlConfigSettingsSource(settings_cls),
             kwargs["init_settings"],
         )
 
-    public_path: Path = Path.cwd() / "public"
+    public_path: Path = Path("/public")
     redis_url: str = "redis://localhost:6379"
     upstream_url: str = "https://downloads.openwrt.org"
     allow_defaults: bool = False
@@ -86,9 +84,7 @@ class Settings(BaseSettings):
     max_defaults_length: int = 20480
     repository_allow_list: list = []
     base_container: str = "ghcr.io/openwrt/imagebuilder"
-    container_socket_path: str = ""
     container_identity: str = ""
-    container_network_mode: str = "pasta"
     branches: dict = {
         "SNAPSHOT": {
             "path": "snapshots",
@@ -112,7 +108,6 @@ class Settings(BaseSettings):
     s3_public_url: str = ""  # base URL for redirects, e.g. "https://cdn.example.com"
     server_stats: str = ""
     log_level: str = "INFO"
-    squid_cache: bool = False
     build_ttl: str = "7d"
     build_ttl_unversioned: str = "24h"
     build_defaults_ttl: str = "30m"

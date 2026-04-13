@@ -53,8 +53,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          export CONTAINER_SOCKET_PATH="/tmp/podman.sock"
-          podman system service --time=0 "unix://$CONTAINER_SOCKET_PATH" &
+          podman system service --time=0 "unix://$(pwd)/podman.sock" &
           uv run coverage run -m pytest -vv --runslow
           uv run coverage xml
 

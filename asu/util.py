@@ -266,9 +266,16 @@ def get_container_version_tag(input_version: str) -> str:
     return version
 
 
+def _find_podman_socket() -> str:
+    for path in ["./podman.sock", "/var/podman.sock"]:
+        if Path(path).exists():
+            return f"unix://{Path(path).resolve()}"
+    return "unix:///var/podman.sock"
+
+
 def get_podman() -> PodmanClient:
     return PodmanClient(
-        base_url=f"unix://{settings.container_socket_path}",
+        base_url=_find_podman_socket(),
         identity=settings.container_identity,
     )
 

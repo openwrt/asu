@@ -174,15 +174,6 @@ def _build(build_request: BuildRequest, job=None):
             }
         )
 
-    if settings.squid_cache:
-        environment.update(
-            {
-                "UPSTREAM_URL": settings.upstream_url.replace("https", "http"),
-                "use_proxy": "on",
-                "http_proxy": "http://127.0.0.1:3128",
-            }
-        )
-
     job.meta["imagebuilder_status"] = "container_setup"
     job.save_meta()
 
@@ -207,7 +198,7 @@ def _build(build_request: BuildRequest, job=None):
         cap_drop=["all"],
         no_new_privileges=True,
         privileged=False,
-        network_mode=settings.container_network_mode,
+        network_mode="asu-build",
         environment=environment,
         image_volume_mode="ignore",
     )
@@ -223,6 +214,18 @@ def _build(build_request: BuildRequest, job=None):
                 report_error(job, f"Could not set up ImageBuilder ({returncode=})")
 
         inject_files(container, build_request, job)
+
+        # If upstream_url is HTTP (caching proxy), rewrite repository URLs
+        # from https://host/path to http://cache/host/path
+        if settings.upstream_url.startswith("http://"):
+            cache_host = settings.upstream_url.rstrip("/")
+            repo_file = (
+                "repositories" if _detect_apk_mode(container) else "repositories.conf"
+            )
+            run_cmd(
+                container,
+                ["sed", "-i", f"s|https://|{cache_host}/|g", repo_file],
+            )
 
         returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
             container, ["make", "info"]
@@ -280,16 +283,6 @@ def _build(build_request: BuildRequest, job=None):
 
         job.meta["imagebuilder_status"] = "validate_manifest"
         job.save_meta()
-
-        if settings.squid_cache and not is_snapshot_build(build_request.version):
-            log.info("Disabling HTTPS for repositories")
-            repo_file = (
-                "repositories" if _detect_apk_mode(container) else "repositories.conf"
-            )
-            run_cmd(
-                container,
-                ["sed", "-i", "s|https|http|g", repo_file],
-            )
 
         returncode, job.meta["stdout"], job.meta["stderr"] = run_cmd(
             container,
