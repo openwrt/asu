@@ -234,6 +234,9 @@ def _build(build_request: BuildRequest, job=None):
     )
     log.debug(f"Default packages: {default_packages}")
 
+    if f"\n{build_request.profile}:\n" not in job.meta["stdout"]:
+        report_error(job, f"Invalid device profile: {build_request.profile}")
+
     profile_packages = set(
         re.search(
             r"{}:\n    .+\n    Packages: (.*?)\n".format(build_request.profile),
