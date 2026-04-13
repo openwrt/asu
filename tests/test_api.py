@@ -51,6 +51,7 @@ def test_api_build_inputs(client):
     assert request["client"] is None
     assert request["rootfs_size_mb"] is None
     assert request["diff_packages"] is False
+    assert request["repositories_mode"] == "replace"
 
 
 def test_api_build_version_code(client):
@@ -213,8 +214,8 @@ def test_api_build_request_hash(client):
         profile="testprofile",
     )
 
-    case12hash = "8d8e0aa2fd95bb75dba4aff4279dd6f976a40ad17300927d54b8a9a9b0576306"
-    case34hash = "6b1645013216da39ee09deae75b87b0636f3c50648b037750b0a80448ce5c7ca"
+    case12hash = "1c4a79c6b711a576996cf9a5e7046a4581008c4466574096266f0e6ea4208fbc"
+    case34hash = "c5a849e05b60611b465042594fc3489a44f7695c3d09e36433a577ee772ad7b7"
 
     # Case 1 - diff_packages=True, first package ordering
     json["diff_packages"] = True
@@ -722,7 +723,7 @@ def test_api_build_defaults_filled_allowed(app):
     data = response.json()
     assert (
         data["request_hash"]
-        == "9c8d0cd7d9ec208a233b954edb20c3c20b5c11103bb7f5f1ebface565f8c6720"
+        == "ba50558496f8fead41e8d5bc72afd1ad7d27bc053afb550a8bf6ee3bbcc64952"
     )
 
 
@@ -761,3 +762,72 @@ def test_api_stats(client):
     assert response.status_code == 200
     data = response.json()
     assert data["queue_length"] == 0
+
+
+@pytest.mark.slow
+def test_api_build_external_apk_repo(app):
+    """Build with an external apk repository (LibreMesh) and signing key.
+
+    Uses 25.12.2 (apk-based) with x86/64 target and the LibreMesh feed.
+    The lime-system package should appear in the manifest.
+    """
+    settings.upstream_url = "https://downloads.openwrt.org"
+    settings.repository_allow_list = ["https://raw.githubusercontent.com/libremesh/"]
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            target="x86/64",
+            version="25.12.2",
+            profile="generic",
+            packages=["lime-system"],
+            repositories={
+                "libremesh": "https://raw.githubusercontent.com/libremesh/lime-feed/gh-pages/master/openwrt-25.12/x86_64/packages.adb",
+            },
+            repository_keys=[
+                "-----BEGIN PUBLIC KEY-----\n"
+                "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdFJZ2qVti49Ol8LJZYuxgOCLowBS\n"
+                "8bI86a7zqhSbs5yon3JON7Yee7CQOgqwPOX5eMALGOu8iFGAqIRx5YjfYA==\n"
+                "-----END PUBLIC KEY-----\n"
+            ],
+            repositories_mode="append",
+        ),
+    )
+
+    data = response.json()
+    assert response.status_code == 200, data.get("stderr", data.get("detail", ""))[
+        :2000
+    ]
+    assert "lime-system" in data["manifest"]
+
+
+@pytest.mark.slow
+def test_api_build_external_opkg_repo(app):
+    """Build with an external opkg repository (LibreMesh).
+
+    Uses 23.05.5 (opkg-based) with the LibreMesh feed and its usign
+    public key. The lime-system package should appear in the manifest.
+    """
+    settings.upstream_url = "https://downloads.openwrt.org"
+    settings.repository_allow_list = ["https://raw.githubusercontent.com/libremesh/"]
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            target="ath79/generic",
+            version="23.05.5",
+            profile="8dev_carambola2",
+            packages=["lime-system"],
+            repositories={
+                "libremesh": "https://raw.githubusercontent.com/libremesh/lime-feed/gh-pages/2024.1",
+            },
+            repository_keys=[
+                "RWSnGzyChavSiyQ+vLk3x7F0NqcLa4kKyXCdriThMhO78ldHgxGljM/8",
+            ],
+            repositories_mode="append",
+        ),
+    )
+
+    data = response.json()
+    assert response.status_code == 200
+    assert "lime-system" in data["manifest"]
