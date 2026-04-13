@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict, TomlConfigSettingsSource
 
 # Adding a new entry to `package_changes_list` requires determining
 # the revision at which the package appears, is removed or has been
@@ -61,7 +61,20 @@ def release(branch_off_rev, enabled=True):
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        toml_file="asu.toml",
+    )
+
+    @classmethod
+    def settings_customise_sources(cls, settings_cls, **kwargs):
+        return (
+            kwargs["env_settings"],
+            kwargs["dotenv_settings"],
+            TomlConfigSettingsSource(settings_cls),
+            kwargs["init_settings"],
+        )
 
     public_path: Path = Path.cwd() / "public"
     redis_url: str = "redis://localhost:6379"
