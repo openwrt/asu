@@ -7,7 +7,7 @@ import pytest
 from podman import PodmanClient
 
 import asu.util
-from asu.build import is_repo_allowed
+from asu.repositories import is_repo_allowed
 from asu.build_request import BuildRequest
 from asu.util import (
     check_manifest,
@@ -71,8 +71,21 @@ def test_get_request_hash():
 
     assert (
         get_request_hash(request)
-        == "99ff721439cd696f7da259541a07d7bfc7eb6c45a844db532e0384b464e23f46"
+        == "525e19496bd8d47b9b63aa5fb2b2f5da467558893d39a42eb32210007fd57800"
     )
+
+
+def test_get_request_hash_includes_repositories_mode():
+    base = dict(
+        version="1.2.3",
+        target="testtarget/testsubtarget",
+        profile="testprofile",
+        repositories={"custom": "https://example.com/repo"},
+    )
+    append_hash = get_request_hash(BuildRequest(**base, repositories_mode="append"))
+    replace_hash = get_request_hash(BuildRequest(**base, repositories_mode="replace"))
+
+    assert append_hash != replace_hash
 
 
 def test_diff_packages():

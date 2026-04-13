@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -147,6 +147,17 @@ class BuildRequest(BaseModel):
             """.strip()
         ),
     ] = {}
+    repositories_mode: Annotated[
+        Literal["append", "replace"],
+        Field(
+            description="""
+                How to apply the requested repositories (only used when
+                `repositories` is non-empty):
+                - `append`: merge into existing ImageBuilder repositories
+                - `replace`: replace existing repositories entirely (default)
+            """.strip()
+        ),
+    ] = "replace"
     repository_keys: Annotated[
         list[str],
         Field(

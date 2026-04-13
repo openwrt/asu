@@ -4,9 +4,10 @@ Tests verify that _make_tar produces correct archives and that
 inject_files constructs the right file trees for the container.
 """
 
+import base64
 import tarfile
 from io import BytesIO
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from asu.build import _make_tar, inject_files
 from asu.build_request import BuildRequest
@@ -65,7 +66,8 @@ def test_inject_files_no_extras():
     container.put_archive.assert_not_called()
 
 
-def test_inject_files_with_defaults():
+@patch("asu.build._detect_apk_mode", return_value=False)
+def test_inject_files_with_defaults(mock_detect):
     container = MagicMock()
     request = BuildRequest(
         version="1.2.3",
@@ -83,7 +85,8 @@ def test_inject_files_with_defaults():
     assert files["asu-files/etc/uci-defaults/99-asu-defaults"] == "echo hello"
 
 
-def test_inject_files_with_repositories():
+@patch("asu.build._detect_apk_mode", return_value=False)
+def test_inject_files_with_repositories(mock_detect):
     container = MagicMock()
     request = BuildRequest(
         version="1.2.3",
@@ -95,11 +98,9 @@ def test_inject_files_with_repositories():
     container.put_archive.assert_not_called()
 
 
-def test_inject_files_with_keys():
+def test_inject_files_with_usign_keys():
+    """usign keys go to /builder/keys/."""
     container = MagicMock()
-    # Valid usign public key (base64 of 2-byte pkalg + 8-byte keynum + 32-byte pubkey)
-    import base64
-
     key_data = base64.b64encode(b"\x00" * 42).decode()
     request = BuildRequest(
         version="1.2.3",
@@ -113,17 +114,56 @@ def test_inject_files_with_keys():
     call_args = container.put_archive.call_args
     assert call_args[0][0] == "/builder/"
     files = _extract_tar(call_args[0][1])
-    # Should have one key file under keys/
     key_files = [f for f in files if f.startswith("keys/")]
     assert len(key_files) == 1
     assert key_data in files[key_files[0]]
 
 
-def test_inject_files_defaults_and_keys():
+def test_inject_files_with_pem_keys():
+    """PEM keys also go to /builder/keys/."""
+    container = MagicMock()
+    pem_key = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZI...\n-----END PUBLIC KEY-----\n"
+    request = BuildRequest(
+        version="25.12.2",
+        target="testtarget/testsubtarget",
+        profile="testprofile",
+        repository_keys=[pem_key],
+    )
+    inject_files(container, request)
+    container.put_archive.assert_called_once()
+
+    call_args = container.put_archive.call_args
+    assert call_args[0][0] == "/builder/"
+    files = _extract_tar(call_args[0][1])
+    pem_files = [f for f in files if f.endswith(".pem")]
+    assert len(pem_files) == 1
+    assert pem_key in files[pem_files[0]]
+
+
+def test_inject_files_mixed_keys():
+    """Both PEM and usign keys in one request go to /builder/keys/."""
+    container = MagicMock()
+    pem_key = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZI...\n-----END PUBLIC KEY-----\n"
+    usign_key = base64.b64encode(b"\x00" * 42).decode()
+    request = BuildRequest(
+        version="25.12.2",
+        target="testtarget/testsubtarget",
+        profile="testprofile",
+        repository_keys=[pem_key, usign_key],
+    )
+    inject_files(container, request)
+    container.put_archive.assert_called_once()
+
+    call_args = container.put_archive.call_args
+    assert call_args[0][0] == "/builder/"
+    files = _extract_tar(call_args[0][1])
+    assert len(files) == 2
+
+
+@patch("asu.build._detect_apk_mode", return_value=False)
+def test_inject_files_defaults_and_keys(mock_detect):
     """Multiple inject types should result in multiple put_archive calls."""
     container = MagicMock()
-    import base64
-
     key_data = base64.b64encode(b"\x00" * 42).decode()
     request = BuildRequest(
         version="1.2.3",

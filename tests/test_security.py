@@ -3,6 +3,7 @@
 import pytest
 
 from asu.build_request import BuildRequest
+from asu.config import settings
 
 
 def test_repo_name_rejects_newline():
@@ -125,3 +126,61 @@ def test_repo_url_accepts_http():
         repositories={"repo": "http://example.com/packages"},
     )
     assert req.repositories["repo"] == "http://example.com/packages"
+
+
+def test_repositories_mode_accepts_append_and_replace():
+    append_request = BuildRequest(
+        version="1.2.3",
+        target="testtarget/testsubtarget",
+        profile="testprofile",
+        repositories_mode="append",
+    )
+    replace_request = BuildRequest(
+        version="1.2.3",
+        target="testtarget/testsubtarget",
+        profile="testprofile",
+        repositories_mode="replace",
+    )
+    assert append_request.repositories_mode == "append"
+    assert replace_request.repositories_mode == "replace"
+
+
+def test_repositories_mode_rejects_invalid_value():
+    with pytest.raises(Exception):
+        BuildRequest(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            repositories_mode="invalid",
+        )
+
+
+def test_api_repositories_mode_rejects_invalid_value(client):
+    response = client.post(
+        "/api/v1/build",
+        json={
+            "version": "1.2.3",
+            "target": "testtarget/testsubtarget",
+            "profile": "testprofile",
+            "repositories_mode": "invalid",
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_api_repo_not_in_allow_list(client):
+    """Repositories not in the allow list must be rejected at the API level."""
+    settings.repository_allow_list = ["https://allowed.example.com/"]
+    response = client.post(
+        "/api/v1/build",
+        json={
+            "version": "1.2.3",
+            "target": "testtarget/testsubtarget",
+            "profile": "testprofile",
+            "repositories": {
+                "evil": "https://evil.example.com/packages",
+            },
+        },
+    )
+    assert response.status_code == 400
+    assert "not allowed" in response.json()["detail"]
