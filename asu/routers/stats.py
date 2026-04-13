@@ -181,7 +181,9 @@ def get_top_packages(branch: str = None, n: int = 30) -> dict:
     sorted_packages = sorted(packages.items(), key=lambda x: x[1], reverse=True)[:n]
 
     return {
-        "packages": [{"name": name, "count": int(count)} for name, count in sorted_packages],
+        "packages": [
+            {"name": name, "count": int(count)} for name, count in sorted_packages
+        ],
         "branch": branch,
         "days": N_DAYS,
     }

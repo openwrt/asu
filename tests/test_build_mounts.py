@@ -29,10 +29,12 @@ def test_make_tar_single_file():
 
 
 def test_make_tar_multiple_files():
-    data = _make_tar({
-        "a.txt": "aaa",
-        "sub/b.txt": "bbb",
-    })
+    data = _make_tar(
+        {
+            "a.txt": "aaa",
+            "sub/b.txt": "bbb",
+        }
+    )
     files = _extract_tar(data)
     assert files["a.txt"] == "aaa"
     assert files["sub/b.txt"] == "bbb"
