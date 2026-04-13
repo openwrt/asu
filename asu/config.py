@@ -75,6 +75,7 @@ class Settings(BaseSettings):
     base_container: str = "ghcr.io/openwrt/imagebuilder"
     container_socket_path: str = ""
     container_identity: str = ""
+    container_network_mode: str = "pasta"
     branches: dict = {
         "SNAPSHOT": {
             "path": "snapshots",
