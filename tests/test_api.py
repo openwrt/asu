@@ -765,12 +765,8 @@ def test_api_stats(client):
 
 
 @pytest.mark.slow
-def test_api_build_external_apk_repo(app):
-    """Build with an external apk repository (LibreMesh) and signing key.
-
-    Uses 25.12.2 (apk-based) with x86/64 target and the LibreMesh feed.
-    The lime-system package should appear in the manifest.
-    """
+def test_api_build_libremesh_apk(app):
+    """Build with LibreMesh apk repository (25.12.2, x86/64)."""
     settings.upstream_url = "https://downloads.openwrt.org"
     settings.repository_allow_list = ["https://raw.githubusercontent.com/libremesh/"]
     client = TestClient(app)
@@ -802,12 +798,8 @@ def test_api_build_external_apk_repo(app):
 
 
 @pytest.mark.slow
-def test_api_build_external_opkg_repo(app):
-    """Build with an external opkg repository (LibreMesh).
-
-    Uses 23.05.5 (opkg-based) with the LibreMesh feed and its usign
-    public key. The lime-system package should appear in the manifest.
-    """
+def test_api_build_libremesh_opkg(app):
+    """Build with LibreMesh opkg repository (23.05.5, ath79)."""
     settings.upstream_url = "https://downloads.openwrt.org"
     settings.repository_allow_list = ["https://raw.githubusercontent.com/libremesh/"]
     client = TestClient(app)
@@ -829,5 +821,70 @@ def test_api_build_external_opkg_repo(app):
     )
 
     data = response.json()
-    assert response.status_code == 200
+    assert response.status_code == 200, data.get("stderr", data.get("detail", ""))[
+        :2000
+    ]
     assert "lime-system" in data["manifest"]
+
+
+@pytest.mark.slow
+def test_api_build_freifunk_apk(app):
+    """Build with Freifunk Weimarnetz apk repository (25.12.2, ath79)."""
+    settings.upstream_url = "https://downloads.openwrt.org"
+    settings.repository_allow_list = ["https://buildbot.weimarnetz.de/"]
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            target="ath79/generic",
+            version="25.12.2",
+            profile="8dev_carambola2",
+            packages=["weimarnetz-feed-apk"],
+            repositories={
+                "weimarnetz": "https://buildbot.weimarnetz.de/builds/brauhaus/packages/stable/25.12/ath79/generic/weimarnetz_packages/packages.adb",
+            },
+            repository_keys=[
+                "-----BEGIN PUBLIC KEY-----\n"
+                "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEzZWFJBl7JU/XlRXaU4duMoqnu/L1\n"
+                "aPZGMO349gtL2Wt3eo8fC2qcbnXV2FdcPXaySeY4RmbrlG1ehDonJfW7Jg==\n"
+                "-----END PUBLIC KEY-----\n"
+            ],
+            repositories_mode="append",
+        ),
+    )
+
+    data = response.json()
+    assert response.status_code == 200, data.get("stderr", data.get("detail", ""))[
+        :2000
+    ]
+    assert "weimarnetz-feed-apk" in data["manifest"]
+
+
+@pytest.mark.slow
+def test_api_build_freifunk_opkg(app):
+    """Build with Freifunk Weimarnetz opkg repository (24.10.6, ath79)."""
+    settings.upstream_url = "https://downloads.openwrt.org"
+    settings.repository_allow_list = ["https://buildbot.weimarnetz.de/"]
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            target="ath79/generic",
+            version="24.10.6",
+            profile="8dev_carambola2",
+            packages=["weimarnetz-feed-opkg"],
+            repositories={
+                "weimarnetz": "https://buildbot.weimarnetz.de/builds/brauhaus/packages/stable/24.10/ath79/generic/weimarnetz_packages",
+            },
+            repository_keys=[
+                "RWRIR91gqalV7vnWiH8RjngeXUohKt0VMGPVHNYPVPX3Ala/k6tdjuWC",
+            ],
+            repositories_mode="append",
+        ),
+    )
+
+    data = response.json()
+    assert response.status_code == 200, data.get("stderr", data.get("detail", ""))[
+        :2000
+    ]
+    assert "weimarnetz-feed-opkg" in data["manifest"]
