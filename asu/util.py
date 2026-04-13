@@ -4,9 +4,7 @@ import hashlib
 import json
 import logging
 import struct
-import threading
 from datetime import datetime, UTC
-from logging.handlers import RotatingFileHandler
 from os import getgid, getuid
 from pathlib import Path
 from re import match, findall, sub, DOTALL, MULTILINE
@@ -658,134 +656,47 @@ def reload_profiles(app: FastAPI, version: str, target: str) -> bool:
 
 
 class ErrorLog:
-    """Rotating file-based error log for build failures.
+    """Redis-backed error log for build failures.
 
-    Records build errors to facilitate diagnosis of upstream imagebuilder
-    and package issues. Uses RotatingFileHandler for automatic log rotation.
+    Stores errors in a Redis list for access from any worker or server.
+    Entries are capped at MAX_ENTRIES to bound memory usage.
 
     Log format is intentionally minimal and anonymized to protect user privacy:
         timestamp version:target:profile error_message
     """
 
-    MAX_BYTES = 50 * 1024  # 50KB per log file (~12 hours of errors)
-    BACKUP_COUNT = 10  # Keep 10 backup files (~5 days of history)
-
-    _instance: Optional["ErrorLog"] = None
-    _lock = threading.Lock()
-
-    def __new__(cls) -> "ErrorLog":
-        """Singleton pattern to ensure only one ErrorLog instance exists."""
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self) -> None:
-        if self._initialized:
-            return
-
-        self._log_dir = settings.public_path / "logs"
-        self._log_file = self._log_dir / "build-errors.log"
-        self._logger: Optional[logging.Logger] = None
-        self._write_lock = threading.Lock()
-        self._initialized = True
-
-    def _ensure_logger(self) -> logging.Logger:
-        """Lazily initialize the logger and log directory."""
-        if self._logger is not None:
-            return self._logger
-
-        with self._write_lock:
-            if self._logger is not None:
-                return self._logger
-
-            self._log_dir.mkdir(parents=True, exist_ok=True)
-
-            self._logger = logging.getLogger("asu.error_log")
-            self._logger.setLevel(logging.ERROR)
-            self._logger.propagate = False
-
-            # Remove any existing handlers to avoid duplicates
-            for handler in self._logger.handlers[:]:
-                self._logger.removeHandler(handler)
-
-            handler = RotatingFileHandler(
-                self._log_file,
-                maxBytes=self.MAX_BYTES,
-                backupCount=self.BACKUP_COUNT,
-            )
-            handler.setFormatter(logging.Formatter("%(message)s"))
-            self._logger.addHandler(handler)
-
-        return self._logger
+    REDIS_KEY = "build:errors"
+    MAX_ENTRIES = 5000
 
     def log_build_error(self, build_request: BuildRequest, error_message: str) -> None:
-        """Log a build error with timestamp and build context.
-
-        Args:
-            build_request: The BuildRequest that failed
-            error_message: Description of the error
-        """
         timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-        # Sanitize error message: remove any job hash, single line, limited length
         clean_error = sub(r"[0-9a-f]{64}", r"[job-id]", error_message)
         clean_error = " ".join(clean_error.split())[:200]
         profile_info = (
             f"{build_request.version}:{build_request.target}:{build_request.profile}"
         )
-        log_entry = f"{timestamp} {profile_info} {clean_error}"
+        entry = f"{timestamp} {profile_info} {clean_error}"
 
-        logger = self._ensure_logger()
-        with self._write_lock:
-            logger.error(log_entry)
+        try:
+            rc = get_redis_client()
+            rc.lpush(self.REDIS_KEY, entry)
+            rc.ltrim(self.REDIS_KEY, 0, self.MAX_ENTRIES - 1)
+        except Exception:
+            log.warning(f"Failed to log build error to Redis: {entry}")
 
     def get_entries(self, n_entries: int = 100) -> list[str]:
-        """Return the most recent log entries.
-
-        Args:
-            n_entries: Maximum number of entries to return
-
-        Returns:
-            List of log entry strings, newest first
-        """
-        entries: list[str] = []
-        # Check main log file and all backups (.1, .2, ... .BACKUP_COUNT)
-        log_files = [self._log_file] + [
-            self._log_dir / f"build-errors.log.{i}"
-            for i in range(1, self.BACKUP_COUNT + 1)
-        ]
-        for log_path in log_files:
-            if len(entries) >= n_entries:
-                break
-            if not log_path.exists():
-                continue
-            try:
-                lines = log_path.read_text().strip().splitlines()
-                for line in reversed(lines):
-                    if line:
-                        entries.append(line)
-                        if len(entries) >= n_entries:
-                            break
-            except OSError:
-                continue
-        return entries
+        try:
+            rc = get_redis_client()
+            entries = rc.lrange(self.REDIS_KEY, 0, n_entries - 1)
+            return [e.decode() if isinstance(e, bytes) else e for e in entries]
+        except Exception:
+            return []
 
     def get_summary(self, n_entries: int = 100) -> str:
-        """Return a formatted summary of recent build errors.
-
-        Args:
-            n_entries: Maximum number of entries to include
-
-        Returns:
-            Formatted string summary of errors
-        """
         entries = self.get_entries(n_entries)
         if not entries:
             return "No build errors recorded."
 
-        # Parse timestamps to get time range
         first_time = entries[-1].split(" ", 2)[0:2]
         last_time = entries[0].split(" ", 2)[0:2]
         first_ts = " ".join(first_time) if len(first_time) == 2 else "unknown"
