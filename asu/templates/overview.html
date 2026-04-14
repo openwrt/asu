@@ -38,11 +38,10 @@
                         >
                     </p>
                     <p>
-                        <b>How to use this server:</b> There are at least three
-                        clients that can request a new image from the Sysupgrade
-                        Server:
+                        <b>How to use this server:</b> These are clients 
+						that can request a new image from the Sysupgrade Server:
                     </p>
-                    <ul>
+                    <ul>For OpenWrt 24.10.xx
                         <li>
                             <a
                                 href="https://github.com/openwrt/asu#luci-app"
@@ -57,19 +56,42 @@
                             <a
                                 href="https://github.com/openwrt/asu#cli"
                                 target="_blank"
-                                >Command line/SSH (OpenWrt >23.xx) :</a
+                                >Command line/SSH:</a
                             >
                             <code>opkg install owut</code>
                         </li>
+					</ul>
+					<ul>For OpenWrt 25.12.xx
                         <li>
+                            <a
+                                href="https://github.com/openwrt/asu#luci-app"
+                                target="_blank"
+                                >LuCI Package:</a
+                            >
+                            <code
+                                >apk -U add luci-app-attendedsysupgrade</code
+                            >
+                        </li>
+						<li>
                             <a
                                 href="https://github.com/openwrt/asu#cli"
                                 target="_blank"
                                 >Command line/SSH:</a
                             >
-                            <code>opkg install auc</code>
+                            <code>apk -U add owut</code>
                         </li>
                     </ul>
+                    <p>
+                        <b>NOTE:</b> Following the release of 
+						<a href="https://openwrt.org/releases/25.12/notes-25.12.0#general_changes"
+						target="_blank">
+						OpenWrt 25.12</a>,
+						OpenWrt has transitioned from the traditional
+						<code>opkg</code> package manager
+						to <code>apk</code> (Alpine Package Keeper) and includes <code>
+						luci-app-attendedsysupgrade</code> by default in fresh installs.
+                    </p>
+
 
                     {% if server_stats %}
                     <p>
