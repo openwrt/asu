@@ -25,7 +25,7 @@ dependencies = [
     "fastapi-cache2>=0.2.2",
     "httpx>=0.28.1",
     "podman-compose>=1.5.0",
-    "boto3>=1.42.88",
+    "boto3>=1.42.89",
 ]
 
 [project.optional-dependencies]
