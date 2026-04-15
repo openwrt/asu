@@ -10,8 +10,9 @@ log_level = "INFO"
 # Container settings
 base_container = "ghcr.io/openwrt/imagebuilder"
 
-# Caching proxy: uncomment to route package downloads through nginx cache
-# upstream_url = "http://cache"
+# Caching proxy: uncomment to route build container package downloads
+# through nginx cache (see podman-compose.cache.yml)
+# cache_url = "http://cache"
 
 # Build cache TTLs
 build_ttl = "7d"
