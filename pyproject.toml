@@ -31,7 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=9.0.3",
-    "ruff>=0.14.9",
+    "ruff>=0.15.10",
     "coverage>=7.13.5",
     "isort>=8.0.1",
     "fakeredis>=2.35.1",
