@@ -758,6 +758,15 @@ def test_api_revision(client):
     assert data["revision"] == "r24106-10cc5fcd00"
 
 
+def test_api_revision_bad_version(client):
+    response = client.get(
+        "/api/v1/revision/invalid-version/ath79/generic", follow_redirects=False
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Unsupported version: invalid-version"
+
+
 def test_api_stats(client):
     response = client.get("/api/v1/stats", follow_redirects=False)
     assert response.status_code == 200

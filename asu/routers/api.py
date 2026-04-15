@@ -38,6 +38,12 @@ def api_v1_revision(
     version: str, target: str, subtarget: str, response: Response, request: Request
 ):
     branch_data = get_branch(version)
+    if "path" not in branch_data:
+        response.status_code = 400
+        return {
+            "detail": f"Unsupported version: {version}",
+            "status": 400,
+        }
     version_path = branch_data["path"].format(version=version)
     req = client_get(
         settings.upstream_url
