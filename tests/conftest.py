@@ -103,7 +103,7 @@ def app(redis_server, test_path, monkeypatch, upstream):
     settings.store_backend = "local"
     settings.async_queue = False
     settings.upstream_url = "http://localhost:8123"
-    settings.server_stats = "stats"
+    settings.server_stats = True
     for branch in "1.2", "19.07", "21.02":
         if branch not in settings.branches:
             settings.branches[branch] = {

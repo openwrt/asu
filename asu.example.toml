@@ -14,6 +14,9 @@ base_container = "ghcr.io/openwrt/imagebuilder"
 # through nginx cache (see podman-compose.cache.yml)
 # cache_url = "http://cache"
 
+# Enable stats page (requires Redis Stack with TimeSeries module)
+# server_stats = true
+
 # Build cache TTLs
 build_ttl = "7d"
 build_ttl_unversioned = "24h"

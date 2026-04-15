@@ -107,7 +107,7 @@ class Settings(BaseSettings):
     s3_bucket: str = "asu-store"
     s3_region: str = ""
     s3_public_url: str = ""  # base URL for redirects, e.g. "https://cdn.example.com"
-    server_stats: str = ""
+    server_stats: bool = False
     log_level: str = "INFO"
     build_ttl: str = "7d"
     build_ttl_unversioned: str = "24h"
