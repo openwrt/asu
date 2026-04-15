@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Containerfile
     restart: unless-stopped
-    command: uv run uvicorn --host 0.0.0.0 asu.main:app
+    command: uv run uvicorn --host 0.0.0.0 --reload --reload-include asu.toml asu.main:app
     environment:
       REDIS_URL: "redis://redis:6379/0"
     volumes:
