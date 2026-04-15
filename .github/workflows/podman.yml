@@ -115,6 +115,11 @@ jobs:
             sleep 10
           done
 
+      - name: Count first build cache misses
+        run: |
+          uv run podman-compose -f podman-compose.yml -f podman-compose.cache.yml logs cache 2>&1 | grep -c "cache=MISS" | tee /tmp/first_miss_count
+          echo "First build MISS count: $(cat /tmp/first_miss_count)"
+
       - name: Test second build (same image + vim, should hit cache)
         run: |
           for i in {1..20}; do
@@ -131,9 +136,11 @@ jobs:
             sleep 10
           done
 
-      - name: Verify cache hits
+      - name: Verify second build used cache
         run: |
           uv run podman-compose -f podman-compose.yml -f podman-compose.cache.yml logs cache 2>&1 | tee cache.log
-          grep "cache=" cache.log
-          grep -q "cache=HIT" cache.log
-          echo "Cache HIT entries found on second build"
+          total_misses=$(grep -c "cache=MISS" cache.log)
+          first_misses=$(cat /tmp/first_miss_count)
+          second_misses=$((total_misses - first_misses))
+          echo "First build: $first_misses MISS, second build: $second_misses MISS"
+          [ "$second_misses" -lt "$first_misses" ]
