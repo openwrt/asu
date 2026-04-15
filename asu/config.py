@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     public_path: Path = Path("/public")
     redis_url: str = "redis://localhost:6379"
     upstream_url: str = "https://downloads.openwrt.org"
+    cache_url: str = ""
     allow_defaults: bool = False
     async_queue: bool = True
     branches_file: Union[str, Path, None] = None
