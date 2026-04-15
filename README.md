@@ -1,12 +1,11 @@
-# Attendedsysupgrade Server (GSoC 2017)
+# Attended Sysupgrade Server
 
-[![codecov](https://codecov.io/gh/aparcar/asu/branch/master/graph/badge.svg)](https://codecov.io/gh/aparcar/asu)
-[![PyPi](https://badge.fury.io/py/asu.svg)](https://badge.fury.io/py/asu)
+[![codecov](https://codecov.io/gh/openwrt/asu/branch/main/graph/badge.svg)](https://codecov.io/gh/openwrt/asu)
 
 This project simplifies the sysupgrade process for upgrading the firmware of
 devices running OpenWrt or distributions based on it. These tools offer an easy
-way to reflash the router with a new firmware version
-(including all packages) without the need to use `opkg`.
+way to reflash the router with a new firmware version (including all packages)
+without the need to use `opkg`.
 
 ASU is based on an [API](#api) to request custom firmware images with any
 selection of packages pre-installed. This avoids the need to set up a build
@@ -18,10 +17,10 @@ a mobile device.
 ### OpenWrt Firmware Selector
 
 Simple web interface using vanilla JavaScript currently developed by @mwarning.
-It offers a device search based on model names and show links either to
+It offers a device search based on model names and shows links either to
 [official images](https://downloads.openwrt.org/) or requests images via the
-_asu_ API. Please join in the development at
-[GitLab repository](https://gitlab.com/openwrt/web/firmware-selector-openwrt-org)
+_asu_ API. Please join in the development at the
+[GitHub repository](https://github.com/openwrt/firmware-selector-openwrt-org).
 
 - <https://firmware-selector.openwrt.org>
 
@@ -55,11 +54,11 @@ them. It coordinates several OpenWrt ImageBuilders and caches the resulting
 images in a Redis database. If an image is cached, the server can provide it
 immediately without rebuilding.
 
-### Active server
+### Active servers
 
 > [!NOTE]
 > Official server using ImageBuilder published on [OpenWrt
-> Downloads](downloads.openwrt.org).
+> Downloads](https://downloads.openwrt.org).
 
 - [sysupgrade.openwrt.org](https://sysupgrade.openwrt.org)
 
@@ -74,8 +73,8 @@ immediately without rebuilding.
 ## Run your own server
 
 For security reasons each build happens inside a container so that one build
-can't affect another build. For this to work a Podman container runs an API
-service so workers can themselfs execute builds inside containers.
+can't affect another. A Podman socket is used so workers can execute builds
+inside containers.
 
 ### Installation
 
@@ -87,21 +86,33 @@ sudo apt install podman-compose
 ```
 
 A [Python library](https://podman-py.readthedocs.io/en/latest/) is used to
-communicate with Podman over a socket. To enable the socket either `systemd` is
-required or the socket must be started manually using the Podman itself:
+communicate with Podman over a socket. Symlink the socket into the project
+directory:
 
 ```bash
-# systemd
-systemctl --user enable podman.socket
-systemctl --user start podman.socket
-systemctl --user status podman.socket
-
-# manual (must stay open)
-podman system service --time=0 unix:/run/user/$(id -u)/podman/podman.sock
+ln -sf /run/user/$(id -u)/podman/podman.sock podman.sock
 ```
 
-Now you can either use the latest ASU containers or build them yourself, run
-either of the following two commands:
+If the Podman socket is not running, enable it:
+
+```bash
+systemctl --user enable --now podman.socket
+```
+
+Create the isolated network for build containers (no access to Redis or other
+services):
+
+```bash
+podman network create asu-build
+```
+
+Copy the example configuration and adjust as needed:
+
+```bash
+cp asu.example.toml asu.toml
+```
+
+Now you can either use the latest ASU containers or build them yourself:
 
 ```bash
 # use existing containers
@@ -111,34 +122,34 @@ podman-compose pull
 podman-compose build
 ```
 
-The services are configured via environment variables, which can be set in a
-`.env` file
-
-```bash
-# symlink the podman socket into the asu directory
-ln -sf /run/user/$(id -u)/podman/podman.sock podman.sock
-
-# create isolated network for build containers (no access to Redis)
-podman network create asu-build
-```
-
-Now it's possible to run all services via `podman-compose`:
+Start all services:
 
 ```bash
 podman-compose up -d
 ```
 
-This will start the server, the Podman API container and one worker. Once the
-server is running, it's possible to request images via the API on
-`http://localhost:8000`. Modify `podman-compose.yml` to change the port.
+This will start the server, a Redis instance and one worker. Once running,
+the API is available at `http://localhost:8000`. Modify `podman-compose.yml`
+to change the port.
+
+#### Optional: caching proxy
+
+To cache upstream package downloads between builds, enable the nginx caching
+proxy:
+
+```bash
+podman-compose -f podman-compose.yml -f podman-compose.cache.yml up -d
+```
+
+Set `cache_url = "http://cache"` in `asu.toml` to route build container
+package downloads through the cache.
 
 ### Production
 
 For production it's recommended to use a reverse proxy like `nginx` or `caddy`.
 You can find a Caddy sample configuration in `misc/Caddyfile`.
 
-If you want your server to remain active after you log out of the server, you
-must enable "linger" in `loginctl`:
+If you want your server to remain active after you log out, enable "linger":
 
 ```bash
 loginctl enable-linger
@@ -149,31 +160,6 @@ loginctl enable-linger
 - 2 GB RAM (4 GB recommended)
 - 2 CPU cores (4 cores recommended)
 - 50 GB disk space (200 GB recommended)
-
-#### Squid Cache
-
-Instead of creating and uploading SNAPSHOT ImageBuilder containers everyday,
-only a container with installed dependencies and a `setup.sh` script is offered.
-ASU will automatically run that script and setup the latest ImageBuilder. To
-speed up the process, a Squid cache can be used to store the ImageBuilder
-archives locally. To enable the cache, set `SQUID_CACHE=1` in the `.env` file.
-
-To have the cache accessible from running containers, the Squid port 3128 inside
-a running container must be forwarded to the host. This can be done by adding
-the following line to the `.config/containers/containers.conf` file:
-
-```toml
-[network]
-pasta_options = [
-    "-a", "10.0.2.0",
-    "-n", "24",
-    "-g", "10.0.2.2",
-    "--dns-forward", "10.0.2.3",
-    "-T", "3128:3128"
-]
-```
-
-> If you know a better setup, please create a pull request.
 
 ### Development
 
@@ -203,7 +189,6 @@ uv run fastapi dev asu/main.py
 #### Running a worker
 
 ```bash
-source .env
 uv run rq worker
 ```
 
