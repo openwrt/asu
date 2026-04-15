@@ -198,7 +198,8 @@ def _build(build_request: BuildRequest, job=None):
         cap_drop=["all"],
         no_new_privileges=True,
         privileged=False,
-        network_mode="asu-build",
+        network_mode="bridge",
+        networks={"asu-build": {}},
         environment=environment,
         image_volume_mode="ignore",
     )
@@ -215,10 +216,10 @@ def _build(build_request: BuildRequest, job=None):
 
         inject_files(container, build_request, job)
 
-        # If upstream_url is HTTP (caching proxy), rewrite repository URLs
+        # If a caching proxy is configured, rewrite repository URLs
         # from https://host/path to http://cache/host/path
-        if settings.upstream_url.startswith("http://"):
-            cache_host = settings.upstream_url.rstrip("/")
+        if settings.cache_url:
+            cache_host = settings.cache_url.rstrip("/")
             repo_file = (
                 "repositories" if _detect_apk_mode(container) else "repositories.conf"
             )
