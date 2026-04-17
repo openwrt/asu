@@ -653,11 +653,24 @@ def reload_profiles(app: FastAPI, version: str, target: str) -> bool:
         settings.upstream_url + f"/{version_path}/targets/{target}/profiles.json"
     )
 
-    app.profiles[version][target] = {
+    profiles = {
         name.replace(",", "_"): profile
         for profile, data in response.json()["profiles"].items()
         for name in data.get("supported_devices", []) + [profile]
     }
+
+    # Eliminate any remapping to alternate supported profiles.  Must happen
+    # /after/ all of above to avoid order-of-listing problems.  Also log an
+    # error message about the improperly defined profiles, as this indicates
+    # a bug in the Device definitions.
+    for profile in response.json()["profiles"]:
+        if profiles[profile] != profile:
+            # Here's what we should log, but we don't have a good "log once"
+            # mechanism yet, and don't want to flood the logs.
+            # f"ERROR: profile bug {version} {target} {profile} mapped to {profiles[profile]}"
+            profiles[profile] = profile
+
+    app.profiles[version][target] = profiles
 
     return True
 
