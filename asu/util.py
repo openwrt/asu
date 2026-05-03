@@ -453,6 +453,89 @@ def check_package_errors(stderr: str) -> str:
     return f"Impossible package selection{pkg_list}"
 
 
+PACKAGE_CACHE_TTL_RELEASE = 86400  # releases are immutable, 24h is fine
+PACKAGE_CACHE_TTL_SNAPSHOT = 900  # snapshots refresh ~daily, 15min keeps it fresh
+
+
+def packages_from_index(idx: dict) -> set[str]:
+    """Extract package names from a parse_packages_file return value.
+
+    parse_packages_file returns either {architecture, packages} (opkg fallback
+    or v2 index.json) or a flat {pkg: version} dict (v1 index.json without
+    Packages fallback). Handle both shapes.
+    """
+    pkgs = idx.get("packages")
+    if isinstance(pkgs, dict):
+        return set(pkgs.keys())
+    return {k for k, v in idx.items() if isinstance(v, str)}
+
+
+def fetch_available_packages(version: str, target: str, arch: str) -> set[str]:
+    """Fetch the union of available package names from upstream.
+
+    Combines target-specific packages, kmods (when split), and per-arch feeds.
+    Returns an empty set when nothing could be fetched (upstream down, unknown
+    version/target, etc.).
+    """
+    branch_data = get_branch(version)
+    if "path" not in branch_data:
+        return set()
+    version_path = branch_data["path"].format(version=version)
+    base = f"{settings.upstream_url}/{version_path}"
+
+    packages: set[str] = set()
+    packages.update(
+        packages_from_index(parse_packages_file(f"{base}/targets/{target}/packages"))
+    )
+
+    if is_post_kmod_split_build(f"{version_path}/targets/{target}"):
+        kmod_dir = parse_kernel_version(f"{base}/targets/{target}/profiles.json")
+        if kmod_dir:
+            packages.update(
+                packages_from_index(
+                    parse_packages_file(f"{base}/targets/{target}/kmods/{kmod_dir}")
+                )
+            )
+
+    if arch:
+        feed_url = f"{base}/packages/{arch}"
+        for feed in parse_feeds_conf(feed_url):
+            packages.update(
+                packages_from_index(parse_packages_file(f"{feed_url}/{feed}"))
+            )
+
+    return packages
+
+
+def get_available_packages(version: str, target: str, arch: str) -> Optional[set[str]]:
+    """Return cached set of available package names for (version, target).
+
+    Returns None when nothing is known about the upstream so callers treat it
+    as 'cannot validate, allow through' rather than rejecting blindly.
+    """
+    cache_key = f"pkgs:{version}:{target}"
+    rc = get_redis_client()
+
+    cached = rc.smembers(cache_key)
+    if cached:
+        return cached
+
+    packages = fetch_available_packages(version, target, arch)
+    if not packages:
+        return None
+
+    ttl = (
+        PACKAGE_CACHE_TTL_SNAPSHOT
+        if "snapshot" in version.lower()
+        else PACKAGE_CACHE_TTL_RELEASE
+    )
+    pipe = rc.pipeline()
+    pipe.sadd(cache_key, *packages)
+    pipe.expire(cache_key, ttl)
+    pipe.execute()
+    return packages
+
+
 def parse_packages_file(url: str) -> dict[str, str]:
     """Any index.json without a "version" tag is assumed to be v1, containing
     ABI-versioned package names, which may cause issues for those packages.
