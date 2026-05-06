@@ -25,6 +25,8 @@ services:
       dockerfile: Containerfile
     restart: unless-stopped
     command: uv run rqworker --logging_level INFO
+    env_file:
+      - .env
     volumes:
       - ./asu.toml:/app/asu.toml:ro
       - ./podman.sock:/var/podman.sock:rw
