@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -453,6 +455,139 @@ def test_api_build_missing_package(app):
     assert response.status_code == 500
     data = response.json()
     assert "this-package-does-not-exist" in data["detail"]
+
+
+def test_validate_packages_rejects_unknown(client, httpserver):
+    """With validate_packages enabled, unknown packages are rejected at the
+    validation step rather than reaching the build worker."""
+    upstream_path = Path("./tests/upstream/")
+    for f in [
+        "snapshots/targets/testtarget/testsubtarget/packages/Packages",
+        "snapshots/packages/testarch/base/Packages",
+    ]:
+        httpserver.expect_request(f"/{f}").respond_with_data(
+            (upstream_path / f).read_bytes()
+        )
+
+    settings.validate_packages = True
+    try:
+        response = client.post(
+            "/api/v1/build",
+            json=dict(
+                version="SNAPSHOT",
+                target="testtarget/testsubtarget",
+                profile="generic",
+                packages=["base-files", "this-package-does-not-exist"],
+            ),
+        )
+    finally:
+        settings.validate_packages = False
+
+    assert response.status_code == 400
+    assert "this-package-does-not-exist" in response.json()["detail"]
+    assert "base-files" not in response.json()["detail"]
+
+
+def test_validate_packages_custom_repo(client, httpserver):
+    """Packages from a user-supplied repo (opkg or apk) are merged into the
+    available universe, so a name found there is accepted."""
+    import json as json_mod
+
+    upstream_path = Path("./tests/upstream/")
+    for f in [
+        "snapshots/targets/testtarget/testsubtarget/packages/Packages",
+        "snapshots/packages/testarch/base/Packages",
+    ]:
+        httpserver.expect_request(f"/{f}").respond_with_data(
+            (upstream_path / f).read_bytes()
+        )
+    # opkg-style repo: serve a Packages file with an extra package.
+    httpserver.expect_request("/custom-repo/index.json").respond_with_data(
+        "", status=404
+    )
+    httpserver.expect_request("/custom-repo/Packages").respond_with_data(
+        "Package: from-custom-repo\n"
+        "Version: 1.0\n"
+        "Architecture: testarch\n"
+        "Filename: from-custom-repo_1.0_testarch.ipk\n"
+        "Size: 1\n"
+        "SHA256sum: 0000\n"
+        "Description: test\n"
+    )
+    # apk-style repo: client URL points at packages.adb but the v2 index.json
+    # sits in the same directory.
+    httpserver.expect_request("/apk-repo/index.json").respond_with_json(
+        json_mod.loads(
+            '{"version": 2, "architecture": "testarch", '
+            '"packages": {"from-apk-repo": "1.0"}}'
+        )
+    )
+
+    saved_allow_list = settings.repository_allow_list
+    settings.repository_allow_list = ["http://localhost:8123/"]
+    settings.validate_packages = True
+    try:
+        # Package only present in the opkg repo: must pass validation.
+        response = client.post(
+            "/api/v1/build",
+            json=dict(
+                version="SNAPSHOT",
+                target="testtarget/testsubtarget",
+                profile="generic",
+                packages=["from-custom-repo"],
+                repositories={"custom": "http://localhost:8123/custom-repo"},
+                repositories_mode="append",
+            ),
+        )
+        assert response.status_code != 400, response.json()
+
+        # Package only present in the apk repo (URL ends with packages.adb).
+        response = client.post(
+            "/api/v1/build",
+            json=dict(
+                version="SNAPSHOT",
+                target="testtarget/testsubtarget",
+                profile="generic",
+                packages=["from-apk-repo"],
+                repositories={"custom": "http://localhost:8123/apk-repo/packages.adb"},
+                repositories_mode="append",
+            ),
+        )
+        assert response.status_code != 400, response.json()
+
+        # Truly unknown package: still rejected even with the custom repo.
+        response = client.post(
+            "/api/v1/build",
+            json=dict(
+                version="SNAPSHOT",
+                target="testtarget/testsubtarget",
+                profile="generic",
+                packages=["this-package-does-not-exist"],
+                repositories={"custom": "http://localhost:8123/custom-repo"},
+                repositories_mode="append",
+            ),
+        )
+        assert response.status_code == 400
+        assert "this-package-does-not-exist" in response.json()["detail"]
+    finally:
+        settings.validate_packages = False
+        settings.repository_allow_list = saved_allow_list
+
+
+def test_validate_packages_skipped_when_disabled(client):
+    """With validate_packages disabled (the default), unknown packages are
+    not rejected at validation — they would reach the build worker."""
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["this-package-does-not-exist"],
+        ),
+    )
+    # No 400 from validation — request proceeds (will eventually fail in build).
+    assert response.status_code != 400
 
 
 def test_api_build_without_packages_list(client):

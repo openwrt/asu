@@ -114,6 +114,7 @@ def app(redis_server, test_path, monkeypatch, upstream):
     monkeypatch.setattr("asu.util.get_queue", mocked_redis_queue)
     monkeypatch.setattr("asu.routers.api.get_queue", mocked_redis_queue)
     monkeypatch.setattr("asu.util.get_redis_client", mocked_redis_client)
+    monkeypatch.setattr("asu.repositories.get_redis_client", mocked_redis_client)
 
     from asu.main import app as real_app
 
