@@ -50,6 +50,7 @@ def test_api_build_inputs(client):
     assert request["defaults"] is None
     assert request["client"] is None
     assert request["rootfs_size_mb"] is None
+    assert request["filesystem"] is None
     assert request["diff_packages"] is False
     assert request["repositories_mode"] == "replace"
 
@@ -98,6 +99,36 @@ def test_api_build_rootfs_size_too_small(client):
     assert response.status_code == 422
     data = response.json()
     assert data["detail"][0]["msg"] == "Input should be greater than or equal to 1"
+
+
+def test_api_build_filesystem(client):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            filesystem="squashfs",
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "ROOTFS_FILESYSTEM=squashfs" in data["build_cmd"]
+
+
+def test_api_build_filesystem_invalid(client):
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="testprofile",
+            packages=["test1", "test2"],
+            filesystem="bogusfs",
+        ),
+    )
+    assert response.status_code == 422
 
 
 def test_api_build_rootfs_size_too_big(client):

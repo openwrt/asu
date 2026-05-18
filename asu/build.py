@@ -330,6 +330,12 @@ def _build(build_request: BuildRequest, job=None):
                 f"ROOTFS_PARTSIZE={build_request.rootfs_size_mb}"
             )
 
+        if build_request.filesystem:
+            log.debug("Restricting filesystem to %s", build_request.filesystem)
+            job.meta["build_cmd"].append(
+                f"ROOTFS_FILESYSTEM={build_request.filesystem}"
+            )
+
         log.debug("Build command: %s", job.meta["build_cmd"])
 
         job.meta["imagebuilder_status"] = "building_image"

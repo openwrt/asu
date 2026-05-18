@@ -88,6 +88,20 @@ def test_get_request_hash_includes_repositories_mode():
     assert append_hash != replace_hash
 
 
+def test_get_request_hash_includes_filesystem():
+    base = dict(
+        version="1.2.3",
+        target="testtarget/testsubtarget",
+        profile="testprofile",
+    )
+    no_fs_hash = get_request_hash(BuildRequest(**base))
+    squashfs_hash = get_request_hash(BuildRequest(**base, filesystem="squashfs"))
+    ext4_hash = get_request_hash(BuildRequest(**base, filesystem="ext4"))
+
+    assert no_fs_hash != squashfs_hash
+    assert squashfs_hash != ext4_hash
+
+
 def test_diff_packages():
     assert diff_packages(["test1"], {"test1", "test2"}) == ["-test2", "test1"]
     assert diff_packages(["test1"], {"test1"}) == ["test1"]
