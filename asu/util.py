@@ -175,7 +175,7 @@ def get_request_hash(build_request: BuildRequest) -> str:
                 ),
                 get_manifest_hash(build_request.packages_versions),
                 str(build_request.diff_packages),
-                "",  # build_request.filesystem
+                build_request.filesystem or "",
                 get_str_hash(build_request.defaults),
                 str(build_request.rootfs_size_mb),
                 str(build_request.repository_keys),

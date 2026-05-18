@@ -136,6 +136,33 @@ class BuildRequest(BaseModel):
             """.strip(),
         ),
     ] = None
+    filesystem: Annotated[
+        Literal[
+            "squashfs",
+            "ext4",
+            "ubifs",
+            "erofs",
+            "jffs2",
+            "jffs2-nand",
+            "targz",
+            "cpiogz",
+        ]
+        | None,
+        Field(
+            examples=["squashfs"],
+            description="""
+                Restrict the build to a single rootfs filesystem
+                (`ROOTFS_FILESYSTEM` in the ImageBuilder). By default the
+                ImageBuilder produces every filesystem it was built with
+                (typically squashfs and ext4). Requesting one specifically
+                reduces build time and disk usage, and works around cases
+                where one filesystem fails the build while another would
+                succeed. Requires OpenWrt with PR openwrt/openwrt#23425
+                The requested filesystem must be available in the target's
+                ImageBuilder.
+            """.strip(),
+        ),
+    ] = None
     repositories: Annotated[
         dict[
             Annotated[str, Field(pattern=REPO_NAME_PATTERN)],
