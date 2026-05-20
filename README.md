@@ -66,8 +66,9 @@ immediately without rebuilding.
 > Unofficial servers, may run modified ImageBuilder
 
 - [ImmortalWrt](https://sysupgrade.kyarucloud.moe)
-- [LibreMesh](https://sysupgrade.antennine.org) (only `stable` and `oldstable` OpenWrt versions)
+- [LibreMesh](https://sysupgrade.libremesh.org)
 - [sysupgrade.guerra24.net](https://sysupgrade.guerra24.net)
+- [sysupgrade.antennine.org](https://sysupgrade.antennine.org)
 - Create a pull request to add your server here
 
 ## Run your own server
