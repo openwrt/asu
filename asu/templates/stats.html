@@ -105,9 +105,12 @@
                 const response = await fetch(url);
                 const data = await response.json();
                 const tbody = document.querySelector("#packagesTable tbody");
-                tbody.innerHTML = data.packages.map(p =>
-                    `<tr><td>${p.name}</td><td>${p.count}</td></tr>`
-                ).join("");
+                tbody.replaceChildren();
+                for (const { name, count } of data.packages) {
+                    const tr = tbody.insertRow();
+                    tr.insertCell().textContent = name;
+                    tr.insertCell().textContent = count;
+                }
             }
 
             loadPackages();
