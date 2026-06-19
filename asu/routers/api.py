@@ -19,6 +19,7 @@ from asu.util import (
     reload_profiles,
     reload_targets,
     reload_versions,
+    resolve_profile,
 )
 
 router = APIRouter()
@@ -127,61 +128,16 @@ def validate_request(
                 "try again later."
             )
 
-    def valid_profile(profile: str, build_request: BuildRequest) -> bool:
-        profiles = app.profiles[build_request.version][build_request.target]
-        if profile in profiles:
-            return True
-        else:
-            for supported_devices in profiles.values():
-                if profile in supported_devices:
-                    return True
-
-        if len(profiles) == 1 and "generic" in profiles:
-            # Handles the x86, armsr and other generic variants.
-            build_request.profile = "generic"
-            return True
-        return False
-
-    if not valid_profile(build_request.profile, build_request):
-        reload_profiles(app, build_request.version, build_request.target)
-        if not valid_profile(build_request.profile, build_request):
-            return validation_failure(
-                f"Unsupported profile: {build_request.profile}. The requested "
-                "profile was either dropped or never existed. Please check the "
-                "forums for more information."
-            )
-
-    # Translate DTS compatible strings to actual profile names:
-    # *Only firmware-selector client is suppose to send the profile directly,
-    # *translate if it is not an already translated profile
     if build_request.profile not in app.profiles[build_request.version][build_request.target]:
-        first_occurrence = 0
-        profiles_appearances: dict[str, int] = dict()
-        for profile, supported_devices in app.profiles[build_request.version][build_request.target].items():
-            if build_request.profile in supported_devices:
-                profiles_appearances[profile] = supported_devices.index(build_request.profile)
-                
-        if len(profiles_appearances) == 1:
-            build_request.profile = profiles_appearances[0]
-        else:
-            # If there are multiple profiles including the requested DTS compatible string,
-            # select the one where it is the first in the list of SUPPORTED_DEVICES
-            logging.info(
-                f"DTS Compatible string: {build_request.profile} appears in "
-                f"multiple profiles, included in: {profiles_appearances}"
-            )
-            for profile, index in profiles_appearances.items():
-                if index == 0:
-                    first_occurrence += 1
-                    build_request.profile = profile
-            if first_occurrence != 1:
-                return validation_failure(
-                    f"Identification profile problem: {build_request.profile}. "
-                     "The requested DTS compatible string has more than one "
-                     "profile including it as the first SUPPORTED_DEVICES. "
-                     "Or it is not the first in the list for any profile. "
-                    f"{profiles_appearances} Please check the forums for more information."
-                )
+        reload_profiles(app, build_request.version, build_request.target)
+
+    try:
+        build_request.profile = resolve_profile(
+            app.profiles[build_request.version][build_request.target],
+            build_request.profile,
+        )
+    except ValueError as e:
+        return validation_failure(str(e))
 
     return ({}, None)
 
