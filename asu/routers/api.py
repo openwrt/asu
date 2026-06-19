@@ -212,6 +212,11 @@ def api_v1_build_post(
 ):
     add_build_event("requests")
 
+    content, status = validate_request(request.app, build_request)
+    if content:
+        response.status_code = status
+        return content
+
     request_hash: str = get_request_hash(build_request)
     job: Job = get_queue().fetch_job(request_hash)
     status: int = 200
@@ -237,11 +242,6 @@ def api_v1_build_post(
 
     if job is None:
         add_build_event("cache-misses")
-
-        content, status = validate_request(request.app, build_request)
-        if content:
-            response.status_code = status
-            return content
 
         job_queue_length = len(get_queue())
         if job_queue_length > settings.max_pending_jobs:
