@@ -210,6 +210,8 @@ def apply_package_changes(build_request: BuildRequest):
     if build_request.version == "SNAPSHOT":  # Change "SNAPSHOT" to 26.x when needed.
         # https://github.com/openwrt/openwrt/commit/5b61a50244ebc82096f5949de294ad69851e1fd6
         _remove_if_present("kmod-nf-conntrack6")
+        # No specific commit, it was rolled into other kmods in kernel 6.18
+        _remove_if_present("kmod-lib-crc32c")
 
     # TODO: if we ever fully implement 'packages_versions', this needs rework
     for version, packages in language_packs.items():
