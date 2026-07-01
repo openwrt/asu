@@ -115,6 +115,7 @@ class Settings(BaseSettings):
     build_failure_ttl: str = "1h"
     max_pending_jobs: int = 200
     job_timeout: str = "10m"
+    validate_packages: bool = False
 
 
 settings = Settings()
