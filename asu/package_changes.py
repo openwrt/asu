@@ -206,6 +206,9 @@ def apply_package_changes(build_request: BuildRequest):
                 "zyxel_nbg7815",
             }:
                 _add_if_missing("kmod-hci-uart")
+        # Changes for https://github.com/openwrt/openwrt/commit/a8aef63898ad2bbb4a27b6abb31c9b6185ed3817
+        elif build_request.target == "ath79/mikrotik":
+            _add_if_missing("kmod-ag71xx-legacy")
 
     if build_request.version == "SNAPSHOT":  # Change "SNAPSHOT" to 26.x when needed.
         # https://github.com/openwrt/openwrt/commit/5b61a50244ebc82096f5949de294ad69851e1fd6
