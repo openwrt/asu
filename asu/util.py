@@ -654,12 +654,62 @@ def reload_profiles(app: FastAPI, version: str, target: str) -> bool:
     )
 
     app.profiles[version][target] = {
-        name.replace(",", "_"): profile
+        profile: data.get("supported_devices", [])
         for profile, data in response.json()["profiles"].items()
-        for name in data.get("supported_devices", []) + [profile]
     }
 
     return True
+
+
+def resolve_profile(
+    profiles: dict[str, list[str]],
+    board_name: str,
+) -> str:
+    """Resolve a board identifier (DTS compatible or profile name) to a
+    canonical profile name.
+
+    Args:
+        profiles: Mapping of profile name -> list of supported device strings
+        board_name: The string sent by the client
+
+    Returns:
+        The canonical profile name string.
+
+    Raises:
+        ValueError: If resolution fails (ambiguous or not found)
+    """
+    if board_name in profiles:
+        return board_name
+
+    candidates: dict[str, int] = {}
+    for name, supported in profiles.items():
+        if board_name in supported:
+            candidates[name] = supported.index(board_name)
+
+    if not candidates:
+        # Handles the x86, armsr and other generic variants.
+        if len(profiles) == 1 and "generic" in profiles:
+            return "generic"
+        raise ValueError(
+            f"Unsupported profile: {board_name}. The requested "
+            "profile was either dropped or never existed. Please check "
+            "the forums for more information."
+        )
+
+    if len(candidates) == 1:
+        return next(iter(candidates))
+
+    firsts = {name: idx for name, idx in candidates.items() if idx == 0}
+    if len(firsts) == 1:
+        return next(iter(firsts))
+
+    raise ValueError(
+        f"Identification profile problem: {board_name}. "
+        "The requested DTS compatible string has more than one "
+        "profile including it as the first SUPPORTED_DEVICES. "
+        "Or it is not the first in the list for any profile. "
+        f"{candidates} Please check the forums for more information."
+    )
 
 
 class ErrorLog:
