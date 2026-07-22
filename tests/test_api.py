@@ -929,3 +929,38 @@ def test_api_build_freifunk_opkg(app):
         :2000
     ]
     assert "weimarnetz-feed-opkg" in data["manifest"]
+
+
+def test_api_build_no_user_agent(client, monkeypatch):
+    """Requests without a User-Agent header must not crash the endpoint."""
+    monkeypatch.setattr(settings, "server_stats", False)
+    del client.headers["user-agent"]
+    response = client.post(
+        "/api/v1/build",
+        json=dict(
+            version="1.2.3",
+            target="testtarget/testsubtarget",
+            profile="Foobar",
+            packages=["test1", "test2"],
+        ),
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("Unsupported profile: Foobar")
+
+
+def test_json_v1_profile(client):
+    response = client.get(
+        "/json/v1/releases/1.2.3/targets/testtarget/testsubtarget/testprofile.json"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "testprofile"
+    assert data["build_at"].endswith("Z")
+
+
+def test_json_v1_profile_not_found(client):
+    response = client.get(
+        "/json/v1/releases/1.2.3/targets/testtarget/testsubtarget/Foobar.json"
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Profile not found: Foobar"
