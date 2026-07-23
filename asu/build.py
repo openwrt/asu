@@ -86,11 +86,14 @@ def _detect_apk_mode(container) -> bool:
     return rc == 0
 
 
-def inject_files(container, build_request, job=None):
+def inject_files(container, build_request, job=None, apk_mode: bool | None = None):
     """Copy keys, repositories, and defaults into a running container.
 
     Uses put_archive to inject files directly — no bind mounts needed,
     so there are no host-path dependencies.
+
+    Args:
+        apk_mode: Pre-detected package manager mode (avoids redundant detection).
     """
     if build_request.repository_keys:
         files = {}
@@ -107,7 +110,8 @@ def inject_files(container, build_request, job=None):
 
     if build_request.repositories:
         allowed = validate_repos(build_request.repositories)
-        apk_mode = _detect_apk_mode(container)
+        if apk_mode is None:
+            apk_mode = _detect_apk_mode(container)
         repo_file = "repositories" if apk_mode else "repositories.conf"
 
         base = ""
@@ -214,15 +218,19 @@ def _build(build_request: BuildRequest, job=None):
             if returncode:
                 report_error(job, f"Could not set up ImageBuilder ({returncode=})")
 
-        inject_files(container, build_request, job)
+        # Detect the package manager only when something needs it: custom
+        # repositories (inject_files) or cache URL rewriting below.
+        apk_mode = None
+        if build_request.repositories or settings.cache_url:
+            apk_mode = _detect_apk_mode(container)
+
+        inject_files(container, build_request, job, apk_mode=apk_mode)
 
         # If a caching proxy is configured, rewrite repository URLs
         # from https://host/path to http://cache/host/path
         if settings.cache_url:
             cache_host = settings.cache_url.rstrip("/")
-            repo_file = (
-                "repositories" if _detect_apk_mode(container) else "repositories.conf"
-            )
+            repo_file = "repositories" if apk_mode else "repositories.conf"
             run_cmd(
                 container,
                 ["sed", "-i", f"s|https://|{cache_host}/|g", repo_file],

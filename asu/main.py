@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Union
 
@@ -126,14 +126,14 @@ def json_v1_profile(path: str, target: str, profile: str):
     ).json()
     profiles: dict = metadata.pop("profiles", {})
     if profile not in profiles:
-        return {}
+        raise HTTPException(status_code=404, detail=f"Profile not found: {profile}")
 
     return {
         **metadata,
         **profiles[profile],
         "id": profile,
-        "build_at": datetime.utcfromtimestamp(
-            int(metadata.get("source_date_epoch", 0))
+        "build_at": datetime.fromtimestamp(
+            int(metadata.get("source_date_epoch", 0)), UTC
         ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
     }
 
@@ -150,7 +150,7 @@ def json_v1_latest():
 
 
 def generate_branches():
-    reload_versions(app)  # Do a reload in case .versions.json has updated.
+    # Caller is responsible for calling reload_versions() beforehand.
     branches = dict(**settings.branches)
 
     for branch in branches:
@@ -173,13 +173,15 @@ def generate_branches():
 
 @app.get("/json/v1/branches.json")
 def json_v1_branches():
+    reload_versions(app)
     return list(generate_branches().values())
 
 
 @app.get("/json/v1/overview.json")
 def json_v1_overview():
+    reload_versions(app)  # Single reload shared by both helpers.
     overview = {
-        "latest": generate_latest(),
+        "latest": app.latest,
         "branches": generate_branches(),
         "upstream_url": settings.upstream_url,
         "server": {
@@ -197,7 +199,7 @@ def json_v1_overview():
 
 @app.get("//{path:path}")
 def api_double_slash(path: str):
-    print(f"Redirecting double slash to single slash: {path}")
+    logging.info(f"Redirecting double slash to single slash: {path}")
     return RedirectResponse(f"/{path}", status_code=301)
 
 

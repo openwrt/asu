@@ -31,9 +31,16 @@ log.propagate = False  # Suppress duplicate log messages.
 # Create a shared HTTP client
 _http_client = httpx.Client()
 
+# Cached Redis connections (one per decode mode)
+_redis_clients: dict[bool, redis.client.Redis] = {}
+
 
 def get_redis_client(unicode: bool = True) -> redis.client.Redis:
-    return redis.from_url(settings.redis_url, decode_responses=unicode)
+    if unicode not in _redis_clients:
+        _redis_clients[unicode] = redis.from_url(
+            settings.redis_url, decode_responses=unicode
+        )
+    return _redis_clients[unicode]
 
 
 def get_redis_ts():
@@ -44,9 +51,13 @@ def client_get(url: str) -> Response:
     return _http_client.get(url)
 
 
-def add_timestamp(key: str, labels: dict[str, str] = {}, value: int = 1) -> None:
+def add_timestamp(
+    key: str, labels: dict[str, str] | None = None, value: int = 1
+) -> None:
     if not settings.server_stats:
         return
+    if labels is None:
+        labels = {}
     log.debug(f"Adding timestamp to {key}: {labels}")
     get_redis_ts().add(
         key,
@@ -80,13 +91,21 @@ def add_build_event(event: str) -> None:
     add_timestamp(key, {"stats": "summary"})
 
 
+_queue: Queue | None = None
+
+
 def get_queue() -> Queue:
     """Return the current queue
 
     Returns:
         Queue: The current RQ work queue
     """
-    return Queue(connection=get_redis_client(False), is_async=settings.async_queue)
+    global _queue
+    if _queue is None:
+        _queue = Queue(
+            connection=get_redis_client(False), is_async=settings.async_queue
+        )
+    return _queue
 
 
 def get_branch(version_or_branch: str) -> dict[str, str]:
@@ -301,8 +320,7 @@ def diff_packages(
 def run_cmd(
     container: Container,
     command: list[str],
-    copy: list[str] = [],
-    environment: dict[str, str] = {},
+    copy: list[str] | None = None,
 ) -> tuple[int, str, str]:
     returncode, output = container.exec_run(command, demux=True, user="buildbot")
 
