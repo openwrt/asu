@@ -357,6 +357,7 @@ def test_check_package_errors():
         " conflicts"
         " (APK-CONFLICT-1, APK-CONFLICT-2, APK-CONFLICT-3, APK-CONFLICT-4,"
         " OPKG-CONFLICT-1, OPKG-CONFLICT-2, OPKG-CONFLICT-3, OPKG-CONFLICT-4)"
+        " wget-fails (WGET-FAIL-1, WGET-FAIL-2)"
     )
 
 

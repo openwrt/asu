@@ -426,7 +426,7 @@ def check_package_errors(stderr: str) -> str:
             required by: world[APK-MISSING]
 
     Case apk-2
-        ERROR: unable to select packages:
+       ERROR: unable to select packages:
           APK-CONFLICT-1:
             conflicts: APK-CONFLICT-2[nftables=1.1.6-r1]
             satisfies: world[nftables-json]
@@ -437,6 +437,12 @@ def check_package_errors(stderr: str) -> str:
 
     Case apk-3
         ERROR: APK-CONFLICT-3: trying to overwrite somefile owned by APK-CONFLICT-4.
+
+    Case apk-4 (indentation of this test case is significant)
+    ERROR: wget: exited with error 8
+    ERROR: WGET-FAIL-1: unexpected end of file
+    ERROR: wget: exited with error 3
+    ERROR: WGET-FAIL-2: ADB integrity error
     """
 
     # Grab the missing ones first, as that's easy.
@@ -459,15 +465,23 @@ def check_package_errors(stderr: str) -> str:
         + findall(r"trying to overwrite .* owned by ([^ ]+)\.", stderr)
     )
 
+    # Download failures
+    # Case apk-4
+    downloads = set(
+        findall(r"ERROR: wget: exited with error \d+\nERROR: ([^:]+)", stderr, DOTALL)
+    )
+
     # opkg reports missing and conflicts with same message, so clean that up.
     # If it's conflicting, remove it from missing...
     missing.difference_update(conflicts)
 
-    pkg_list = ":" if missing or conflicts else ""
+    pkg_list = ":" if missing or conflicts or downloads else ""
     if missing:
         pkg_list += " missing (" + ", ".join(sorted(missing)) + ")"
     if conflicts:
         pkg_list += " conflicts (" + ", ".join(sorted(conflicts)) + ")"
+    if downloads:
+        pkg_list += " wget-fails (" + ", ".join(sorted(downloads)) + ")"
     return f"Impossible package selection{pkg_list}"
 
 
