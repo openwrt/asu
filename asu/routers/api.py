@@ -19,6 +19,7 @@ from asu.util import (
     reload_profiles,
     reload_targets,
     reload_versions,
+    resolve_profile,
 )
 
 router = APIRouter()
@@ -127,28 +128,17 @@ def validate_request(
                 "try again later."
             )
 
-    def valid_profile(profile: str, build_request: BuildRequest) -> bool:
-        profiles = app.profiles[build_request.version][build_request.target]
-        if profile in profiles:
-            return True
-        if len(profiles) == 1 and "generic" in profiles:
-            # Handles the x86, armsr and other generic variants.
-            build_request.profile = "generic"
-            return True
-        return False
-
-    if not valid_profile(build_request.profile, build_request):
+    if build_request.profile not in app.profiles[build_request.version][build_request.target]:
         reload_profiles(app, build_request.version, build_request.target)
-        if not valid_profile(build_request.profile, build_request):
-            return validation_failure(
-                f"Unsupported profile: {build_request.profile}. The requested "
-                "profile was either dropped or never existed. Please check the "
-                "forums for more information."
-            )
 
-    build_request.profile = app.profiles[build_request.version][build_request.target][
-        build_request.profile
-    ]
+    try:
+        build_request.profile = resolve_profile(
+            app.profiles[build_request.version][build_request.target],
+            build_request.profile,
+        )
+    except ValueError as e:
+        return validation_failure(str(e))
+
     return ({}, None)
 
 
@@ -220,10 +210,12 @@ def api_v1_build_post(
     request: Request,
     user_agent: str = Header(None),
 ):
-    # Sanitize the profile in case the client did not (bug in older LuCI app).
-    build_request.profile = build_request.profile.replace(",", "_")
-
     add_build_event("requests")
+
+    content, status = validate_request(request.app, build_request)
+    if content:
+        response.status_code = status
+        return content
 
     request_hash: str = get_request_hash(build_request)
     job: Job = get_queue().fetch_job(request_hash)
@@ -250,11 +242,6 @@ def api_v1_build_post(
 
     if job is None:
         add_build_event("cache-misses")
-
-        content, status = validate_request(request.app, build_request)
-        if content:
-            response.status_code = status
-            return content
 
         job_queue_length = len(get_queue())
         if job_queue_length > settings.max_pending_jobs:
