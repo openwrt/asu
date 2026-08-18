@@ -8,11 +8,13 @@ from rq.job import Job
 from asu.build import build
 from asu.build_request import BuildRequest
 from asu.config import settings
-from asu.repositories import is_repo_allowed
+from asu.package_changes import apply_package_changes
+from asu.repositories import get_repo_packages, is_repo_allowed
 from asu.util import (
     add_timestamp,
     add_build_event,
     client_get,
+    get_available_packages,
     get_branch,
     get_queue,
     get_request_hash,
@@ -149,6 +151,48 @@ def validate_request(
     build_request.profile = app.profiles[build_request.version][build_request.target][
         build_request.profile
     ]
+
+    # Off by default — small setups don't benefit and pay the upstream
+    # round-trip cost on cache miss. Enable on busy servers via asu.toml.
+    if settings.validate_packages:
+        # In replace-mode with user repos, only those repos count; otherwise
+        # the standard upstream is part of the available universe.
+        needs_upstream = not (
+            build_request.repositories and build_request.repositories_mode == "replace"
+        )
+
+        available: set[str] = set()
+        skip_check = False
+
+        if needs_upstream:
+            arch = app.targets[build_request.version].get(build_request.target, "")
+            upstream = get_available_packages(
+                build_request.version, build_request.target, arch
+            )
+            if upstream is None:
+                skip_check = True
+            else:
+                available |= upstream
+
+        for url in build_request.repositories.values():
+            repo = get_repo_packages(url)
+            if repo is None:
+                # Repo unreachable or has no index.json — fail open rather
+                # than falsely reject.
+                skip_check = True
+                break
+            available |= repo
+
+        if not skip_check:
+            # apply_package_changes mutates .packages; copy first so the build
+            # phase still sees the original list and reapplies its own changes.
+            rewritten = build_request.model_copy(deep=True)
+            apply_package_changes(rewritten)
+            requested = {p for p in rewritten.packages if not p.startswith("-")}
+            missing = sorted(requested - available)
+            if missing:
+                return validation_failure(f"Unsupported packages: {', '.join(missing)}")
+
     return ({}, None)
 
 

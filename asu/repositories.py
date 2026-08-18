@@ -1,6 +1,15 @@
+from typing import Optional
 from urllib.parse import urlparse
 
 from asu.config import settings
+from asu.util import (
+    get_redis_client,
+    get_str_hash,
+    packages_from_index,
+    parse_packages_file,
+)
+
+PACKAGE_CACHE_TTL_REPO = 900  # user-supplied repos can update anytime
 
 
 def is_repo_allowed(repo_url: str, allow_list: list[str]) -> bool:
@@ -46,6 +55,33 @@ def merge_repositories(
             lines.append("option check_signature")
 
     return "\n".join(lines) + "\n"
+
+
+def get_repo_packages(url: str) -> Optional[set[str]]:
+    """Return cached set of available package names for a single repo URL.
+
+    Used for user-supplied repositories. Apk repos point at the `packages.adb`
+    file but their index.json sits next to it in the same directory, so the
+    trailing filename is stripped before fetching.
+    """
+    # apk: <repo>/packages.adb -> sibling <repo>/index.json
+    base = url.removesuffix("/packages.adb")
+    cache_key = f"pkgs:repo:{get_str_hash(base)}"
+    rc = get_redis_client()
+
+    cached = rc.smembers(cache_key)
+    if cached:
+        return cached
+
+    packages = packages_from_index(parse_packages_file(base))
+    if not packages:
+        return None
+
+    pipe = rc.pipeline()
+    pipe.sadd(cache_key, *packages)
+    pipe.expire(cache_key, PACKAGE_CACHE_TTL_REPO)
+    pipe.execute()
+    return packages
 
 
 def validate_repos(repositories: dict[str, str]) -> dict[str, str]:
