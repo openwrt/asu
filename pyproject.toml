@@ -34,7 +34,7 @@ dev = [
     "ruff>=0.15.12",
     "coverage>=7.14.3",
     "isort>=8.0.1",
-    "fakeredis>=2.36.2",
+    "fakeredis>=2.37.0",
     "pytest-httpserver>=1.1.5",
 ]
 
