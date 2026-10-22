@@ -69,6 +69,12 @@ def store(path: str):
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
+    if not app.versions:
+        reload_versions(app)
+        if not app.versions:
+            raise HTTPException(
+                status_code=503, detail="Version information unavailable"
+            )
     return templates.TemplateResponse(
         request=request,
         name="overview.html",
@@ -140,6 +146,8 @@ def json_v1_profile(path: str, target: str, profile: str):
 
 def generate_latest():
     reload_versions(app)  # Do a reload in case .versions.json has updated.
+    if not app.versions:
+        raise HTTPException(status_code=503, detail="Version information unavailable")
     return app.latest
 
 
@@ -151,6 +159,8 @@ def json_v1_latest():
 
 def generate_branches():
     # Caller is responsible for calling reload_versions() beforehand.
+    if not app.versions:
+        raise HTTPException(status_code=503, detail="Version information unavailable")
     branches = dict(**settings.branches)
 
     for branch in branches:

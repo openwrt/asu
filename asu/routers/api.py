@@ -109,6 +109,8 @@ def validate_request(
 
     if build_request.version not in app.versions:
         reload_versions(app)
+        if not app.versions:
+            return {"detail": "Version information unavailable", "status": 503}, 503
         if build_request.version not in app.versions:
             return validation_failure(f"Unsupported version: {build_request.version}")
 
