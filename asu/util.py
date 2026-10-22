@@ -592,11 +592,10 @@ def reload_versions(app: FastAPI) -> bool:
     """Set the values of both `app.versions` and `app.latest` using the
     upstream `.versions.json` file.
 
-    We check for updates to the versions by examining the response's
-    `from_cache` attribute.  This is safe because `reload_versions` is the
-    only function that downloads that file, so no race conditions can exist.
+    Keep the previous data if downloading or parsing fails, so later
+    requests can retry without disrupting an already running server.
 
-    Returns `True` if data has changed, `False` when cache was used.
+    Returns `True` on success, `False` on failure.
     """
 
     def in_supported_branch(version: str) -> bool:
@@ -614,27 +613,47 @@ def reload_versions(app: FastAPI) -> bool:
             if in_supported_branch(version):
                 version_list.append(version)
 
-    response = client_get(settings.upstream_url + "/.versions.json")
+    try:
+        response = client_get(settings.upstream_url + "/.versions.json")
+    except httpx.RequestError as exc:
+        log.warning(f".versions.json: failed to download: {exc}")
+        return False
+
     if response.status_code != 200:
         log.info(f".versions.json: failed to download {response.status_code}")
         return False
 
-    versions_upstream = response.json()
-    upcoming_version = versions_upstream["upcoming_version"]
+    try:
+        versions_upstream = response.json()
+        upcoming_version = versions_upstream["upcoming_version"]
+        stable_version = versions_upstream["stable_version"]
+        oldstable_version = versions_upstream["oldstable_version"]
+        versions_list = versions_upstream["versions_list"]
+        if not all(
+            version is None or isinstance(version, str)
+            for version in (upcoming_version, stable_version, oldstable_version)
+        ) or not (
+            isinstance(versions_list, list)
+            and all(isinstance(version, str) for version in versions_list)
+        ):
+            raise ValueError("Invalid version fields")
+    except (ValueError, KeyError, TypeError) as exc:
+        log.warning(f".versions.json: invalid version data: {exc}")
+        return False
 
-    app.latest = []
+    latest = []
     add_versions(
-        app.latest,
+        latest,
         upcoming_version,
-        versions_upstream["stable_version"],
-        versions_upstream["oldstable_version"],
+        stable_version,
+        oldstable_version,
     )
 
-    app.versions = []
+    versions = []
     add_versions(
-        app.versions,
+        versions,
         upcoming_version,
-        *versions_upstream["versions_list"],
+        *versions_list,
         "SNAPSHOT",
         *[
             f"{branch_name}-SNAPSHOT"
@@ -644,7 +663,9 @@ def reload_versions(app: FastAPI) -> bool:
     )
 
     # Create a key that puts -rcN between -SNAPSHOT and releases.
-    app.versions.sort(reverse=True, key=lambda v: v.replace(".0-rc", "-rc"))
+    versions.sort(reverse=True, key=lambda v: v.replace(".0-rc", "-rc"))
+    app.latest = latest
+    app.versions = versions
 
     return True
 
