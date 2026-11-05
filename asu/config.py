@@ -38,6 +38,12 @@ package_changes_list = [
         "revision": 27897,
     },
     {"source": "opkg", "target": "apk-mbedtls", "revision": 28056},
+    {"source": "ppe-qos", "target": "qca-ppe-qos", "revision": 37478},
+    {
+        "source": "luci-theme-openwrt-2020",
+        "target": "luci-theme-footstrap",
+        "revision": 38056,
+    },
 ]
 
 

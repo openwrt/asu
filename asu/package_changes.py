@@ -38,6 +38,9 @@ def apply_package_changes(build_request: BuildRequest):
 
     # 23.05 specific changes
     if build_request.version.startswith("23.05"):
+        if _remove_if_present("luci-app-wireguard"):
+            _add_if_missing("luci-proto-wireguard")
+
         # mediatek/mt7622 specific changes
         if build_request.target == "mediatek/mt7622":
             _add_if_missing("kmod-mt7622-firmware")
@@ -215,6 +218,36 @@ def apply_package_changes(build_request: BuildRequest):
         _remove_if_present("kmod-nf-conntrack6")
         # No specific commit, it was rolled into other kmods in kernel 6.18
         _remove_if_present("kmod-lib-crc32c")
+        # https://github.com/openwrt/openwrt/commit/d0d71dcc097fc9f842912b261b8a95ab0930ec2b
+        _remove_if_present("kmod-qca-nss-dp")
+        _remove_if_present("qca-nss-dp")
+        _remove_if_present("kmod-qca-ssdk")
+        _remove_if_present("qca-ssdk")
+        # https://github.com/openwrt/openwrt/commit/313889ee5c60949bd5c57fe84fa3c08f6d5b45b9
+        _remove_if_present("kmod-nf-log6")
+
+        # https://github.com/openwrt/openwrt/commit/e829091f342049b44894d9e20067023fa7e0da74
+        target_root = build_request.target.split("/")[0]
+        if (
+            target_root
+            in {
+                "armsr",
+                "bcm27xx",
+                "gemini",
+                "imx",
+                "loongarch64",
+                "sunxi",
+                "tegra",
+                "x86",
+            }
+            or build_request.target
+            in {
+                "mediatek/mt7623",
+                "at91/sama5",
+            }
+            or build_request.profile in {"ubnt_utr"}
+        ):
+            _add_if_missing("video-support")
 
     # TODO: if we ever fully implement 'packages_versions', this needs rework
     for version, packages in language_packs.items():
