@@ -164,7 +164,11 @@ def _build(build_request: BuildRequest, job=None):
         f"Container version: {container_version_tag} (requested {build_request.version})"
     )
 
-    environment: dict[str, str] = {}
+    environment: dict[str, str] = {
+        "UPSTREAM_URL": f"{settings.cache_url.rstrip('/')}/{re.sub(r'^https?://', '', settings.upstream_url)}"
+        if settings.cache_url
+        else settings.upstream_url,
+    }
 
     image = f"{settings.base_container}:{build_request.target.replace('/', '-')}-{container_version_tag}"
 
